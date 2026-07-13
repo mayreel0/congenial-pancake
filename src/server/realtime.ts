@@ -1,5 +1,3 @@
-import "server-only";
-
 export type PostRealtimeEvent =
   | { type: "comment.created"; postId: string; commentId: string }
   | { type: "reaction.created"; postId: string; reactionId: string }
