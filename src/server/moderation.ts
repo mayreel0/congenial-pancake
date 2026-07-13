@@ -2,7 +2,8 @@ import {
   ModerationEventType,
   ModerationTargetType,
   SanctionState,
-  VisibilityState
+  VisibilityState,
+  Prisma
 } from "@prisma/client";
 import { db } from "@/lib/db";
 
@@ -36,30 +37,50 @@ export function calculateSanctionState(trustScore: number): SanctionState {
   return SanctionState.NORMAL;
 }
 
+const trustDeltaRetryLimit = 3;
+
 export async function applyTrustDelta(userId: string, delta: number, reason: string) {
-  return db.$transaction(async (tx) => {
-    const user = await tx.user.findUniqueOrThrow({ where: { id: userId } });
-    const nextTrustScore = Math.max(0, Math.min(100, user.trustScore + delta));
-    const nextSanctionState = calculateSanctionState(nextTrustScore);
+  for (let attempt = 1; attempt <= trustDeltaRetryLimit; attempt += 1) {
+    try {
+      return await db.$transaction(
+        async (tx) => {
+          const user = await tx.user.findUniqueOrThrow({ where: { id: userId } });
+          const nextTrustScore = Math.max(0, Math.min(100, user.trustScore + delta));
+          const nextSanctionState = calculateSanctionState(nextTrustScore);
 
-    const updatedUser = await tx.user.update({
-      where: { id: userId },
-      data: { trustScore: nextTrustScore, sanctionState: nextSanctionState }
-    });
+          const updatedUser = await tx.user.update({
+            where: { id: userId },
+            data: { trustScore: nextTrustScore, sanctionState: nextSanctionState }
+          });
 
-    const event = await tx.moderationEvent.create({
-      data: {
-        userId,
-        targetType: ModerationTargetType.USER,
-        targetId: userId,
-        eventType: ModerationEventType.TRUST_SCORE_CHANGED,
-        riskReason: reason,
-        trustScoreDelta: delta
+          const event = await tx.moderationEvent.create({
+            data: {
+              userId,
+              targetType: ModerationTargetType.USER,
+              targetId: userId,
+              eventType: ModerationEventType.TRUST_SCORE_CHANGED,
+              riskReason: reason,
+              trustScoreDelta: delta
+            }
+          });
+
+          return [updatedUser, event] as const;
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
+      );
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2034" &&
+        attempt < trustDeltaRetryLimit
+      ) {
+        continue;
       }
-    });
+      throw error;
+    }
+  }
 
-    return [updatedUser, event] as const;
-  });
+  throw new Error("TRUST_DELTA_RETRY_EXHAUSTED");
 }
 
 export async function recordReport(
