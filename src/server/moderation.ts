@@ -37,16 +37,17 @@ export function calculateSanctionState(trustScore: number): SanctionState {
 }
 
 export async function applyTrustDelta(userId: string, delta: number, reason: string) {
-  const user = await db.user.findUniqueOrThrow({ where: { id: userId } });
-  const nextTrustScore = Math.max(0, Math.min(100, user.trustScore + delta));
-  const nextSanctionState = calculateSanctionState(nextTrustScore);
+  return db.$transaction(async (tx) => {
+    const user = await tx.user.findUniqueOrThrow({ where: { id: userId } });
+    const nextTrustScore = Math.max(0, Math.min(100, user.trustScore + delta));
+    const nextSanctionState = calculateSanctionState(nextTrustScore);
 
-  return db.$transaction([
-    db.user.update({
+    const updatedUser = await tx.user.update({
       where: { id: userId },
       data: { trustScore: nextTrustScore, sanctionState: nextSanctionState }
-    }),
-    db.moderationEvent.create({
+    });
+
+    const event = await tx.moderationEvent.create({
       data: {
         userId,
         targetType: ModerationTargetType.USER,
@@ -55,8 +56,10 @@ export async function applyTrustDelta(userId: string, delta: number, reason: str
         riskReason: reason,
         trustScoreDelta: delta
       }
-    })
-  ]);
+    });
+
+    return [updatedUser, event] as const;
+  });
 }
 
 export async function recordReport(
