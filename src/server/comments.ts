@@ -1,15 +1,6 @@
-import { DisplayMode, ReactionType, VisibilityState } from "@prisma/client";
+import { DisplayMode, ReactionType } from "@prisma/client";
 import { db } from "@/lib/db";
-
-type ModerationResult = {
-  risk: number;
-  visibilityState: VisibilityState;
-};
-
-// Task 6 will replace this temporary permissive moderation fallback.
-function moderateCommentText(): ModerationResult {
-  return { risk: 0, visibilityState: VisibilityState.VISIBLE };
-}
+import { moderateText } from "@/server/moderation";
 
 export function normalizeCommentBody(body: string): string {
   const normalized = body.trim();
@@ -34,7 +25,7 @@ export async function createPraiseComment(
   input: { body: string; displayMode: DisplayMode }
 ) {
   const body = normalizeCommentBody(input.body);
-  const moderation = moderateCommentText();
+  const moderation = moderateText(body);
 
   return db.praiseComment.create({
     data: {
@@ -72,7 +63,7 @@ export async function addAuthorReply(commentId: string, authorUserId: string, bo
     include: { post: true }
   });
   assertPostAuthor(comment.post.authorUserId, authorUserId);
-  const moderation = moderateCommentText();
+  const moderation = moderateText(body);
 
   return db.reply.create({
     data: {
