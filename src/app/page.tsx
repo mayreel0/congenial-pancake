@@ -3,7 +3,7 @@ import { listFeedPosts } from "@/server/posts";
 export const dynamic = "force-dynamic";
 
 function publicName(displayMode: string, nickname: string) {
-  return displayMode === "ANONYMOUS" ? "익명" : nickname;
+  return displayMode === "ANONYMOUS" ? "Anonymous" : nickname;
 }
 
 export default async function HomePage() {
