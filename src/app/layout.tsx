@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Metadata } from "next";
 import "./globals.css";
 
@@ -11,7 +12,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="ko">
       <body>
         <header className="site-header">
-          <a href="/" className="brand">전긍정</a>
+          <Link href="/" className="brand">전긍정</Link>
           <nav aria-label="주요 메뉴">
             <a href="/rankings">랭킹</a>
             <a href="/posts/new">글쓰기</a>
