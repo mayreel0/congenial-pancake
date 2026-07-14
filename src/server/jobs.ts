@@ -1,4 +1,3 @@
-import "server-only";
 import { AiJobStatus, AiJobType, DisplayMode, Prisma } from "@prisma/client";
 import { type ConnectionOptions, Queue, Worker } from "bullmq";
 import IORedis from "ioredis";

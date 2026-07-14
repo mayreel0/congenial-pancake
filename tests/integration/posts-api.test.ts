@@ -63,6 +63,24 @@ describe("posts API route", () => {
     expect(createPraisePostMock).not.toHaveBeenCalled();
   });
 
+
+  it("returns 400 for known post validation errors", async () => {
+    authMock.mockResolvedValue({ user: { id: "user_1" } });
+    findUniqueOrThrowMock.mockResolvedValue({ id: "user_1", sanctionState: SanctionState.NORMAL });
+    createPraisePostMock.mockRejectedValue(new Error("POST_BODY_REQUIRED"));
+    const { POST } = await import("@/app/api/posts/route");
+
+    const response = await POST(
+      new Request("http://localhost/api/posts", {
+        method: "POST",
+        body: JSON.stringify({ title: "제목", body: "", displayMode: "NICKNAME", promptAnswers: null })
+      })
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({ error: "POST_BODY_REQUIRED" });
+  });
+
   it("delegates valid post creation to the post service", async () => {
     const input = { title: "오늘 해냈어요", body: "끝냈습니다", displayMode: "ANONYMOUS", promptAnswers: null };
     const created = { id: "post_1", ...input };

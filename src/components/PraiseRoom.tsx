@@ -12,10 +12,17 @@ type PraiseRoomProps = {
       id: string;
       body: string;
       isAiGenerated: boolean;
+      displayMode: string;
       author: { nickname: string } | null;
     }>;
   };
 };
+
+function commenterName(comment: PraiseRoomProps["post"]["comments"][number]): string {
+  if (comment.isAiGenerated) return "AI 칭찬";
+  if (comment.displayMode === "ANONYMOUS") return "익명";
+  return comment.author?.nickname ?? "익명";
+}
 
 export default function PraiseRoom({ post }: PraiseRoomProps) {
   useEffect(() => {
@@ -35,7 +42,7 @@ export default function PraiseRoom({ post }: PraiseRoomProps) {
       <div aria-live="polite">
         {post.comments.map((comment) => (
           <article key={comment.id} className="comment">
-            <strong>{comment.isAiGenerated ? "AI 칭찬" : comment.author?.nickname ?? "익명"}</strong>
+            <strong>{commenterName(comment)}</strong>
             <p>{comment.body}</p>
           </article>
         ))}

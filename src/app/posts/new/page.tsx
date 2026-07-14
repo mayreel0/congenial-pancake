@@ -2,6 +2,21 @@
 
 import { FormEvent, useState } from "react";
 
+function formString(formData: FormData, name: string): string {
+  const value = formData.get(name);
+  return typeof value === "string" ? value : "";
+}
+
+function promptAnswersFromForm(formData: FormData): Record<string, string> | null {
+  const answers = {
+    accomplished: formString(formData, "accomplished").trim(),
+    praisePoint: formString(formData, "praisePoint").trim(),
+    tone: formString(formData, "tone").trim()
+  };
+  const entries = Object.entries(answers).filter(([, value]) => value.length > 0);
+  return entries.length > 0 ? Object.fromEntries(entries) : null;
+}
+
 export default function NewPostPage() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -16,14 +31,10 @@ export default function NewPostPage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        title: formData.get("title"),
-        body: formData.get("body"),
-        displayMode: formData.get("displayMode"),
-        promptAnswers: {
-          accomplished: formData.get("accomplished"),
-          praisePoint: formData.get("praisePoint"),
-          tone: formData.get("tone")
-        }
+        title: formString(formData, "title"),
+        body: formString(formData, "body"),
+        displayMode: formString(formData, "displayMode"),
+        promptAnswers: promptAnswersFromForm(formData)
       })
     });
 

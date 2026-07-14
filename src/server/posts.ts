@@ -3,13 +3,24 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { enqueueAiPraiseJob } from "@/server/jobs";
 
-const tenMinutes = 10 * 60 * 1000;
+const initialInactivityDelayMs = 10 * 60 * 1000;
+
+const promptAnswersSchema = z.preprocess((value) => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+
+  const entries = Object.entries(value)
+    .filter((entry): entry is [string, string] => typeof entry[1] === "string")
+    .map(([key, answer]) => [key, answer.trim()] as const)
+    .filter(([, answer]) => answer.length > 0);
+
+  return entries.length > 0 ? Object.fromEntries(entries) : null;
+}, z.record(z.string()).nullable());
 
 const postInputSchema = z.object({
   title: z.string().trim().min(1, "POST_TITLE_REQUIRED").max(120),
   body: z.string().trim().min(1, "POST_BODY_REQUIRED").max(3000),
   displayMode: z.nativeEnum(DisplayMode),
-  promptAnswers: z.record(z.string()).nullable()
+  promptAnswers: promptAnswersSchema
 });
 
 export type CreatePostInput = z.input<typeof postInputSchema>;
@@ -47,7 +58,7 @@ export async function createPraisePost(input: CreatePostInput, authorUserId: str
       data: {
         postId: post.id,
         jobType: "INACTIVITY_PRAISE",
-        scheduledAt: new Date(Date.now() + tenMinutes)
+        scheduledAt: new Date(Date.now() + initialInactivityDelayMs)
       }
     });
 

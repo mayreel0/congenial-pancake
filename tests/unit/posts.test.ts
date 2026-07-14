@@ -22,6 +22,29 @@ describe("post input normalization", () => {
     expect(input.promptAnswers).toEqual({ tone: "다정하게" });
   });
 
+
+  it("drops empty optional prompt answers", () => {
+    const input = normalizePostInput({
+      title: "오늘 해냈어요",
+      body: "끝냈습니다",
+      displayMode: DisplayMode.NICKNAME,
+      promptAnswers: { accomplished: "  ", praisePoint: "꾸준함", tone: "" }
+    });
+
+    expect(input.promptAnswers).toEqual({ praisePoint: "꾸준함" });
+  });
+
+  it("normalizes optional prompt answers to null when all are empty", () => {
+    const input = normalizePostInput({
+      title: "오늘 해냈어요",
+      body: "끝냈습니다",
+      displayMode: DisplayMode.NICKNAME,
+      promptAnswers: { accomplished: "", praisePoint: "   " }
+    });
+
+    expect(input.promptAnswers).toBeNull();
+  });
+
   it("rejects empty post bodies", () => {
     expect(() =>
       normalizePostInput({
