@@ -20,7 +20,7 @@ vi.mock("@/lib/db", () => ({
 vi.mock("@/server/ai", () => ({ generatePraiseComments: vi.fn() }));
 vi.mock("@/server/realtime", () => ({ publishPostEvent: vi.fn() }));
 
-import { shouldRunInactivityPraise } from "@/server/jobs";
+import { ensureAiDisclosure, shouldRunInactivityPraise } from "@/server/jobs";
 
 describe("inactivity praise policy", () => {
   it("skips a post that already has five AI comments", async () => {
@@ -30,12 +30,33 @@ describe("inactivity praise policy", () => {
     expect(count).toHaveBeenCalledOnce();
   });
 
-  it("runs only when no visible human comments exist", async () => {
+  it("runs when no visible human comments exist in the quiet window", async () => {
     count.mockResolvedValueOnce(2).mockResolvedValueOnce(0);
 
     await expect(shouldRunInactivityPraise("post_1")).resolves.toBe(true);
     expect(count).toHaveBeenLastCalledWith({
-      where: { postId: "post_1", isAiGenerated: false, visibilityState: "VISIBLE" }
+      where: {
+        postId: "post_1",
+        isAiGenerated: false,
+        visibilityState: "VISIBLE",
+        createdAt: { gte: expect.any(Date) }
+      }
     });
+  });
+
+  it("skips when recent visible human comments exist", async () => {
+    count.mockResolvedValueOnce(2).mockResolvedValueOnce(1);
+
+    await expect(shouldRunInactivityPraise("post_1")).resolves.toBe(false);
+  });
+});
+
+describe("AI disclosure", () => {
+  it("prefixes AI comments when the model omits disclosure", () => {
+    expect(ensureAiDisclosure("잘 해냈어요")).toBe("AI 칭찬: 잘 해냈어요");
+  });
+
+  it("does not duplicate the AI disclosure prefix", () => {
+    expect(ensureAiDisclosure("AI 칭찬: 잘 해냈어요")).toBe("AI 칭찬: 잘 해냈어요");
   });
 });

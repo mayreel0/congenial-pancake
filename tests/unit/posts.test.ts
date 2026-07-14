@@ -2,7 +2,7 @@ import { DisplayMode } from "@prisma/client";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/server/jobs", () => ({
-  aiPraiseQueue: { add: vi.fn() }
+  enqueueAiPraiseJob: vi.fn()
 }));
 
 import { normalizePostInput } from "@/server/posts";

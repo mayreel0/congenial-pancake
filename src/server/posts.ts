@@ -1,7 +1,7 @@
 import { DisplayMode, Prisma, VisibilityState } from "@prisma/client";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { aiPraiseQueue } from "@/server/jobs";
+import { enqueueAiPraiseJob } from "@/server/jobs";
 
 const tenMinutes = 10 * 60 * 1000;
 
@@ -54,15 +54,7 @@ export async function createPraisePost(input: CreatePostInput, authorUserId: str
     return { post, aiJobs: [initialJob, inactivityJob] };
   });
 
-  await Promise.all(
-    aiJobs.map((aiJob) =>
-      aiPraiseQueue.add(
-        "process-ai-praise",
-        { aiPraiseJobId: aiJob.id },
-        { delay: Math.max(0, aiJob.scheduledAt.getTime() - Date.now()) }
-      )
-    )
-  );
+  await Promise.all(aiJobs.map((aiJob) => enqueueAiPraiseJob(aiJob)));
 
   return post;
 }
