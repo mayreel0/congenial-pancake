@@ -23,7 +23,7 @@ For Korean setup instructions, see [docs/RUNNING.ko.md](docs/RUNNING.ko.md).
 - Auth.js
 - Socket.IO
 - BullMQ, Redis
-- OpenAI API
+- Gemini API by default, with OpenAI as a switchable provider
 - Vitest, Testing Library, Playwright
 
 ## Requirements
@@ -32,7 +32,7 @@ For Korean setup instructions, see [docs/RUNNING.ko.md](docs/RUNNING.ko.md).
 - npm
 - PostgreSQL
 - Redis
-- OpenAI API key for AI praise generation
+- Gemini API key for AI praise generation, or an OpenAI API key when `AI_PROVIDER="openai"`
 
 ## Environment
 
@@ -48,7 +48,11 @@ Required variables:
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/praise_community"
 AUTH_SECRET="replace-with-local-secret"
 AUTH_URL="http://localhost:3000"
+AI_PROVIDER="gemini"
+GEMINI_API_KEY=""
+GEMINI_MODEL="gemini-2.5-flash-lite"
 OPENAI_API_KEY=""
+OPENAI_MODEL="gpt-4o-mini"
 REDIS_URL="redis://localhost:6379"
 NEXT_PUBLIC_SOCKET_URL="http://localhost:3000"
 ```
@@ -128,7 +132,7 @@ DATABASE_URL="postgresql://postgres:postgres@localhost:5432/praise_community" np
 
 ## Background Jobs
 
-AI praise creation depends on Redis and `OPENAI_API_KEY`. The domain logic and worker factory are implemented in `src/server/jobs.ts`; production deployment should run a worker process that calls `startAiPraiseWorker()`.
+AI praise creation depends on Redis and the configured AI provider key. Gemini is the default provider via `AI_PROVIDER="gemini"`, `GEMINI_API_KEY`, and `GEMINI_MODEL`. Set `AI_PROVIDER="openai"` with `OPENAI_API_KEY` and `OPENAI_MODEL` to switch providers. The domain logic and worker factory are implemented in `src/server/jobs.ts`; production deployment should run a worker process that calls `startAiPraiseWorker()`.
 
 ## Current Limitations
 

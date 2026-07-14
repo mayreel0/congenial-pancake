@@ -8,7 +8,7 @@
 - npm
 - PostgreSQL
 - Redis
-- AI 칭찬 생성을 위한 OpenAI API 키
+- AI 칭찬 생성을 위한 Gemini API 키, 또는 OpenAI로 전환할 경우 OpenAI API 키
 
 ## 1. 의존성 설치
 
@@ -71,7 +71,11 @@ cp .env.example .env
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/praise_community"
 AUTH_SECRET="replace-with-local-secret"
 AUTH_URL="http://localhost:3000"
+AI_PROVIDER="gemini"
+GEMINI_API_KEY=""
+GEMINI_MODEL="gemini-2.5-flash-lite"
 OPENAI_API_KEY=""
+OPENAI_MODEL="gpt-4o-mini"
 REDIS_URL="redis://localhost:6379"
 NEXT_PUBLIC_SOCKET_URL="http://localhost:3000"
 ```
@@ -161,7 +165,7 @@ Pull Request와 `main` 브랜치 push에서 GitHub Actions CI가 실행됩니다
 
 ## 10. AI 칭찬 작업 참고
 
-AI 칭찬은 Redis 큐와 OpenAI API 키가 필요합니다. 작업 생성/정책/worker factory는 `src/server/jobs.ts`에 구현되어 있습니다. 운영 환경에서는 `startAiPraiseWorker()`를 호출하는 별도 worker 프로세스를 연결해야 합니다.
+AI 칭찬은 Redis 큐와 설정된 AI provider의 API 키가 필요합니다. 기본값은 `AI_PROVIDER="gemini"`, `GEMINI_API_KEY`, `GEMINI_MODEL="gemini-2.5-flash-lite"`입니다. OpenAI로 전환하려면 `AI_PROVIDER="openai"`, `OPENAI_API_KEY`, `OPENAI_MODEL`을 설정하세요. 작업 생성/정책/worker factory는 `src/server/jobs.ts`에 구현되어 있습니다. 운영 환경에서는 `startAiPraiseWorker()`를 호출하는 별도 worker 프로세스를 연결해야 합니다.
 
 ## 11. 자주 막히는 지점
 

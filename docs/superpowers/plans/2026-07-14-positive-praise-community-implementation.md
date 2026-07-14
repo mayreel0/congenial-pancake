@@ -248,7 +248,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "전긍정",
+  title: "칭찬",
   description: "칭찬받고 싶은 순간을 안전하게 나누는 커뮤니티"
 };
 
@@ -257,7 +257,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="ko">
       <body>
         <header className="site-header">
-          <a href="/" className="brand">전긍정</a>
+          <a href="/" className="brand">칭찬</a>
           <nav aria-label="주요 메뉴">
             <a href="/rankings">랭킹</a>
             <a href="/posts/new">글쓰기</a>
@@ -278,7 +278,7 @@ export default function HomePage() {
   return (
     <section className="page-section">
       <h1>칭찬받고 싶은 순간을 올려보세요</h1>
-      <p>전긍정은 자랑과 칭찬을 안전하게 주고받는 커뮤니티입니다.</p>
+      <p>칭찬을 안전하게 주고받는 커뮤니티입니다.</p>
     </section>
   );
 }
@@ -341,7 +341,7 @@ import { describe, expect, it } from "vitest";
 
 describe("test harness", () => {
   it("runs TypeScript tests", () => {
-    expect("전긍정").toContain("긍정");
+    expect("칭찬").toContain("긍정");
   });
 });
 ```
@@ -1783,7 +1783,7 @@ export function clampPraiseCount(count: number): number {
 
 export function buildPraisePrompt(post: PraisePromptPost): string {
   return [
-    "너는 전긍정 커뮤니티의 AI 칭찬 댓글 작성자다.",
+    "너는 칭찬 커뮤니티의 AI 칭찬 댓글 작성자다.",
     "댓글에는 AI 칭찬임을 자연스럽게 드러내라.",
     "사용자의 노력, 용기, 지속성, 배려, 배움, 완료를 구체적으로 칭찬하라.",
     "의료, 법률, 금융 조언과 외모/신체/정체성 평가는 피하라.",
