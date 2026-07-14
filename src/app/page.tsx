@@ -1,9 +1,10 @@
+import Link from "next/link";
 import { listFeedPosts } from "@/server/posts";
 
 export const dynamic = "force-dynamic";
 
 function publicName(displayMode: string, nickname: string) {
-  return displayMode === "ANONYMOUS" ? "Anonymous" : nickname;
+  return displayMode === "ANONYMOUS" ? "익명" : nickname;
 }
 
 export default async function HomePage() {
@@ -18,9 +19,9 @@ export default async function HomePage() {
           const aiCount = post.comments.length - humanCount;
           return (
             <article key={post.id} className="feed-item">
-              <a href={`/posts/${post.id}`}>
+              <Link href={`/posts/${post.id}`}>
                 <h2>{post.title}</h2>
-              </a>
+              </Link>
               <p>{post.body.slice(0, 120)}</p>
               <small>
                 {publicName(post.displayMode, post.author.nickname)} · 사람 {humanCount} · AI {aiCount}

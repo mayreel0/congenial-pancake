@@ -25,10 +25,13 @@ const postInputSchema = z.object({
 
 export type CreatePostInput = z.input<typeof postInputSchema>;
 
+const postInputErrorCodes = new Set(["POST_TITLE_REQUIRED", "POST_BODY_REQUIRED"]);
+
 export function normalizePostInput(input: CreatePostInput) {
   const parsed = postInputSchema.safeParse(input);
   if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "INVALID_POST_INPUT");
+    const message = parsed.error.issues[0]?.message;
+    throw new Error(message && postInputErrorCodes.has(message) ? message : "INVALID_POST_INPUT");
   }
   return parsed.data;
 }

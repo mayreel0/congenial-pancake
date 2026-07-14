@@ -45,6 +45,17 @@ describe("post input normalization", () => {
     expect(input.promptAnswers).toBeNull();
   });
 
+  it("maps unknown post validation failures to a stable input error", () => {
+    expect(() =>
+      normalizePostInput({
+        title: "x".repeat(121),
+        body: "본문",
+        displayMode: DisplayMode.NICKNAME,
+        promptAnswers: null
+      })
+    ).toThrow("INVALID_POST_INPUT");
+  });
+
   it("rejects empty post bodies", () => {
     expect(() =>
       normalizePostInput({
