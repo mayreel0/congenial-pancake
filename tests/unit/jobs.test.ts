@@ -1,6 +1,7 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 const count = vi.hoisted(() => vi.fn());
+const findFirst = vi.hoisted(() => vi.fn());
 
 vi.mock("bullmq", () => ({
   Queue: class Queue {},
@@ -14,7 +15,7 @@ vi.mock("ioredis", () => ({
 }));
 
 vi.mock("@/lib/db", () => ({
-  db: { praiseComment: { count } }
+  db: { praiseComment: { count, findFirst } }
 }));
 
 vi.mock("@/server/ai", () => ({ generatePraiseComments: vi.fn() }));
@@ -23,31 +24,46 @@ vi.mock("@/server/realtime", () => ({ publishPostEvent: vi.fn() }));
 import { ensureAiDisclosure, shouldRunInactivityPraise } from "@/server/jobs";
 
 describe("inactivity praise policy", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    count.mockReset();
+    findFirst.mockReset();
+  });
+
   it("skips a post that already has five AI comments", async () => {
     count.mockResolvedValueOnce(5);
 
     await expect(shouldRunInactivityPraise("post_1")).resolves.toBe(false);
     expect(count).toHaveBeenCalledOnce();
+    expect(findFirst).not.toHaveBeenCalled();
   });
 
-  it("runs when no visible human comments exist in the quiet window", async () => {
-    count.mockResolvedValueOnce(2).mockResolvedValueOnce(0);
+  it("runs when no visible human comments exist", async () => {
+    count.mockResolvedValueOnce(2);
+    findFirst.mockResolvedValueOnce(null);
 
     await expect(shouldRunInactivityPraise("post_1")).resolves.toBe(true);
-    expect(count).toHaveBeenLastCalledWith({
-      where: {
-        postId: "post_1",
-        isAiGenerated: false,
-        visibilityState: "VISIBLE",
-        createdAt: { gte: expect.any(Date) }
-      }
+    expect(findFirst).toHaveBeenCalledWith({
+      where: { postId: "post_1", isAiGenerated: false, visibilityState: "VISIBLE" },
+      orderBy: { createdAt: "desc" },
+      select: { createdAt: true }
     });
   });
 
-  it("skips when recent visible human comments exist", async () => {
-    count.mockResolvedValueOnce(2).mockResolvedValueOnce(1);
+  it("skips when the latest visible human comment is inside the quiet window", async () => {
+    vi.setSystemTime(new Date("2026-07-14T12:30:00.000Z"));
+    count.mockResolvedValueOnce(2);
+    findFirst.mockResolvedValueOnce({ createdAt: new Date("2026-07-14T12:20:00.000Z") });
 
     await expect(shouldRunInactivityPraise("post_1")).resolves.toBe(false);
+  });
+
+  it("runs when the latest visible human comment is older than the quiet window", async () => {
+    vi.setSystemTime(new Date("2026-07-14T12:31:00.000Z"));
+    count.mockResolvedValueOnce(2);
+    findFirst.mockResolvedValueOnce({ createdAt: new Date("2026-07-14T12:00:00.000Z") });
+
+    await expect(shouldRunInactivityPraise("post_1")).resolves.toBe(true);
   });
 });
 

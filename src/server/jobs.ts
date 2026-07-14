@@ -53,15 +53,18 @@ export async function shouldRunInactivityPraise(postId: string): Promise<boolean
   const aiCount = await db.praiseComment.count({ where: { postId, isAiGenerated: true } });
   if (aiCount >= aiCommentCap) return false;
 
-  const recentHumanCount = await db.praiseComment.count({
+  const latestHumanComment = await db.praiseComment.findFirst({
     where: {
       postId,
       isAiGenerated: false,
-      visibilityState: "VISIBLE",
-      createdAt: { gte: new Date(Date.now() - quietWindowMs) }
-    }
+      visibilityState: "VISIBLE"
+    },
+    orderBy: { createdAt: "desc" },
+    select: { createdAt: true }
   });
-  return recentHumanCount === 0;
+
+  if (!latestHumanComment) return true;
+  return latestHumanComment.createdAt.getTime() <= Date.now() - quietWindowMs;
 }
 
 export async function scheduleInactivityPraise(postId: string, scheduledAt = new Date(Date.now() + quietWindowMs)) {
