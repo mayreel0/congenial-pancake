@@ -111,6 +111,10 @@ npm run lint         # ESLint
 npm run prisma:seed  # Seed local database
 ```
 
+## CI
+
+Pull requests and pushes to `main` run GitHub Actions CI. The workflow installs dependencies, generates the Prisma Client, runs lint, runs unit/integration tests, builds the app, and runs TypeScript checking.
+
 ## Testing Notes
 
 - `npm run test` does not require a live PostgreSQL or Redis instance for the current unit/integration test set.

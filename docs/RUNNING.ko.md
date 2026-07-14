@@ -155,11 +155,15 @@ npm run test:e2e
 
 현재 E2E 스모크는 `DATABASE_URL`이 없으면 자동으로 스킵됩니다. 실제 화면 흐름까지 보려면 PostgreSQL이 켜져 있고 `.env`에 `DATABASE_URL`이 설정되어 있어야 합니다.
 
-## 9. AI 칭찬 작업 참고
+## 9. GitHub Actions CI
+
+Pull Request와 `main` 브랜치 push에서 GitHub Actions CI가 실행됩니다. CI는 의존성 설치, Prisma Client 생성, lint, 단위/통합 테스트, production build, TypeScript 검사를 수행합니다.
+
+## 10. AI 칭찬 작업 참고
 
 AI 칭찬은 Redis 큐와 OpenAI API 키가 필요합니다. 작업 생성/정책/worker factory는 `src/server/jobs.ts`에 구현되어 있습니다. 운영 환경에서는 `startAiPraiseWorker()`를 호출하는 별도 worker 프로세스를 연결해야 합니다.
 
-## 10. 자주 막히는 지점
+## 11. 자주 막히는 지점
 
 ### `DATABASE_URL` 오류
 
