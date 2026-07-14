@@ -56,15 +56,13 @@ export async function shouldRunInactivityPraise(postId: string): Promise<boolean
   const latestHumanComment = await db.praiseComment.findFirst({
     where: {
       postId,
-      isAiGenerated: false,
-      visibilityState: "VISIBLE"
+      isAiGenerated: false
     },
     orderBy: { createdAt: "desc" },
     select: { createdAt: true }
   });
 
-  if (!latestHumanComment) return true;
-  return latestHumanComment.createdAt.getTime() <= Date.now() - quietWindowMs;
+  return isPastQuietWindow(latestHumanComment);
 }
 
 export async function scheduleInactivityPraise(postId: string, scheduledAt = new Date(Date.now() + quietWindowMs)) {
@@ -79,14 +77,35 @@ export async function scheduleInactivityPraise(postId: string, scheduledAt = new
   return aiJob;
 }
 
-async function createAiCommentsWithinCap(aiJobId: string, postId: string, comments: string[]) {
+function isPastQuietWindow(latestHumanComment: { createdAt: Date } | null): boolean {
+  if (!latestHumanComment) return true;
+  return latestHumanComment.createdAt.getTime() <= Date.now() - quietWindowMs;
+}
+
+function isTerminalAiJob(job: { status: AiJobStatus; resultCommentIds: string[] }): boolean {
+  return job.status === AiJobStatus.COMPLETED || job.status === AiJobStatus.SKIPPED || job.resultCommentIds.length > 0;
+}
+
+async function createAiCommentsWithinCap(aiJobId: string, postId: string, jobType: AiJobType, comments: string[]) {
   for (let attempt = 1; attempt <= serializableRetryLimit; attempt += 1) {
     try {
       return await db.$transaction(
         async (tx) => {
           const currentJob = await tx.aiPraiseJob.findUniqueOrThrow({ where: { id: aiJobId } });
-          if (currentJob.status === AiJobStatus.COMPLETED || currentJob.resultCommentIds.length > 0) {
+          if (isTerminalAiJob(currentJob)) {
             return [] as Array<{ id: string }>;
+          }
+
+          if (jobType === AiJobType.INACTIVITY_PRAISE) {
+            const latestHumanComment = await tx.praiseComment.findFirst({
+              where: { postId, isAiGenerated: false },
+              orderBy: { createdAt: "desc" },
+              select: { createdAt: true }
+            });
+            if (!isPastQuietWindow(latestHumanComment)) {
+              await tx.aiPraiseJob.update({ where: { id: aiJobId }, data: { status: AiJobStatus.SKIPPED } });
+              return [] as Array<{ id: string }>;
+            }
           }
 
           const currentAiCount = await tx.praiseComment.count({
@@ -140,8 +159,16 @@ export function startAiPraiseWorker() {
   return new Worker(
     "ai-praise",
     async (job) => {
-      const aiJob = await db.aiPraiseJob.update({
+      const existingAiJob = await db.aiPraiseJob.findUniqueOrThrow({
         where: { id: job.data.aiPraiseJobId },
+        include: { post: true }
+      });
+      if (isTerminalAiJob(existingAiJob)) {
+        return;
+      }
+
+      const aiJob = await db.aiPraiseJob.update({
+        where: { id: existingAiJob.id },
         data: { status: AiJobStatus.RUNNING },
         include: { post: true }
       });
@@ -156,7 +183,7 @@ export function startAiPraiseWorker() {
 
       const requestedCount = aiJob.jobType === AiJobType.INITIAL_PRAISE ? 3 : 1;
       const comments = await generatePraiseComments(aiJob.post, requestedCount);
-      const created = await createAiCommentsWithinCap(aiJob.id, aiJob.postId, comments);
+      const created = await createAiCommentsWithinCap(aiJob.id, aiJob.postId, aiJob.jobType, comments);
 
       for (const comment of created) {
         publishPostEvent(aiJob.postId, {

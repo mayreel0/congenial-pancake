@@ -38,19 +38,19 @@ describe("inactivity praise policy", () => {
     expect(findFirst).not.toHaveBeenCalled();
   });
 
-  it("runs when no visible human comments exist", async () => {
+  it("runs when no human comments exist", async () => {
     count.mockResolvedValueOnce(2);
     findFirst.mockResolvedValueOnce(null);
 
     await expect(shouldRunInactivityPraise("post_1")).resolves.toBe(true);
     expect(findFirst).toHaveBeenCalledWith({
-      where: { postId: "post_1", isAiGenerated: false, visibilityState: "VISIBLE" },
+      where: { postId: "post_1", isAiGenerated: false },
       orderBy: { createdAt: "desc" },
       select: { createdAt: true }
     });
   });
 
-  it("skips when the latest visible human comment is inside the quiet window", async () => {
+  it("skips when the latest human comment is inside the quiet window", async () => {
     vi.setSystemTime(new Date("2026-07-14T12:30:00.000Z"));
     count.mockResolvedValueOnce(2);
     findFirst.mockResolvedValueOnce({ createdAt: new Date("2026-07-14T12:20:00.000Z") });
@@ -58,7 +58,7 @@ describe("inactivity praise policy", () => {
     await expect(shouldRunInactivityPraise("post_1")).resolves.toBe(false);
   });
 
-  it("runs when the latest visible human comment is older than the quiet window", async () => {
+  it("runs when the latest human comment is older than the quiet window", async () => {
     vi.setSystemTime(new Date("2026-07-14T12:31:00.000Z"));
     count.mockResolvedValueOnce(2);
     findFirst.mockResolvedValueOnce({ createdAt: new Date("2026-07-14T12:00:00.000Z") });
