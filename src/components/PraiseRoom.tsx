@@ -12,7 +12,7 @@ type PraiseRoomProps = {
       id: string;
       body: string;
       isAiGenerated: boolean;
-      displayMode: string;
+      displayMode: "NICKNAME" | "ANONYMOUS";
       author: { nickname: string } | null;
     }>;
   };

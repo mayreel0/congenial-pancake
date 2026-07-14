@@ -51,6 +51,7 @@ describe("inactivity praise policy", () => {
   });
 
   it("skips when the latest human comment is inside the quiet window", async () => {
+    vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-07-14T12:30:00.000Z"));
     count.mockResolvedValueOnce(2);
     findFirst.mockResolvedValueOnce({ createdAt: new Date("2026-07-14T12:20:00.000Z") });
@@ -59,6 +60,7 @@ describe("inactivity praise policy", () => {
   });
 
   it("runs when the latest human comment is older than the quiet window", async () => {
+    vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-07-14T12:31:00.000Z"));
     count.mockResolvedValueOnce(2);
     findFirst.mockResolvedValueOnce({ createdAt: new Date("2026-07-14T12:00:00.000Z") });

@@ -38,7 +38,7 @@ export async function enqueueAiPraiseJob(aiPraiseJob: { id: string; jobType: AiJ
   await getAiPraiseQueue().add(
     "process-ai-praise",
     { aiPraiseJobId: aiPraiseJob.id },
-    { delay: Math.max(0, aiPraiseJob.scheduledAt.getTime() - Date.now()) }
+    { delay: Math.max(0, aiPraiseJob.scheduledAt.getTime() - Date.now()), jobId: aiPraiseJob.id }
   );
 }
 
