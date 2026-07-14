@@ -9,26 +9,26 @@ const port = Number(process.env.PORT ?? 3000);
 const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
 
-await app.prepare();
-
-const httpServer = createServer((request, response) => {
-  handle(request, response);
-});
-
-const io = new Server(httpServer, {
-  path: "/api/socket/io"
-});
-
-io.on("connection", (socket) => {
-  socket.on("post:join", (payload: { postId?: unknown }) => {
-    if (typeof payload.postId === "string" && payload.postId.length > 0) {
-      socket.join(`post:${payload.postId}`);
-    }
+app.prepare().then(() => {
+  const httpServer = createServer((request, response) => {
+    handle(request, response);
   });
-});
 
-registerSocketServer(io);
+  const io = new Server(httpServer, {
+    path: "/api/socket/io"
+  });
 
-httpServer.listen(port, hostname, () => {
-  console.log(`> Ready on http://${hostname}:${port}`);
+  io.on("connection", (socket) => {
+    socket.on("post:join", (payload: { postId?: unknown }) => {
+      if (typeof payload.postId === "string" && payload.postId.length > 0) {
+        socket.join(`post:${payload.postId}`);
+      }
+    });
+  });
+
+  registerSocketServer(io);
+
+  httpServer.listen(port, hostname, () => {
+    console.log(`> Ready on http://${hostname}:${port}`);
+  });
 });
