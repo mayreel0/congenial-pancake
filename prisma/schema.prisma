@@ -1,0 +1,252 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum DisplayMode {
+  NICKNAME
+  ANONYMOUS
+}
+
+enum VisibilityState {
+  VISIBLE
+  HELD
+  HIDDEN
+  AUTHOR_ONLY
+}
+
+enum SanctionState {
+  NORMAL
+  LOW_TRUST
+  SHADOW_BANNED
+  SERVICE_BANNED
+}
+
+enum ReactionType {
+  THANK_YOU
+  HELPED_ME
+  MOVED_ME
+}
+
+enum ReportStatus {
+  OPEN
+  REVIEWED
+  DISMISSED
+}
+
+enum ModerationTargetType {
+  POST
+  COMMENT
+  REPLY
+  USER
+}
+
+enum ModerationEventType {
+  FILTER_HELD
+  FILTER_HIDDEN
+  REPORT_CREATED
+  REPORT_ACCEPTED
+  REPORT_DISMISSED
+  TRUST_SCORE_CHANGED
+  SANCTION_CHANGED
+}
+
+enum AiJobType {
+  INITIAL_PRAISE
+  INACTIVITY_PRAISE
+}
+
+enum AiJobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  SKIPPED
+  FAILED
+}
+
+enum RankingType {
+  WARM_PRAISER
+  NEEDS_ENCOURAGEMENT
+}
+
+model User {
+  id             String          @id @default(cuid())
+  name           String?
+  email          String?         @unique
+  emailVerified  DateTime?
+  image          String?
+  nickname       String          @unique
+  passwordHash   String?
+  trustScore     Int             @default(100)
+  sanctionState  SanctionState   @default(NORMAL)
+  isModerator    Boolean         @default(false)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  accounts       Account[]
+  sessions       Session[]
+  posts          PraisePost[]
+  comments       PraiseComment[]
+  reactions      Reaction[]
+  replies        Reply[]
+  reports        Report[]        @relation("ReporterReports")
+  moderationLogs ModerationEvent[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model PraisePost {
+  id            String          @id @default(cuid())
+  authorUserId  String
+  displayMode   DisplayMode
+  title         String
+  body          String
+  promptAnswers Json?
+  status        VisibilityState @default(VISIBLE)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  author        User            @relation(fields: [authorUserId], references: [id], onDelete: Cascade)
+  comments      PraiseComment[]
+  reactions     Reaction[]
+  replies       Reply[]
+  aiJobs        AiPraiseJob[]
+
+  @@index([createdAt])
+  @@index([status])
+}
+
+model PraiseComment {
+  id              String          @id @default(cuid())
+  postId          String
+  authorUserId    String?
+  isAiGenerated   Boolean         @default(false)
+  displayMode     DisplayMode     @default(NICKNAME)
+  body            String
+  visibilityState VisibilityState @default(VISIBLE)
+  moderationRisk  Int             @default(0)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  post            PraisePost      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author          User?           @relation(fields: [authorUserId], references: [id], onDelete: SetNull)
+  reactions       Reaction[]
+  replies         Reply[]
+
+  @@index([postId, createdAt])
+  @@index([authorUserId])
+  @@index([visibilityState])
+}
+
+model Reaction {
+  id           String        @id @default(cuid())
+  postId       String
+  commentId    String
+  authorUserId String
+  type         ReactionType
+  createdAt    DateTime      @default(now())
+  post         PraisePost    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  comment      PraiseComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  author       User          @relation(fields: [authorUserId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, authorUserId, type])
+}
+
+model Reply {
+  id              String          @id @default(cuid())
+  postId          String
+  commentId       String
+  authorUserId    String
+  body            String
+  visibilityState VisibilityState @default(VISIBLE)
+  createdAt       DateTime        @default(now())
+  post            PraisePost      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  comment         PraiseComment   @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  author          User            @relation(fields: [authorUserId], references: [id], onDelete: Cascade)
+}
+
+model Report {
+  id             String               @id @default(cuid())
+  reporterUserId String
+  targetType     ModerationTargetType
+  targetId       String
+  reason         String
+  status         ReportStatus         @default(OPEN)
+  createdAt      DateTime             @default(now())
+  reporter       User                 @relation("ReporterReports", fields: [reporterUserId], references: [id], onDelete: Cascade)
+
+  @@index([targetType, targetId])
+  @@index([status])
+}
+
+model ModerationEvent {
+  id              String              @id @default(cuid())
+  userId          String?
+  targetType      ModerationTargetType
+  targetId        String
+  eventType       ModerationEventType
+  riskReason      String
+  trustScoreDelta Int                 @default(0)
+  createdAt       DateTime            @default(now())
+  user            User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([targetType, targetId])
+}
+
+model AiPraiseJob {
+  id               String      @id @default(cuid())
+  postId           String
+  jobType          AiJobType
+  scheduledAt      DateTime
+  status           AiJobStatus @default(PENDING)
+  resultCommentIds String[]    @default([])
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  post             PraisePost  @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([status, scheduledAt])
+}
+
+model RankingSnapshot {
+  id          String      @id @default(cuid())
+  rankingType RankingType
+  period      String
+  entries     Json
+  computedAt  DateTime    @default(now())
+
+  @@unique([rankingType, period])
+}

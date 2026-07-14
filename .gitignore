@@ -8,3 +8,5 @@ dist/
 build/
 coverage/
 .worktrees/
+tsconfig.tsbuildinfo
+test-results/

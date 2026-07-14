@@ -1,0 +1,133 @@
+# Praise Community MVP
+
+A Next.js community app where authenticated users can share moments they want praise for and receive supportive comments in real time. The app includes public reading, authenticated posting/commenting, quiet moderation, trust-based sanctions, AI praise jobs, rankings, and a personal activity page.
+
+For Korean setup instructions, see [docs/RUNNING.ko.md](docs/RUNNING.ko.md).
+
+## Features
+
+- Authenticated posting and commenting with Auth.js credentials.
+- Public praise feed and post detail rooms.
+- Socket.IO realtime updates for new comments.
+- Anonymous or nickname display modes.
+- Thank-you reactions and author replies.
+- Quiet moderation for risky text, reports, trust score changes, shadow bans, and service bans.
+- BullMQ/Redis-backed AI praise job model for initial and inactivity praise.
+- Ranking snapshots and a personal activity page.
+- Unit, integration, and Playwright smoke tests.
+
+## Tech Stack
+
+- Next.js App Router, React, TypeScript
+- PostgreSQL, Prisma
+- Auth.js
+- Socket.IO
+- BullMQ, Redis
+- OpenAI API
+- Vitest, Testing Library, Playwright
+
+## Requirements
+
+- Node.js 22 or newer
+- npm
+- PostgreSQL
+- Redis
+- OpenAI API key for AI praise generation
+
+## Environment
+
+Copy the example file and edit values for your local machine:
+
+```bash
+cp .env.example .env
+```
+
+Required variables:
+
+```env
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/praise_community"
+AUTH_SECRET="replace-with-local-secret"
+AUTH_URL="http://localhost:3000"
+OPENAI_API_KEY=""
+REDIS_URL="redis://localhost:6379"
+NEXT_PUBLIC_SOCKET_URL="http://localhost:3000"
+```
+
+Generate a local auth secret with:
+
+```bash
+openssl rand -base64 32
+```
+
+## Local Setup
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Create the database if it does not exist:
+
+```bash
+createdb praise_community
+```
+
+Generate Prisma client and run migrations:
+
+```bash
+npm run prisma:generate
+npm run prisma:migrate
+```
+
+Seed local data:
+
+```bash
+npm run prisma:seed
+```
+
+Seeded accounts use the password `password1234`:
+
+- `author@example.com`
+- `moderator@example.com`
+
+Start Redis, then run the app:
+
+```bash
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000).
+
+## Useful Scripts
+
+```bash
+npm run dev          # Start the Next.js custom server with Socket.IO
+npm run build        # Production build
+npm run start        # Start production server
+npm run test         # Unit and integration tests
+npm run test:e2e     # Playwright smoke tests
+npm run lint         # ESLint
+npm run prisma:seed  # Seed local database
+```
+
+## Testing Notes
+
+- `npm run test` does not require a live PostgreSQL or Redis instance for the current unit/integration test set.
+- `npm run test:e2e` skips database-backed smoke tests when `DATABASE_URL` is not set.
+- To run Playwright fully, install browsers and provide a working database:
+
+```bash
+npx playwright install
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/praise_community" npm run test:e2e
+```
+
+## Background Jobs
+
+AI praise creation depends on Redis and `OPENAI_API_KEY`. The domain logic and worker factory are implemented in `src/server/jobs.ts`; production deployment should run a worker process that calls `startAiPraiseWorker()`.
+
+## Current Limitations
+
+- No hosted environment is configured yet.
+- AI/Redis/PostgreSQL integration should be verified in a real integration environment before launch.
+- Ranking snapshots are read by the UI, but a scheduled ranking recomputation worker still needs production wiring.
