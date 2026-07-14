@@ -1,4 +1,4 @@
-# 전긍정 칭찬 커뮤니티 구현 계획
+# 칭찬 커뮤니티 구현 계획
 
 > **에이전트 작업자용:** 필수 하위 스킬: 이 계획을 작업 단위로 구현할 때는 `superpowers:subagent-driven-development` 사용을 권장하며, 또는 `superpowers:executing-plans`를 사용한다. 단계 추적은 체크박스(`- [ ]`) 문법을 사용한다.
 
@@ -127,7 +127,7 @@ NEXT_PUBLIC_SOCKET_URL="http://localhost:3000"
 
 - [ ] **3단계: 최소 앱 셸을 만든다**
 
-`src/app/layout.tsx`는 브랜드 `전긍정`, 메뉴 `랭킹`, `글쓰기`, `내 활동`을 제공한다. `src/app/page.tsx`는 첫 상태에서 “칭찬받고 싶은 순간을 올려보세요” 문구를 보여준다. `src/app/globals.css`는 기본 글꼴, 헤더, 본문 폭, 링크 스타일을 정의한다.
+`src/app/layout.tsx`는 브랜드 `칭찬`, 메뉴 `랭킹`, `글쓰기`, `내 활동`을 제공한다. `src/app/page.tsx`는 첫 상태에서 “칭찬받고 싶은 순간을 올려보세요” 문구를 보여준다. `src/app/globals.css`는 기본 글꼴, 헤더, 본문 폭, 링크 스타일을 정의한다.
 
 - [ ] **4단계: 스모크 테스트를 추가한다**
 
@@ -138,7 +138,7 @@ import { describe, expect, it } from "vitest";
 
 describe("test harness", () => {
   it("runs TypeScript tests", () => {
-    expect("전긍정").toContain("긍정");
+    expect("칭찬").toContain("긍정");
   });
 });
 ```
