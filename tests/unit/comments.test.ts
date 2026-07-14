@@ -2,9 +2,16 @@ import { DisplayMode, VisibilityState } from "@prisma/client";
 import { describe, expect, it, vi } from "vitest";
 
 const praiseCommentCreate = vi.hoisted(() => vi.fn());
+const scheduleInactivityPraise = vi.hoisted(() => vi.fn());
+
+vi.mock("server-only", () => ({}));
 
 vi.mock("@/lib/db", () => ({
   db: { praiseComment: { create: praiseCommentCreate } }
+}));
+
+vi.mock("@/server/jobs", () => ({
+  scheduleInactivityPraise
 }));
 
 import { assertPostAuthor, createPraiseComment, normalizeCommentBody } from "@/server/comments";
@@ -37,5 +44,6 @@ describe("comment rules", () => {
         moderationRisk: 75
       })
     });
+    expect(scheduleInactivityPraise).toHaveBeenCalledWith("post_1");
   });
 });

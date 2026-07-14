@@ -1,5 +1,6 @@
 import { DisplayMode, ReactionType } from "@prisma/client";
 import { db } from "@/lib/db";
+import { scheduleInactivityPraise } from "@/server/jobs";
 import { moderateText } from "@/server/moderation";
 
 export function normalizeCommentBody(body: string): string {
@@ -27,7 +28,7 @@ export async function createPraiseComment(
   const body = normalizeCommentBody(input.body);
   const moderation = moderateText(body);
 
-  return db.praiseComment.create({
+  const comment = await db.praiseComment.create({
     data: {
       postId,
       authorUserId,
@@ -37,6 +38,9 @@ export async function createPraiseComment(
       moderationRisk: moderation.risk
     }
   });
+
+  await scheduleInactivityPraise(postId);
+  return comment;
 }
 
 export async function addAuthorReaction(commentId: string, authorUserId: string, type: ReactionType) {

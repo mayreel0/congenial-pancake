@@ -1,5 +1,5 @@
 import "server-only";
-import { AiJobStatus, AiJobType, DisplayMode } from "@prisma/client";
+import { AiJobStatus, AiJobType, DisplayMode, Prisma } from "@prisma/client";
 import { type ConnectionOptions, Queue, Worker } from "bullmq";
 import IORedis from "ioredis";
 import { db } from "@/lib/db";
@@ -8,6 +8,7 @@ import { publishPostEvent } from "@/server/realtime";
 
 const aiCommentCap = 5;
 const quietWindowMs = 30 * 60 * 1000;
+const serializableRetryLimit = 3;
 
 let bullMqConnection: ConnectionOptions | undefined;
 let aiPraiseQueueInstance: Queue | undefined;
@@ -63,6 +64,75 @@ export async function shouldRunInactivityPraise(postId: string): Promise<boolean
   return recentHumanCount === 0;
 }
 
+export async function scheduleInactivityPraise(postId: string, scheduledAt = new Date(Date.now() + quietWindowMs)) {
+  const aiJob = await db.aiPraiseJob.create({
+    data: {
+      postId,
+      jobType: AiJobType.INACTIVITY_PRAISE,
+      scheduledAt
+    }
+  });
+  await enqueueAiPraiseJob(aiJob);
+  return aiJob;
+}
+
+async function createAiCommentsWithinCap(aiJobId: string, postId: string, comments: string[]) {
+  for (let attempt = 1; attempt <= serializableRetryLimit; attempt += 1) {
+    try {
+      return await db.$transaction(
+        async (tx) => {
+          const currentJob = await tx.aiPraiseJob.findUniqueOrThrow({ where: { id: aiJobId } });
+          if (currentJob.status === AiJobStatus.COMPLETED || currentJob.resultCommentIds.length > 0) {
+            return [] as Array<{ id: string }>;
+          }
+
+          const currentAiCount = await tx.praiseComment.count({
+            where: { postId, isAiGenerated: true }
+          });
+          const remaining = Math.max(0, aiCommentCap - currentAiCount);
+          const allowedComments = comments.slice(0, remaining);
+
+          const createdComments = await Promise.all(
+            allowedComments.map((body) =>
+              tx.praiseComment.create({
+                data: {
+                  postId,
+                  isAiGenerated: true,
+                  displayMode: DisplayMode.NICKNAME,
+                  body: ensureAiDisclosure(body),
+                  visibilityState: "VISIBLE"
+                }
+              })
+            )
+          );
+
+          await tx.aiPraiseJob.update({
+            where: { id: aiJobId },
+            data: {
+              status: createdComments.length > 0 ? AiJobStatus.COMPLETED : AiJobStatus.SKIPPED,
+              resultCommentIds: createdComments.map((comment) => comment.id)
+            }
+          });
+
+          return createdComments;
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
+      );
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2034" &&
+        attempt < serializableRetryLimit
+      ) {
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  throw new Error("AI_COMMENT_CAP_RETRY_EXHAUSTED");
+}
+
 export function startAiPraiseWorker() {
   return new Worker(
     "ai-praise",
@@ -83,37 +153,7 @@ export function startAiPraiseWorker() {
 
       const requestedCount = aiJob.jobType === AiJobType.INITIAL_PRAISE ? 3 : 1;
       const comments = await generatePraiseComments(aiJob.post, requestedCount);
-      const created = await db.$transaction(async (tx) => {
-        const currentAiCount = await tx.praiseComment.count({
-          where: { postId: aiJob.postId, isAiGenerated: true }
-        });
-        const remaining = Math.max(0, aiCommentCap - currentAiCount);
-        const allowedComments = comments.slice(0, remaining);
-
-        const createdComments = await Promise.all(
-          allowedComments.map((body) =>
-            tx.praiseComment.create({
-              data: {
-                postId: aiJob.postId,
-                isAiGenerated: true,
-                displayMode: DisplayMode.NICKNAME,
-                body: ensureAiDisclosure(body),
-                visibilityState: "VISIBLE"
-              }
-            })
-          )
-        );
-
-        await tx.aiPraiseJob.update({
-          where: { id: aiJob.id },
-          data: {
-            status: createdComments.length > 0 ? AiJobStatus.COMPLETED : AiJobStatus.SKIPPED,
-            resultCommentIds: createdComments.map((comment) => comment.id)
-          }
-        });
-
-        return createdComments;
-      });
+      const created = await createAiCommentsWithinCap(aiJob.id, aiJob.postId, comments);
 
       for (const comment of created) {
         publishPostEvent(aiJob.postId, {
