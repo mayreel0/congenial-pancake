@@ -1,6 +1,9 @@
 import { DisplayMode, Prisma, VisibilityState } from "@prisma/client";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { aiPraiseQueue } from "@/server/jobs";
+
+const tenMinutes = 10 * 60 * 1000;
 
 const postInputSchema = z.object({
   title: z.string().trim().min(1, "POST_TITLE_REQUIRED").max(120),
@@ -21,7 +24,7 @@ export function normalizePostInput(input: CreatePostInput) {
 
 export async function createPraisePost(input: CreatePostInput, authorUserId: string) {
   const data = normalizePostInput(input);
-  return db.$transaction(async (tx) => {
+  const { post, aiJobs } = await db.$transaction(async (tx) => {
     const post = await tx.praisePost.create({
       data: {
         authorUserId,
@@ -32,7 +35,7 @@ export async function createPraisePost(input: CreatePostInput, authorUserId: str
       }
     });
 
-    await tx.aiPraiseJob.create({
+    const initialJob = await tx.aiPraiseJob.create({
       data: {
         postId: post.id,
         jobType: "INITIAL_PRAISE",
@@ -40,8 +43,28 @@ export async function createPraisePost(input: CreatePostInput, authorUserId: str
       }
     });
 
-    return post;
+    const inactivityJob = await tx.aiPraiseJob.create({
+      data: {
+        postId: post.id,
+        jobType: "INACTIVITY_PRAISE",
+        scheduledAt: new Date(Date.now() + tenMinutes)
+      }
+    });
+
+    return { post, aiJobs: [initialJob, inactivityJob] };
   });
+
+  await Promise.all(
+    aiJobs.map((aiJob) =>
+      aiPraiseQueue.add(
+        "process-ai-praise",
+        { aiPraiseJobId: aiJob.id },
+        { delay: Math.max(0, aiJob.scheduledAt.getTime() - Date.now()) }
+      )
+    )
+  );
+
+  return post;
 }
 
 export async function listFeedPosts() {
