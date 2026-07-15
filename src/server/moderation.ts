@@ -1,6 +1,7 @@
 import {
   ModerationEventType,
   ModerationTargetType,
+  ReportStatus,
   SanctionState,
   VisibilityState,
   Prisma
@@ -38,6 +39,7 @@ export function calculateSanctionState(trustScore: number): SanctionState {
 }
 
 const trustDeltaRetryLimit = 3;
+type ReviewableReportStatus = Extract<ReportStatus, "REVIEWED" | "DISMISSED">;
 
 export async function applyTrustDelta(userId: string, delta: number, reason: string) {
   for (let attempt = 1; attempt <= trustDeltaRetryLimit; attempt += 1) {
@@ -104,5 +106,60 @@ export async function recordReport(
       }
     });
     return report;
+  });
+}
+
+export async function reviewCommentVisibility(input: {
+  commentId: string;
+  moderatorId: string;
+  visibilityState: VisibilityState;
+  reason: string;
+}) {
+  return db.$transaction(async (tx) => {
+    const comment = await tx.praiseComment.update({
+      where: { id: input.commentId },
+      data: { visibilityState: input.visibilityState }
+    });
+    const event = await tx.moderationEvent.create({
+      data: {
+        userId: input.moderatorId,
+        targetType: ModerationTargetType.COMMENT,
+        targetId: input.commentId,
+        eventType: ModerationEventType.VISIBILITY_CHANGED,
+        riskReason: input.reason,
+        trustScoreDelta: 0
+      }
+    });
+
+    return [comment, event] as const;
+  });
+}
+
+export async function reviewReport(input: {
+  reportId: string;
+  moderatorId: string;
+  status: ReviewableReportStatus;
+  reason: string;
+}) {
+  return db.$transaction(async (tx) => {
+    const report = await tx.report.update({
+      where: { id: input.reportId },
+      data: { status: input.status }
+    });
+    const event = await tx.moderationEvent.create({
+      data: {
+        userId: input.moderatorId,
+        targetType: report.targetType,
+        targetId: report.targetId,
+        eventType:
+          input.status === ReportStatus.REVIEWED
+            ? ModerationEventType.REPORT_ACCEPTED
+            : ModerationEventType.REPORT_DISMISSED,
+        riskReason: input.reason,
+        trustScoreDelta: 0
+      }
+    });
+
+    return [report, event] as const;
   });
 }
