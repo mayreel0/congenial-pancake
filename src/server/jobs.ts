@@ -2,7 +2,8 @@ import { AiJobStatus, AiJobType, DisplayMode, Prisma } from "@prisma/client";
 import { type ConnectionOptions, Queue, Worker } from "bullmq";
 import IORedis from "ioredis";
 import { db } from "@/lib/db";
-import { generatePraiseComments } from "@/server/ai";
+import { buildPraisePrompt, generatePraiseComments, getAiProviderConfig } from "@/server/ai";
+import { canRunAiPraiseJob, recordAiUsageEvent } from "@/server/ai-controls";
 import { publishPostEvent } from "@/server/realtime";
 
 const aiCommentCap = 5;
@@ -154,43 +155,112 @@ async function createAiCommentsWithinCap(aiJobId: string, postId: string, jobTyp
   throw new Error("AI_COMMENT_CAP_RETRY_EXHAUSTED");
 }
 
+export async function processAiPraiseJob(aiPraiseJobId: string) {
+  const existingAiJob = await db.aiPraiseJob.findUniqueOrThrow({
+    where: { id: aiPraiseJobId },
+    include: { post: true }
+  });
+  if (isTerminalAiJob(existingAiJob)) {
+    return;
+  }
+
+  const aiJob = await db.aiPraiseJob.update({
+    where: { id: existingAiJob.id },
+    data: { status: AiJobStatus.RUNNING },
+    include: { post: true }
+  });
+
+  const requestedCount = aiJob.jobType === AiJobType.INITIAL_PRAISE ? 3 : 1;
+  const config = getAiProviderConfig();
+  const promptText = buildPraisePrompt(aiJob.post);
+
+  if (aiJob.jobType === AiJobType.INACTIVITY_PRAISE) {
+    const shouldRun = await shouldRunInactivityPraise(aiJob.postId);
+    if (!shouldRun) {
+      await db.aiPraiseJob.update({ where: { id: aiJob.id }, data: { status: AiJobStatus.SKIPPED } });
+      await recordAiUsageEvent({
+        jobId: aiJob.id,
+        postId: aiJob.postId,
+        provider: config.provider,
+        model: config.model,
+        status: "SKIPPED",
+        reason: "inactivity_condition",
+        requestedComments: requestedCount,
+        generatedComments: 0,
+        promptText,
+        responseTexts: []
+      });
+      return;
+    }
+  }
+
+  const decision = await canRunAiPraiseJob({ requestedComments: requestedCount });
+  if (!decision.allowed) {
+    await db.aiPraiseJob.update({ where: { id: aiJob.id }, data: { status: AiJobStatus.SKIPPED } });
+    await recordAiUsageEvent({
+      jobId: aiJob.id,
+      postId: aiJob.postId,
+      provider: config.provider,
+      model: config.model,
+      status: "SKIPPED",
+      reason: decision.reason,
+      requestedComments: requestedCount,
+      generatedComments: 0,
+      promptText,
+      responseTexts: []
+    });
+    return;
+  }
+
+  let comments: string[];
+  try {
+    comments = await generatePraiseComments(aiJob.post, requestedCount);
+  } catch (error) {
+    await db.aiPraiseJob.update({ where: { id: aiJob.id }, data: { status: AiJobStatus.FAILED } });
+    await recordAiUsageEvent({
+      jobId: aiJob.id,
+      postId: aiJob.postId,
+      provider: config.provider,
+      model: config.model,
+      status: "FAILED",
+      reason: "provider_error",
+      requestedComments: requestedCount,
+      generatedComments: 0,
+      promptText,
+      responseTexts: []
+    });
+    throw error;
+  }
+
+  const created = await createAiCommentsWithinCap(aiJob.id, aiJob.postId, aiJob.jobType, comments);
+
+  await recordAiUsageEvent({
+    jobId: aiJob.id,
+    postId: aiJob.postId,
+    provider: config.provider,
+    model: config.model,
+    status: created.length > 0 ? "RUN" : "SKIPPED",
+    reason: created.length > 0 ? "completed" : "post_ai_comment_cap",
+    requestedComments: requestedCount,
+    generatedComments: created.length,
+    promptText,
+    responseTexts: comments.slice(0, created.length)
+  });
+
+  for (const comment of created) {
+    publishPostEvent(aiJob.postId, {
+      type: "comment.created",
+      postId: aiJob.postId,
+      commentId: comment.id
+    });
+  }
+}
+
 export function startAiPraiseWorker() {
   return new Worker(
     "ai-praise",
     async (job) => {
-      const existingAiJob = await db.aiPraiseJob.findUniqueOrThrow({
-        where: { id: job.data.aiPraiseJobId },
-        include: { post: true }
-      });
-      if (isTerminalAiJob(existingAiJob)) {
-        return;
-      }
-
-      const aiJob = await db.aiPraiseJob.update({
-        where: { id: existingAiJob.id },
-        data: { status: AiJobStatus.RUNNING },
-        include: { post: true }
-      });
-
-      if (aiJob.jobType === AiJobType.INACTIVITY_PRAISE) {
-        const shouldRun = await shouldRunInactivityPraise(aiJob.postId);
-        if (!shouldRun) {
-          await db.aiPraiseJob.update({ where: { id: aiJob.id }, data: { status: AiJobStatus.SKIPPED } });
-          return;
-        }
-      }
-
-      const requestedCount = aiJob.jobType === AiJobType.INITIAL_PRAISE ? 3 : 1;
-      const comments = await generatePraiseComments(aiJob.post, requestedCount);
-      const created = await createAiCommentsWithinCap(aiJob.id, aiJob.postId, aiJob.jobType, comments);
-
-      for (const comment of created) {
-        publishPostEvent(aiJob.postId, {
-          type: "comment.created",
-          postId: aiJob.postId,
-          commentId: comment.id
-        });
-      }
+      await processAiPraiseJob(job.data.aiPraiseJobId);
     },
     { connection: getBullMqConnection() }
   );

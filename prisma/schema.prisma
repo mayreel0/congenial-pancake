@@ -68,6 +68,12 @@ enum AiJobStatus {
   FAILED
 }
 
+enum AiUsageEventStatus {
+  RUN
+  SKIPPED
+  FAILED
+}
+
 enum RankingType {
   WARM_PRAISER
   NEEDS_ENCOURAGEMENT
@@ -249,4 +255,33 @@ model RankingSnapshot {
   computedAt  DateTime    @default(now())
 
   @@unique([rankingType, period])
+}
+
+model AiControlSetting {
+  id                String   @id
+  enabled           Boolean  @default(true)
+  dailyJobLimit     Int      @default(100)
+  dailyCommentLimit Int      @default(300)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model AiUsageEvent {
+  id                      String             @id @default(cuid())
+  jobId                   String?
+  postId                  String?
+  provider                String
+  model                   String
+  status                  AiUsageEventStatus
+  reason                  String
+  requestedComments       Int
+  generatedComments       Int
+  estimatedPromptTokens   Int
+  estimatedResponseTokens Int
+  createdAt               DateTime           @default(now())
+
+  @@index([createdAt])
+  @@index([status, createdAt])
+  @@index([jobId])
+  @@index([postId])
 }

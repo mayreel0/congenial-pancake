@@ -129,6 +129,7 @@ http://localhost:3000
 5. `/rankings`에서 랭킹 화면을 확인합니다.
 6. `/me`에서 내 활동 화면을 확인합니다.
 7. `moderator@example.com`으로 로그인해 `/moderation` 접근을 확인합니다.
+8. `/moderation`의 AI 칭찬 제어에서 AI 사용 여부, 하루 작업 제한, 하루 댓글 제한, 오늘 사용량을 확인합니다.
 
 ## 8. 테스트
 
@@ -166,6 +167,8 @@ Pull Request와 `main` 브랜치 push에서 GitHub Actions CI가 실행됩니다
 ## 10. AI 칭찬 작업 참고
 
 AI 칭찬은 Redis 큐와 설정된 AI provider의 API 키가 필요합니다. 기본값은 `AI_PROVIDER="gemini"`, `GEMINI_API_KEY`, `GEMINI_MODEL="gemini-2.5-flash-lite"`입니다. OpenAI로 전환하려면 `AI_PROVIDER="openai"`, `OPENAI_API_KEY`, `OPENAI_MODEL`을 설정하세요. 작업 생성/정책/worker factory는 `src/server/jobs.ts`에 구현되어 있습니다. 운영 환경에서는 `startAiPraiseWorker()`를 호출하는 별도 worker 프로세스를 연결해야 합니다.
+
+AI 칭찬 사용량 제한은 환경 변수가 아니라 데이터베이스 설정으로 관리합니다. 마이그레이션 후 기본값은 AI 사용, 하루 AI 작업 100건, 하루 AI 생성 댓글 300개입니다. 운영자는 `/moderation`에서 AI를 끄거나 제한값을 0부터 10000 사이의 정수로 조정할 수 있습니다. 제한에 걸린 작업은 Gemini/OpenAI 호출 전에 건너뛰며, 오늘 실행/스킵/실패 사용량은 UTC 하루 기준으로 집계됩니다.
 
 ## 11. 자주 막히는 지점
 
