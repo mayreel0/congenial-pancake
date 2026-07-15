@@ -1,5 +1,3 @@
-import "server-only";
-
 import { AiUsageEventStatus } from "@prisma/client";
 import { db } from "@/lib/db";
 
