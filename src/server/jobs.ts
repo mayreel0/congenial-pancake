@@ -10,6 +10,8 @@ import { publishPostEvent } from "@/server/realtime";
 const aiCommentCap = 5;
 const quietWindowMs = 30 * 60 * 1000;
 const serializableRetryLimit = 3;
+const firstAiCommentDelayRangeMs = [20 * 1000, 90 * 1000] as const;
+const followUpAiCommentDelayRangeMs = [3 * 60 * 1000, 8 * 60 * 1000] as const;
 
 let bullMqConnection: ConnectionOptions | undefined;
 let aiPraiseQueueInstance: Queue | undefined;
@@ -48,10 +50,30 @@ export async function enqueueAiPraiseJob(aiPraiseJob: { id: string; jobType: AiJ
   );
 }
 
-export function ensureAiDisclosure(body: string): string {
+export function ensureNaturalAiComment(body: string): string {
   const trimmed = body.trim();
-  if (trimmed.startsWith("AI 칭찬:")) return trimmed;
-  return `AI 칭찬: ${trimmed}`;
+  return trimmed.replace(/^(AI\s*칭찬|인공지능\s*칭찬|자동\s*칭찬)\s*[:：-]\s*/i, "").trim();
+}
+
+export function selectAiPraiseRequestCount(jobType: AiJobType | "INITIAL_PRAISE" | "INACTIVITY_PRAISE", random = Math.random): number {
+  if (jobType === AiJobType.INACTIVITY_PRAISE) return 1;
+  return Math.max(1, Math.min(3, Math.floor(random() * 3) + 1));
+}
+
+function randomRangeMs([min, max]: readonly [number, number], random = Math.random): number {
+  return Math.floor(min + random() * (max - min + 1));
+}
+
+export function planAiCommentTimes(count: number, base = new Date(), random = Math.random): Date[] {
+  const times: Date[] = [];
+  let nextTime = base.getTime();
+
+  for (let index = 0; index < count; index += 1) {
+    nextTime += randomRangeMs(index === 0 ? firstAiCommentDelayRangeMs : followUpAiCommentDelayRangeMs, random);
+    times.push(new Date(nextTime));
+  }
+
+  return times;
 }
 
 export async function shouldRunInactivityPraise(postId: string): Promise<boolean> {
@@ -126,7 +148,7 @@ async function createAiCommentsWithinCap(aiJobId: string, postId: string, jobTyp
                   postId,
                   isAiGenerated: true,
                   displayMode: DisplayMode.NICKNAME,
-                  body: ensureAiDisclosure(body),
+                  body: ensureNaturalAiComment(body),
                   visibilityState: "VISIBLE"
                 }
               })
@@ -175,7 +197,7 @@ export async function processAiPraiseJob(aiPraiseJobId: string) {
     include: { post: true }
   });
 
-  const requestedCount = aiJob.jobType === AiJobType.INITIAL_PRAISE ? 3 : 1;
+  const requestedCount = 1;
   const config = getAiProviderConfig();
   const promptText = buildPraisePrompt(aiJob.post);
 

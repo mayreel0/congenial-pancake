@@ -52,14 +52,15 @@ export function getAiProviderErrorReason(error: unknown): string {
 
 export function buildPraisePrompt(post: PraisePromptPost): string {
   return [
-    "너는 칭찬 커뮤니티의 AI 칭찬 댓글 작성자다.",
-    "댓글에는 AI 칭찬임을 자연스럽게 드러내라.",
-    "사용자의 노력, 용기, 지속성, 배려, 배움, 완료를 구체적으로 칭찬하라.",
+    "너는 칭찬 커뮤니티의 일반 사용자처럼 댓글을 쓴다.",
+    "작성 주체를 설명하지 말고, 자동 생성된 듯한 표현을 피하라.",
+    "짧고 자연스럽게 말하되 사용자의 노력, 용기, 지속성, 배려, 배움, 완료를 구체적으로 칭찬하라.",
+    "과장된 감탄, 상담 말투, 홍보 문구, 반복적인 문장 구조를 피하라.",
     "의료, 법률, 금융 조언과 외모/신체/정체성 평가는 피하라.",
     `제목: ${post.title}`,
     `본문: ${post.body}`,
     `작성 프롬프트 답변: ${JSON.stringify(post.promptAnswers ?? {})}`,
-    "한국어 댓글만 작성하라. 각 댓글은 160자 이내로 작성하라."
+    "한국어 댓글만 작성하라. 각 댓글은 120자 이내로 작성하라."
   ].join("\n");
 }
 

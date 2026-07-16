@@ -137,6 +137,8 @@ DATABASE_URL="postgresql://postgres:postgres@localhost:5432/praise_community" np
 
 AI praise creation depends on Redis and the configured AI provider key. Gemini is the default provider via `AI_PROVIDER="gemini"`, `GEMINI_API_KEY`, and `GEMINI_MODEL`. Set `AI_PROVIDER="openai"` with `OPENAI_API_KEY` and `OPENAI_MODEL` to switch providers. The domain logic and worker factories are implemented in `src/server/jobs.ts`; production deployment should run worker processes for AI praise and ranking recomputation, or run `npm run jobs:dev` for local combined workers.
 
+Initial AI praise is scheduled as one to three separate single-comment jobs with staggered delays so comments do not arrive in a fixed burst. Generated comments are still tracked with `isAiGenerated` for moderation and rankings, but user-visible comment text avoids AI disclosure prefixes.
+
 Moderators can manage AI praise generation at `/moderation`. The AI controls are stored in the database with default values of enabled, 100 daily AI jobs, and 300 daily AI-generated comments. Disabled or quota-limited jobs are skipped before Gemini/OpenAI is called, and usage events record completed, skipped, and failed AI work for the current UTC day. The moderation page also shows recent AI usage events, review actions for held comments and reports, trust score controls, and a manual ranking recomputation action.
 
 ## Current Limitations

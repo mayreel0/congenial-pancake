@@ -46,7 +46,7 @@ vi.mock("@/server/ai-controls", () => ({ canRunAiPraiseJob, recordAiUsageEvent }
 vi.mock("@/server/realtime", () => ({ publishPostEvent }));
 vi.mock("@/server/rankings", () => ({ recomputeRankingSnapshots }));
 
-import { ensureAiDisclosure, processAiPraiseJob, shouldRunInactivityPraise, startRankingWorker } from "@/server/jobs";
+import { ensureNaturalAiComment, processAiPraiseJob, shouldRunInactivityPraise, startRankingWorker } from "@/server/jobs";
 
 describe("inactivity praise policy", () => {
   afterEach(() => {
@@ -148,7 +148,7 @@ describe("AI praise worker controls", () => {
         postId: "post_1",
         status: "SKIPPED",
         reason: "disabled",
-        requestedComments: 3,
+        requestedComments: 1,
         generatedComments: 0
       })
     );
@@ -177,19 +177,19 @@ describe("AI praise worker controls", () => {
         postId: "post_1",
         status: "FAILED",
         reason: "provider_error:model_not_found",
-        requestedComments: 3,
+        requestedComments: 1,
         generatedComments: 0
       })
     );
   });
 });
 
-describe("AI disclosure", () => {
-  it("prefixes AI comments when the model omits disclosure", () => {
-    expect(ensureAiDisclosure("잘 해냈어요")).toBe("AI 칭찬: 잘 해냈어요");
+describe("AI comment naturalization", () => {
+  it("removes AI disclosure prefixes from generated comments", () => {
+    expect(ensureNaturalAiComment("AI 칭찬: 잘 해냈어요")).toBe("잘 해냈어요");
   });
 
-  it("does not duplicate the AI disclosure prefix", () => {
-    expect(ensureAiDisclosure("AI 칭찬: 잘 해냈어요")).toBe("AI 칭찬: 잘 해냈어요");
+  it("trims natural comments without adding disclosure", () => {
+    expect(ensureNaturalAiComment("  잘 해냈어요  ")).toBe("잘 해냈어요");
   });
 });
