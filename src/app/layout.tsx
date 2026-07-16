@@ -15,6 +15,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <header className="site-header">
           <Link href="/" className="brand">칭찬</Link>
           <nav aria-label="주요 메뉴">
+            <Link href="/posts">칭찬글</Link>
             <Link href="/rankings">랭킹</Link>
             <Link href="/posts/new">글쓰기</Link>
             <Link href="/me">내 활동</Link>
