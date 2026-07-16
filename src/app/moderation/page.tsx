@@ -1,8 +1,14 @@
 import { ReportStatus, VisibilityState } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { getAiControlSetting, getTodayAiUsage, updateAiControlSetting } from "@/server/ai-controls";
+import {
+  getAiControlSetting,
+  getTodayAiUsage,
+  listTodayAiUsageEvents,
+  updateAiControlSetting
+} from "@/server/ai-controls";
 import { applyTrustDelta, reviewCommentVisibility, reviewReport } from "@/server/moderation";
+import { recomputeRankingSnapshots } from "@/server/rankings";
 import { revalidatePath } from "next/cache";
 
 type ReviewableReportStatus = Extract<ReportStatus, "REVIEWED" | "DISMISSED">;
@@ -88,6 +94,15 @@ async function adjustTrustAction(formData: FormData) {
   revalidatePath("/moderation");
 }
 
+async function recomputeRankingsAction() {
+  "use server";
+
+  await requireModeratorUserId();
+  await recomputeRankingSnapshots();
+  revalidatePath("/rankings");
+  revalidatePath("/moderation");
+}
+
 export default async function ModerationPage() {
   const session = await auth();
   if (!session?.user?.id) {
@@ -99,7 +114,7 @@ export default async function ModerationPage() {
     return <section className="page-section"><h1>운영자만 접근할 수 있습니다</h1></section>;
   }
 
-  const [heldComments, reports, aiSetting, aiUsage] = await Promise.all([
+  const [heldComments, reports, aiSetting, aiUsage, aiUsageEvents] = await Promise.all([
     db.praiseComment.findMany({
       where: { visibilityState: { in: ["HELD", "AUTHOR_ONLY", "HIDDEN"] } },
       orderBy: { createdAt: "desc" },
@@ -111,7 +126,8 @@ export default async function ModerationPage() {
       take: 50
     }),
     getAiControlSetting(),
-    getTodayAiUsage()
+    getTodayAiUsage(),
+    listTodayAiUsageEvents()
   ]);
 
   return (
@@ -219,6 +235,28 @@ export default async function ModerationPage() {
           </label>
           <button type="submit">적용</button>
         </form>
+      </section>
+      <section className="moderation-panel">
+        <h2>랭킹 관리</h2>
+        <p>현재 글과 댓글 상태를 기준으로 랭킹 스냅샷을 다시 계산합니다.</p>
+        <form action={recomputeRankingsAction}>
+          <button type="submit">랭킹 재계산</button>
+        </form>
+      </section>
+      <section className="moderation-panel">
+        <h2>오늘 AI 작업 로그</h2>
+        <div className="stack-list">
+          {aiUsageEvents.map((event) => (
+            <article className="review-item" key={event.id}>
+              <p>{event.status} · {event.reason}</p>
+              <small>
+                {event.provider}/{event.model} · 요청 {event.requestedComments}개 · 생성 {event.generatedComments}개
+                {event.postId ? ` · 글 ${event.postId}` : ""}
+              </small>
+            </article>
+          ))}
+          {aiUsageEvents.length === 0 ? <p>오늘 기록된 AI 작업이 없습니다.</p> : null}
+        </div>
       </section>
     </section>
   );

@@ -2,7 +2,9 @@ import { DisplayMode } from "@prisma/client";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/server/jobs", () => ({
-  enqueueAiPraiseJob: vi.fn()
+  enqueueAiPraiseJob: vi.fn(),
+  planAiCommentTimes: vi.fn(() => [new Date("2026-07-16T01:01:00.000Z")]),
+  selectAiPraiseRequestCount: vi.fn(() => 1)
 }));
 
 import { normalizePostInput } from "@/server/posts";

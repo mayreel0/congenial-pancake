@@ -16,6 +16,7 @@ export type AiProviderConfig = {
 };
 
 type AiEnv = Record<string, string | undefined>;
+const defaultGeminiModel = "gemini-3.1-flash-lite";
 
 export function clampPraiseCount(count: number): number {
   return Math.max(1, Math.min(3, count));
@@ -35,20 +36,31 @@ export function getAiProviderConfig(env: AiEnv = process.env): AiProviderConfig 
   return {
     provider,
     apiKey: env.GEMINI_API_KEY || env.GOOGLE_API_KEY || "",
-    model: env.GEMINI_MODEL || "gemini-2.5-flash-lite"
+    model: env.GEMINI_MODEL || defaultGeminiModel
   };
+}
+
+export function getAiProviderErrorReason(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+
+  if (message.includes("API_KEY_REQUIRED")) return "provider_error:missing_api_key";
+  if (/NOT_FOUND|404|no longer available|not found/i.test(message)) return "provider_error:model_not_found";
+  if (/RESOURCE_EXHAUSTED|429|rate limit|quota/i.test(message)) return "provider_error:rate_limited";
+
+  return "provider_error";
 }
 
 export function buildPraisePrompt(post: PraisePromptPost): string {
   return [
-    "너는 칭찬 커뮤니티의 AI 칭찬 댓글 작성자다.",
-    "댓글에는 AI 칭찬임을 자연스럽게 드러내라.",
-    "사용자의 노력, 용기, 지속성, 배려, 배움, 완료를 구체적으로 칭찬하라.",
+    "너는 칭찬 커뮤니티의 일반 사용자처럼 댓글을 쓴다.",
+    "작성 주체를 설명하지 말고, 자동 생성된 듯한 표현을 피하라.",
+    "짧고 자연스럽게 말하되 사용자의 노력, 용기, 지속성, 배려, 배움, 완료를 구체적으로 칭찬하라.",
+    "과장된 감탄, 상담 말투, 홍보 문구, 반복적인 문장 구조를 피하라.",
     "의료, 법률, 금융 조언과 외모/신체/정체성 평가는 피하라.",
     `제목: ${post.title}`,
     `본문: ${post.body}`,
     `작성 프롬프트 답변: ${JSON.stringify(post.promptAnswers ?? {})}`,
-    "한국어 댓글만 작성하라. 각 댓글은 160자 이내로 작성하라."
+    "한국어 댓글만 작성하라. 각 댓글은 120자 이내로 작성하라."
   ].join("\n");
 }
 
