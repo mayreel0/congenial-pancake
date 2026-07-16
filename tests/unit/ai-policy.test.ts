@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-import { buildPraisePrompt, clampPraiseCount, getAiProviderConfig } from "@/server/ai";
+import { buildPraisePrompt, clampPraiseCount, getAiProviderConfig, getAiProviderErrorReason } from "@/server/ai";
 
 describe("AI praise policy", () => {
   it("clamps initial praise to one through three comments", () => {
@@ -28,8 +28,18 @@ describe("AI praise policy", () => {
     expect(getAiProviderConfig({ GEMINI_API_KEY: "gemini-key" })).toEqual({
       provider: "gemini",
       apiKey: "gemini-key",
-      model: "gemini-2.5-flash-lite"
+      model: "gemini-3.1-flash-lite"
     });
+  });
+
+  it("classifies unavailable provider models for moderation logs", () => {
+    expect(
+      getAiProviderErrorReason(
+        new Error(
+          '{"error":{"code":404,"message":"This model models/gemini-2.5-flash-lite is no longer available to new users.","status":"NOT_FOUND"}}'
+        )
+      )
+    ).toBe("provider_error:model_not_found");
   });
 
   it("can switch praise generation to OpenAI with environment variables", () => {

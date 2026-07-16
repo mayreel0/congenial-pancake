@@ -16,6 +16,7 @@ export type AiProviderConfig = {
 };
 
 type AiEnv = Record<string, string | undefined>;
+const defaultGeminiModel = "gemini-3.1-flash-lite";
 
 export function clampPraiseCount(count: number): number {
   return Math.max(1, Math.min(3, count));
@@ -35,8 +36,18 @@ export function getAiProviderConfig(env: AiEnv = process.env): AiProviderConfig 
   return {
     provider,
     apiKey: env.GEMINI_API_KEY || env.GOOGLE_API_KEY || "",
-    model: env.GEMINI_MODEL || "gemini-2.5-flash-lite"
+    model: env.GEMINI_MODEL || defaultGeminiModel
   };
+}
+
+export function getAiProviderErrorReason(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+
+  if (message.includes("API_KEY_REQUIRED")) return "provider_error:missing_api_key";
+  if (/NOT_FOUND|404|no longer available|not found/i.test(message)) return "provider_error:model_not_found";
+  if (/RESOURCE_EXHAUSTED|429|rate limit|quota/i.test(message)) return "provider_error:rate_limited";
+
+  return "provider_error";
 }
 
 export function buildPraisePrompt(post: PraisePromptPost): string {

@@ -73,7 +73,7 @@ AUTH_SECRET="replace-with-local-secret"
 AUTH_URL="http://localhost:3000"
 AI_PROVIDER="gemini"
 GEMINI_API_KEY=""
-GEMINI_MODEL="gemini-2.5-flash-lite"
+GEMINI_MODEL="gemini-3.1-flash-lite"
 OPENAI_API_KEY=""
 OPENAI_MODEL="gpt-4o-mini"
 REDIS_URL="redis://localhost:6379"
@@ -167,7 +167,7 @@ Pull Request와 `main` 브랜치 push에서 GitHub Actions CI가 실행됩니다
 
 ## 10. AI 칭찬 작업 참고
 
-AI 칭찬은 Redis 큐와 설정된 AI provider의 API 키가 필요합니다. 기본값은 `AI_PROVIDER="gemini"`, `GEMINI_API_KEY`, `GEMINI_MODEL="gemini-2.5-flash-lite"`입니다. OpenAI로 전환하려면 `AI_PROVIDER="openai"`, `OPENAI_API_KEY`, `OPENAI_MODEL`을 설정하세요. 작업 생성/정책/worker factory는 `src/server/jobs.ts`에 구현되어 있습니다. 로컬에서는 아래 명령으로 AI 칭찬 worker와 랭킹 재계산 worker를 함께 실행합니다.
+AI 칭찬은 Redis 큐와 설정된 AI provider의 API 키가 필요합니다. 기본값은 `AI_PROVIDER="gemini"`, `GEMINI_API_KEY`, `GEMINI_MODEL="gemini-3.1-flash-lite"`입니다. OpenAI로 전환하려면 `AI_PROVIDER="openai"`, `OPENAI_API_KEY`, `OPENAI_MODEL`을 설정하세요. 작업 생성/정책/worker factory는 `src/server/jobs.ts`에 구현되어 있습니다. 로컬에서는 아래 명령으로 AI 칭찬 worker와 랭킹 재계산 worker를 함께 실행합니다.
 
 ```bash
 npm run jobs:dev

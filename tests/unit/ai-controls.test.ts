@@ -127,7 +127,7 @@ describe("AI usage controls", () => {
       jobId: "job_1",
       postId: "post_1",
       provider: "gemini",
-      model: "gemini-2.5-flash-lite",
+      model: "gemini-3.1-flash-lite",
       status: "SKIPPED",
       reason: "disabled",
       requestedComments: 3,

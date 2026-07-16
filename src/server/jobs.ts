@@ -2,7 +2,7 @@ import { AiJobStatus, AiJobType, DisplayMode, Prisma } from "@prisma/client";
 import { type ConnectionOptions, Queue, Worker } from "bullmq";
 import IORedis from "ioredis";
 import { db } from "@/lib/db";
-import { buildPraisePrompt, generatePraiseComments, getAiProviderConfig } from "@/server/ai";
+import { buildPraisePrompt, generatePraiseComments, getAiProviderConfig, getAiProviderErrorReason } from "@/server/ai";
 import { canRunAiPraiseJob, recordAiUsageEvent } from "@/server/ai-controls";
 import { recomputeRankingSnapshots } from "@/server/rankings";
 import { publishPostEvent } from "@/server/realtime";
@@ -221,6 +221,7 @@ export async function processAiPraiseJob(aiPraiseJobId: string) {
   try {
     comments = await generatePraiseComments(aiJob.post, requestedCount);
   } catch (error) {
+    const reason = getAiProviderErrorReason(error);
     await db.aiPraiseJob.update({ where: { id: aiJob.id }, data: { status: AiJobStatus.FAILED } });
     await recordAiUsageEvent({
       jobId: aiJob.id,
@@ -228,7 +229,7 @@ export async function processAiPraiseJob(aiPraiseJobId: string) {
       provider: config.provider,
       model: config.model,
       status: "FAILED",
-      reason: "provider_error",
+      reason,
       requestedComments: requestedCount,
       generatedComments: 0,
       promptText,

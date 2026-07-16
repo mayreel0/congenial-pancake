@@ -39,7 +39,8 @@ vi.mock("@/lib/db", () => ({
 vi.mock("@/server/ai", () => ({
   buildPraisePrompt: vi.fn(() => "prompt text"),
   generatePraiseComments,
-  getAiProviderConfig: vi.fn(() => ({ provider: "gemini", model: "gemini-2.5-flash-lite", apiKey: "key" }))
+  getAiProviderConfig: vi.fn(() => ({ provider: "gemini", model: "gemini-3.1-flash-lite", apiKey: "key" })),
+  getAiProviderErrorReason: vi.fn(() => "provider_error:model_not_found")
 }));
 vi.mock("@/server/ai-controls", () => ({ canRunAiPraiseJob, recordAiUsageEvent }));
 vi.mock("@/server/realtime", () => ({ publishPostEvent }));
@@ -152,6 +153,34 @@ describe("AI praise worker controls", () => {
       })
     );
     expect(publishPostEvent).not.toHaveBeenCalled();
+  });
+
+  it("records classified provider errors when generation fails", async () => {
+    const aiJob = {
+      id: "job_1",
+      postId: "post_1",
+      jobType: "INITIAL_PRAISE",
+      status: "PENDING",
+      resultCommentIds: [],
+      post: { title: "해냈어요", body: "끝냈어요", promptAnswers: null }
+    };
+    aiJobFindUniqueOrThrow.mockResolvedValueOnce(aiJob);
+    aiJobUpdate.mockResolvedValueOnce({ ...aiJob, status: "RUNNING" }).mockResolvedValueOnce({ ...aiJob, status: "FAILED" });
+    canRunAiPraiseJob.mockResolvedValueOnce({ allowed: true, reason: "allowed" });
+    generatePraiseComments.mockRejectedValueOnce(new Error("model not found"));
+
+    await expect(processAiPraiseJob("job_1")).rejects.toThrow("model not found");
+
+    expect(recordAiUsageEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        jobId: "job_1",
+        postId: "post_1",
+        status: "FAILED",
+        reason: "provider_error:model_not_found",
+        requestedComments: 3,
+        generatedComments: 0
+      })
+    );
   });
 });
 
