@@ -1,21 +1,90 @@
+import { ReportStatus, VisibilityState } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getAiControlSetting, getTodayAiUsage, updateAiControlSetting } from "@/server/ai-controls";
+import { applyTrustDelta, reviewCommentVisibility, reviewReport } from "@/server/moderation";
 import { revalidatePath } from "next/cache";
 
-async function updateAiControls(formData: FormData) {
-  "use server";
+type ReviewableReportStatus = Extract<ReportStatus, "REVIEWED" | "DISMISSED">;
 
+async function requireModeratorUserId() {
   const session = await auth();
   if (!session?.user?.id) throw new Error("AUTH_REQUIRED");
   const user = await db.user.findUniqueOrThrow({ where: { id: session.user.id } });
   if (!user.isModerator) throw new Error("MODERATOR_REQUIRED");
+  return user.id;
+}
+
+async function updateAiControls(formData: FormData) {
+  "use server";
+
+  await requireModeratorUserId();
 
   await updateAiControlSetting({
     enabled: formData.get("enabled") === "on",
     dailyJobLimit: Number(formData.get("dailyJobLimit")),
     dailyCommentLimit: Number(formData.get("dailyCommentLimit"))
   });
+  revalidatePath("/moderation");
+}
+
+function formString(formData: FormData, key: string): string {
+  const value = formData.get(key);
+  if (typeof value !== "string" || value.trim().length === 0) {
+    throw new Error("MODERATION_ACTION_INVALID");
+  }
+  return value.trim();
+}
+
+function parseVisibilityState(value: string): VisibilityState {
+  if (value === VisibilityState.VISIBLE || value === VisibilityState.HIDDEN || value === VisibilityState.AUTHOR_ONLY) {
+    return value;
+  }
+  throw new Error("MODERATION_ACTION_INVALID");
+}
+
+function parseReportStatus(value: string): ReviewableReportStatus {
+  if (value === ReportStatus.REVIEWED || value === ReportStatus.DISMISSED) {
+    return value;
+  }
+  throw new Error("MODERATION_ACTION_INVALID");
+}
+
+async function reviewCommentAction(formData: FormData) {
+  "use server";
+
+  const moderatorId = await requireModeratorUserId();
+  await reviewCommentVisibility({
+    moderatorId,
+    commentId: formString(formData, "commentId"),
+    visibilityState: parseVisibilityState(formString(formData, "visibilityState")),
+    reason: formString(formData, "reason")
+  });
+  revalidatePath("/moderation");
+}
+
+async function reviewReportAction(formData: FormData) {
+  "use server";
+
+  const moderatorId = await requireModeratorUserId();
+  await reviewReport({
+    moderatorId,
+    reportId: formString(formData, "reportId"),
+    status: parseReportStatus(formString(formData, "status")),
+    reason: formString(formData, "reason")
+  });
+  revalidatePath("/moderation");
+}
+
+async function adjustTrustAction(formData: FormData) {
+  "use server";
+
+  await requireModeratorUserId();
+  await applyTrustDelta(
+    formString(formData, "userId"),
+    Number(formString(formData, "delta")),
+    formString(formData, "reason")
+  );
   revalidatePath("/moderation");
 }
 
@@ -30,9 +99,14 @@ export default async function ModerationPage() {
     return <section className="page-section"><h1>운영자만 접근할 수 있습니다</h1></section>;
   }
 
-  const [heldComments, aiSetting, aiUsage] = await Promise.all([
+  const [heldComments, reports, aiSetting, aiUsage] = await Promise.all([
     db.praiseComment.findMany({
       where: { visibilityState: { in: ["HELD", "AUTHOR_ONLY", "HIDDEN"] } },
+      orderBy: { createdAt: "desc" },
+      take: 50
+    }),
+    db.report.findMany({
+      where: { status: "OPEN" },
       orderBy: { createdAt: "desc" },
       take: 50
     }),
@@ -70,12 +144,82 @@ export default async function ModerationPage() {
           <button type="submit">저장</button>
         </form>
       </section>
-      {heldComments.map((comment) => (
-        <article key={comment.id}>
-          <p>{comment.body}</p>
-          <small>{comment.visibilityState} · risk {comment.moderationRisk}</small>
-        </article>
-      ))}
+      <section className="moderation-panel">
+        <h2>보류 댓글</h2>
+        <div className="stack-list">
+          {heldComments.map((comment) => (
+            <article className="review-item" key={comment.id}>
+              <p>{comment.body}</p>
+              <small>{comment.visibilityState} · risk {comment.moderationRisk}</small>
+              <div className="action-row">
+                <form action={reviewCommentAction}>
+                  <input name="commentId" type="hidden" value={comment.id} />
+                  <input name="visibilityState" type="hidden" value={VisibilityState.VISIBLE} />
+                  <input name="reason" type="hidden" value="moderator_approved_comment" />
+                  <button type="submit">공개</button>
+                </form>
+                <form action={reviewCommentAction}>
+                  <input name="commentId" type="hidden" value={comment.id} />
+                  <input name="visibilityState" type="hidden" value={VisibilityState.AUTHOR_ONLY} />
+                  <input name="reason" type="hidden" value="moderator_author_only_comment" />
+                  <button type="submit">작성자만</button>
+                </form>
+                <form action={reviewCommentAction}>
+                  <input name="commentId" type="hidden" value={comment.id} />
+                  <input name="visibilityState" type="hidden" value={VisibilityState.HIDDEN} />
+                  <input name="reason" type="hidden" value="moderator_hidden_comment" />
+                  <button type="submit">숨김</button>
+                </form>
+              </div>
+            </article>
+          ))}
+          {heldComments.length === 0 ? <p>검토할 댓글이 없습니다.</p> : null}
+        </div>
+      </section>
+      <section className="moderation-panel">
+        <h2>신고</h2>
+        <div className="stack-list">
+          {reports.map((report) => (
+            <article className="review-item" key={report.id}>
+              <p>{report.reason}</p>
+              <small>{report.targetType} · {report.targetId}</small>
+              <div className="action-row">
+                <form action={reviewReportAction}>
+                  <input name="reportId" type="hidden" value={report.id} />
+                  <input name="status" type="hidden" value={ReportStatus.REVIEWED} />
+                  <input name="reason" type="hidden" value="moderator_accepted_report" />
+                  <button type="submit">처리</button>
+                </form>
+                <form action={reviewReportAction}>
+                  <input name="reportId" type="hidden" value={report.id} />
+                  <input name="status" type="hidden" value={ReportStatus.DISMISSED} />
+                  <input name="reason" type="hidden" value="moderator_dismissed_report" />
+                  <button type="submit">기각</button>
+                </form>
+              </div>
+            </article>
+          ))}
+          {reports.length === 0 ? <p>열린 신고가 없습니다.</p> : null}
+        </div>
+      </section>
+      <section className="moderation-panel">
+        <h2>신뢰 점수 조정</h2>
+        <form action={adjustTrustAction} className="settings-form">
+          <label>
+            사용자 ID
+            <input name="userId" />
+          </label>
+          <label>
+            조정값
+            <input name="delta" type="number" min="-100" max="100" />
+          </label>
+          <label>
+            사유
+            <input name="reason" />
+          </label>
+          <button type="submit">적용</button>
+        </form>
+      </section>
     </section>
   );
 }

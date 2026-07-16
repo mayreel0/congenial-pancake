@@ -19,11 +19,22 @@
   - `/api/moderation/ai-controls`
   - `/moderation`의 AI 제어 섹션
   - README와 실행 가이드 업데이트
+- PR #6 `chore: add project guardrails and verify script`가 `main`에 merge되었습니다.
+- 포함된 내용:
+  - `AGENTS.md`
+  - `npm run verify`
+  - CI의 verify script 사용
+  - 이 현재 작업 상태 문서
 
 ## 현재 진행
 
-- 작업 규약과 검증 스크립트를 추가하는 브랜치:
-  - `codex/add-project-guardrails`
+- 운영 가능한 MVP를 단단하게 만드는 moderation 액션 강화 브랜치:
+  - `codex/harden-moderation-ops`
+- 목표:
+  - 운영자가 보류 댓글을 공개, 작성자 전용, 숨김으로 처리
+  - 운영자가 열린 신고를 처리 또는 기각
+  - 운영자가 `/moderation`에서 신뢰 점수 조정
+  - 모든 운영 액션은 `ModerationEvent`로 감사 기록 생성
 
 ## 로컬 주의사항
 
@@ -61,6 +72,5 @@ npx prisma migrate status
 
 - 랭킹 스냅샷 재계산 worker 연결
 - 운영자 화면에서 AI usage event 상세 목록 보기
-- 보류 댓글/신고 처리 액션 강화
 - Playwright 로그인/글쓰기/AI 제어 흐름 보강
 - AI worker 실환경 실행 가이드 보강
