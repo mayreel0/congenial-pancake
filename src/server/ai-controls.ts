@@ -99,6 +99,15 @@ export async function getTodayAiUsage(now = new Date()): Promise<AiUsageSummary>
   return summarizeAiUsage(events as AiUsageSummaryEvent[]);
 }
 
+export async function listTodayAiUsageEvents(now = new Date()) {
+  const { start, end } = getUtcDayRange(now);
+  return db.aiUsageEvent.findMany({
+    where: { createdAt: { gte: start, lt: end } },
+    orderBy: { createdAt: "desc" },
+    take: 50
+  });
+}
+
 export async function canRunAiPraiseJob(input: { requestedComments: number; now?: Date }): Promise<AiRunDecision> {
   const [setting, usage] = await Promise.all([getAiControlSetting(), getTodayAiUsage(input.now)]);
 

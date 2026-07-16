@@ -17,6 +17,7 @@ vi.mock("@/lib/db", () => ({
 import {
   canRunAiPraiseJob,
   getAiControlSetting,
+  listTodayAiUsageEvents,
   getTodayAiUsage,
   recordAiUsageEvent,
   updateAiControlSetting
@@ -97,6 +98,25 @@ describe("AI usage controls", () => {
       generatedComments: 2,
       skippedJobs: 1,
       failedJobs: 1
+    });
+  });
+
+  it("lists today's usage events for moderator review", async () => {
+    const now = new Date("2026-07-16T09:30:00.000Z");
+    findMany.mockResolvedValueOnce([{ id: "event_1", status: "FAILED", reason: "provider_error" }]);
+
+    await expect(listTodayAiUsageEvents(now)).resolves.toEqual([
+      { id: "event_1", status: "FAILED", reason: "provider_error" }
+    ]);
+    expect(findMany).toHaveBeenCalledWith({
+      where: {
+        createdAt: {
+          gte: new Date("2026-07-16T00:00:00.000Z"),
+          lt: new Date("2026-07-17T00:00:00.000Z")
+        }
+      },
+      orderBy: { createdAt: "desc" },
+      take: 50
     });
   });
 
