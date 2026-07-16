@@ -14,6 +14,7 @@ For Korean setup instructions, see [docs/RUNNING.ko.md](docs/RUNNING.ko.md).
 - Quiet moderation for risky text, reports, trust score changes, shadow bans, and service bans.
 - BullMQ/Redis-backed AI praise job model for initial and inactivity praise.
 - Moderator-managed AI on/off controls and daily AI usage limits.
+- Moderator review actions for held comments, reports, trust score changes, AI usage logs, and ranking recomputation.
 - Ranking snapshots and a personal activity page.
 - Unit, integration, and Playwright smoke tests.
 
@@ -113,6 +114,7 @@ npm run start        # Start production server
 npm run test         # Unit and integration tests
 npm run test:e2e     # Playwright smoke tests
 npm run lint         # ESLint
+npm run jobs:dev     # Start AI praise and ranking workers
 npm run prisma:seed  # Seed local database
 ```
 
@@ -133,12 +135,12 @@ DATABASE_URL="postgresql://postgres:postgres@localhost:5432/praise_community" np
 
 ## Background Jobs
 
-AI praise creation depends on Redis and the configured AI provider key. Gemini is the default provider via `AI_PROVIDER="gemini"`, `GEMINI_API_KEY`, and `GEMINI_MODEL`. Set `AI_PROVIDER="openai"` with `OPENAI_API_KEY` and `OPENAI_MODEL` to switch providers. The domain logic and worker factory are implemented in `src/server/jobs.ts`; production deployment should run a worker process that calls `startAiPraiseWorker()`.
+AI praise creation depends on Redis and the configured AI provider key. Gemini is the default provider via `AI_PROVIDER="gemini"`, `GEMINI_API_KEY`, and `GEMINI_MODEL`. Set `AI_PROVIDER="openai"` with `OPENAI_API_KEY` and `OPENAI_MODEL` to switch providers. The domain logic and worker factories are implemented in `src/server/jobs.ts`; production deployment should run worker processes for AI praise and ranking recomputation, or run `npm run jobs:dev` for local combined workers.
 
-Moderators can manage AI praise generation at `/moderation`. The AI controls are stored in the database with default values of enabled, 100 daily AI jobs, and 300 daily AI-generated comments. Disabled or quota-limited jobs are skipped before Gemini/OpenAI is called, and usage events record completed, skipped, and failed AI work for the current UTC day.
+Moderators can manage AI praise generation at `/moderation`. The AI controls are stored in the database with default values of enabled, 100 daily AI jobs, and 300 daily AI-generated comments. Disabled or quota-limited jobs are skipped before Gemini/OpenAI is called, and usage events record completed, skipped, and failed AI work for the current UTC day. The moderation page also shows recent AI usage events, review actions for held comments and reports, trust score controls, and a manual ranking recomputation action.
 
 ## Current Limitations
 
 - No hosted environment is configured yet.
 - AI/Redis/PostgreSQL integration should be verified in a real integration environment before launch.
-- Ranking snapshots are read by the UI, but a scheduled ranking recomputation worker still needs production wiring.
+- Scheduled ranking recomputation still needs production scheduler wiring.

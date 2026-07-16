@@ -28,13 +28,19 @@
 
 ## 현재 진행
 
-- 운영 가능한 MVP를 단단하게 만드는 moderation 액션 강화 브랜치:
-  - `codex/harden-moderation-ops`
+- PR #7 `feat: add moderation review actions`가 열려 있습니다.
+- PR #7 위에 남은 운영 강화 기능을 쌓는 stacked 브랜치:
+  - `codex/complete-mvp-hardening`
 - 목표:
   - 운영자가 보류 댓글을 공개, 작성자 전용, 숨김으로 처리
   - 운영자가 열린 신고를 처리 또는 기각
   - 운영자가 `/moderation`에서 신뢰 점수 조정
   - 모든 운영 액션은 `ModerationEvent`로 감사 기록 생성
+  - 운영자가 오늘 AI 작업 로그 확인
+  - 운영자가 랭킹 스냅샷 수동 재계산
+  - `jobs:dev`가 AI worker와 ranking worker를 함께 시작
+  - worker 시작 시 `.env` 로딩과 preflight warning 제공
+  - Playwright 로그인/글쓰기/운영자 smoke 보강
 
 ## 로컬 주의사항
 
