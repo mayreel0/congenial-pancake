@@ -2,7 +2,7 @@
 
 import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
-import { signIn } from "@/lib/auth";
+import { signIn, signOut } from "@/lib/auth";
 
 export async function loginWithCredentials(formData: FormData) {
   try {
@@ -19,4 +19,8 @@ export async function loginWithCredentials(formData: FormData) {
   }
 
   redirect("/");
+}
+
+export async function logout() {
+  await signOut({ redirectTo: "/" });
 }

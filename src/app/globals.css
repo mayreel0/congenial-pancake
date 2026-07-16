@@ -34,7 +34,20 @@ a {
 
 nav {
   display: flex;
+  align-items: center;
   gap: 16px;
+}
+
+.site-header nav form {
+  display: block;
+}
+
+.link-button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-decoration: underline;
 }
 
 .page-section {
