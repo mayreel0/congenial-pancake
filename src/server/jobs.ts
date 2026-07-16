@@ -4,6 +4,7 @@ import IORedis from "ioredis";
 import { db } from "@/lib/db";
 import { buildPraisePrompt, generatePraiseComments, getAiProviderConfig } from "@/server/ai";
 import { canRunAiPraiseJob, recordAiUsageEvent } from "@/server/ai-controls";
+import { recomputeRankingSnapshots } from "@/server/rankings";
 import { publishPostEvent } from "@/server/realtime";
 
 const aiCommentCap = 5;
@@ -33,6 +34,10 @@ export function getAiPraiseQueue(): Queue {
 export function getRankingQueue(): Queue {
   rankingQueueInstance ??= new Queue("ranking", { connection: getBullMqConnection() });
   return rankingQueueInstance;
+}
+
+export async function enqueueRankingRecomputeJob() {
+  await getRankingQueue().add("recompute-rankings", {}, { jobId: `ranking:${new Date().toISOString().slice(0, 10)}` });
 }
 
 export async function enqueueAiPraiseJob(aiPraiseJob: { id: string; jobType: AiJobType; scheduledAt: Date }) {
@@ -261,6 +266,16 @@ export function startAiPraiseWorker() {
     "ai-praise",
     async (job) => {
       await processAiPraiseJob(job.data.aiPraiseJobId);
+    },
+    { connection: getBullMqConnection() }
+  );
+}
+
+export function startRankingWorker() {
+  return new Worker(
+    "ranking",
+    async () => {
+      await recomputeRankingSnapshots();
     },
     { connection: getBullMqConnection() }
   );

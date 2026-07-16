@@ -8,10 +8,16 @@ const canRunAiPraiseJob = vi.hoisted(() => vi.fn());
 const recordAiUsageEvent = vi.hoisted(() => vi.fn());
 const generatePraiseComments = vi.hoisted(() => vi.fn());
 const publishPostEvent = vi.hoisted(() => vi.fn());
+const recomputeRankingSnapshots = vi.hoisted(() => vi.fn());
+const workerInstances = vi.hoisted(() => [] as Array<{ name: string; processor: (job: { data: unknown }) => Promise<void> }>);
 
 vi.mock("bullmq", () => ({
   Queue: class Queue {},
-  Worker: class Worker {}
+  Worker: class Worker {
+    constructor(name: string, processor: (job: { data: unknown }) => Promise<void>) {
+      workerInstances.push({ name, processor });
+    }
+  }
 }));
 
 vi.mock("server-only", () => ({}));
@@ -37,8 +43,9 @@ vi.mock("@/server/ai", () => ({
 }));
 vi.mock("@/server/ai-controls", () => ({ canRunAiPraiseJob, recordAiUsageEvent }));
 vi.mock("@/server/realtime", () => ({ publishPostEvent }));
+vi.mock("@/server/rankings", () => ({ recomputeRankingSnapshots }));
 
-import { ensureAiDisclosure, processAiPraiseJob, shouldRunInactivityPraise } from "@/server/jobs";
+import { ensureAiDisclosure, processAiPraiseJob, shouldRunInactivityPraise, startRankingWorker } from "@/server/jobs";
 
 describe("inactivity praise policy", () => {
   afterEach(() => {
@@ -89,6 +96,21 @@ describe("inactivity praise policy", () => {
     findFirst.mockResolvedValueOnce({ createdAt: new Date("2026-07-14T12:00:00.000Z") });
 
     await expect(shouldRunInactivityPraise("post_1")).resolves.toBe(true);
+  });
+});
+
+describe("ranking worker", () => {
+  afterEach(() => {
+    recomputeRankingSnapshots.mockReset();
+    workerInstances.length = 0;
+  });
+
+  it("recomputes ranking snapshots when ranking jobs run", async () => {
+    startRankingWorker();
+    await workerInstances[0].processor({ data: {} });
+
+    expect(workerInstances[0].name).toBe("ranking");
+    expect(recomputeRankingSnapshots).toHaveBeenCalledOnce();
   });
 });
 

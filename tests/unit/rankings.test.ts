@@ -1,5 +1,18 @@
-import { describe, expect, it } from "vitest";
-import { calculateWarmPraiserScore } from "@/server/rankings";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+const userFindMany = vi.hoisted(() => vi.fn());
+const postFindMany = vi.hoisted(() => vi.fn());
+const snapshotUpsert = vi.hoisted(() => vi.fn());
+
+vi.mock("@/lib/db", () => ({
+  db: {
+    user: { findMany: userFindMany },
+    praisePost: { findMany: postFindMany },
+    rankingSnapshot: { upsert: snapshotUpsert }
+  }
+}));
+
+import { calculateWarmPraiserScore, recomputeRankingSnapshots } from "@/server/rankings";
 
 describe("ranking score", () => {
   it("rewards gratitude and penalizes reports", () => {
@@ -33,5 +46,49 @@ describe("ranking score", () => {
     });
 
     expect(score).toBe(0);
+  });
+});
+
+describe("ranking recomputation", () => {
+  afterEach(() => {
+    userFindMany.mockReset();
+    postFindMany.mockReset();
+    snapshotUpsert.mockReset();
+  });
+
+  it("upserts warm praiser and needs encouragement snapshots", async () => {
+    userFindMany.mockResolvedValueOnce([
+      {
+        id: "user_1",
+        nickname: "따뜻이",
+        trustScore: 100,
+        comments: [{ id: "comment_1", reactions: [{ id: "reaction_1" }], reports: [] }]
+      }
+    ]);
+    postFindMany.mockResolvedValueOnce([
+      {
+        id: "post_1",
+        title: "해냈어요",
+        createdAt: new Date("2026-07-16T00:00:00.000Z"),
+        comments: []
+      }
+    ]);
+    snapshotUpsert.mockResolvedValue({ id: "snapshot_1" });
+
+    await recomputeRankingSnapshots();
+
+    expect(snapshotUpsert).toHaveBeenCalledTimes(2);
+    expect(snapshotUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { rankingType_period: { rankingType: "WARM_PRAISER", period: "all" } },
+        create: expect.objectContaining({ rankingType: "WARM_PRAISER", period: "all" })
+      })
+    );
+    expect(snapshotUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { rankingType_period: { rankingType: "NEEDS_ENCOURAGEMENT", period: "all" } },
+        create: expect.objectContaining({ rankingType: "NEEDS_ENCOURAGEMENT", period: "all" })
+      })
+    );
   });
 });
