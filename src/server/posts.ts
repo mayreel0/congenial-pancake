@@ -24,6 +24,8 @@ const postInputSchema = z.object({
 });
 
 export type CreatePostInput = z.input<typeof postInputSchema>;
+export type PostSort = "latest" | "oldest";
+export const postPageSize = 10;
 
 const postInputErrorCodes = new Set(["POST_TITLE_REQUIRED", "POST_BODY_REQUIRED"]);
 
@@ -34,6 +36,21 @@ export function normalizePostInput(input: CreatePostInput) {
     throw new Error(message && postInputErrorCodes.has(message) ? message : "INVALID_POST_INPUT");
   }
   return parsed.data;
+}
+
+export function normalizePageParam(value: string | string[] | undefined): number {
+  const raw = Array.isArray(value) ? value[0] : value;
+  const page = Number(raw);
+  return Number.isInteger(page) && page > 0 ? page : 1;
+}
+
+export function normalizeSortParam(value: string | string[] | undefined): PostSort {
+  const raw = Array.isArray(value) ? value[0] : value;
+  return raw === "oldest" ? "oldest" : "latest";
+}
+
+export function sortToOrder(sort: PostSort): "asc" | "desc" {
+  return sort === "oldest" ? "asc" : "desc";
 }
 
 export async function createPraisePost(input: CreatePostInput, authorUserId: string) {
@@ -80,10 +97,44 @@ export async function createPraisePost(input: CreatePostInput, authorUserId: str
 }
 
 export async function listFeedPosts() {
+  const { posts } = await listPostsPage({ page: 1, sort: "latest", pageSize: 30 });
+  return posts;
+}
+
+export async function listPostsPage(input: { page: number; sort: PostSort; pageSize?: number }) {
+  const pageSize = input.pageSize ?? postPageSize;
+  const where = { status: VisibilityState.VISIBLE };
+  const [posts, totalCount] = await Promise.all([
+    db.praisePost.findMany({
+      where,
+      orderBy: { createdAt: sortToOrder(input.sort) },
+      skip: (input.page - 1) * pageSize,
+      take: pageSize,
+      include: {
+        author: { select: { nickname: true } },
+        comments: {
+          where: { visibilityState: VisibilityState.VISIBLE },
+          select: { id: true, isAiGenerated: true }
+        }
+      }
+    }),
+    db.praisePost.count({ where })
+  ]);
+
+  return {
+    posts,
+    page: input.page,
+    sort: input.sort,
+    totalCount,
+    totalPages: Math.max(1, Math.ceil(totalCount / pageSize))
+  };
+}
+
+export async function listRecentPosts(limit = 5) {
   return db.praisePost.findMany({
     where: { status: VisibilityState.VISIBLE },
-    orderBy: { updatedAt: "desc" },
-    take: 30,
+    orderBy: { createdAt: "desc" },
+    take: limit,
     include: {
       author: { select: { nickname: true } },
       comments: {

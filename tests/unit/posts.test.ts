@@ -7,7 +7,7 @@ vi.mock("@/server/jobs", () => ({
   selectAiPraiseRequestCount: vi.fn(() => 1)
 }));
 
-import { normalizePostInput } from "@/server/posts";
+import { normalizePageParam, normalizePostInput, normalizeSortParam } from "@/server/posts";
 
 describe("post input normalization", () => {
   it("trims title and body and preserves prompt answers", () => {
@@ -67,5 +67,20 @@ describe("post input normalization", () => {
         promptAnswers: null
       })
     ).toThrow("POST_BODY_REQUIRED");
+  });
+});
+
+describe("post list query normalization", () => {
+  it("normalizes invalid page values to the first page", () => {
+    expect(normalizePageParam(undefined)).toBe(1);
+    expect(normalizePageParam("0")).toBe(1);
+    expect(normalizePageParam("abc")).toBe(1);
+    expect(normalizePageParam("3")).toBe(3);
+  });
+
+  it("supports latest and oldest sort values", () => {
+    expect(normalizeSortParam(undefined)).toBe("latest");
+    expect(normalizeSortParam("oldest")).toBe("oldest");
+    expect(normalizeSortParam("unknown")).toBe("latest");
   });
 });
