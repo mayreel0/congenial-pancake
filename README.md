@@ -11,6 +11,7 @@ For Korean setup instructions, see [docs/RUNNING.ko.md](docs/RUNNING.ko.md).
 - Socket.IO realtime updates for new comments.
 - Anonymous or nickname display modes.
 - Thank-you reactions and author replies.
+- In-app notifications for praise comments and author replies.
 - Quiet moderation for risky text, reports, trust score changes, shadow bans, and service bans.
 - BullMQ/Redis-backed AI praise job model for initial and inactivity praise.
 - Moderator-managed AI on/off controls and daily AI usage limits.
