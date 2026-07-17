@@ -32,8 +32,13 @@ test("seeded author can log in and create a praise request", async ({ page }) =>
   await expect(page.getByRole("heading", { name: "칭찬받고 싶은 순간들" })).toBeVisible();
   await expect(page.getByRole("heading", { name: title })).toBeVisible();
   await page.getByRole("heading", { name: title }).click();
-  await page.getByLabel("칭찬 댓글").fill(comment);
+  const commentInput = page.locator('textarea[name="body"]');
+  await commentInput.fill(comment);
+  await expect(commentInput).toHaveValue(comment);
+  await expect(page.getByRole("button", { name: "칭찬 남기기" })).toBeEnabled();
+  const commentResponse = page.waitForResponse((response) => response.url().includes("/api/posts/") && response.url().endsWith("/comments"));
   await page.getByRole("button", { name: "칭찬 남기기" }).click();
+  expect((await commentResponse).ok()).toBe(true);
   await expect(page.getByText(comment)).toBeVisible();
 
   await page.getByRole("button", { name: "로그아웃" }).click();
