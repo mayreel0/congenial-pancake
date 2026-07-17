@@ -71,6 +71,8 @@ cp .env.example .env
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/praise_community"
 AUTH_SECRET="replace-with-local-secret"
 AUTH_URL="http://localhost:3000"
+NAVER_CLIENT_ID=""
+NAVER_CLIENT_SECRET=""
 AI_PROVIDER="gemini"
 GEMINI_API_KEY=""
 GEMINI_MODEL="gemini-3.1-flash-lite"
@@ -87,6 +89,8 @@ openssl rand -base64 32
 ```
 
 PostgreSQL 사용자/비밀번호가 다르면 `DATABASE_URL`을 본인 환경에 맞게 바꾸세요. 예를 들어 비밀번호가 없고 사용자명이 macOS 계정과 같다면 URL 형태가 달라질 수 있습니다.
+
+네이버 OAuth 로그인은 `NAVER_CLIENT_ID`와 `NAVER_CLIENT_SECRET`이 모두 설정된 경우에만 활성화됩니다. MVP 회원가입은 이메일/비밀번호와 닉네임을 받으며, 이메일과 닉네임 중복을 막습니다. 제재된 사용자는 새 계정으로 우회하는 대신 기존 계정의 제한 해제를 요청하는 정책으로 둡니다.
 
 ## 5. Prisma 준비
 

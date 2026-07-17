@@ -6,7 +6,7 @@ For Korean setup instructions, see [docs/RUNNING.ko.md](docs/RUNNING.ko.md).
 
 ## Features
 
-- Authenticated posting and commenting with Auth.js credentials.
+- Email/password signup, Auth.js credentials login, and optional Naver OAuth login.
 - Public praise feed and post detail rooms.
 - Socket.IO realtime updates for new comments.
 - Anonymous or nickname display modes.
@@ -51,6 +51,8 @@ Required variables:
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/praise_community"
 AUTH_SECRET="replace-with-local-secret"
 AUTH_URL="http://localhost:3000"
+NAVER_CLIENT_ID=""
+NAVER_CLIENT_SECRET=""
 AI_PROVIDER="gemini"
 GEMINI_API_KEY=""
 GEMINI_MODEL="gemini-3.1-flash-lite"
@@ -65,6 +67,8 @@ Generate a local auth secret with:
 ```bash
 openssl rand -base64 32
 ```
+
+Naver OAuth is enabled only when both `NAVER_CLIENT_ID` and `NAVER_CLIENT_SECRET` are set. Signup prevents duplicate emails and nicknames. Sanctioned users should recover or appeal the existing account instead of bypassing sanctions with a new signup.
 
 ## Local Setup
 
