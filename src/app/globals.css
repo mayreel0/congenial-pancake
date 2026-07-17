@@ -273,3 +273,13 @@ button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+.secondary-button {
+  border: 1px solid #246b4b;
+  background: #ffffff;
+  color: #246b4b;
+}
+
+.muted-copy {
+  color: #667568;
+}

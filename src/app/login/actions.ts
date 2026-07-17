@@ -21,6 +21,13 @@ export async function loginWithCredentials(formData: FormData) {
   redirect("/");
 }
 
+export async function loginWithNaver() {
+  if (!process.env.NAVER_CLIENT_ID || !process.env.NAVER_CLIENT_SECRET) {
+    redirect("/login?error=naver");
+  }
+  await signIn("naver", { redirectTo: "/" });
+}
+
 export async function logout() {
   await signOut({ redirectTo: "/" });
 }
