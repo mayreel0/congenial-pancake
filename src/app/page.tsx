@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { auth } from "@/lib/auth";
+import { requiresNicknameSetup } from "@/server/onboarding";
 import { listRecentPosts } from "@/server/posts";
 
 export const dynamic = "force-dynamic";
@@ -8,6 +11,11 @@ function publicName(displayMode: string, nickname: string) {
 }
 
 export default async function HomePage() {
+  const session = await auth();
+  if (session?.user?.id && await requiresNicknameSetup(session.user.id)) {
+    redirect("/onboarding/nickname");
+  }
+
   const posts = await listRecentPosts(5);
 
   return (

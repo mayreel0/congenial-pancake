@@ -1,19 +1,19 @@
 import { describe, expect, it, vi } from "vitest";
 
 const createUser = vi.fn(async (user) => ({ id: "user_1", ...user }));
-const resolveUniqueNickname = vi.hoisted(() => vi.fn());
+const generateNicknameSuggestion = vi.hoisted(() => vi.fn());
 
 vi.mock("server-only", () => ({}));
 
 vi.mock("@/server/signup", () => ({
-  resolveUniqueNickname
+  generateNicknameSuggestion
 }));
 
 import { withSignupNickname } from "@/lib/auth-adapter";
 
 describe("auth adapter", () => {
-  it("adds a unique nickname when an OAuth user is created", async () => {
-    resolveUniqueNickname.mockResolvedValue("네이버사용자");
+  it("adds a temporary nickname and requires setup when an OAuth user is created", async () => {
+    generateNicknameSuggestion.mockResolvedValue("다정한햇살482");
     const adapter = withSignupNickname({ createUser });
 
     await adapter.createUser?.({
@@ -24,14 +24,15 @@ describe("auth adapter", () => {
       emailVerified: null
     });
 
-    expect(resolveUniqueNickname).toHaveBeenCalledWith("네이버 사용자");
+    expect(generateNicknameSuggestion).toHaveBeenCalled();
     expect(createUser).toHaveBeenCalledWith({
       email: "user@example.com",
       id: "oauth_user",
       name: "네이버 사용자",
       image: null,
       emailVerified: null,
-      nickname: "네이버사용자"
+      nickname: "다정한햇살482",
+      nicknameSetupRequired: true
     });
   });
 });

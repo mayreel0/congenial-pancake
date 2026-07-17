@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { signupWithCredentials } from "@/app/signup/actions";
+import { generateNicknameSuggestion } from "@/server/signup";
 
 const errorMessages: Record<string, string> = {
   email: "이미 가입된 이메일입니다. 기존 계정으로 로그인해주세요.",
@@ -16,6 +17,7 @@ export default async function SignupPage({
   const params = await searchParams;
   const rawError = Array.isArray(params.error) ? params.error[0] : params.error;
   const errorMessage = rawError ? errorMessages[rawError] ?? errorMessages.unknown : null;
+  const nicknameSuggestion = await generateNicknameSuggestion();
 
   return (
     <section className="page-section">
@@ -29,7 +31,7 @@ export default async function SignupPage({
         </label>
         <label>
           닉네임
-          <input name="nickname" required minLength={2} maxLength={24} />
+          <input name="nickname" required minLength={2} maxLength={24} defaultValue={nicknameSuggestion} />
         </label>
         <label>
           비밀번호
