@@ -1,7 +1,7 @@
 import { DisplayMode, Prisma, VisibilityState } from "@prisma/client";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { enqueueAiPraiseJob } from "@/server/jobs";
+import { enqueueAiPraiseJob, planAiCommentTimes, selectAiPraiseRequestCount } from "@/server/jobs";
 
 const initialInactivityDelayMs = 10 * 60 * 1000;
 
@@ -39,6 +39,8 @@ export function normalizePostInput(input: CreatePostInput) {
 export async function createPraisePost(input: CreatePostInput, authorUserId: string) {
   const data = normalizePostInput(input);
   const { post, aiJobs } = await db.$transaction(async (tx) => {
+    const initialJobCount = selectAiPraiseRequestCount("INITIAL_PRAISE");
+    const initialScheduledTimes = planAiCommentTimes(initialJobCount);
     const post = await tx.praisePost.create({
       data: {
         authorUserId,
@@ -49,13 +51,17 @@ export async function createPraisePost(input: CreatePostInput, authorUserId: str
       }
     });
 
-    const initialJob = await tx.aiPraiseJob.create({
-      data: {
-        postId: post.id,
-        jobType: "INITIAL_PRAISE",
-        scheduledAt: new Date()
-      }
-    });
+    const initialJobs = await Promise.all(
+      initialScheduledTimes.map((scheduledAt) =>
+        tx.aiPraiseJob.create({
+          data: {
+            postId: post.id,
+            jobType: "INITIAL_PRAISE",
+            scheduledAt
+          }
+        })
+      )
+    );
 
     const inactivityJob = await tx.aiPraiseJob.create({
       data: {
@@ -65,7 +71,7 @@ export async function createPraisePost(input: CreatePostInput, authorUserId: str
       }
     });
 
-    return { post, aiJobs: [initialJob, inactivityJob] };
+    return { post, aiJobs: [...initialJobs, inactivityJob] };
   });
 
   await Promise.all(aiJobs.map((aiJob) => enqueueAiPraiseJob(aiJob)));

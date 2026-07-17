@@ -17,6 +17,7 @@ vi.mock("@/lib/db", () => ({
 import {
   canRunAiPraiseJob,
   getAiControlSetting,
+  listTodayAiUsageEvents,
   getTodayAiUsage,
   recordAiUsageEvent,
   updateAiControlSetting
@@ -100,6 +101,25 @@ describe("AI usage controls", () => {
     });
   });
 
+  it("lists today's usage events for moderator review", async () => {
+    const now = new Date("2026-07-16T09:30:00.000Z");
+    findMany.mockResolvedValueOnce([{ id: "event_1", status: "FAILED", reason: "provider_error" }]);
+
+    await expect(listTodayAiUsageEvents(now)).resolves.toEqual([
+      { id: "event_1", status: "FAILED", reason: "provider_error" }
+    ]);
+    expect(findMany).toHaveBeenCalledWith({
+      where: {
+        createdAt: {
+          gte: new Date("2026-07-16T00:00:00.000Z"),
+          lt: new Date("2026-07-17T00:00:00.000Z")
+        }
+      },
+      orderBy: { createdAt: "desc" },
+      take: 50
+    });
+  });
+
   it("records usage events with stable reasons", async () => {
     create.mockResolvedValueOnce({ id: "event_1" });
 
@@ -107,7 +127,7 @@ describe("AI usage controls", () => {
       jobId: "job_1",
       postId: "post_1",
       provider: "gemini",
-      model: "gemini-2.5-flash-lite",
+      model: "gemini-3.1-flash-lite",
       status: "SKIPPED",
       reason: "disabled",
       requestedComments: 3,

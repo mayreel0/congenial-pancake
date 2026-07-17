@@ -73,7 +73,7 @@ AUTH_SECRET="replace-with-local-secret"
 AUTH_URL="http://localhost:3000"
 AI_PROVIDER="gemini"
 GEMINI_API_KEY=""
-GEMINI_MODEL="gemini-2.5-flash-lite"
+GEMINI_MODEL="gemini-3.1-flash-lite"
 OPENAI_API_KEY=""
 OPENAI_MODEL="gpt-4o-mini"
 REDIS_URL="redis://localhost:6379"
@@ -130,6 +130,7 @@ http://localhost:3000
 6. `/me`에서 내 활동 화면을 확인합니다.
 7. `moderator@example.com`으로 로그인해 `/moderation` 접근을 확인합니다.
 8. `/moderation`의 AI 칭찬 제어에서 AI 사용 여부, 하루 작업 제한, 하루 댓글 제한, 오늘 사용량을 확인합니다.
+9. `/moderation`에서 보류 댓글, 열린 신고, 신뢰 점수 조정, 오늘 AI 작업 로그, 랭킹 재계산을 확인합니다.
 
 ## 8. 테스트
 
@@ -166,9 +167,19 @@ Pull Request와 `main` 브랜치 push에서 GitHub Actions CI가 실행됩니다
 
 ## 10. AI 칭찬 작업 참고
 
-AI 칭찬은 Redis 큐와 설정된 AI provider의 API 키가 필요합니다. 기본값은 `AI_PROVIDER="gemini"`, `GEMINI_API_KEY`, `GEMINI_MODEL="gemini-2.5-flash-lite"`입니다. OpenAI로 전환하려면 `AI_PROVIDER="openai"`, `OPENAI_API_KEY`, `OPENAI_MODEL`을 설정하세요. 작업 생성/정책/worker factory는 `src/server/jobs.ts`에 구현되어 있습니다. 운영 환경에서는 `startAiPraiseWorker()`를 호출하는 별도 worker 프로세스를 연결해야 합니다.
+AI 칭찬은 Redis 큐와 설정된 AI provider의 API 키가 필요합니다. 기본값은 `AI_PROVIDER="gemini"`, `GEMINI_API_KEY`, `GEMINI_MODEL="gemini-3.1-flash-lite"`입니다. OpenAI로 전환하려면 `AI_PROVIDER="openai"`, `OPENAI_API_KEY`, `OPENAI_MODEL`을 설정하세요. 작업 생성/정책/worker factory는 `src/server/jobs.ts`에 구현되어 있습니다. 로컬에서는 아래 명령으로 AI 칭찬 worker와 랭킹 재계산 worker를 함께 실행합니다.
+
+```bash
+npm run jobs:dev
+```
+
+worker는 시작 시 `.env`를 로드하고, `REDIS_URL`이나 선택된 AI provider API 키가 없으면 사전 경고를 출력합니다.
+
+초기 AI 칭찬은 고정 3개가 아니라 1~3개의 단일 댓글 작업으로 나뉘어 예약됩니다. 첫 작업은 짧은 지연 뒤 실행되고, 추가 작업은 몇 분 간격으로 분산됩니다. 댓글 본문에는 AI 표시 문구를 붙이지 않지만, 운영/랭킹 처리를 위해 DB의 `isAiGenerated` 값은 유지합니다.
 
 AI 칭찬 사용량 제한은 환경 변수가 아니라 데이터베이스 설정으로 관리합니다. 마이그레이션 후 기본값은 AI 사용, 하루 AI 작업 100건, 하루 AI 생성 댓글 300개입니다. 운영자는 `/moderation`에서 AI를 끄거나 제한값을 0부터 10000 사이의 정수로 조정할 수 있습니다. 제한에 걸린 작업은 Gemini/OpenAI 호출 전에 건너뛰며, 오늘 실행/스킵/실패 사용량은 UTC 하루 기준으로 집계됩니다.
+
+운영자는 `/moderation`에서 오늘 AI 작업 로그를 보고, 보류 댓글 공개/작성자 전용/숨김 처리, 열린 신고 처리/기각, 신뢰 점수 조정, 랭킹 스냅샷 수동 재계산을 할 수 있습니다.
 
 ## 11. 자주 막히는 지점
 
