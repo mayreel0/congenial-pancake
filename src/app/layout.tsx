@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { logout } from "@/app/login/actions";
+import { auth } from "@/lib/auth";
+import { getUnreadNotificationCount } from "@/server/notifications";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -8,7 +10,10 @@ export const metadata: Metadata = {
   description: "칭찬받고 싶은 순간을 안전하게 나누는 커뮤니티"
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const session = await auth();
+  const unreadNotificationCount = session?.user?.id ? await getUnreadNotificationCount(session.user.id) : 0;
+
   return (
     <html lang="ko">
       <body>
@@ -19,6 +24,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Link href="/rankings">랭킹</Link>
             <Link href="/posts/new">글쓰기</Link>
             <Link href="/me">내 활동</Link>
+            <Link href="/notifications">
+              알림{unreadNotificationCount > 0 ? ` ${unreadNotificationCount}` : ""}
+            </Link>
             <form action={logout}>
               <button type="submit" className="link-button">로그아웃</button>
             </form>
