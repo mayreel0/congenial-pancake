@@ -45,6 +45,21 @@ test("seeded author can log in and create a praise request", async ({ page }) =>
   await expect(page.getByRole("heading", { name: "칭찬", exact: true })).toBeVisible();
 });
 
+test("new user can sign up with email credentials", async ({ page }) => {
+  const unique = Date.now();
+  const email = `signup-${unique}@example.com`;
+
+  await page.goto("/signup");
+  await page.getByLabel("이메일").fill(email);
+  await page.getByLabel("닉네임").fill(`가입러${unique}`);
+  await page.getByLabel("비밀번호").fill("password1234");
+  await page.getByRole("button", { name: "가입하기" }).click();
+
+  await expect(page.getByRole("heading", { name: "칭찬", exact: true })).toBeVisible();
+  await page.goto("/me");
+  await expect(page.getByRole("heading", { name: "내 활동" })).toBeVisible();
+});
+
 test("seeded moderator can open moderation tools", async ({ page }) => {
   await page.goto("/login");
   await page.getByLabel("이메일").fill("moderator@example.com");
