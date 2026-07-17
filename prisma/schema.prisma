@@ -80,27 +80,34 @@ enum RankingType {
   NEEDS_ENCOURAGEMENT
 }
 
+enum NotificationType {
+  COMMENT_ON_POST
+  REPLY_ON_COMMENT
+}
+
 model User {
-  id             String          @id @default(cuid())
-  name           String?
-  email          String?         @unique
-  emailVerified  DateTime?
-  image          String?
-  nickname       String          @unique
-  passwordHash   String?
-  trustScore     Int             @default(100)
-  sanctionState  SanctionState   @default(NORMAL)
-  isModerator    Boolean         @default(false)
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  accounts       Account[]
-  sessions       Session[]
-  posts          PraisePost[]
-  comments       PraiseComment[]
-  reactions      Reaction[]
-  replies        Reply[]
-  reports        Report[]        @relation("ReporterReports")
-  moderationLogs ModerationEvent[]
+  id                 String            @id @default(cuid())
+  name               String?
+  email              String?           @unique
+  emailVerified      DateTime?
+  image              String?
+  nickname           String            @unique
+  passwordHash       String?
+  trustScore         Int               @default(100)
+  sanctionState      SanctionState     @default(NORMAL)
+  isModerator        Boolean           @default(false)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  accounts           Account[]
+  sessions           Session[]
+  posts              PraisePost[]
+  comments           PraiseComment[]
+  reactions          Reaction[]
+  replies            Reply[]
+  reports            Report[]          @relation("ReporterReports")
+  moderationLogs     ModerationEvent[]
+  notifications      Notification[]    @relation("RecipientNotifications")
+  actedNotifications Notification[]    @relation("ActorNotifications")
 }
 
 model Account {
@@ -152,6 +159,7 @@ model PraisePost {
   reactions     Reaction[]
   replies       Reply[]
   aiJobs        AiPraiseJob[]
+  notifications Notification[]
 
   @@index([createdAt])
   @@index([status])
@@ -172,6 +180,7 @@ model PraiseComment {
   author          User?           @relation(fields: [authorUserId], references: [id], onDelete: SetNull)
   reactions       Reaction[]
   replies         Reply[]
+  notifications   Notification[]
 
   @@index([postId, createdAt])
   @@index([authorUserId])
@@ -203,6 +212,29 @@ model Reply {
   post            PraisePost      @relation(fields: [postId], references: [id], onDelete: Cascade)
   comment         PraiseComment   @relation(fields: [commentId], references: [id], onDelete: Cascade)
   author          User            @relation(fields: [authorUserId], references: [id], onDelete: Cascade)
+  notifications   Notification[]
+}
+
+model Notification {
+  id              String           @id @default(cuid())
+  recipientUserId String
+  actorUserId     String?
+  type            NotificationType
+  postId          String
+  commentId       String?
+  replyId         String?
+  readAt          DateTime?
+  createdAt       DateTime         @default(now())
+  recipient       User             @relation("RecipientNotifications", fields: [recipientUserId], references: [id], onDelete: Cascade)
+  actor           User?            @relation("ActorNotifications", fields: [actorUserId], references: [id], onDelete: SetNull)
+  post            PraisePost       @relation(fields: [postId], references: [id], onDelete: Cascade)
+  comment         PraiseComment?   @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  reply           Reply?           @relation(fields: [replyId], references: [id], onDelete: Cascade)
+
+  @@index([recipientUserId, readAt, createdAt])
+  @@index([postId])
+  @@index([commentId])
+  @@index([replyId])
 }
 
 model Report {
@@ -220,15 +252,15 @@ model Report {
 }
 
 model ModerationEvent {
-  id              String              @id @default(cuid())
+  id              String               @id @default(cuid())
   userId          String?
   targetType      ModerationTargetType
   targetId        String
   eventType       ModerationEventType
   riskReason      String
-  trustScoreDelta Int                 @default(0)
-  createdAt       DateTime            @default(now())
-  user            User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+  trustScoreDelta Int                  @default(0)
+  createdAt       DateTime             @default(now())
+  user            User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([userId, createdAt])
   @@index([targetType, targetId])
