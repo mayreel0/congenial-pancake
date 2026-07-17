@@ -8,10 +8,16 @@ const canRunAiPraiseJob = vi.hoisted(() => vi.fn());
 const recordAiUsageEvent = vi.hoisted(() => vi.fn());
 const generatePraiseComments = vi.hoisted(() => vi.fn());
 const publishPostEvent = vi.hoisted(() => vi.fn());
+const recomputeRankingSnapshots = vi.hoisted(() => vi.fn());
+const workerInstances = vi.hoisted(() => [] as Array<{ name: string; processor: (job: { data: unknown }) => Promise<void> }>);
 
 vi.mock("bullmq", () => ({
   Queue: class Queue {},
-  Worker: class Worker {}
+  Worker: class Worker {
+    constructor(name: string, processor: (job: { data: unknown }) => Promise<void>) {
+      workerInstances.push({ name, processor });
+    }
+  }
 }));
 
 vi.mock("server-only", () => ({}));
@@ -33,12 +39,14 @@ vi.mock("@/lib/db", () => ({
 vi.mock("@/server/ai", () => ({
   buildPraisePrompt: vi.fn(() => "prompt text"),
   generatePraiseComments,
-  getAiProviderConfig: vi.fn(() => ({ provider: "gemini", model: "gemini-2.5-flash-lite", apiKey: "key" }))
+  getAiProviderConfig: vi.fn(() => ({ provider: "gemini", model: "gemini-3.1-flash-lite", apiKey: "key" })),
+  getAiProviderErrorReason: vi.fn(() => "provider_error:model_not_found")
 }));
 vi.mock("@/server/ai-controls", () => ({ canRunAiPraiseJob, recordAiUsageEvent }));
 vi.mock("@/server/realtime", () => ({ publishPostEvent }));
+vi.mock("@/server/rankings", () => ({ recomputeRankingSnapshots }));
 
-import { ensureAiDisclosure, processAiPraiseJob, shouldRunInactivityPraise } from "@/server/jobs";
+import { ensureNaturalAiComment, processAiPraiseJob, shouldRunInactivityPraise, startRankingWorker } from "@/server/jobs";
 
 describe("inactivity praise policy", () => {
   afterEach(() => {
@@ -92,6 +100,21 @@ describe("inactivity praise policy", () => {
   });
 });
 
+describe("ranking worker", () => {
+  afterEach(() => {
+    recomputeRankingSnapshots.mockReset();
+    workerInstances.length = 0;
+  });
+
+  it("recomputes ranking snapshots when ranking jobs run", async () => {
+    startRankingWorker();
+    await workerInstances[0].processor({ data: {} });
+
+    expect(workerInstances[0].name).toBe("ranking");
+    expect(recomputeRankingSnapshots).toHaveBeenCalledOnce();
+  });
+});
+
 describe("AI praise worker controls", () => {
   afterEach(() => {
     aiJobFindUniqueOrThrow.mockReset();
@@ -125,20 +148,48 @@ describe("AI praise worker controls", () => {
         postId: "post_1",
         status: "SKIPPED",
         reason: "disabled",
-        requestedComments: 3,
+        requestedComments: 1,
         generatedComments: 0
       })
     );
     expect(publishPostEvent).not.toHaveBeenCalled();
   });
+
+  it("records classified provider errors when generation fails", async () => {
+    const aiJob = {
+      id: "job_1",
+      postId: "post_1",
+      jobType: "INITIAL_PRAISE",
+      status: "PENDING",
+      resultCommentIds: [],
+      post: { title: "해냈어요", body: "끝냈어요", promptAnswers: null }
+    };
+    aiJobFindUniqueOrThrow.mockResolvedValueOnce(aiJob);
+    aiJobUpdate.mockResolvedValueOnce({ ...aiJob, status: "RUNNING" }).mockResolvedValueOnce({ ...aiJob, status: "FAILED" });
+    canRunAiPraiseJob.mockResolvedValueOnce({ allowed: true, reason: "allowed" });
+    generatePraiseComments.mockRejectedValueOnce(new Error("model not found"));
+
+    await expect(processAiPraiseJob("job_1")).rejects.toThrow("model not found");
+
+    expect(recordAiUsageEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        jobId: "job_1",
+        postId: "post_1",
+        status: "FAILED",
+        reason: "provider_error:model_not_found",
+        requestedComments: 1,
+        generatedComments: 0
+      })
+    );
+  });
 });
 
-describe("AI disclosure", () => {
-  it("prefixes AI comments when the model omits disclosure", () => {
-    expect(ensureAiDisclosure("잘 해냈어요")).toBe("AI 칭찬: 잘 해냈어요");
+describe("AI comment naturalization", () => {
+  it("removes AI disclosure prefixes from generated comments", () => {
+    expect(ensureNaturalAiComment("AI 칭찬: 잘 해냈어요")).toBe("잘 해냈어요");
   });
 
-  it("does not duplicate the AI disclosure prefix", () => {
-    expect(ensureAiDisclosure("AI 칭찬: 잘 해냈어요")).toBe("AI 칭찬: 잘 해냈어요");
+  it("trims natural comments without adding disclosure", () => {
+    expect(ensureNaturalAiComment("  잘 해냈어요  ")).toBe("잘 해냈어요");
   });
 });
