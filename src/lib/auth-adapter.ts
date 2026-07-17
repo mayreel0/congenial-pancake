@@ -1,7 +1,7 @@
 import type { Adapter, AdapterUser } from "next-auth/adapters";
-import { resolveUniqueNickname } from "@/server/signup";
+import { generateNicknameSuggestion } from "@/server/signup";
 
-type AdapterUserWithNickname = AdapterUser & { nickname: string };
+type AdapterUserWithNickname = AdapterUser & { nickname: string; nicknameSetupRequired: boolean };
 
 export function withSignupNickname(adapter: Adapter): Adapter {
   return {
@@ -10,10 +10,11 @@ export function withSignupNickname(adapter: Adapter): Adapter {
       if (!adapter.createUser) {
         throw new Error("AUTH_ADAPTER_CREATE_USER_UNAVAILABLE");
       }
-      const nickname = await resolveUniqueNickname(user.name ?? user.email ?? null);
+      const nickname = await generateNicknameSuggestion();
       return adapter.createUser({
         ...user,
-        nickname
+        nickname,
+        nicknameSetupRequired: true
       } as AdapterUserWithNickname);
     }
   };
