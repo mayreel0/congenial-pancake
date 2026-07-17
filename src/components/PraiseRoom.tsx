@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPostSocket } from "@/lib/socket-client";
 
 type PraiseRoomProps = {
@@ -26,9 +26,12 @@ function commenterName(comment: PraiseRoomProps["post"]["comments"][number]): st
 
 export default function PraiseRoom({ post }: PraiseRoomProps) {
   const [error, setError] = useState<string | null>(null);
+  const [isReady, setIsReady] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
+    setIsReady(true);
     const socket = createPostSocket(post.id);
     socket.on("post:event", () => {
       window.location.reload();
@@ -38,12 +41,13 @@ export default function PraiseRoom({ post }: PraiseRoomProps) {
     };
   }, [post.id]);
 
-  async function createComment(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function createComment() {
+    const form = formRef.current;
+    if (!form?.reportValidity()) return;
     setError(null);
     setIsSubmitting(true);
 
-    const formData = new FormData(event.currentTarget);
+    const formData = new FormData(form);
     const response = await fetch(`/api/posts/${post.id}/comments`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -59,14 +63,14 @@ export default function PraiseRoom({ post }: PraiseRoomProps) {
     }
 
     setIsSubmitting(false);
-    setError("칭찬을 남기지 못했습니다. 다시 시도해주세요.");
+    setError(`칭찬을 남기지 못했습니다. 다시 시도해주세요. (${response.status})`);
   }
 
   return (
     <section className="page-section">
       <h1>{post.title}</h1>
       <p>{post.body}</p>
-      <form onSubmit={createComment} className="settings-form">
+      <form ref={formRef} className="settings-form">
         <label>
           칭찬 댓글
           <textarea name="body" maxLength={1000} required />
@@ -79,7 +83,7 @@ export default function PraiseRoom({ post }: PraiseRoomProps) {
           </select>
         </label>
         {error ? <p role="alert">{error}</p> : null}
-        <button type="submit" disabled={isSubmitting}>
+        <button type="button" disabled={isSubmitting || !isReady} onClick={createComment}>
           {isSubmitting ? "남기는 중..." : "칭찬 남기기"}
         </button>
       </form>
