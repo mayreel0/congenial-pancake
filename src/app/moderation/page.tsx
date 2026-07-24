@@ -8,6 +8,7 @@ import {
   updateAiControlSetting
 } from "@/server/ai-controls";
 import { applyTrustDelta, reviewCommentVisibility, reviewReport } from "@/server/moderation";
+import { getModerationDashboardSummary } from "@/server/moderation-summary";
 import { recomputeRankingSnapshots } from "@/server/rankings";
 import { revalidatePath } from "next/cache";
 
@@ -114,7 +115,8 @@ export default async function ModerationPage() {
     return <section className="page-section"><h1>운영자만 접근할 수 있습니다</h1></section>;
   }
 
-  const [heldComments, reports, aiSetting, aiUsage, aiUsageEvents] = await Promise.all([
+  const [summary, heldComments, reports, aiSetting, aiUsage, aiUsageEvents] = await Promise.all([
+    getModerationDashboardSummary(),
     db.praiseComment.findMany({
       where: { visibilityState: { in: ["HELD", "AUTHOR_ONLY", "HIDDEN"] } },
       orderBy: { createdAt: "desc" },
@@ -133,6 +135,30 @@ export default async function ModerationPage() {
   return (
     <section className="page-section">
       <h1>운영 검토</h1>
+      <section className="moderation-panel" aria-labelledby="moderation-summary-heading">
+        <div>
+          <h2 id="moderation-summary-heading">오늘 처리 요약</h2>
+          <p>지금 확인할 항목만 모았습니다.</p>
+        </div>
+        <div className="stack-list">
+          <article className="review-item">
+            <strong>보류 댓글 {summary.pendingCommentCount}개</strong>
+            <small>검토 대기</small>
+          </article>
+          <article className="review-item">
+            <strong>열린 신고 {summary.openReportCount}건</strong>
+            <small>처리 필요</small>
+          </article>
+          <article className="review-item">
+            <strong>AI 실패 {summary.todayAiFailureCount}건</strong>
+            <small>오늘 기준</small>
+          </article>
+          <article className="review-item">
+            <strong>Worker {summary.workerHealth.label}</strong>
+            <small>{summary.workerHealth.detail}</small>
+          </article>
+        </div>
+      </section>
       <section className="moderation-panel">
         <div>
           <h2>AI 칭찬 제어</h2>
