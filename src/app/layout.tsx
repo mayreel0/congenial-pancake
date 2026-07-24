@@ -24,12 +24,18 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <Link href="/rankings">랭킹</Link>
             <Link href="/posts/new">글쓰기</Link>
             <Link href="/me">내 활동</Link>
-            <Link href="/notifications">
-              알림{unreadNotificationCount > 0 ? ` ${unreadNotificationCount}` : ""}
-            </Link>
-            <form action={logout}>
-              <button type="submit" className="link-button">로그아웃</button>
-            </form>
+            {session?.user?.id ? (
+              <>
+                <Link href="/notifications">
+                  알림{unreadNotificationCount > 0 ? ` ${unreadNotificationCount}` : ""}
+                </Link>
+                <form action={logout}>
+                  <button type="submit" className="link-button">로그아웃</button>
+                </form>
+              </>
+            ) : (
+              <Link href="/login">로그인</Link>
+            )}
           </nav>
         </header>
         <main>{children}</main>

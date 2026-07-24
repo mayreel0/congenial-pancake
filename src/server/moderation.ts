@@ -7,6 +7,7 @@ import {
   Prisma
 } from "@prisma/client";
 import { db } from "@/lib/db";
+import { assertCanWrite } from "@/server/permissions";
 
 const riskyPatterns = [
   { pattern: /자랑이라고|그걸.*대단|꼴값|한심|별것도/i, risk: 75, reason: "mocking_praise" },
@@ -91,6 +92,12 @@ export async function recordReport(
   targetId: string,
   reason: string
 ) {
+  const reporter = await db.user.findUniqueOrThrow({
+    where: { id: reporterUserId },
+    select: { sanctionState: true }
+  });
+  assertCanWrite(reporter);
+
   return db.$transaction(async (tx) => {
     const existingReport = await tx.report.findFirst({
       where: { reporterUserId, targetType, targetId }

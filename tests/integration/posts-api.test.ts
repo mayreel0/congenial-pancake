@@ -63,6 +63,17 @@ describe("posts API route", () => {
     expect(createPraisePostMock).not.toHaveBeenCalled();
   });
 
+  it("blocks shadow banned users before creating a post", async () => {
+    authMock.mockResolvedValue({ user: { id: "user_1" } });
+    findUniqueOrThrowMock.mockResolvedValue({ id: "user_1", sanctionState: SanctionState.SHADOW_BANNED });
+    const { POST } = await import("@/app/api/posts/route");
+
+    await expect(
+      POST(new Request("http://localhost/api/posts", { method: "POST", body: "{}" }))
+    ).rejects.toThrow("WRITE_BLOCKED");
+    expect(createPraisePostMock).not.toHaveBeenCalled();
+  });
+
 
   it("returns 400 for known post validation errors", async () => {
     authMock.mockResolvedValue({ user: { id: "user_1" } });

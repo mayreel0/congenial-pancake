@@ -2,10 +2,12 @@ import { VisibilityState } from "@prisma/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const transaction = vi.hoisted(() => vi.fn());
+const userFindUniqueOrThrow = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/db", () => ({
   db: {
-    $transaction: transaction
+    $transaction: transaction,
+    user: { findUniqueOrThrow: userFindUniqueOrThrow }
   }
 }));
 
@@ -34,6 +36,7 @@ describe("moderation", () => {
 describe("moderation review actions", () => {
   afterEach(() => {
     transaction.mockReset();
+    userFindUniqueOrThrow.mockReset();
   });
 
   it("updates comment visibility and records an audit event", async () => {
@@ -71,6 +74,7 @@ describe("moderation review actions", () => {
   });
 
   it("reuses an existing report for the same reporter and target", async () => {
+    userFindUniqueOrThrow.mockResolvedValue({ id: "user_1", sanctionState: "NORMAL" });
     const existingReport = { id: "report_1", reporterUserId: "user_1", targetType: "POST", targetId: "post_1" };
     const findFirst = vi.fn().mockResolvedValue(existingReport);
     const createReport = vi.fn();
@@ -93,6 +97,14 @@ describe("moderation review actions", () => {
     });
     expect(createReport).not.toHaveBeenCalled();
     expect(createEvent).not.toHaveBeenCalled();
+  });
+
+  it("blocks write-restricted users from creating reports", async () => {
+    userFindUniqueOrThrow.mockResolvedValue({ id: "user_1", sanctionState: "SHADOW_BANNED" });
+
+    await expect(recordReport("user_1", "POST", "post_1", "reason")).rejects.toThrow("WRITE_BLOCKED");
+
+    expect(transaction).not.toHaveBeenCalled();
   });
 
   it("reviews reports with accepted or dismissed audit events", async () => {

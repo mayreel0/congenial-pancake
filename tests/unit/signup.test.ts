@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const hash = vi.hoisted(() => vi.fn());
 const findFirst = vi.hoisted(() => vi.fn());
 const findUnique = vi.hoisted(() => vi.fn());
+const findUniqueOrThrow = vi.hoisted(() => vi.fn());
 const create = vi.hoisted(() => vi.fn());
 const update = vi.hoisted(() => vi.fn());
 
@@ -15,7 +16,7 @@ vi.mock("bcryptjs", () => ({
 
 vi.mock("@/lib/db", () => ({
   db: {
-    user: { findFirst, findUnique, create, update }
+    user: { findFirst, findUnique, findUniqueOrThrow, create, update }
   }
 }));
 
@@ -32,6 +33,7 @@ describe("signup", () => {
     hash.mockReset();
     findFirst.mockReset();
     findUnique.mockReset();
+    findUniqueOrThrow.mockReset();
     create.mockReset();
     update.mockReset();
   });
@@ -112,10 +114,15 @@ describe("signup", () => {
   });
 
   it("updates a required nickname after checking duplicates", async () => {
+    findUniqueOrThrow.mockResolvedValue({ id: "user_1", sanctionState: "NORMAL" });
     findFirst.mockResolvedValue(null);
 
     await updateRequiredNickname("user_1", "새로운칭찬러");
 
+    expect(findUniqueOrThrow).toHaveBeenCalledWith({
+      where: { id: "user_1" },
+      select: { sanctionState: true }
+    });
     expect(create).not.toHaveBeenCalled();
     expect(findFirst).toHaveBeenCalledWith({
       where: {
@@ -131,5 +138,14 @@ describe("signup", () => {
         nicknameSetupRequired: false
       }
     });
+  });
+
+  it("blocks write-restricted users from finishing signup-adjacent nickname setup", async () => {
+    findUniqueOrThrow.mockResolvedValue({ id: "user_1", sanctionState: "SERVICE_BANNED" });
+
+    await expect(updateRequiredNickname("user_1", "새로운칭찬러")).rejects.toThrow("WRITE_BLOCKED");
+
+    expect(findFirst).not.toHaveBeenCalled();
+    expect(update).not.toHaveBeenCalled();
   });
 });

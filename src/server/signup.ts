@@ -3,6 +3,7 @@ import "server-only";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { assertCanWrite } from "@/server/permissions";
 
 const signupSchema = z.object({
   email: z.string().trim().toLowerCase().email("INVALID_EMAIL"),
@@ -67,6 +68,12 @@ export async function resolveUniqueNickname(seed: string | null | undefined): Pr
 
 export async function updateRequiredNickname(userId: string, nicknameInput: string) {
   const nickname = normalizeNicknameInput(nicknameInput);
+  const user = await db.user.findUniqueOrThrow({
+    where: { id: userId },
+    select: { sanctionState: true }
+  });
+  assertCanWrite(user);
+
   const existing = await db.user.findFirst({
     where: {
       nickname,
