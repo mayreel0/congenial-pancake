@@ -10,6 +10,7 @@ const praiseCommentCount = vi.hoisted(() => vi.fn());
 const reportFindMany = vi.hoisted(() => vi.fn());
 const reportCount = vi.hoisted(() => vi.fn());
 const aiUsageEventCount = vi.hoisted(() => vi.fn());
+const workerHeartbeatFindUnique = vi.hoisted(() => vi.fn());
 const getAiControlSetting = vi.hoisted(() => vi.fn());
 const getTodayAiUsage = vi.hoisted(() => vi.fn());
 const listTodayAiUsageEvents = vi.hoisted(() => vi.fn());
@@ -20,7 +21,8 @@ vi.mock("@/lib/db", () => ({
     user: { findUniqueOrThrow: userFindUniqueOrThrow },
     praiseComment: { count: praiseCommentCount, findMany: praiseCommentFindMany },
     report: { count: reportCount, findMany: reportFindMany },
-    aiUsageEvent: { count: aiUsageEventCount }
+    aiUsageEvent: { count: aiUsageEventCount },
+    workerHeartbeat: { findUnique: workerHeartbeatFindUnique }
   }
 }));
 vi.mock("@/server/ai-controls", () => ({
@@ -50,7 +52,10 @@ vi.mock("next/cache", () => ({
 import ModerationPage from "@/app/moderation/page";
 
 describe("ModerationPage", () => {
+  const originalEnv = process.env;
+
   afterEach(() => {
+    process.env = originalEnv;
     auth.mockReset();
     userFindUniqueOrThrow.mockReset();
     praiseCommentFindMany.mockReset();
@@ -58,17 +63,28 @@ describe("ModerationPage", () => {
     reportFindMany.mockReset();
     reportCount.mockReset();
     aiUsageEventCount.mockReset();
+    workerHeartbeatFindUnique.mockReset();
     getAiControlSetting.mockReset();
     getTodayAiUsage.mockReset();
     listTodayAiUsageEvents.mockReset();
   });
 
   it("renders a top summary panel for moderator triage", async () => {
+    process.env = {
+      ...originalEnv,
+      AI_PROVIDER: "gemini",
+      REDIS_URL: "redis://localhost:6379",
+      GEMINI_API_KEY: "gemini-key"
+    };
     auth.mockResolvedValue({ user: { id: "moderator_1" } });
     userFindUniqueOrThrow.mockResolvedValue({ id: "moderator_1", isModerator: true });
     praiseCommentCount.mockResolvedValue(2);
     reportCount.mockResolvedValue(3);
     aiUsageEventCount.mockResolvedValue(1);
+    workerHeartbeatFindUnique.mockResolvedValue({
+      id: "combined-jobs-worker",
+      lastSeenAt: new Date("2026-07-25T03:55:00.000Z")
+    });
     praiseCommentFindMany.mockResolvedValue([
       { id: "comment_1", body: "확인이 필요해요", visibilityState: "HELD", moderationRisk: 80 },
       { id: "comment_2", body: "작성자만 보여요", visibilityState: "AUTHOR_ONLY", moderationRisk: 70 }
@@ -88,6 +104,8 @@ describe("ModerationPage", () => {
     expect(screen.getByText("보류 댓글 2개")).toBeInTheDocument();
     expect(screen.getByText("열린 신고 3건")).toBeInTheDocument();
     expect(screen.getByText("AI 실패 1건")).toBeInTheDocument();
-    expect(screen.getByText(/^Worker/)).toBeInTheDocument();
+    expect(screen.getByText("Worker 정상")).toBeInTheDocument();
+    expect(screen.getByText(/최근 활동 2026. 7. 25/)).toBeInTheDocument();
+    expect(screen.getByText(/설정 경고/)).toBeInTheDocument();
   });
 });
