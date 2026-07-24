@@ -9,7 +9,7 @@ vi.mock("@/lib/db", () => ({
   }
 }));
 
-import { calculateSanctionState, moderateText, reviewCommentVisibility, reviewReport } from "@/server/moderation";
+import { calculateSanctionState, moderateText, recordReport, reviewCommentVisibility, reviewReport } from "@/server/moderation";
 
 describe("moderation", () => {
   it("holds praise disguised as mockery", () => {
@@ -68,6 +68,31 @@ describe("moderation review actions", () => {
         riskReason: "warm praise"
       })
     });
+  });
+
+  it("reuses an existing report for the same reporter and target", async () => {
+    const existingReport = { id: "report_1", reporterUserId: "user_1", targetType: "POST", targetId: "post_1" };
+    const findFirst = vi.fn().mockResolvedValue(existingReport);
+    const createReport = vi.fn();
+    const createEvent = vi.fn();
+    transaction.mockImplementationOnce((callback) =>
+      callback({
+        report: { findFirst, create: createReport },
+        moderationEvent: { create: createEvent }
+      })
+    );
+
+    await expect(recordReport("user_1", "POST", "post_1", "reason")).resolves.toBe(existingReport);
+
+    expect(findFirst).toHaveBeenCalledWith({
+      where: {
+        reporterUserId: "user_1",
+        targetType: "POST",
+        targetId: "post_1"
+      }
+    });
+    expect(createReport).not.toHaveBeenCalled();
+    expect(createEvent).not.toHaveBeenCalled();
   });
 
   it("reviews reports with accepted or dismissed audit events", async () => {
