@@ -144,3 +144,19 @@ export async function listRecentPosts(limit = 5) {
     }
   });
 }
+
+export async function hideOwnPraisePost(postId: string, authorUserId: string) {
+  const post = await db.praisePost.findUniqueOrThrow({
+    where: { id: postId },
+    select: { id: true, authorUserId: true }
+  });
+
+  if (post.authorUserId !== authorUserId) {
+    throw new Error("POST_AUTHOR_ONLY");
+  }
+
+  return db.praisePost.update({
+    where: { id: postId },
+    data: { status: VisibilityState.HIDDEN }
+  });
+}

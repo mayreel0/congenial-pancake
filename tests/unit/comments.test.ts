@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const praiseCommentCreate = vi.hoisted(() => vi.fn());
 const praiseCommentFindUniqueOrThrow = vi.hoisted(() => vi.fn());
+const praiseCommentUpdate = vi.hoisted(() => vi.fn());
 const praisePostFindUniqueOrThrow = vi.hoisted(() => vi.fn());
 const replyCreate = vi.hoisted(() => vi.fn());
 const notificationCreate = vi.hoisted(() => vi.fn());
@@ -12,7 +13,7 @@ vi.mock("server-only", () => ({}));
 
 vi.mock("@/lib/db", () => ({
   db: {
-    praiseComment: { create: praiseCommentCreate, findUniqueOrThrow: praiseCommentFindUniqueOrThrow },
+    praiseComment: { create: praiseCommentCreate, findUniqueOrThrow: praiseCommentFindUniqueOrThrow, update: praiseCommentUpdate },
     praisePost: { findUniqueOrThrow: praisePostFindUniqueOrThrow },
     reply: { create: replyCreate },
     notification: { create: notificationCreate }
@@ -23,12 +24,13 @@ vi.mock("@/server/jobs", () => ({
   scheduleInactivityPraise
 }));
 
-import { addAuthorReply, assertPostAuthor, createPraiseComment, normalizeCommentBody } from "@/server/comments";
+import { addAuthorReply, assertPostAuthor, createPraiseComment, hideOwnPraiseComment, normalizeCommentBody } from "@/server/comments";
 
 describe("comment rules", () => {
   beforeEach(() => {
     praiseCommentCreate.mockReset();
     praiseCommentFindUniqueOrThrow.mockReset();
+    praiseCommentUpdate.mockReset();
     praisePostFindUniqueOrThrow.mockReset();
     replyCreate.mockReset();
     notificationCreate.mockReset();
@@ -119,5 +121,45 @@ describe("comment rules", () => {
         replyId: "reply_1"
       }
     });
+  });
+
+  it("hides a praise comment when requested by its author", async () => {
+    praiseCommentFindUniqueOrThrow.mockResolvedValue({
+      id: "comment_1",
+      postId: "post_1",
+      authorUserId: "user_1"
+    });
+    praiseCommentUpdate.mockResolvedValue({
+      id: "comment_1",
+      postId: "post_1",
+      visibilityState: VisibilityState.HIDDEN
+    });
+
+    await expect(hideOwnPraiseComment("comment_1", "user_1")).resolves.toEqual({
+      id: "comment_1",
+      postId: "post_1",
+      visibilityState: VisibilityState.HIDDEN
+    });
+
+    expect(praiseCommentFindUniqueOrThrow).toHaveBeenCalledWith({
+      where: { id: "comment_1" },
+      select: { id: true, postId: true, authorUserId: true }
+    });
+    expect(praiseCommentUpdate).toHaveBeenCalledWith({
+      where: { id: "comment_1" },
+      data: { visibilityState: VisibilityState.HIDDEN }
+    });
+  });
+
+  it("rejects hiding another user's praise comment", async () => {
+    praiseCommentFindUniqueOrThrow.mockResolvedValue({
+      id: "comment_1",
+      postId: "post_1",
+      authorUserId: "user_2"
+    });
+
+    await expect(hideOwnPraiseComment("comment_1", "user_1")).rejects.toThrow("COMMENT_AUTHOR_ONLY");
+
+    expect(praiseCommentUpdate).not.toHaveBeenCalled();
   });
 });
