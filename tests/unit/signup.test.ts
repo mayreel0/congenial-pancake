@@ -4,6 +4,7 @@ const hash = vi.hoisted(() => vi.fn());
 const findFirst = vi.hoisted(() => vi.fn());
 const findUnique = vi.hoisted(() => vi.fn());
 const create = vi.hoisted(() => vi.fn());
+const update = vi.hoisted(() => vi.fn());
 
 vi.mock("server-only", () => ({}));
 
@@ -14,11 +15,17 @@ vi.mock("bcryptjs", () => ({
 
 vi.mock("@/lib/db", () => ({
   db: {
-    user: { findFirst, findUnique, create }
+    user: { findFirst, findUnique, create, update }
   }
 }));
 
-import { createAccount, normalizeSignupInput, resolveUniqueNickname } from "@/server/signup";
+import {
+  createAccount,
+  generateNicknameSuggestion,
+  normalizeSignupInput,
+  resolveUniqueNickname,
+  updateRequiredNickname
+} from "@/server/signup";
 
 describe("signup", () => {
   beforeEach(() => {
@@ -26,6 +33,7 @@ describe("signup", () => {
     findFirst.mockReset();
     findUnique.mockReset();
     create.mockReset();
+    update.mockReset();
   });
 
   it("normalizes signup input", () => {
@@ -85,12 +93,43 @@ describe("signup", () => {
     });
   });
 
-  it("resolves a unique nickname for OAuth accounts", async () => {
+  it("generates a unique random nickname suggestion", async () => {
+    findUnique.mockResolvedValueOnce(null);
+
+    const nickname = await generateNicknameSuggestion();
+
+    expect(nickname.length).toBeGreaterThanOrEqual(2);
+    expect(findUnique).toHaveBeenCalledWith({ where: { nickname } });
+  });
+
+  it("resolves a unique nickname from a seed", async () => {
     findUnique
       .mockResolvedValueOnce({ id: "user_1" })
       .mockResolvedValueOnce({ id: "user_2" })
       .mockResolvedValueOnce(null);
 
     await expect(resolveUniqueNickname("다정한사람")).resolves.toBe("다정한사람3");
+  });
+
+  it("updates a required nickname after checking duplicates", async () => {
+    findFirst.mockResolvedValue(null);
+
+    await updateRequiredNickname("user_1", "새로운칭찬러");
+
+    expect(create).not.toHaveBeenCalled();
+    expect(findFirst).toHaveBeenCalledWith({
+      where: {
+        nickname: "새로운칭찬러",
+        NOT: { id: "user_1" }
+      },
+      select: { id: true }
+    });
+    expect(update).toHaveBeenCalledWith({
+      where: { id: "user_1" },
+      data: {
+        nickname: "새로운칭찬러",
+        nicknameSetupRequired: false
+      }
+    });
   });
 });

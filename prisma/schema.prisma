@@ -86,28 +86,29 @@ enum NotificationType {
 }
 
 model User {
-  id                 String            @id @default(cuid())
-  name               String?
-  email              String?           @unique
-  emailVerified      DateTime?
-  image              String?
-  nickname           String            @unique
-  passwordHash       String?
-  trustScore         Int               @default(100)
-  sanctionState      SanctionState     @default(NORMAL)
-  isModerator        Boolean           @default(false)
-  createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @updatedAt
-  accounts           Account[]
-  sessions           Session[]
-  posts              PraisePost[]
-  comments           PraiseComment[]
-  reactions          Reaction[]
-  replies            Reply[]
-  reports            Report[]          @relation("ReporterReports")
-  moderationLogs     ModerationEvent[]
-  notifications      Notification[]    @relation("RecipientNotifications")
-  actedNotifications Notification[]    @relation("ActorNotifications")
+  id                    String            @id @default(cuid())
+  name                  String?
+  email                 String?           @unique
+  emailVerified         DateTime?
+  image                 String?
+  nickname              String            @unique
+  passwordHash          String?
+  trustScore            Int               @default(100)
+  sanctionState         SanctionState     @default(NORMAL)
+  isModerator           Boolean           @default(false)
+  nicknameSetupRequired Boolean           @default(false)
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  accounts              Account[]
+  sessions              Session[]
+  posts                 PraisePost[]
+  comments              PraiseComment[]
+  reactions             Reaction[]
+  replies               Reply[]
+  reports               Report[]          @relation("ReporterReports")
+  moderationLogs        ModerationEvent[]
+  notifications         Notification[]    @relation("RecipientNotifications")
+  actedNotifications    Notification[]    @relation("ActorNotifications")
 }
 
 model Account {

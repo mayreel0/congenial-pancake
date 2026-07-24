@@ -68,7 +68,7 @@ Generate a local auth secret with:
 openssl rand -base64 32
 ```
 
-Naver OAuth is enabled only when both `NAVER_CLIENT_ID` and `NAVER_CLIENT_SECRET` are set. Signup prevents duplicate emails and nicknames. Sanctioned users should recover or appeal the existing account instead of bypassing sanctions with a new signup.
+Naver OAuth is enabled only when both `NAVER_CLIENT_ID` and `NAVER_CLIENT_SECRET` are set. Signup suggests a random nickname, prevents duplicate emails and nicknames, and lets OAuth users confirm their community nickname on first login before continuing. Sanctioned users should recover or appeal the existing account instead of bypassing sanctions with a new signup.
 
 ## Local Setup
 
