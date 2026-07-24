@@ -1,6 +1,6 @@
 import { NotificationType } from "@prisma/client";
 import Link from "next/link";
-import { markNotificationsRead } from "@/app/notifications/actions";
+import { markNotificationReadAction, markNotificationsRead } from "@/app/notifications/actions";
 import { auth } from "@/lib/auth";
 import { listNotifications, type NotificationListItem } from "@/server/notifications";
 
@@ -26,6 +26,7 @@ export default async function NotificationsPage() {
   }
 
   const notifications = await listNotifications(session.user.id);
+  const unreadCount = notifications.filter((notification) => notification.readAt === null).length;
 
   return (
     <section className="page-section">
@@ -33,10 +34,13 @@ export default async function NotificationsPage() {
         <div>
           <h1>알림</h1>
           <p>내 글과 칭찬에 새 반응이 생기면 여기에서 확인할 수 있습니다.</p>
+          <small className="state-note">
+            {unreadCount > 0 ? `읽지 않은 알림 ${unreadCount}개` : "모든 알림을 읽었습니다"}
+          </small>
         </div>
-        {notifications.some((notification) => notification.readAt === null) ? (
+        {unreadCount > 0 ? (
           <form action={markNotificationsRead}>
-            <button type="submit">모두 읽음</button>
+            <button type="submit">모두 읽음 처리</button>
           </form>
         ) : null}
       </div>
@@ -48,16 +52,30 @@ export default async function NotificationsPage() {
               key={notification.id}
               className={notification.readAt === null ? "notification-item unread" : "notification-item"}
             >
-              <p>{notificationMessage(notification)}</p>
+              <div className="notification-title-row">
+                <p>{notificationMessage(notification)}</p>
+                <span>{notification.readAt === null ? "읽지 않음" : "읽음"}</span>
+              </div>
               <blockquote>{notification.bodyPreview}</blockquote>
-              <small>
-                <Link href={`/posts/${notification.postId}`}>{notification.postTitle}</Link> ·{" "}
-                {notification.createdAt.toLocaleString("ko-KR")}
-              </small>
+              <div className="notification-footer">
+                <small>
+                  <Link href={`/posts/${notification.postId}`}>{notification.postTitle}</Link> ·{" "}
+                  {notification.createdAt.toLocaleString("ko-KR")}
+                </small>
+                {notification.readAt === null ? (
+                  <form action={markNotificationReadAction}>
+                    <input type="hidden" name="notificationId" value={notification.id} />
+                    <button type="submit">이 알림 읽음</button>
+                  </form>
+                ) : null}
+              </div>
             </article>
           ))
         ) : (
-          <p>아직 새 알림이 없습니다.</p>
+          <div className="empty-state">
+            <p>아직 새 알림이 없습니다.</p>
+            <Link href="/posts">칭찬글 보러 가기</Link>
+          </div>
         )}
       </div>
     </section>
