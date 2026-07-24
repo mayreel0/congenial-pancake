@@ -1,5 +1,11 @@
 type WorkerEnv = Record<string, string | undefined>;
 
+export type WorkerHealthSummary = {
+  status: "ready" | "warning";
+  label: string;
+  detail: string;
+};
+
 export function getWorkerPreflightWarnings(env: WorkerEnv = process.env): string[] {
   const warnings: string[] = [];
   const provider = env.AI_PROVIDER?.toLowerCase() === "openai" ? "openai" : "gemini";
@@ -17,6 +23,23 @@ export function getWorkerPreflightWarnings(env: WorkerEnv = process.env): string
   }
 
   return warnings;
+}
+
+export function getWorkerHealthSummary(env: WorkerEnv = process.env): WorkerHealthSummary {
+  const warnings = getWorkerPreflightWarnings(env);
+  if (warnings.length === 0) {
+    return {
+      status: "ready",
+      label: "정상",
+      detail: "필수 설정 확인됨"
+    };
+  }
+
+  return {
+    status: "warning",
+    label: "주의",
+    detail: `${warnings.length}개 설정 확인 필요`
+  };
 }
 
 export function logWorkerPreflightWarnings(warnings = getWorkerPreflightWarnings()) {

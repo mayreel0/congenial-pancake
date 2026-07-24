@@ -1,4 +1,4 @@
-import { DisplayMode, ReactionType } from "@prisma/client";
+import { DisplayMode, NotificationType, ReactionType, VisibilityState } from "@prisma/client";
 import { db } from "@/lib/db";
 import { scheduleInactivityPraise } from "@/server/jobs";
 import { moderateText } from "@/server/moderation";
@@ -27,6 +27,10 @@ export async function createPraiseComment(
 ) {
   const body = normalizeCommentBody(input.body);
   const moderation = moderateText(body);
+  const post = await db.praisePost.findUniqueOrThrow({
+    where: { id: postId },
+    select: { authorUserId: true }
+  });
 
   const comment = await db.praiseComment.create({
     data: {
@@ -38,6 +42,18 @@ export async function createPraiseComment(
       moderationRisk: moderation.risk
     }
   });
+
+  if (post.authorUserId !== authorUserId && moderation.visibilityState === VisibilityState.VISIBLE) {
+    await db.notification.create({
+      data: {
+        recipientUserId: post.authorUserId,
+        actorUserId: authorUserId,
+        type: NotificationType.COMMENT_ON_POST,
+        postId,
+        commentId: comment.id
+      }
+    });
+  }
 
   await scheduleInactivityPraise(postId);
   return comment;
@@ -69,7 +85,7 @@ export async function addAuthorReply(commentId: string, authorUserId: string, bo
   assertPostAuthor(comment.post.authorUserId, authorUserId);
   const moderation = moderateText(body);
 
-  return db.reply.create({
+  const reply = await db.reply.create({
     data: {
       postId: comment.postId,
       commentId,
@@ -77,5 +93,40 @@ export async function addAuthorReply(commentId: string, authorUserId: string, bo
       body,
       visibilityState: moderation.visibilityState
     }
+  });
+
+  if (
+    comment.authorUserId &&
+    comment.authorUserId !== authorUserId &&
+    moderation.visibilityState === VisibilityState.VISIBLE
+  ) {
+    await db.notification.create({
+      data: {
+        recipientUserId: comment.authorUserId,
+        actorUserId: authorUserId,
+        type: NotificationType.REPLY_ON_COMMENT,
+        postId: comment.postId,
+        commentId,
+        replyId: reply.id
+      }
+    });
+  }
+
+  return reply;
+}
+
+export async function hideOwnPraiseComment(commentId: string, authorUserId: string) {
+  const comment = await db.praiseComment.findUniqueOrThrow({
+    where: { id: commentId },
+    select: { id: true, postId: true, authorUserId: true }
+  });
+
+  if (comment.authorUserId !== authorUserId) {
+    throw new Error("COMMENT_AUTHOR_ONLY");
+  }
+
+  return db.praiseComment.update({
+    where: { id: commentId },
+    data: { visibilityState: VisibilityState.HIDDEN }
   });
 }

@@ -12,7 +12,7 @@ vi.mock("@/lib/db", () => ({
   }
 }));
 
-import { calculateWarmPraiserScore, recomputeRankingSnapshots } from "@/server/rankings";
+import { calculateWarmPraiserScore, parseNeedsEncouragementEntries, parseWarmPraiserEntries, recomputeRankingSnapshots } from "@/server/rankings";
 
 describe("ranking score", () => {
   it("rewards gratitude and penalizes reports", () => {
@@ -90,5 +90,33 @@ describe("ranking recomputation", () => {
         create: expect.objectContaining({ rankingType: "NEEDS_ENCOURAGEMENT", period: "all" })
       })
     );
+  });
+});
+
+describe("ranking entry parsing", () => {
+  it("parses needs encouragement entries for card rendering", () => {
+    expect(
+      parseNeedsEncouragementEntries([
+        {
+          postId: "post_1",
+          title: "응원이 필요해요",
+          humanCommentCount: 0,
+          createdAt: "2026-07-16T00:00:00.000Z"
+        }
+      ])
+    ).toEqual([
+      {
+        postId: "post_1",
+        title: "응원이 필요해요",
+        humanCommentCount: 0,
+        createdAt: "2026-07-16T00:00:00.000Z"
+      }
+    ]);
+  });
+
+  it("drops malformed warm praiser entries", () => {
+    expect(parseWarmPraiserEntries([{ nickname: "따뜻이", score: 5 }, { nickname: "누락" }])).toEqual([
+      { nickname: "따뜻이", score: 5 }
+    ]);
   });
 });

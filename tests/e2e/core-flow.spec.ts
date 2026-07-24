@@ -4,6 +4,9 @@ test.skip(!process.env.DATABASE_URL, "DATABASE_URL is required for database-back
 
 test("public visitor can see the praise feed and rankings", async ({ page }) => {
   await page.goto("/");
+  await expect(page.getByRole("heading", { name: "칭찬", exact: true })).toBeVisible();
+
+  await page.goto("/posts");
   await expect(page.getByRole("heading", { name: "칭찬받고 싶은 순간들" })).toBeVisible();
 
   await page.goto("/rankings");
@@ -12,12 +15,13 @@ test("public visitor can see the praise feed and rankings", async ({ page }) => 
 
 test("seeded author can log in and create a praise request", async ({ page }) => {
   const title = `E2E 칭찬 요청 ${Date.now()}`;
+  const comment = `E2E 칭찬 댓글 ${Date.now()}`;
 
   await page.goto("/login");
   await page.getByLabel("이메일").fill("author@example.com");
   await page.getByLabel("비밀번호").fill("password1234");
   await page.getByRole("button", { name: "로그인" }).click();
-  await expect(page.getByRole("heading", { name: "칭찬받고 싶은 순간들" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "칭찬", exact: true })).toBeVisible();
 
   await page.goto("/posts/new");
   await page.getByLabel("제목").fill(title);
@@ -27,6 +31,33 @@ test("seeded author can log in and create a praise request", async ({ page }) =>
 
   await expect(page.getByRole("heading", { name: "칭찬받고 싶은 순간들" })).toBeVisible();
   await expect(page.getByRole("heading", { name: title })).toBeVisible();
+  await page.getByRole("heading", { name: title }).click();
+  const commentInput = page.locator('textarea[name="body"]');
+  await commentInput.fill(comment);
+  await expect(commentInput).toHaveValue(comment);
+  await expect(page.getByRole("button", { name: "칭찬 남기기" })).toBeEnabled();
+  const commentResponse = page.waitForResponse((response) => response.url().includes("/api/posts/") && response.url().endsWith("/comments"));
+  await page.getByRole("button", { name: "칭찬 남기기" }).click();
+  expect((await commentResponse).ok()).toBe(true);
+  await expect(page.getByText(comment)).toBeVisible();
+
+  await page.getByRole("button", { name: "로그아웃" }).click();
+  await expect(page.getByRole("heading", { name: "칭찬", exact: true })).toBeVisible();
+});
+
+test("new user can sign up with email credentials", async ({ page }) => {
+  const unique = Date.now();
+  const email = `signup-${unique}@example.com`;
+
+  await page.goto("/signup");
+  await page.getByLabel("이메일").fill(email);
+  await page.getByLabel("닉네임").fill(`가입러${unique}`);
+  await page.getByLabel("비밀번호").fill("password1234");
+  await page.getByRole("button", { name: "가입하기" }).click();
+
+  await expect(page.getByRole("heading", { name: "칭찬", exact: true })).toBeVisible();
+  await page.goto("/me");
+  await expect(page.getByRole("heading", { name: "내 활동" })).toBeVisible();
 });
 
 test("seeded moderator can open moderation tools", async ({ page }) => {
@@ -34,7 +65,7 @@ test("seeded moderator can open moderation tools", async ({ page }) => {
   await page.getByLabel("이메일").fill("moderator@example.com");
   await page.getByLabel("비밀번호").fill("password1234");
   await page.getByRole("button", { name: "로그인" }).click();
-  await expect(page.getByRole("heading", { name: "칭찬받고 싶은 순간들" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "칭찬", exact: true })).toBeVisible();
 
   await page.goto("/moderation");
   await expect(page.getByRole("heading", { name: "운영 검토" })).toBeVisible();

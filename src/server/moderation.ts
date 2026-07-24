@@ -92,6 +92,13 @@ export async function recordReport(
   reason: string
 ) {
   return db.$transaction(async (tx) => {
+    const existingReport = await tx.report.findFirst({
+      where: { reporterUserId, targetType, targetId }
+    });
+    if (existingReport) {
+      return existingReport;
+    }
+
     const report = await tx.report.create({
       data: { reporterUserId, targetType, targetId, reason }
     });

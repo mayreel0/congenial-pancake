@@ -39,7 +39,7 @@ export default function NewPostPage() {
     });
 
     if (response.ok) {
-      window.location.assign("/");
+      window.location.assign("/posts");
       return;
     }
 

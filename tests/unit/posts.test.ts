@@ -1,5 +1,19 @@
-import { DisplayMode } from "@prisma/client";
-import { describe, expect, it, vi } from "vitest";
+import { DisplayMode, VisibilityState } from "@prisma/client";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const praisePostFindUniqueOrThrow = vi.hoisted(() => vi.fn());
+const praisePostUpdate = vi.hoisted(() => vi.fn());
+
+vi.mock("server-only", () => ({}));
+
+vi.mock("@/lib/db", () => ({
+  db: {
+    praisePost: {
+      findUniqueOrThrow: praisePostFindUniqueOrThrow,
+      update: praisePostUpdate
+    }
+  }
+}));
 
 vi.mock("@/server/jobs", () => ({
   enqueueAiPraiseJob: vi.fn(),
@@ -7,7 +21,12 @@ vi.mock("@/server/jobs", () => ({
   selectAiPraiseRequestCount: vi.fn(() => 1)
 }));
 
-import { normalizePostInput } from "@/server/posts";
+import { hideOwnPraisePost, normalizePageParam, normalizePostInput, normalizeSortParam } from "@/server/posts";
+
+beforeEach(() => {
+  praisePostFindUniqueOrThrow.mockReset();
+  praisePostUpdate.mockReset();
+});
 
 describe("post input normalization", () => {
   it("trims title and body and preserves prompt answers", () => {
@@ -67,5 +86,49 @@ describe("post input normalization", () => {
         promptAnswers: null
       })
     ).toThrow("POST_BODY_REQUIRED");
+  });
+});
+
+describe("post list query normalization", () => {
+  it("normalizes invalid page values to the first page", () => {
+    expect(normalizePageParam(undefined)).toBe(1);
+    expect(normalizePageParam("0")).toBe(1);
+    expect(normalizePageParam("abc")).toBe(1);
+    expect(normalizePageParam("3")).toBe(3);
+  });
+
+  it("supports latest and oldest sort values", () => {
+    expect(normalizeSortParam(undefined)).toBe("latest");
+    expect(normalizeSortParam("oldest")).toBe("oldest");
+    expect(normalizeSortParam("unknown")).toBe("latest");
+  });
+});
+
+describe("post self-management", () => {
+  it("hides a praise post when requested by its author", async () => {
+    praisePostFindUniqueOrThrow.mockResolvedValue({ id: "post_1", authorUserId: "user_1" });
+    praisePostUpdate.mockResolvedValue({ id: "post_1", status: VisibilityState.HIDDEN });
+
+    await expect(hideOwnPraisePost("post_1", "user_1")).resolves.toEqual({
+      id: "post_1",
+      status: VisibilityState.HIDDEN
+    });
+
+    expect(praisePostFindUniqueOrThrow).toHaveBeenCalledWith({
+      where: { id: "post_1" },
+      select: { id: true, authorUserId: true }
+    });
+    expect(praisePostUpdate).toHaveBeenCalledWith({
+      where: { id: "post_1" },
+      data: { status: VisibilityState.HIDDEN }
+    });
+  });
+
+  it("rejects hiding another user's praise post", async () => {
+    praisePostFindUniqueOrThrow.mockResolvedValue({ id: "post_1", authorUserId: "user_2" });
+
+    await expect(hideOwnPraisePost("post_1", "user_1")).rejects.toThrow("POST_AUTHOR_ONLY");
+
+    expect(praisePostUpdate).not.toHaveBeenCalled();
   });
 });

@@ -8,6 +8,49 @@ export type WarmPraiserScoreInput = {
   moderationPenalty: number;
 };
 
+export type WarmPraiserEntry = {
+  nickname: string;
+  score: number;
+};
+
+export type NeedsEncouragementEntry = {
+  postId: string;
+  title: string;
+  humanCommentCount: number;
+  createdAt: string;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+export function parseWarmPraiserEntries(entries: unknown): WarmPraiserEntry[] {
+  if (!Array.isArray(entries)) return [];
+  return entries
+    .filter(isRecord)
+    .filter((entry) => typeof entry.nickname === "string" && typeof entry.score === "number")
+    .map((entry) => ({ nickname: entry.nickname as string, score: entry.score as number }));
+}
+
+export function parseNeedsEncouragementEntries(entries: unknown): NeedsEncouragementEntry[] {
+  if (!Array.isArray(entries)) return [];
+  return entries
+    .filter(isRecord)
+    .filter(
+      (entry) =>
+        typeof entry.postId === "string" &&
+        typeof entry.title === "string" &&
+        typeof entry.humanCommentCount === "number" &&
+        typeof entry.createdAt === "string"
+    )
+    .map((entry) => ({
+      postId: entry.postId as string,
+      title: entry.title as string,
+      humanCommentCount: entry.humanCommentCount as number,
+      createdAt: entry.createdAt as string
+    }));
+}
+
 export function calculateWarmPraiserScore(input: WarmPraiserScoreInput): number {
   const gratitude = input.gratitudeCount * 5;
   const consistency = Math.min(input.visibleCommentCount, 19);
