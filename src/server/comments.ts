@@ -114,3 +114,19 @@ export async function addAuthorReply(commentId: string, authorUserId: string, bo
 
   return reply;
 }
+
+export async function hideOwnPraiseComment(commentId: string, authorUserId: string) {
+  const comment = await db.praiseComment.findUniqueOrThrow({
+    where: { id: commentId },
+    select: { id: true, postId: true, authorUserId: true }
+  });
+
+  if (comment.authorUserId !== authorUserId) {
+    throw new Error("COMMENT_AUTHOR_ONLY");
+  }
+
+  return db.praiseComment.update({
+    where: { id: commentId },
+    data: { visibilityState: VisibilityState.HIDDEN }
+  });
+}

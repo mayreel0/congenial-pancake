@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { hideMyComment, hideMyPost } from "@/app/me/actions";
 import { normalizePageParam, normalizeSortParam, postPageSize, sortToOrder, type PostSort } from "@/server/posts";
 
 export const dynamic = "force-dynamic";
@@ -74,6 +75,12 @@ export default async function MyActivityPage({
             <article key={post.id} className="feed-item">
               <Link href={`/posts/${post.id}`}>{post.title}</Link>
               <small>{post.status} · {post.createdAt.toLocaleString("ko-KR")}</small>
+              {post.status === "VISIBLE" ? (
+                <form action={hideMyPost}>
+                  <input name="postId" type="hidden" value={post.id} />
+                  <button type="submit">숨기기</button>
+                </form>
+              ) : null}
             </article>
           ))
         ) : (
@@ -105,6 +112,12 @@ export default async function MyActivityPage({
                 <Link href={`/posts/${comment.post.id}`}>{comment.post.title}</Link> · {comment.visibilityState} ·{" "}
                 {comment.createdAt.toLocaleString("ko-KR")}
               </small>
+              {comment.visibilityState === "VISIBLE" ? (
+                <form action={hideMyComment}>
+                  <input name="commentId" type="hidden" value={comment.id} />
+                  <button type="submit">숨기기</button>
+                </form>
+              ) : null}
             </article>
           ))
         ) : (
