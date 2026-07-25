@@ -57,6 +57,18 @@ function parseReportStatus(value: string): ReviewableReportStatus {
   throw new Error("MODERATION_ACTION_INVALID");
 }
 
+function formatWorkerLastSeen(lastSeenAt: Date | null) {
+  if (!lastSeenAt) return "최근 활동 없음";
+  return `최근 활동 ${new Intl.DateTimeFormat("ko-KR", {
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "Asia/Seoul"
+  }).format(lastSeenAt)}`;
+}
+
 async function reviewCommentAction(formData: FormData) {
   "use server";
 
@@ -155,7 +167,10 @@ export default async function ModerationPage() {
           </article>
           <article className="review-item">
             <strong>Worker {summary.workerHealth.label}</strong>
-            <small>{summary.workerHealth.detail}</small>
+            <small>
+              {summary.workerHealth.detail} · {formatWorkerLastSeen(summary.workerHealth.lastSeenAt)} · 설정 경고{" "}
+              {summary.workerHealth.configWarningCount}개
+            </small>
           </article>
         </div>
       </section>

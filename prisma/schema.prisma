@@ -300,6 +300,16 @@ model AiControlSetting {
   updatedAt         DateTime @updatedAt
 }
 
+model WorkerHeartbeat {
+  id         String   @id
+  workerName String
+  lastSeenAt DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([lastSeenAt])
+}
+
 model AiUsageEvent {
   id                      String             @id @default(cuid())
   jobId                   String?
