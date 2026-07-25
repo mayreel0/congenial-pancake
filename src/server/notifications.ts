@@ -12,6 +12,12 @@ export type NotificationListItem = {
   bodyPreview: string;
 };
 
+export type NotificationSummary = {
+  unreadCount: number;
+  latestNotificationId: string | null;
+  latestNotificationCreatedAt: string | null;
+};
+
 function previewText(value: string | null | undefined): string {
   const normalized = (value ?? "").trim();
   return normalized.length > 80 ? `${normalized.slice(0, 80)}...` : normalized;
@@ -21,6 +27,23 @@ export async function getUnreadNotificationCount(userId: string): Promise<number
   return db.notification.count({
     where: { recipientUserId: userId, readAt: null }
   });
+}
+
+export async function getNotificationSummary(userId: string): Promise<NotificationSummary> {
+  const [unreadCount, latestNotification] = await Promise.all([
+    getUnreadNotificationCount(userId),
+    db.notification.findFirst({
+      where: { recipientUserId: userId },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, createdAt: true }
+    })
+  ]);
+
+  return {
+    unreadCount,
+    latestNotificationId: latestNotification?.id ?? null,
+    latestNotificationCreatedAt: latestNotification?.createdAt.toISOString() ?? null
+  };
 }
 
 export async function listNotifications(userId: string): Promise<NotificationListItem[]> {

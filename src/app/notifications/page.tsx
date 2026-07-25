@@ -1,8 +1,9 @@
 import { NotificationType } from "@prisma/client";
 import Link from "next/link";
 import { markNotificationReadAction, markNotificationsRead } from "@/app/notifications/actions";
+import NotificationsPageRefresh from "@/components/NotificationsPageRefresh";
 import { auth } from "@/lib/auth";
-import { listNotifications, type NotificationListItem } from "@/server/notifications";
+import { getNotificationSummary, listNotifications, type NotificationListItem } from "@/server/notifications";
 
 export const dynamic = "force-dynamic";
 
@@ -25,11 +26,15 @@ export default async function NotificationsPage() {
     );
   }
 
-  const notifications = await listNotifications(session.user.id);
-  const unreadCount = notifications.filter((notification) => notification.readAt === null).length;
+  const [notifications, notificationSummary] = await Promise.all([
+    listNotifications(session.user.id),
+    getNotificationSummary(session.user.id)
+  ]);
+  const unreadCount = notificationSummary.unreadCount;
 
   return (
     <section className="page-section">
+      <NotificationsPageRefresh initialSummary={notificationSummary} />
       <div className="section-heading-row">
         <div>
           <h1>알림</h1>
