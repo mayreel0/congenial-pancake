@@ -2,6 +2,7 @@ import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { hideMyComment, hideMyPost } from "@/app/me/actions";
+import { isWriteRestricted, sanctionStateLabel } from "@/server/permissions";
 import { normalizePageParam, normalizeSortParam, postPageSize, sortToOrder, type PostSort } from "@/server/posts";
 
 export const dynamic = "force-dynamic";
@@ -54,11 +55,20 @@ export default async function MyActivityPage({
   ]);
   const totalPostPages = Math.max(1, Math.ceil(totalPosts / postPageSize));
   const totalCommentPages = Math.max(1, Math.ceil(totalComments / postPageSize));
+  const writeRestricted = isWriteRestricted(user.sanctionState);
 
   return (
     <section className="page-section">
       <h1>내 활동</h1>
-      <p>신뢰 점수 {user.trustScore} · 상태 {user.sanctionState}</p>
+      <section className="account-state" aria-label="계정 상태">
+        <p>계정 상태: {sanctionStateLabel(user.sanctionState)}</p>
+        <p>신뢰 점수 {user.trustScore}</p>
+        {writeRestricted ? (
+          <p role="alert">
+            현재 계정은 글쓰기, 칭찬 댓글, 답글, 감사 반응, 신고 작성이 제한됩니다. 공개된 칭찬글과 활동 기록은 계속 볼 수 있습니다.
+          </p>
+        ) : null}
+      </section>
       <div className="filter-row" aria-label="내 활동 정렬">
         <Link aria-current={sort === "latest" ? "page" : undefined} href={activityHref({ postsPage: 1, commentsPage: 1, sort: "latest" })}>
           최신순

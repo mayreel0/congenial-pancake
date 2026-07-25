@@ -1,22 +1,32 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import RootLayout from "@/app/layout";
+
+const auth = vi.hoisted(() => vi.fn());
+const getUnreadNotificationCount = vi.hoisted(() => vi.fn());
 
 vi.mock("@/app/login/actions", () => ({
   logout: vi.fn()
 }));
 
 vi.mock("@/lib/auth", () => ({
-  auth: vi.fn(async () => ({ user: { id: "user_1" } }))
+  auth
 }));
 
 vi.mock("@/server/notifications", () => ({
-  getUnreadNotificationCount: vi.fn(async () => 2)
+  getUnreadNotificationCount
 }));
 
 describe("RootLayout", () => {
+  beforeEach(() => {
+    auth.mockReset();
+    getUnreadNotificationCount.mockReset();
+    auth.mockResolvedValue({ user: { id: "user_1" } });
+    getUnreadNotificationCount.mockResolvedValue(2);
+  });
+
   it("renders a logout action in the global navigation", async () => {
     const layout = await RootLayout({
       children: <p>본문</p>
@@ -27,6 +37,19 @@ describe("RootLayout", () => {
     );
 
     expect(screen.getByRole("button", { name: "로그아웃" })).toBeInTheDocument();
+  });
+
+  it("renders login instead of logout for signed out visitors", async () => {
+    auth.mockResolvedValue(null);
+    getUnreadNotificationCount.mockResolvedValue(0);
+    const layout = await RootLayout({
+      children: <p>본문</p>
+    });
+
+    render(layout);
+
+    expect(screen.getByRole("link", { name: "로그인" })).toHaveAttribute("href", "/login");
+    expect(screen.queryByRole("button", { name: "로그아웃" })).not.toBeInTheDocument();
   });
 
   it("renders an unread notification count in the global navigation", async () => {

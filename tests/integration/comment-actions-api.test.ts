@@ -59,6 +59,22 @@ describe("comment action API validation", () => {
     expect(createPraiseCommentMock).not.toHaveBeenCalled();
   });
 
+  it("blocks shadow banned users before creating praise comments", async () => {
+    findUniqueOrThrowMock.mockResolvedValue({ id: "user_1", sanctionState: SanctionState.SHADOW_BANNED });
+    const { POST } = await import("@/app/api/posts/[postId]/comments/route");
+
+    await expect(
+      POST(
+        new Request("http://localhost/api/posts/post_1/comments", {
+          method: "POST",
+          body: JSON.stringify({ body: "잘하고 있어요.", displayMode: "NICKNAME" })
+        }),
+        { params: Promise.resolve({ postId: "post_1" }) }
+      )
+    ).rejects.toThrow("WRITE_BLOCKED");
+    expect(createPraiseCommentMock).not.toHaveBeenCalled();
+  });
+
   it("returns 400 for malformed author reply input", async () => {
     const { POST } = await import("@/app/api/comments/[commentId]/replies/route");
 
@@ -75,6 +91,22 @@ describe("comment action API validation", () => {
     expect(addAuthorReplyMock).not.toHaveBeenCalled();
   });
 
+  it("blocks shadow banned users before creating author replies", async () => {
+    findUniqueOrThrowMock.mockResolvedValue({ id: "user_1", sanctionState: SanctionState.SHADOW_BANNED });
+    const { POST } = await import("@/app/api/comments/[commentId]/replies/route");
+
+    await expect(
+      POST(
+        new Request("http://localhost/api/comments/comment_1/replies", {
+          method: "POST",
+          body: JSON.stringify({ body: "고마워요." })
+        }),
+        { params: Promise.resolve({ commentId: "comment_1" }) }
+      )
+    ).rejects.toThrow("WRITE_BLOCKED");
+    expect(addAuthorReplyMock).not.toHaveBeenCalled();
+  });
+
   it("returns 400 for malformed reaction input", async () => {
     const { POST } = await import("@/app/api/comments/[commentId]/reactions/route");
 
@@ -88,6 +120,22 @@ describe("comment action API validation", () => {
 
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({ error: "INVALID_REACTION_TYPE" });
+    expect(addAuthorReactionMock).not.toHaveBeenCalled();
+  });
+
+  it("blocks shadow banned users before creating reactions", async () => {
+    findUniqueOrThrowMock.mockResolvedValue({ id: "user_1", sanctionState: SanctionState.SHADOW_BANNED });
+    const { POST } = await import("@/app/api/comments/[commentId]/reactions/route");
+
+    await expect(
+      POST(
+        new Request("http://localhost/api/comments/comment_1/reactions", {
+          method: "POST",
+          body: JSON.stringify({ type: "THANKS" })
+        }),
+        { params: Promise.resolve({ commentId: "comment_1" }) }
+      )
+    ).rejects.toThrow("WRITE_BLOCKED");
     expect(addAuthorReactionMock).not.toHaveBeenCalled();
   });
 });
