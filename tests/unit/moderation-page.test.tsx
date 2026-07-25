@@ -55,6 +55,7 @@ describe("ModerationPage", () => {
   const originalEnv = process.env;
 
   afterEach(() => {
+    vi.useRealTimers();
     process.env = originalEnv;
     auth.mockReset();
     userFindUniqueOrThrow.mockReset();
@@ -70,6 +71,9 @@ describe("ModerationPage", () => {
   });
 
   it("renders a top summary panel for moderator triage", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-07-25T04:00:00.000Z"));
+
     process.env = {
       ...originalEnv,
       AI_PROVIDER: "gemini",

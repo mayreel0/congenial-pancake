@@ -91,6 +91,12 @@ npm run prisma:generate
 npm run prisma:migrate
 ```
 
+For production or shared environments, apply migrations with:
+
+```bash
+npm run prisma:deploy
+```
+
 Seed local data:
 
 ```bash
@@ -120,6 +126,7 @@ npm run test         # Unit and integration tests
 npm run test:e2e     # Playwright smoke tests
 npm run lint         # ESLint
 npm run jobs:dev     # Start AI praise and ranking workers
+npm run prisma:deploy # Apply committed Prisma migrations
 npm run prisma:seed  # Seed local database
 ```
 
@@ -144,7 +151,13 @@ AI praise creation depends on Redis and the configured AI provider key. Gemini i
 
 Initial AI praise is scheduled as one to three separate single-comment jobs with staggered delays so comments do not arrive in a fixed burst. Generated comments are still tracked with `isAiGenerated` for moderation and rankings, but user-visible comment text avoids AI disclosure prefixes.
 
-Moderators can manage AI praise generation at `/moderation`. The AI controls are stored in the database with default values of enabled, 100 daily AI jobs, and 300 daily AI-generated comments. Disabled or quota-limited jobs are skipped before Gemini/OpenAI is called, and usage events record completed, skipped, and failed AI work for the current UTC day. The moderation page also shows recent AI usage events, review actions for held comments and reports, trust score controls, and a manual ranking recomputation action.
+The combined worker records a persisted heartbeat. Moderators can see recent, stale, warning, or unknown worker state in `/moderation`.
+
+Moderators can manage AI praise generation at `/moderation`. The AI controls are stored in the database with default values of enabled, 100 daily AI jobs, and 300 daily AI-generated comments. Disabled or quota-limited jobs are skipped before Gemini/OpenAI is called, and usage events record completed, skipped, and failed AI work for the current UTC day. The moderation page also shows recent AI usage events, review actions for held comments and reports, trust score controls, worker health, and a manual ranking recomputation action.
+
+## Operations
+
+See [docs/OPERATIONS.ko.md](docs/OPERATIONS.ko.md) for the deployment checklist, smoke checks, worker heartbeat verification, and branch cleanup flow.
 
 ## Current Limitations
 
