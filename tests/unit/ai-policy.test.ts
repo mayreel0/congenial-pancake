@@ -2,7 +2,14 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-import { buildPraisePrompt, clampPraiseCount, getAiProviderConfig, getAiProviderErrorReason } from "@/server/ai";
+import {
+  buildPraisePrompt,
+  clampPraiseCount,
+  classifyAiPraiseInputSafety,
+  getAiProviderConfig,
+  getAiProviderErrorReason,
+  validateGeneratedPraiseComments
+} from "@/server/ai";
 import { planAiCommentTimes, selectAiPraiseRequestCount } from "@/server/jobs";
 
 describe("AI praise policy", () => {
@@ -59,6 +66,53 @@ describe("AI praise policy", () => {
         )
       )
     ).toBe("provider_error:model_not_found");
+  });
+
+  it("classifies conservative Korean and English crisis input before generation", () => {
+    expect(
+      classifyAiPraiseInputSafety({
+        title: "오늘 너무 힘들어요",
+        body: "I want to kill myself and disappear.",
+        promptAnswers: { detail: "그만 살고 싶다는 생각이 들어요" }
+      })
+    ).toEqual({ safe: false, reason: "safety:crisis_input_detected" });
+  });
+
+  it("allows ordinary praise requests through input safety classification", () => {
+    expect(
+      classifyAiPraiseInputSafety({
+        title: "발표를 마쳤어요",
+        body: "긴장했지만 끝까지 해냈습니다.",
+        promptAnswers: { tone: "따뜻하게" }
+      })
+    ).toEqual({ safe: true });
+  });
+
+  it("keeps warm Korean praise under 120 chars and removes invalid provider outputs", () => {
+    expect(
+      validateGeneratedPraiseComments([
+        "끝까지 해낸 집중력이 정말 멋져요.",
+        "AI 칭찬: 정말 잘했어요.",
+        "병원에 꼭 가서 치료받으세요.",
+        "끝까지 해낸 집중력이 정말 멋져요.",
+        "몸매가 좋아 보여서 대단해요.",
+        "a".repeat(121)
+      ])
+    ).toEqual(["끝까지 해낸 집중력이 정말 멋져요."]);
+  });
+
+  it("rejects advice, AI disclosure, crisis, and empty output as unusable", () => {
+    expect(
+      validateGeneratedPraiseComments(["", "제가 상담사라면 조언을 드릴게요.", "죽고 싶다는 마음을 이해해요.", "As an AI, great job."])
+    ).toEqual([]);
+  });
+
+  it("classifies common provider failures with stable reason strings", () => {
+    expect(getAiProviderErrorReason(new Error("401 unauthorized invalid api key"))).toBe("provider_error:auth_failed");
+    expect(getAiProviderErrorReason(new Error("deadline exceeded timeout"))).toBe("provider_error:timeout");
+    expect(getAiProviderErrorReason(new Error("blocked by safety filter"))).toBe("provider_error:safety_blocked");
+    expect(getAiProviderErrorReason(new Error("empty malformed response"))).toBe("provider_error:empty_or_malformed_response");
+    expect(getAiProviderErrorReason(new Error("service unavailable"))).toBe("provider_error:generic");
   });
 
   it("can switch praise generation to OpenAI with environment variables", () => {
