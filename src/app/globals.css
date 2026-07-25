@@ -176,6 +176,57 @@ nav {
   color: #667568;
 }
 
+.state-note {
+  display: inline-block;
+  margin-top: 4px;
+  color: #667568;
+}
+
+.notification-title-row,
+.notification-footer {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.notification-title-row span {
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #edf2ea;
+  color: #4c5b50;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.notification-item.unread .notification-title-row span {
+  background: #dbeedb;
+  color: #315b3a;
+}
+
+.notification-footer form {
+  flex: 0 0 auto;
+  display: block;
+}
+
+.empty-state {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid #d8ded4;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.empty-state p {
+  margin: 0;
+}
+
+.ranked-post-actions {
+  margin-top: 10px;
+}
+
 .moderation-panel {
   display: grid;
   gap: 16px;

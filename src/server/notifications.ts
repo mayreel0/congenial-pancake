@@ -54,3 +54,10 @@ export async function markAllNotificationsRead(userId: string, readAt = new Date
     data: { readAt }
   });
 }
+
+export async function markNotificationRead(userId: string, notificationId: string, readAt = new Date()) {
+  return db.notification.updateMany({
+    where: { id: notificationId, recipientUserId: userId, readAt: null },
+    data: { readAt }
+  });
+}

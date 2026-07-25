@@ -45,6 +45,9 @@ export default async function RankingsPage() {
                 <small>
                   사람 칭찬 {entry.humanCommentCount}개 · {new Date(entry.createdAt).toLocaleDateString("ko-KR")}
                 </small>
+                <div className="ranked-post-actions">
+                  <Link href={`/posts/${entry.postId}`}>응원하러 가기</Link>
+                </div>
               </article>
             ))}
           </div>

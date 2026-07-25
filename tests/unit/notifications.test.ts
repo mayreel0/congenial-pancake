@@ -13,7 +13,12 @@ vi.mock("@/lib/db", () => ({
   }
 }));
 
-import { getUnreadNotificationCount, listNotifications, markAllNotificationsRead } from "@/server/notifications";
+import {
+  getUnreadNotificationCount,
+  listNotifications,
+  markAllNotificationsRead,
+  markNotificationRead
+} from "@/server/notifications";
 
 describe("notifications", () => {
   beforeEach(() => {
@@ -81,6 +86,18 @@ describe("notifications", () => {
 
     expect(updateMany).toHaveBeenCalledWith({
       where: { recipientUserId: "user_1", readAt: null },
+      data: { readAt }
+    });
+  });
+
+  it("marks one current-user unread notification as read", async () => {
+    const readAt = new Date("2026-07-17T08:15:00.000Z");
+    updateMany.mockResolvedValue({ count: 1 });
+
+    await expect(markNotificationRead("user_1", "notification_1", readAt)).resolves.toEqual({ count: 1 });
+
+    expect(updateMany).toHaveBeenCalledWith({
+      where: { id: "notification_1", recipientUserId: "user_1", readAt: null },
       data: { readAt }
     });
   });

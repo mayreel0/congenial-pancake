@@ -35,17 +35,22 @@ vi.mock("@/server/notifications", () => ({
 }));
 
 vi.mock("@/app/notifications/actions", () => ({
+  markNotificationReadAction: vi.fn(),
   markNotificationsRead: vi.fn()
 }));
 
 describe("NotificationsPage", () => {
-  it("renders notification messages and a mark-read action", async () => {
+  it("renders notification messages and read actions", async () => {
     render(await NotificationsPage());
 
     expect(screen.getByRole("heading", { name: "알림" })).toBeInTheDocument();
+    expect(screen.getByText("읽지 않은 알림 1개")).toBeInTheDocument();
     expect(screen.getByText("따뜻한사람님이 내 글에 칭찬을 남겼습니다.")).toBeInTheDocument();
     expect(screen.getByText("글쓴이님이 내 칭찬에 답글을 남겼습니다.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "오늘 힘든 일이 있었어요" })).toHaveAttribute("href", "/posts/post_1");
-    expect(screen.getByRole("button", { name: "모두 읽음" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "모두 읽음 처리" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "이 알림 읽음" })).toBeInTheDocument();
+    expect(screen.getByText("읽지 않음")).toBeInTheDocument();
+    expect(screen.getByText("읽음")).toBeInTheDocument();
   });
 });
