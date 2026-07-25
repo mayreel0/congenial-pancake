@@ -101,6 +101,12 @@ npm run prisma:generate
 npm run prisma:migrate
 ```
 
+공유 개발 DB나 운영 DB에는 개발용 `migrate dev` 대신 커밋된 마이그레이션만 적용하는 명령을 사용합니다.
+
+```bash
+npm run prisma:deploy
+```
+
 초기 데이터를 넣습니다.
 
 ```bash
@@ -169,6 +175,8 @@ npm run test:e2e
 
 Pull Request와 `main` 브랜치 push에서 GitHub Actions CI가 실행됩니다. CI는 의존성 설치, Prisma Client 생성, lint, 단위/통합 테스트, production build, TypeScript 검사를 수행합니다.
 
+배포 전후 운영 확인은 [OPERATIONS.ko.md](./OPERATIONS.ko.md)를 기준으로 진행합니다.
+
 ## 10. AI 칭찬 작업 참고
 
 AI 칭찬은 Redis 큐와 설정된 AI provider의 API 키가 필요합니다. 기본값은 `AI_PROVIDER="gemini"`, `GEMINI_API_KEY`, `GEMINI_MODEL="gemini-3.1-flash-lite"`입니다. OpenAI로 전환하려면 `AI_PROVIDER="openai"`, `OPENAI_API_KEY`, `OPENAI_MODEL`을 설정하세요. 작업 생성/정책/worker factory는 `src/server/jobs.ts`에 구현되어 있습니다. 로컬에서는 아래 명령으로 AI 칭찬 worker와 랭킹 재계산 worker를 함께 실행합니다.
@@ -179,13 +187,34 @@ npm run jobs:dev
 
 worker는 시작 시 `.env`를 로드하고, `REDIS_URL`이나 선택된 AI provider API 키가 없으면 사전 경고를 출력합니다.
 
+worker는 실행 중 `WorkerHeartbeat`를 주기적으로 갱신합니다. `/moderation`의 오늘 처리 요약에서 최근 worker 활동, 설정 경고 수, 지연 상태를 확인할 수 있습니다. worker 상태가 `미확인` 또는 `지연`이면 worker 프로세스, `DATABASE_URL`, Redis, migration 적용 상태를 먼저 확인하세요.
+
 초기 AI 칭찬은 고정 3개가 아니라 1~3개의 단일 댓글 작업으로 나뉘어 예약됩니다. 첫 작업은 짧은 지연 뒤 실행되고, 추가 작업은 몇 분 간격으로 분산됩니다. 댓글 본문에는 AI 표시 문구를 붙이지 않지만, 운영/랭킹 처리를 위해 DB의 `isAiGenerated` 값은 유지합니다.
 
 AI 칭찬 사용량 제한은 환경 변수가 아니라 데이터베이스 설정으로 관리합니다. 마이그레이션 후 기본값은 AI 사용, 하루 AI 작업 100건, 하루 AI 생성 댓글 300개입니다. 운영자는 `/moderation`에서 AI를 끄거나 제한값을 0부터 10000 사이의 정수로 조정할 수 있습니다. 제한에 걸린 작업은 Gemini/OpenAI 호출 전에 건너뛰며, 오늘 실행/스킵/실패 사용량은 UTC 하루 기준으로 집계됩니다.
 
 운영자는 `/moderation`에서 오늘 AI 작업 로그를 보고, 보류 댓글 공개/작성자 전용/숨김 처리, 열린 신고 처리/기각, 신뢰 점수 조정, 랭킹 스냅샷 수동 재계산을 할 수 있습니다.
 
-## 11. 자주 막히는 지점
+## 11. 운영 체크리스트
+
+운영 또는 공유 환경 배포 순서:
+
+```bash
+npm ci
+npm run prisma:generate
+npm run prisma:deploy
+npm run verify
+```
+
+배포 후에는 아래를 확인합니다.
+
+1. 앱 서버가 시작되는지 확인합니다.
+2. worker 프로세스를 별도로 실행합니다.
+3. `/moderation`에서 worker 상태가 최근 활동으로 표시되는지 확인합니다.
+4. 글 작성 후 AI 작업 로그가 기록되는지 확인합니다.
+5. 알림 읽음 처리와 신고 접수 흐름을 확인합니다.
+
+## 12. 자주 막히는 지점
 
 ### `DATABASE_URL` 오류
 
