@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { logout } from "@/app/login/actions";
+import NotificationNavLink from "@/components/NotificationNavLink";
 import { auth } from "@/lib/auth";
 import { getUnreadNotificationCount } from "@/server/notifications";
 import "./globals.css";
@@ -26,9 +27,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <Link href="/me">내 활동</Link>
             {session?.user?.id ? (
               <>
-                <Link href="/notifications">
-                  알림{unreadNotificationCount > 0 ? ` ${unreadNotificationCount}` : ""}
-                </Link>
+                <NotificationNavLink initialUnreadCount={unreadNotificationCount} />
                 <form action={logout}>
                   <button type="submit" className="link-button">로그아웃</button>
                 </form>

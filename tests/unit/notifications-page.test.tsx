@@ -10,6 +10,11 @@ vi.mock("@/lib/auth", () => ({
 }));
 
 vi.mock("@/server/notifications", () => ({
+  getNotificationSummary: vi.fn(async () => ({
+    unreadCount: 1,
+    latestNotificationId: "notification_2",
+    latestNotificationCreatedAt: "2026-07-17T08:05:00.000Z"
+  })),
   listNotifications: vi.fn(async () => [
     {
       id: "notification_1",
@@ -37,6 +42,10 @@ vi.mock("@/server/notifications", () => ({
 vi.mock("@/app/notifications/actions", () => ({
   markNotificationReadAction: vi.fn(),
   markNotificationsRead: vi.fn()
+}));
+
+vi.mock("@/components/NotificationsPageRefresh", () => ({
+  default: vi.fn(() => null)
 }));
 
 describe("NotificationsPage", () => {

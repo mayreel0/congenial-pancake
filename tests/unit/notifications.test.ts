@@ -3,17 +3,19 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const count = vi.hoisted(() => vi.fn());
 const findMany = vi.hoisted(() => vi.fn());
+const findFirst = vi.hoisted(() => vi.fn());
 const updateMany = vi.hoisted(() => vi.fn());
 
 vi.mock("server-only", () => ({}));
 
 vi.mock("@/lib/db", () => ({
   db: {
-    notification: { count, findMany, updateMany }
+    notification: { count, findMany, findFirst, updateMany }
   }
 }));
 
 import {
+  getNotificationSummary,
   getUnreadNotificationCount,
   listNotifications,
   markAllNotificationsRead,
@@ -24,6 +26,7 @@ describe("notifications", () => {
   beforeEach(() => {
     count.mockReset();
     findMany.mockReset();
+    findFirst.mockReset();
     updateMany.mockReset();
   });
 
@@ -34,6 +37,38 @@ describe("notifications", () => {
 
     expect(count).toHaveBeenCalledWith({
       where: { recipientUserId: "user_1", readAt: null }
+    });
+  });
+
+  it("summarizes unread count and newest notification for a user", async () => {
+    const latestCreatedAt = new Date("2026-07-25T01:30:00.000Z");
+    count.mockResolvedValue(4);
+    findFirst.mockResolvedValue({ id: "notification_latest", createdAt: latestCreatedAt });
+
+    await expect(getNotificationSummary("user_1")).resolves.toEqual({
+      unreadCount: 4,
+      latestNotificationId: "notification_latest",
+      latestNotificationCreatedAt: latestCreatedAt.toISOString()
+    });
+
+    expect(count).toHaveBeenCalledWith({
+      where: { recipientUserId: "user_1", readAt: null }
+    });
+    expect(findFirst).toHaveBeenCalledWith({
+      where: { recipientUserId: "user_1" },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, createdAt: true }
+    });
+  });
+
+  it("returns null latest fields when a user has no notifications", async () => {
+    count.mockResolvedValue(0);
+    findFirst.mockResolvedValue(null);
+
+    await expect(getNotificationSummary("user_1")).resolves.toEqual({
+      unreadCount: 0,
+      latestNotificationId: null,
+      latestNotificationCreatedAt: null
     });
   });
 
