@@ -8,6 +8,7 @@ import {
   updateAiControlSetting
 } from "@/server/ai-controls";
 import { applyTrustDelta, reviewCommentVisibility, reviewReport } from "@/server/moderation";
+import { listOpenReportsForModeration } from "@/server/moderation-review";
 import { getModerationDashboardSummary } from "@/server/moderation-summary";
 import { recomputeRankingSnapshots } from "@/server/rankings";
 import { revalidatePath } from "next/cache";
@@ -134,11 +135,7 @@ export default async function ModerationPage() {
       orderBy: { createdAt: "desc" },
       take: 50
     }),
-    db.report.findMany({
-      where: { status: "OPEN" },
-      orderBy: { createdAt: "desc" },
-      take: 50
-    }),
+    listOpenReportsForModeration(),
     getAiControlSetting(),
     getTodayAiUsage(),
     listTodayAiUsageEvents()
@@ -239,7 +236,20 @@ export default async function ModerationPage() {
           {reports.map((report) => (
             <article className="review-item" key={report.id}>
               <p>{report.reason}</p>
-              <small>{report.targetType} · {report.targetId}</small>
+              <small>
+                신고자 {report.reporter.nickname} · 신뢰 {report.reporter.trustScore} ·{" "}
+                {report.reporter.sanctionState}
+              </small>
+              <p>대상: {report.targetPreview}</p>
+              <small>
+                {report.targetType} · {report.targetId}
+                {report.targetAuthor
+                  ? ` · 대상 작성자 ${report.targetAuthor.nickname} · 신뢰 ${report.targetAuthor.trustScore} · ${report.targetAuthor.sanctionState}`
+                  : " · 대상 작성자 없음"}
+              </small>
+              <small>
+                이전 처리 {report.priorAcceptedCount}건 · 기각 {report.priorDismissedCount}건
+              </small>
               <div className="action-row">
                 <form action={reviewReportAction}>
                   <input name="reportId" type="hidden" value={report.id} />

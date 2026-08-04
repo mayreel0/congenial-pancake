@@ -14,6 +14,7 @@ const workerHeartbeatFindUnique = vi.hoisted(() => vi.fn());
 const getAiControlSetting = vi.hoisted(() => vi.fn());
 const getTodayAiUsage = vi.hoisted(() => vi.fn());
 const listTodayAiUsageEvents = vi.hoisted(() => vi.fn());
+const listOpenReportsForModeration = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/auth", () => ({ auth }));
 vi.mock("@/lib/db", () => ({
@@ -42,6 +43,9 @@ vi.mock("@/server/moderation", () => ({
   reviewCommentVisibility: vi.fn(),
   reviewReport: vi.fn()
 }));
+vi.mock("@/server/moderation-review", () => ({
+  listOpenReportsForModeration
+}));
 vi.mock("@/server/rankings", () => ({
   recomputeRankingSnapshots: vi.fn()
 }));
@@ -68,6 +72,7 @@ describe("ModerationPage", () => {
     getAiControlSetting.mockReset();
     getTodayAiUsage.mockReset();
     listTodayAiUsageEvents.mockReset();
+    listOpenReportsForModeration.mockReset();
   });
 
   it("renders a top summary panel for moderator triage", async () => {
@@ -93,11 +98,21 @@ describe("ModerationPage", () => {
       { id: "comment_1", body: "확인이 필요해요", visibilityState: "HELD", moderationRisk: 80 },
       { id: "comment_2", body: "작성자만 보여요", visibilityState: "AUTHOR_ONLY", moderationRisk: 70 }
     ]);
-    reportFindMany.mockResolvedValue([
-      { id: "report_1", reason: "나쁜 말", targetType: "COMMENT", targetId: "comment_1" },
-      { id: "report_2", reason: "스팸", targetType: "POST", targetId: "post_1" },
-      { id: "report_3", reason: "괴롭힘", targetType: "USER", targetId: "user_2" }
-    ]);
+    const enrichedReports = [
+      {
+        id: "report_1",
+        reason: "나쁜 말",
+        targetType: "COMMENT",
+        targetId: "comment_1",
+        reporter: { nickname: "신고자", trustScore: 92, sanctionState: "NORMAL" },
+        targetPreview: "이건 너무 심한 말이에요",
+        targetAuthor: { id: "author_1", nickname: "작성자", trustScore: 47, sanctionState: "LOW_TRUST" },
+        priorAcceptedCount: 2,
+        priorDismissedCount: 1
+      }
+    ];
+    reportFindMany.mockResolvedValue(enrichedReports);
+    listOpenReportsForModeration.mockResolvedValue(enrichedReports);
     getAiControlSetting.mockResolvedValue({ enabled: true, dailyJobLimit: 100, dailyCommentLimit: 300 });
     getTodayAiUsage.mockResolvedValue({ executedJobs: 4, generatedComments: 6, skippedJobs: 1, failedJobs: 1 });
     listTodayAiUsageEvents.mockResolvedValue([]);
@@ -111,5 +126,9 @@ describe("ModerationPage", () => {
     expect(screen.getByText("Worker 정상")).toBeInTheDocument();
     expect(screen.getByText(/최근 활동 2026. 7. 25/)).toBeInTheDocument();
     expect(screen.getByText(/설정 경고/)).toBeInTheDocument();
+    expect(screen.getByText("신고자 신고자 · 신뢰 92 · NORMAL")).toBeInTheDocument();
+    expect(screen.getByText("대상: 이건 너무 심한 말이에요")).toBeInTheDocument();
+    expect(screen.getByText(/대상 작성자 작성자 · 신뢰 47 · LOW_TRUST/)).toBeInTheDocument();
+    expect(screen.getByText("이전 처리 2건 · 기각 1건")).toBeInTheDocument();
   });
 });

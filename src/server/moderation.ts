@@ -40,7 +40,10 @@ export function calculateSanctionState(trustScore: number): SanctionState {
 }
 
 const trustDeltaRetryLimit = 3;
+const acceptedActionableReportTrustDelta = -10;
 type ReviewableReportStatus = Extract<ReportStatus, "REVIEWED" | "DISMISSED">;
+
+type ModerationTransaction = Prisma.TransactionClient;
 
 export async function applyTrustDelta(userId: string, delta: number, reason: string) {
   for (let attempt = 1; attempt <= trustDeltaRetryLimit; attempt += 1) {
@@ -156,10 +159,16 @@ export async function reviewReport(input: {
   reason: string;
 }) {
   return db.$transaction(async (tx) => {
-    const report = await tx.report.update({
-      where: { id: input.reportId },
+    const guardedUpdate = await tx.report.updateMany({
+      where: { id: input.reportId, status: ReportStatus.OPEN },
       data: { status: input.status }
     });
+    const report = await tx.report.findUniqueOrThrow({ where: { id: input.reportId } });
+
+    if (guardedUpdate.count === 0) {
+      return [report, null] as const;
+    }
+
     const event = await tx.moderationEvent.create({
       data: {
         userId: input.moderatorId,
@@ -174,6 +183,84 @@ export async function reviewReport(input: {
       }
     });
 
+    if (input.status === ReportStatus.REVIEWED) {
+      const targetAuthorId = await resolveReportTargetAuthorId(tx, report.targetType, report.targetId);
+      if (targetAuthorId) {
+        await applyTrustDeltaInTransaction(
+          tx,
+          targetAuthorId,
+          acceptedActionableReportTrustDelta,
+          "accepted_actionable_report"
+        );
+      }
+    }
+    // TODO: Consider a small reporter penalty after repeated dismissed reports; normal dismissals stay zero-impact.
+
     return [report, event] as const;
   });
+}
+
+async function resolveReportTargetAuthorId(
+  tx: ModerationTransaction,
+  targetType: ModerationTargetType,
+  targetId: string
+): Promise<string | null> {
+  if (targetType === ModerationTargetType.USER) {
+    const user = await tx.user.findUnique({
+      where: { id: targetId },
+      select: { id: true }
+    });
+    return user?.id ?? null;
+  }
+
+  if (targetType === ModerationTargetType.POST) {
+    const post = await tx.praisePost.findUnique({
+      where: { id: targetId },
+      select: { authorUserId: true }
+    });
+    return post?.authorUserId ?? null;
+  }
+
+  if (targetType === ModerationTargetType.COMMENT) {
+    const comment = await tx.praiseComment.findUnique({
+      where: { id: targetId },
+      select: { authorUserId: true }
+    });
+    return comment?.authorUserId ?? null;
+  }
+
+  const reply = await tx.reply.findUnique({
+    where: { id: targetId },
+    select: { authorUserId: true }
+  });
+  return reply?.authorUserId ?? null;
+}
+
+async function applyTrustDeltaInTransaction(
+  tx: ModerationTransaction,
+  userId: string,
+  delta: number,
+  reason: string
+) {
+  const user = await tx.user.findUniqueOrThrow({ where: { id: userId } });
+  const nextTrustScore = Math.max(0, Math.min(100, user.trustScore + delta));
+  const nextSanctionState = calculateSanctionState(nextTrustScore);
+
+  const updatedUser = await tx.user.update({
+    where: { id: userId },
+    data: { trustScore: nextTrustScore, sanctionState: nextSanctionState }
+  });
+
+  const event = await tx.moderationEvent.create({
+    data: {
+      userId,
+      targetType: ModerationTargetType.USER,
+      targetId: userId,
+      eventType: ModerationEventType.TRUST_SCORE_CHANGED,
+      riskReason: reason,
+      trustScoreDelta: delta
+    }
+  });
+
+  return [updatedUser, event] as const;
 }

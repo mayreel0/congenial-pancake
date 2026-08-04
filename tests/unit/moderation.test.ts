@@ -108,12 +108,13 @@ describe("moderation review actions", () => {
   });
 
   it("reviews reports with accepted or dismissed audit events", async () => {
-    const report = { id: "report_1", targetType: "COMMENT", targetId: "comment_1" };
-    const update = vi.fn().mockResolvedValue({ ...report, status: "DISMISSED" });
+    const report = { id: "report_1", reporterUserId: "user_1", targetType: "COMMENT", targetId: "comment_1" };
+    const updateMany = vi.fn().mockResolvedValue({ count: 1 });
+    const findUniqueOrThrow = vi.fn().mockResolvedValue({ ...report, status: "DISMISSED" });
     const create = vi.fn().mockResolvedValue({ id: "event_1" });
     transaction.mockImplementationOnce((callback) =>
       callback({
-        report: { update },
+        report: { updateMany, findUniqueOrThrow },
         moderationEvent: { create }
       })
     );
@@ -125,8 +126,8 @@ describe("moderation review actions", () => {
       reason: "not actionable"
     });
 
-    expect(update).toHaveBeenCalledWith({
-      where: { id: "report_1" },
+    expect(updateMany).toHaveBeenCalledWith({
+      where: { id: "report_1", status: "OPEN" },
       data: { status: "DISMISSED" }
     });
     expect(create).toHaveBeenCalledWith({
@@ -138,5 +139,142 @@ describe("moderation review actions", () => {
         riskReason: "not actionable"
       })
     });
+  });
+
+  it("applies one trust penalty to a comment author when accepting an open report", async () => {
+    const report = {
+      id: "report_1",
+      reporterUserId: "reporter_1",
+      targetType: "COMMENT",
+      targetId: "comment_1",
+      status: "OPEN"
+    };
+    const updateMany = vi.fn().mockResolvedValue({ count: 1 });
+    const findUniqueOrThrow = vi.fn().mockResolvedValue({ ...report, status: "REVIEWED" });
+    const findComment = vi.fn().mockResolvedValue({ authorUserId: "author_1" });
+    const findUser = vi.fn().mockResolvedValue({ id: "author_1", trustScore: 75 });
+    const updateUser = vi.fn().mockResolvedValue({ id: "author_1", trustScore: 65, sanctionState: "NORMAL" });
+    const create = vi
+      .fn()
+      .mockResolvedValueOnce({ id: "event_reviewed" })
+      .mockResolvedValueOnce({ id: "event_trust" });
+    transaction.mockImplementationOnce((callback) =>
+      callback({
+        report: { updateMany, findUniqueOrThrow },
+        praiseComment: { findUnique: findComment },
+        user: { findUniqueOrThrow: findUser, update: updateUser },
+        moderationEvent: { create }
+      })
+    );
+
+    await reviewReport({
+      reportId: "report_1",
+      moderatorId: "mod_1",
+      status: "REVIEWED",
+      reason: "actionable abuse"
+    });
+
+    expect(updateMany).toHaveBeenCalledWith({
+      where: { id: "report_1", status: "OPEN" },
+      data: { status: "REVIEWED" }
+    });
+    expect(findComment).toHaveBeenCalledWith({
+      where: { id: "comment_1" },
+      select: { authorUserId: true }
+    });
+    expect(updateUser).toHaveBeenCalledWith({
+      where: { id: "author_1" },
+      data: { trustScore: 65, sanctionState: "NORMAL" }
+    });
+    expect(create).toHaveBeenNthCalledWith(2, {
+      data: expect.objectContaining({
+        userId: "author_1",
+        targetType: "USER",
+        targetId: "author_1",
+        eventType: "TRUST_SCORE_CHANGED",
+        riskReason: "accepted_actionable_report",
+        trustScoreDelta: -10
+      })
+    });
+  });
+
+  it("does not apply trust effects when a report was already reviewed", async () => {
+    const updateMany = vi.fn().mockResolvedValue({ count: 0 });
+    const findUniqueOrThrow = vi.fn().mockResolvedValue({
+      id: "report_1",
+      reporterUserId: "reporter_1",
+      targetType: "POST",
+      targetId: "post_1",
+      status: "REVIEWED"
+    });
+    const create = vi.fn();
+    const updateUser = vi.fn();
+    transaction.mockImplementationOnce((callback) =>
+      callback({
+        report: { updateMany, findUniqueOrThrow },
+        user: { update: updateUser },
+        moderationEvent: { create }
+      })
+    );
+
+    await expect(
+      reviewReport({
+        reportId: "report_1",
+        moderatorId: "mod_1",
+        status: "REVIEWED",
+        reason: "duplicate click"
+      })
+    ).resolves.toEqual([
+      {
+        id: "report_1",
+        reporterUserId: "reporter_1",
+        targetType: "POST",
+        targetId: "post_1",
+        status: "REVIEWED"
+      },
+      null
+    ]);
+
+    expect(updateMany).toHaveBeenCalledWith({
+      where: { id: "report_1", status: "OPEN" },
+      data: { status: "REVIEWED" }
+    });
+    expect(create).not.toHaveBeenCalled();
+    expect(updateUser).not.toHaveBeenCalled();
+  });
+
+  it("reviews a missing user target without applying a target penalty", async () => {
+    const updateMany = vi.fn().mockResolvedValue({ count: 1 });
+    const findUniqueOrThrow = vi.fn().mockResolvedValue({
+      id: "report_1",
+      reporterUserId: "reporter_1",
+      targetType: "USER",
+      targetId: "missing_user",
+      status: "REVIEWED"
+    });
+    const findUser = vi.fn().mockResolvedValue(null);
+    const updateUser = vi.fn();
+    const create = vi.fn().mockResolvedValue({ id: "event_reviewed" });
+    transaction.mockImplementationOnce((callback) =>
+      callback({
+        report: { updateMany, findUniqueOrThrow },
+        user: { findUnique: findUser, update: updateUser },
+        moderationEvent: { create }
+      })
+    );
+
+    await reviewReport({
+      reportId: "report_1",
+      moderatorId: "mod_1",
+      status: "REVIEWED",
+      reason: "missing target"
+    });
+
+    expect(findUser).toHaveBeenCalledWith({
+      where: { id: "missing_user" },
+      select: { id: true }
+    });
+    expect(updateUser).not.toHaveBeenCalled();
+    expect(create).toHaveBeenCalledTimes(1);
   });
 });
