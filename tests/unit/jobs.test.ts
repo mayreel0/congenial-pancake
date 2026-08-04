@@ -38,14 +38,17 @@ vi.mock("@/lib/db", () => ({
 
 vi.mock("@/server/ai", () => ({
   buildPraisePrompt: vi.fn(() => "prompt text"),
+  classifyAiPraiseInputSafety: vi.fn(() => ({ safe: true })),
   generatePraiseComments,
   getAiProviderConfig: vi.fn(() => ({ provider: "gemini", model: "gemini-3.1-flash-lite", apiKey: "key" })),
-  getAiProviderErrorReason: vi.fn(() => "provider_error:model_not_found")
+  getAiProviderErrorReason: vi.fn(() => "provider_error:model_not_found"),
+  validateGeneratedPraiseComments: vi.fn((comments: string[]) => comments)
 }));
 vi.mock("@/server/ai-controls", () => ({ canRunAiPraiseJob, recordAiUsageEvent }));
 vi.mock("@/server/realtime", () => ({ publishPostEvent }));
 vi.mock("@/server/rankings", () => ({ recomputeRankingSnapshots }));
 
+import { classifyAiPraiseInputSafety, validateGeneratedPraiseComments } from "@/server/ai";
 import { ensureNaturalAiComment, processAiPraiseJob, shouldRunInactivityPraise, startRankingWorker } from "@/server/jobs";
 
 describe("inactivity praise policy", () => {
@@ -58,6 +61,10 @@ describe("inactivity praise policy", () => {
     canRunAiPraiseJob.mockReset();
     recordAiUsageEvent.mockReset();
     generatePraiseComments.mockReset();
+    vi.mocked(classifyAiPraiseInputSafety).mockReset();
+    vi.mocked(classifyAiPraiseInputSafety).mockReturnValue({ safe: true });
+    vi.mocked(validateGeneratedPraiseComments).mockReset();
+    vi.mocked(validateGeneratedPraiseComments).mockImplementation((comments: string[]) => comments);
     publishPostEvent.mockReset();
   });
 
@@ -122,6 +129,10 @@ describe("AI praise worker controls", () => {
     canRunAiPraiseJob.mockReset();
     recordAiUsageEvent.mockReset();
     generatePraiseComments.mockReset();
+    vi.mocked(classifyAiPraiseInputSafety).mockReset();
+    vi.mocked(classifyAiPraiseInputSafety).mockReturnValue({ safe: true });
+    vi.mocked(validateGeneratedPraiseComments).mockReset();
+    vi.mocked(validateGeneratedPraiseComments).mockImplementation((comments: string[]) => comments);
     publishPostEvent.mockReset();
   });
 
@@ -181,6 +192,70 @@ describe("AI praise worker controls", () => {
         generatedComments: 0
       })
     );
+  });
+
+  it("skips crisis input before provider generation", async () => {
+    const aiJob = {
+      id: "job_1",
+      postId: "post_1",
+      jobType: "INITIAL_PRAISE",
+      status: "PENDING",
+      resultCommentIds: [],
+      post: { title: "살기 싫어요", body: "그만 살고 싶어요", promptAnswers: { feeling: "끝내고 싶다" } }
+    };
+    aiJobFindUniqueOrThrow.mockResolvedValueOnce(aiJob);
+    aiJobUpdate.mockResolvedValueOnce({ ...aiJob, status: "RUNNING" }).mockResolvedValueOnce({ ...aiJob, status: "SKIPPED" });
+    vi.mocked(classifyAiPraiseInputSafety).mockReturnValueOnce({ safe: false, reason: "safety:crisis_input_detected" });
+
+    await processAiPraiseJob("job_1");
+
+    expect(canRunAiPraiseJob).not.toHaveBeenCalled();
+    expect(generatePraiseComments).not.toHaveBeenCalled();
+    expect(aiJobUpdate).toHaveBeenLastCalledWith({ where: { id: "job_1" }, data: { status: "SKIPPED" } });
+    expect(recordAiUsageEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        jobId: "job_1",
+        postId: "post_1",
+        status: "SKIPPED",
+        reason: "safety:crisis_input_detected",
+        requestedComments: 1,
+        generatedComments: 0,
+        responseTexts: []
+      })
+    );
+  });
+
+  it("fails without creating comments when provider output has no usable praise", async () => {
+    const aiJob = {
+      id: "job_1",
+      postId: "post_1",
+      jobType: "INITIAL_PRAISE",
+      status: "PENDING",
+      resultCommentIds: [],
+      post: { title: "해냈어요", body: "끝냈어요", promptAnswers: null }
+    };
+    aiJobFindUniqueOrThrow.mockResolvedValueOnce(aiJob);
+    aiJobUpdate.mockResolvedValueOnce({ ...aiJob, status: "RUNNING" }).mockResolvedValueOnce({ ...aiJob, status: "FAILED" });
+    canRunAiPraiseJob.mockResolvedValueOnce({ allowed: true, reason: "allowed" });
+    generatePraiseComments.mockResolvedValueOnce(["AI 칭찬: 잘했어요", "병원에 가서 치료받으세요"]);
+    vi.mocked(validateGeneratedPraiseComments).mockReturnValueOnce([]);
+
+    await processAiPraiseJob("job_1");
+
+    expect(validateGeneratedPraiseComments).toHaveBeenCalledWith(["AI 칭찬: 잘했어요", "병원에 가서 치료받으세요"]);
+    expect(aiJobUpdate).toHaveBeenLastCalledWith({ where: { id: "job_1" }, data: { status: "FAILED" } });
+    expect(recordAiUsageEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        jobId: "job_1",
+        postId: "post_1",
+        status: "FAILED",
+        reason: "quality:no_usable_output",
+        requestedComments: 1,
+        generatedComments: 0,
+        responseTexts: []
+      })
+    );
+    expect(publishPostEvent).not.toHaveBeenCalled();
   });
 });
 

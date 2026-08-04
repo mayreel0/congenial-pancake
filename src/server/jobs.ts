@@ -2,7 +2,14 @@ import { AiJobStatus, AiJobType, DisplayMode, Prisma } from "@prisma/client";
 import { type ConnectionOptions, Queue, Worker } from "bullmq";
 import IORedis from "ioredis";
 import { db } from "@/lib/db";
-import { buildPraisePrompt, generatePraiseComments, getAiProviderConfig, getAiProviderErrorReason } from "@/server/ai";
+import {
+  buildPraisePrompt,
+  classifyAiPraiseInputSafety,
+  generatePraiseComments,
+  getAiProviderConfig,
+  getAiProviderErrorReason,
+  validateGeneratedPraiseComments
+} from "@/server/ai";
 import { canRunAiPraiseJob, recordAiUsageEvent } from "@/server/ai-controls";
 import { recomputeRankingSnapshots } from "@/server/rankings";
 import { publishPostEvent } from "@/server/realtime";
@@ -200,6 +207,23 @@ export async function processAiPraiseJob(aiPraiseJobId: string) {
   const requestedCount = 1;
   const config = getAiProviderConfig();
   const promptText = buildPraisePrompt(aiJob.post);
+  const inputSafety = classifyAiPraiseInputSafety(aiJob.post);
+  if (!inputSafety.safe) {
+    await db.aiPraiseJob.update({ where: { id: aiJob.id }, data: { status: AiJobStatus.SKIPPED } });
+    await recordAiUsageEvent({
+      jobId: aiJob.id,
+      postId: aiJob.postId,
+      provider: config.provider,
+      model: config.model,
+      status: "SKIPPED",
+      reason: inputSafety.reason,
+      requestedComments: requestedCount,
+      generatedComments: 0,
+      promptText,
+      responseTexts: []
+    });
+    return;
+  }
 
   if (aiJob.jobType === AiJobType.INACTIVITY_PRAISE) {
     const shouldRun = await shouldRunInactivityPraise(aiJob.postId);
@@ -260,7 +284,25 @@ export async function processAiPraiseJob(aiPraiseJobId: string) {
     throw error;
   }
 
-  const created = await createAiCommentsWithinCap(aiJob.id, aiJob.postId, aiJob.jobType, comments);
+  const usableComments = validateGeneratedPraiseComments(comments);
+  if (usableComments.length === 0) {
+    await db.aiPraiseJob.update({ where: { id: aiJob.id }, data: { status: AiJobStatus.FAILED } });
+    await recordAiUsageEvent({
+      jobId: aiJob.id,
+      postId: aiJob.postId,
+      provider: config.provider,
+      model: config.model,
+      status: "FAILED",
+      reason: "quality:no_usable_output",
+      requestedComments: requestedCount,
+      generatedComments: 0,
+      promptText,
+      responseTexts: []
+    });
+    return;
+  }
+
+  const created = await createAiCommentsWithinCap(aiJob.id, aiJob.postId, aiJob.jobType, usableComments);
 
   await recordAiUsageEvent({
     jobId: aiJob.id,
@@ -272,7 +314,7 @@ export async function processAiPraiseJob(aiPraiseJobId: string) {
     requestedComments: requestedCount,
     generatedComments: created.length,
     promptText,
-    responseTexts: comments.slice(0, created.length)
+    responseTexts: usableComments.slice(0, created.length)
   });
 
   for (const comment of created) {

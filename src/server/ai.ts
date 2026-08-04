@@ -17,6 +17,54 @@ export type AiProviderConfig = {
 
 type AiEnv = Record<string, string | undefined>;
 const defaultGeminiModel = "gemini-3.1-flash-lite";
+const crisisInputReason = "safety:crisis_input_detected" as const;
+
+const crisisPatterns = [
+  /자해/,
+  /극단적\s*선택/,
+  /죽고\s*싶/,
+  /죽어\s*버리/,
+  /목숨을?\s*끊/,
+  /삶을?\s*끝/,
+  /그만\s*살고\s*싶/,
+  /사라지고\s*싶/,
+  /kill myself/i,
+  /end my life/i,
+  /take my own life/i,
+  /suicid(?:e|al)/i,
+  /self[-\s]?harm/i,
+  /want to die/i
+];
+
+const aiDisclosurePatterns = [/^(?:(?:ai|as an ai)\b|인공지능|자동\s*생성|자동\s*칭찬|ai\s*칭찬)\s*[:：-]?\s*/i];
+const adviceTonePatterns = [
+  /상담(?:사|을|이|받)/,
+  /조언(?:을|드리|하)/,
+  /치료(?:를|받|하)/,
+  /병원에?\s*(?:가|방문|상담)/,
+  /의사(?:와|에게|를)?\s*(?:상담|진료)/,
+  /진단/,
+  /약을?\s*(?:먹|복용)/,
+  /변호사|법률|고소|소송/,
+  /투자|주식|대출|보험|세금/
+];
+const appearanceIdentityPatterns = [
+  /외모|몸매|체중|살쪘|살이\s*빠|다이어트/,
+  /예쁘|잘생|못생|피부|얼굴|키가\s*(?:크|작)/,
+  /남자라서|여자라서|장애(?:인|가)|정체성/
+];
+
+function stringifyPromptAnswers(promptAnswers: unknown): string {
+  try {
+    return JSON.stringify(promptAnswers ?? {});
+  } catch {
+    return "";
+  }
+}
+
+function normalizeCommentForDuplicate(body: string): string {
+  return body.toLowerCase().replace(/[\s\p{P}\p{S}]/gu, "");
+}
 
 export function clampPraiseCount(count: number): number {
   return Math.max(1, Math.min(3, count));
@@ -44,10 +92,51 @@ export function getAiProviderErrorReason(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
 
   if (message.includes("API_KEY_REQUIRED")) return "provider_error:missing_api_key";
+  if (/UNAUTHENTICATED|unauthori[sz]ed|invalid api key|401|403|permission denied/i.test(message)) {
+    return "provider_error:auth_failed";
+  }
   if (/NOT_FOUND|404|no longer available|not found/i.test(message)) return "provider_error:model_not_found";
   if (/RESOURCE_EXHAUSTED|429|rate limit|quota/i.test(message)) return "provider_error:rate_limited";
+  if (/timeout|timed out|deadline exceeded|ETIMEDOUT|AbortError/i.test(message)) return "provider_error:timeout";
+  if (/SAFETY|blocked|prohibited|finishReason.*SAFETY/i.test(message)) return "provider_error:safety_blocked";
+  if (/empty|malformed|invalid json|unexpected response|no candidates|no choices/i.test(message)) {
+    return "provider_error:empty_or_malformed_response";
+  }
 
-  return "provider_error";
+  return "provider_error:generic";
+}
+
+export function classifyAiPraiseInputSafety(
+  post: PraisePromptPost
+): { safe: true } | { safe: false; reason: typeof crisisInputReason } {
+  const inputText = [post.title, post.body, stringifyPromptAnswers(post.promptAnswers)].join("\n");
+  if (crisisPatterns.some((pattern) => pattern.test(inputText))) {
+    return { safe: false, reason: crisisInputReason };
+  }
+
+  return { safe: true };
+}
+
+export function validateGeneratedPraiseComments(comments: string[]): string[] {
+  const seen = new Set<string>();
+  const validComments: string[] = [];
+
+  for (const comment of comments) {
+    const body = comment.trim();
+    const duplicateKey = normalizeCommentForDuplicate(body);
+
+    if (!body || body.length > 120 || !/[가-힣]/.test(body)) continue;
+    if (!duplicateKey || seen.has(duplicateKey)) continue;
+    if (aiDisclosurePatterns.some((pattern) => pattern.test(body))) continue;
+    if (adviceTonePatterns.some((pattern) => pattern.test(body))) continue;
+    if (appearanceIdentityPatterns.some((pattern) => pattern.test(body))) continue;
+    if (crisisPatterns.some((pattern) => pattern.test(body))) continue;
+
+    seen.add(duplicateKey);
+    validComments.push(body);
+  }
+
+  return validComments;
 }
 
 export function buildPraisePrompt(post: PraisePromptPost): string {
