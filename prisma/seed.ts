@@ -15,7 +15,7 @@ async function main() {
     }
   });
 
-  await prisma.user.upsert({
+  const moderator = await prisma.user.upsert({
     where: { email: "moderator@example.com" },
     update: { passwordHash, isModerator: true },
     create: {
@@ -26,16 +26,18 @@ async function main() {
     }
   });
 
-  await prisma.praisePost.create({
+  await prisma.comfortRequest.create({
     data: {
       authorUserId: author.id,
-      displayMode: DisplayMode.NICKNAME,
-      title: "오늘 미루던 병원 예약을 했어요",
-      body: "계속 미뤘는데 드디어 전화해서 예약까지 끝냈습니다.",
-      promptAnswers: {
-        accomplished: "병원 예약",
-        praisePoint: "미루던 일을 끝낸 점",
-        tone: "차분하고 다정하게"
+      localDate: "2026-08-05",
+      displayMode: DisplayMode.ANONYMOUS,
+      body: "오늘 작은 실수를 했는데 계속 마음에 남아요. 너무 크게 생각하지 말라는 말을 듣고 싶어요.",
+      replies: {
+        create: {
+          authorUserId: moderator.id,
+          displayMode: DisplayMode.NICKNAME,
+          body: "그 일이 마음에 남을 수는 있지만, 그 실수 하나로 오늘 전체가 정해지는 건 아닌 것 같아요."
+        }
       }
     }
   });

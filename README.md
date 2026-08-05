@@ -1,22 +1,22 @@
-# Praise Community MVP
+# Comfort Praise MVP
 
-A Next.js community app where authenticated users can share moments they want praise for and receive supportive comments in real time. The app includes public reading, authenticated posting/commenting, quiet moderation, trust-based sanctions, AI praise jobs, rankings, and a personal activity page.
+A Korean-first comfort and praise exchange app where users can write one daily request for encouragement and leave one thoughtful reply on another person's request.
 
 For Korean setup instructions, see [docs/RUNNING.ko.md](docs/RUNNING.ko.md).
 
 ## Features
 
 - Email/password signup, Auth.js credentials login, and optional Naver OAuth login.
-- Public praise feed and post detail rooms.
-- Socket.IO realtime updates for new comments.
+- Web-first comfort request and reply MVP.
+- One comfort request per user per Korean local day.
+- One reply per user per comfort request, with reply bodies capped at 1000 characters.
 - Anonymous or nickname display modes.
-- Thank-you reactions and author replies.
-- In-app notifications for praise comments and author replies.
+- In-app notifications for the first reply on a request.
 - Quiet moderation for risky text, reports, trust score changes, shadow bans, and service bans.
-- BullMQ/Redis-backed AI praise job model for initial and inactivity praise.
-- Moderator-managed AI on/off controls and daily AI usage limits.
-- Moderator review actions for held comments, reports, trust score changes, AI usage logs, and ranking recomputation.
-- Ranking snapshots and a personal activity page.
+- AI provider configuration and usage controls kept for future writing assistance and safety filtering.
+- No automatic public AI replies in the comfort MVP.
+- Moderator review actions for held requests/replies, reports, trust score changes, AI usage logs, and worker heartbeat.
+- Personal activity page for my comfort requests and replies.
 - Unit, integration, and Playwright smoke tests.
 
 ## Tech Stack
@@ -24,9 +24,7 @@ For Korean setup instructions, see [docs/RUNNING.ko.md](docs/RUNNING.ko.md).
 - Next.js App Router, React, TypeScript
 - PostgreSQL, Prisma
 - Auth.js
-- Socket.IO
-- BullMQ, Redis
-- Gemini API by default, with OpenAI as a switchable provider
+- Gemini API by default, with OpenAI as a switchable provider for future AI assistance
 - Vitest, Testing Library, Playwright
 
 ## Requirements
@@ -34,8 +32,7 @@ For Korean setup instructions, see [docs/RUNNING.ko.md](docs/RUNNING.ko.md).
 - Node.js 22 or newer
 - npm
 - PostgreSQL
-- Redis
-- Gemini API key for AI praise generation, or an OpenAI API key when `AI_PROVIDER="openai"`
+- Optional Gemini/OpenAI provider keys for future AI assistance and quality-filter work
 
 ## Environment
 
@@ -58,7 +55,6 @@ GEMINI_API_KEY=""
 GEMINI_MODEL="gemini-3.1-flash-lite"
 OPENAI_API_KEY=""
 OPENAI_MODEL="gpt-4o-mini"
-REDIS_URL="redis://localhost:6379"
 NEXT_PUBLIC_SOCKET_URL="http://localhost:3000"
 ```
 
@@ -108,7 +104,7 @@ Seeded accounts use the password `password1234`:
 - `author@example.com`
 - `moderator@example.com`
 
-Start Redis, then run the app:
+Run the app:
 
 ```bash
 npm run dev
@@ -125,7 +121,7 @@ npm run start        # Start production server
 npm run test         # Unit and integration tests
 npm run test:e2e     # Playwright smoke tests
 npm run lint         # ESLint
-npm run jobs:dev     # Start AI praise and ranking workers
+npm run jobs:dev     # Start the comfort MVP diagnostic heartbeat worker
 npm run prisma:deploy # Apply committed Prisma migrations
 npm run prisma:seed  # Seed local database
 ```
@@ -147,13 +143,11 @@ DATABASE_URL="postgresql://postgres:postgres@localhost:5432/praise_community" np
 
 ## Background Jobs
 
-AI praise creation depends on Redis and the configured AI provider key. Gemini is the default provider via `AI_PROVIDER="gemini"`, `GEMINI_API_KEY`, and `GEMINI_MODEL`. Set `AI_PROVIDER="openai"` with `OPENAI_API_KEY` and `OPENAI_MODEL` to switch providers. The domain logic and worker factories are implemented in `src/server/jobs.ts`; production deployment should run worker processes for AI praise and ranking recomputation, or run `npm run jobs:dev` for local combined workers.
+MVP에서는 AI가 공개 답변을 자동 작성하지 않습니다. AI provider 설정은 이후 작성 보조와 콘텐츠 품질 필터 기능을 위해 유지됩니다.
 
-Initial AI praise is scheduled as one to three separate single-comment jobs with staggered delays so comments do not arrive in a fixed burst. Generated comments are still tracked with `isAiGenerated` for moderation and rankings, but user-visible comment text avoids AI disclosure prefixes.
+`npm run jobs:dev` starts a diagnostic worker that records `WorkerHeartbeat` and logs that no automatic AI praise worker runs in the comfort MVP. Moderators can see recent, stale, warning, or unknown worker state in `/moderation`.
 
-The combined worker records a persisted heartbeat. Moderators can see recent, stale, warning, or unknown worker state in `/moderation`.
-
-Moderators can manage AI praise generation at `/moderation`. The AI controls are stored in the database with default values of enabled, 100 daily AI jobs, and 300 daily AI-generated comments. Disabled or quota-limited jobs are skipped before Gemini/OpenAI is called, and usage events record completed, skipped, and failed AI work for the current UTC day. The moderation page also shows recent AI usage events, review actions for held comments and reports, trust score controls, worker health, and a manual ranking recomputation action.
+Moderators can manage AI configuration at `/moderation`. The AI controls are stored in the database with default values of enabled, 100 daily AI jobs, and 300 daily generated comments for future assistance/filtering work. The moderation page also shows recent AI usage events, review actions for held comfort requests/replies and reports, trust score controls, and worker health.
 
 ## Operations
 
@@ -162,5 +156,5 @@ See [docs/OPERATIONS.ko.md](docs/OPERATIONS.ko.md) for the deployment checklist,
 ## Current Limitations
 
 - No hosted environment is configured yet.
-- AI/Redis/PostgreSQL integration should be verified in a real integration environment before launch.
-- Scheduled ranking recomputation still needs production scheduler wiring.
+- PostgreSQL integration should be verified in a real integration environment before launch.
+- Native/mobile app push notifications are not implemented yet.

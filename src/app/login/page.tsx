@@ -18,7 +18,7 @@ export default async function LoginPage({
   return (
     <section className="page-section">
       <h1>로그인</h1>
-      <p>글쓰기, 칭찬 댓글, 감사 반응은 로그인 후 사용할 수 있습니다.</p>
+      <p>위로 요청과 답변은 로그인 후 사용할 수 있습니다.</p>
       {errorMessage ? <p role="alert">{errorMessage}</p> : null}
       <form action={loginWithCredentials}>
         <label>

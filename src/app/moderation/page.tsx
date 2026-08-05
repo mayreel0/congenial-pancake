@@ -182,20 +182,20 @@ export default async function ModerationPage() {
       </section>
       <section className="moderation-panel">
         <div>
-          <h2>AI 칭찬 제어</h2>
-          <p>오늘 AI 작업 {aiUsage.executedJobs}건 · 생성 댓글 {aiUsage.generatedComments}개 · 스킵 {aiUsage.skippedJobs}건 · 실패 {aiUsage.failedJobs}건</p>
+          <h2>AI 설정</h2>
+          <p>오늘 AI 작업 {aiUsage.executedJobs}건 · 생성 항목 {aiUsage.generatedComments}개 · 스킵 {aiUsage.skippedJobs}건 · 실패 {aiUsage.failedJobs}건</p>
         </div>
         <form action={updateAiControls} className="settings-form">
           <label className="checkbox-label">
             <input name="enabled" type="checkbox" defaultChecked={aiSetting.enabled} />
-            AI 칭찬 사용
+            AI 기능 사용
           </label>
           <label>
             하루 작업 제한
             <input name="dailyJobLimit" type="number" min="0" max="10000" defaultValue={aiSetting.dailyJobLimit} />
           </label>
           <label>
-            하루 댓글 제한
+            하루 생성 항목 제한
             <input
               name="dailyCommentLimit"
               type="number"
