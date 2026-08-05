@@ -334,3 +334,64 @@ button:disabled {
 .muted-copy {
   color: #667568;
 }
+
+.comfort-main {
+  display: grid;
+  gap: 24px;
+}
+
+.comfort-main .section-heading-row {
+  margin-bottom: 0;
+}
+
+.comfort-examples,
+.comfort-panel,
+.comfort-example-list,
+.comfort-request-list,
+.comfort-replies {
+  display: grid;
+  gap: 12px;
+}
+
+.comfort-examples h2,
+.comfort-panel p {
+  margin: 0;
+}
+
+.comfort-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.comfort-tabs [aria-selected="false"] {
+  border: 1px solid #246b4b;
+  background: #ffffff;
+  color: #246b4b;
+}
+
+.comfort-panel {
+  padding: 16px;
+  border: 1px solid #d8ded4;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.comfort-request-list .feed-item {
+  display: grid;
+  gap: 10px;
+}
+
+.comfort-request-list .feed-item button {
+  justify-self: start;
+}
+
+.comfort-replies {
+  padding: 12px;
+  border-left: 3px solid #c8d1c4;
+  background: #f3f7f1;
+}
+
+.comfort-replies p {
+  margin: 0;
+}
