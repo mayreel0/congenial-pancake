@@ -1,69 +1,80 @@
+import { VisibilityState } from "@prisma/client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const auth = vi.hoisted(() => vi.fn());
-const hideOwnPraisePost = vi.hoisted(() => vi.fn());
-const hideOwnPraiseComment = vi.hoisted(() => vi.fn());
+const comfortRequestFindUniqueOrThrow = vi.hoisted(() => vi.fn());
+const comfortRequestUpdate = vi.hoisted(() => vi.fn());
+const comfortReplyFindUniqueOrThrow = vi.hoisted(() => vi.fn());
+const comfortReplyUpdate = vi.hoisted(() => vi.fn());
 const revalidatePath = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/auth", () => ({ auth }));
-vi.mock("@/server/posts", () => ({ hideOwnPraisePost }));
-vi.mock("@/server/comments", () => ({ hideOwnPraiseComment }));
+vi.mock("@/lib/db", () => ({
+  db: {
+    comfortRequest: { findUniqueOrThrow: comfortRequestFindUniqueOrThrow, update: comfortRequestUpdate },
+    comfortReply: { findUniqueOrThrow: comfortReplyFindUniqueOrThrow, update: comfortReplyUpdate }
+  }
+}));
 vi.mock("next/cache", () => ({ revalidatePath }));
 
-import { hideMyComment, hideMyPost } from "@/app/me/actions";
+import { hideMyComfortReply, hideMyComfortRequest } from "@/app/me/actions";
 
 describe("my activity actions", () => {
   beforeEach(() => {
     auth.mockReset();
-    hideOwnPraisePost.mockReset();
-    hideOwnPraiseComment.mockReset();
+    comfortRequestFindUniqueOrThrow.mockReset();
+    comfortRequestUpdate.mockReset();
+    comfortReplyFindUniqueOrThrow.mockReset();
+    comfortReplyUpdate.mockReset();
     revalidatePath.mockReset();
   });
 
-  it("hides the current user's praise post and revalidates activity surfaces", async () => {
+  it("hides the current user's comfort request", async () => {
     auth.mockResolvedValue({ user: { id: "user_1" } });
-    hideOwnPraisePost.mockResolvedValue({ id: "post_1", status: "HIDDEN" });
+    comfortRequestFindUniqueOrThrow.mockResolvedValue({ id: "request_1", authorUserId: "user_1" });
 
     const formData = new FormData();
-    formData.set("postId", "post_1");
+    formData.set("requestId", "request_1");
 
-    await hideMyPost(formData);
+    await hideMyComfortRequest(formData);
 
-    expect(hideOwnPraisePost).toHaveBeenCalledWith("post_1", "user_1");
+    expect(comfortRequestUpdate).toHaveBeenCalledWith({
+      where: { id: "request_1" },
+      data: { status: VisibilityState.HIDDEN }
+    });
     expect(revalidatePath).toHaveBeenCalledWith("/me");
     expect(revalidatePath).toHaveBeenCalledWith("/");
-    expect(revalidatePath).toHaveBeenCalledWith("/posts/post_1");
   });
 
-  it("hides the current user's praise comment and revalidates activity surfaces", async () => {
+  it("hides the current user's comfort reply", async () => {
     auth.mockResolvedValue({ user: { id: "user_1" } });
-    hideOwnPraiseComment.mockResolvedValue({ id: "comment_1", postId: "post_1", visibilityState: "HIDDEN" });
+    comfortReplyFindUniqueOrThrow.mockResolvedValue({ id: "reply_1", authorUserId: "user_1" });
 
     const formData = new FormData();
-    formData.set("commentId", "comment_1");
+    formData.set("replyId", "reply_1");
 
-    await hideMyComment(formData);
+    await hideMyComfortReply(formData);
 
-    expect(hideOwnPraiseComment).toHaveBeenCalledWith("comment_1", "user_1");
-    expect(revalidatePath).toHaveBeenCalledWith("/me");
-    expect(revalidatePath).toHaveBeenCalledWith("/");
-    expect(revalidatePath).toHaveBeenCalledWith("/posts/post_1");
+    expect(comfortReplyUpdate).toHaveBeenCalledWith({
+      where: { id: "reply_1" },
+      data: { status: VisibilityState.HIDDEN }
+    });
   });
 
-  it("rejects unauthenticated post hiding", async () => {
+  it("rejects unauthenticated request hiding", async () => {
     auth.mockResolvedValue(null);
 
     const formData = new FormData();
-    formData.set("postId", "post_1");
+    formData.set("requestId", "request_1");
 
-    await expect(hideMyPost(formData)).rejects.toThrow("AUTH_REQUIRED");
-    expect(hideOwnPraisePost).not.toHaveBeenCalled();
+    await expect(hideMyComfortRequest(formData)).rejects.toThrow("AUTH_REQUIRED");
+    expect(comfortRequestUpdate).not.toHaveBeenCalled();
   });
 
-  it("rejects missing comment ids", async () => {
+  it("rejects missing reply ids", async () => {
     auth.mockResolvedValue({ user: { id: "user_1" } });
 
-    await expect(hideMyComment(new FormData())).rejects.toThrow("COMMENT_ID_REQUIRED");
-    expect(hideOwnPraiseComment).not.toHaveBeenCalled();
+    await expect(hideMyComfortReply(new FormData())).rejects.toThrow("COMFORT_REPLY_ID_REQUIRED");
+    expect(comfortReplyUpdate).not.toHaveBeenCalled();
   });
 });

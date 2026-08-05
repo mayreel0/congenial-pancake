@@ -2,9 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
-import { hideOwnPraiseComment } from "@/server/comments";
+import { db } from "@/lib/db";
 import { requireUser } from "@/server/permissions";
-import { hideOwnPraisePost } from "@/server/posts";
+import { VisibilityState } from "@prisma/client";
 
 function requireFormString(formData: FormData, key: string, errorCode: string) {
   const value = formData.get(key);
@@ -14,24 +14,40 @@ function requireFormString(formData: FormData, key: string, errorCode: string) {
   return value;
 }
 
-export async function hideMyPost(formData: FormData) {
+export async function hideMyComfortRequest(formData: FormData) {
   const session = await auth();
   const userId = requireUser(session?.user?.id);
-  const postId = requireFormString(formData, "postId", "POST_ID_REQUIRED");
-  const post = await hideOwnPraisePost(postId, userId);
+  const requestId = requireFormString(formData, "requestId", "COMFORT_REQUEST_ID_REQUIRED");
+  const request = await db.comfortRequest.findUniqueOrThrow({
+    where: { id: requestId },
+    select: { id: true, authorUserId: true }
+  });
+  if (request.authorUserId !== userId) throw new Error("COMFORT_REQUEST_AUTHOR_ONLY");
+
+  await db.comfortRequest.update({
+    where: { id: requestId },
+    data: { status: VisibilityState.HIDDEN }
+  });
 
   revalidatePath("/me");
   revalidatePath("/");
-  revalidatePath(`/posts/${post.id}`);
 }
 
-export async function hideMyComment(formData: FormData) {
+export async function hideMyComfortReply(formData: FormData) {
   const session = await auth();
   const userId = requireUser(session?.user?.id);
-  const commentId = requireFormString(formData, "commentId", "COMMENT_ID_REQUIRED");
-  const comment = await hideOwnPraiseComment(commentId, userId);
+  const replyId = requireFormString(formData, "replyId", "COMFORT_REPLY_ID_REQUIRED");
+  const reply = await db.comfortReply.findUniqueOrThrow({
+    where: { id: replyId },
+    select: { id: true, authorUserId: true }
+  });
+  if (reply.authorUserId !== userId) throw new Error("COMFORT_REPLY_AUTHOR_ONLY");
+
+  await db.comfortReply.update({
+    where: { id: replyId },
+    data: { status: VisibilityState.HIDDEN }
+  });
 
   revalidatePath("/me");
   revalidatePath("/");
-  revalidatePath(`/posts/${comment.postId}`);
 }

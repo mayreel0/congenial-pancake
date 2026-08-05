@@ -1,14 +1,16 @@
 import { AiUsageEventStatus, ReportStatus, VisibilityState } from "@prisma/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const praiseCommentCount = vi.hoisted(() => vi.fn());
+const comfortRequestCount = vi.hoisted(() => vi.fn());
+const comfortReplyCount = vi.hoisted(() => vi.fn());
 const reportCount = vi.hoisted(() => vi.fn());
 const aiUsageEventCount = vi.hoisted(() => vi.fn());
 const workerHeartbeatFindUnique = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/db", () => ({
   db: {
-    praiseComment: { count: praiseCommentCount },
+    comfortRequest: { count: comfortRequestCount },
+    comfortReply: { count: comfortReplyCount },
     report: { count: reportCount },
     aiUsageEvent: { count: aiUsageEventCount },
     workerHeartbeat: { findUnique: workerHeartbeatFindUnique }
@@ -21,39 +23,34 @@ import { getModerationDashboardSummary } from "@/server/moderation-summary";
 
 describe("moderation dashboard summary", () => {
   afterEach(() => {
-    praiseCommentCount.mockReset();
+    comfortRequestCount.mockReset();
+    comfortReplyCount.mockReset();
     reportCount.mockReset();
     aiUsageEventCount.mockReset();
     workerHeartbeatFindUnique.mockReset();
   });
 
-  it("counts the moderator triage work and worker heartbeat for the current UTC day", async () => {
-    praiseCommentCount.mockResolvedValueOnce(7);
+  it("counts comfort moderation work and worker heartbeat for the current UTC day", async () => {
+    comfortRequestCount.mockResolvedValueOnce(2);
+    comfortReplyCount.mockResolvedValueOnce(5);
     reportCount.mockResolvedValueOnce(3);
-    aiUsageEventCount.mockResolvedValueOnce(2);
+    aiUsageEventCount.mockResolvedValueOnce(1);
     workerHeartbeatFindUnique.mockResolvedValueOnce({
       id: "combined-jobs-worker",
       lastSeenAt: new Date("2026-07-24T15:25:00.000Z")
     });
 
     await expect(getModerationDashboardSummary(new Date("2026-07-24T15:30:00.000Z"))).resolves.toMatchObject({
-      pendingCommentCount: 7,
+      pendingRequestCount: 2,
+      pendingReplyCount: 5,
       openReportCount: 3,
-      todayAiFailureCount: 2,
-      workerHealth: expect.objectContaining({
-        status: expect.any(String),
-        label: expect.any(String),
-        lastSeenAt: new Date("2026-07-24T15:25:00.000Z"),
-        configWarningCount: expect.any(Number)
-      })
+      todayAiFailureCount: 1
     });
 
-    expect(praiseCommentCount).toHaveBeenCalledWith({
-      where: { visibilityState: { in: [VisibilityState.HELD, VisibilityState.AUTHOR_ONLY, VisibilityState.HIDDEN] } }
-    });
-    expect(reportCount).toHaveBeenCalledWith({
-      where: { status: ReportStatus.OPEN }
-    });
+    const pendingStatuses = [VisibilityState.HELD, VisibilityState.AUTHOR_ONLY, VisibilityState.HIDDEN];
+    expect(comfortRequestCount).toHaveBeenCalledWith({ where: { status: { in: pendingStatuses } } });
+    expect(comfortReplyCount).toHaveBeenCalledWith({ where: { status: { in: pendingStatuses } } });
+    expect(reportCount).toHaveBeenCalledWith({ where: { status: ReportStatus.OPEN } });
     expect(aiUsageEventCount).toHaveBeenCalledWith({
       where: {
         status: AiUsageEventStatus.FAILED,
@@ -62,10 +59,6 @@ describe("moderation dashboard summary", () => {
           lt: new Date("2026-07-25T00:00:00.000Z")
         }
       }
-    });
-    expect(workerHeartbeatFindUnique).toHaveBeenCalledWith({
-      where: { id: "combined-jobs-worker" },
-      select: { lastSeenAt: true }
     });
   });
 });

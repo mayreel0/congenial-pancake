@@ -1,37 +1,48 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const auth = vi.hoisted(() => vi.fn());
-const redirect = vi.hoisted(() => vi.fn((path: string) => {
-  throw new Error(`REDIRECT:${path}`);
-}));
-const requiresNicknameSetup = vi.hoisted(() => vi.fn());
-const listRecentPosts = vi.hoisted(() => vi.fn());
+const hasWrittenComfortRequestToday = vi.hoisted(() => vi.fn());
+const listAnswerableComfortRequests = vi.hoisted(() => vi.fn());
+const listRecentComfortExamples = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/auth", () => ({ auth }));
-vi.mock("next/navigation", () => ({ redirect }));
-vi.mock("@/server/onboarding", () => ({ requiresNicknameSetup }));
-vi.mock("@/server/posts", () => ({ listRecentPosts }));
+vi.mock("@/server/comfort", () => ({
+  hasWrittenComfortRequestToday,
+  listAnswerableComfortRequests,
+  listRecentComfortExamples
+}));
 
 import HomePage from "@/app/page";
 
 describe("HomePage", () => {
-  it("redirects users who still need nickname setup", async () => {
-    auth.mockResolvedValue({ user: { id: "user_1" } });
-    requiresNicknameSetup.mockResolvedValue(true);
-
-    await expect(HomePage()).rejects.toThrow("REDIRECT:/onboarding/nickname");
+  beforeEach(() => {
+    auth.mockReset();
+    hasWrittenComfortRequestToday.mockReset();
+    listAnswerableComfortRequests.mockReset();
+    listRecentComfortExamples.mockReset();
+    listRecentComfortExamples.mockResolvedValue([]);
+    listAnswerableComfortRequests.mockResolvedValue([]);
+    hasWrittenComfortRequestToday.mockResolvedValue(false);
   });
 
-  it("renders recent praise posts for users with completed onboarding", async () => {
-    auth.mockResolvedValue({ user: { id: "user_1" } });
-    requiresNicknameSetup.mockResolvedValue(false);
-    listRecentPosts.mockResolvedValue([]);
+  it("renders the comfort MVP for anonymous users", async () => {
+    auth.mockResolvedValue(null);
 
     render(await HomePage());
 
-    expect(screen.getByRole("heading", { name: /^칭찬$/ })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "위로" })).toBeInTheDocument();
+    expect(listAnswerableComfortRequests).not.toHaveBeenCalled();
+  });
+
+  it("loads user-specific answerable requests for signed-in users", async () => {
+    auth.mockResolvedValue({ user: { id: "user_1" } });
+
+    render(await HomePage());
+
+    expect(hasWrittenComfortRequestToday).toHaveBeenCalledWith("user_1");
+    expect(listAnswerableComfortRequests).toHaveBeenCalledWith("user_1");
   });
 });

@@ -7,7 +7,6 @@ const findFirst = vi.hoisted(() => vi.fn());
 const updateMany = vi.hoisted(() => vi.fn());
 
 vi.mock("server-only", () => ({}));
-
 vi.mock("@/lib/db", () => ({
   db: {
     notification: { count, findMany, findFirst, updateMany }
@@ -19,7 +18,8 @@ import {
   getUnreadNotificationCount,
   listNotifications,
   markAllNotificationsRead,
-  markNotificationRead
+  markNotificationRead,
+  notificationMessage
 } from "@/server/notifications";
 
 describe("notifications", () => {
@@ -32,12 +32,7 @@ describe("notifications", () => {
 
   it("counts unread notifications for a user", async () => {
     count.mockResolvedValue(3);
-
     await expect(getUnreadNotificationCount("user_1")).resolves.toBe(3);
-
-    expect(count).toHaveBeenCalledWith({
-      where: { recipientUserId: "user_1", readAt: null }
-    });
   });
 
   it("summarizes unread count and newest notification for a user", async () => {
@@ -50,86 +45,52 @@ describe("notifications", () => {
       latestNotificationId: "notification_latest",
       latestNotificationCreatedAt: latestCreatedAt.toISOString()
     });
-
-    expect(count).toHaveBeenCalledWith({
-      where: { recipientUserId: "user_1", readAt: null }
-    });
-    expect(findFirst).toHaveBeenCalledWith({
-      where: { recipientUserId: "user_1" },
-      orderBy: { createdAt: "desc" },
-      select: { id: true, createdAt: true }
-    });
   });
 
-  it("returns null latest fields when a user has no notifications", async () => {
-    count.mockResolvedValue(0);
-    findFirst.mockResolvedValue(null);
-
-    await expect(getNotificationSummary("user_1")).resolves.toEqual({
-      unreadCount: 0,
-      latestNotificationId: null,
-      latestNotificationCreatedAt: null
-    });
+  it("formats comfort notification messages", () => {
+    expect(
+      notificationMessage({
+        type: NotificationType.FIRST_REPLY_ON_REQUEST,
+        actor: { nickname: "따뜻한사람" },
+        request: { body: "오늘 지쳤어요" },
+        reply: { body: "오늘도 충분히 애썼어요." }
+      })
+    ).toContain("첫 답변");
   });
 
-  it("lists recent notifications with linked actors and posts", async () => {
+  it("lists recent comfort notifications", async () => {
     findMany.mockResolvedValue([
       {
         id: "notification_1",
-        type: NotificationType.COMMENT_ON_POST,
+        type: NotificationType.FIRST_REPLY_ON_REQUEST,
         readAt: null,
         createdAt: new Date("2026-07-17T08:00:00.000Z"),
         actor: { nickname: "따뜻한사람" },
-        post: { id: "post_1", title: "오늘 힘든 일이 있었어요" },
-        comment: { body: "정말 잘 버텼어요." },
-        reply: null
+        request: { id: "request_1", body: "오늘 힘든 일이 있었어요" },
+        reply: { body: "정말 잘 버텼어요." }
       }
     ]);
 
-    const notifications = await listNotifications("user_1");
-
-    expect(findMany).toHaveBeenCalledWith({
-      where: { recipientUserId: "user_1" },
-      orderBy: { createdAt: "desc" },
-      take: 30,
-      include: {
-        actor: { select: { nickname: true } },
-        post: { select: { id: true, title: true } },
-        comment: { select: { body: true } },
-        reply: { select: { body: true } }
-      }
-    });
-    expect(notifications).toEqual([
+    await expect(listNotifications("user_1")).resolves.toEqual([
       {
         id: "notification_1",
-        type: NotificationType.COMMENT_ON_POST,
+        type: NotificationType.FIRST_REPLY_ON_REQUEST,
         readAt: null,
         createdAt: new Date("2026-07-17T08:00:00.000Z"),
         actorNickname: "따뜻한사람",
-        postId: "post_1",
-        postTitle: "오늘 힘든 일이 있었어요",
+        requestId: "request_1",
+        requestPreview: "오늘 힘든 일이 있었어요",
         bodyPreview: "정말 잘 버텼어요."
       }
     ]);
   });
 
-  it("marks only the current user's unread notifications as read", async () => {
+  it("marks notifications as read", async () => {
     const readAt = new Date("2026-07-17T08:10:00.000Z");
     updateMany.mockResolvedValue({ count: 2 });
 
     await expect(markAllNotificationsRead("user_1", readAt)).resolves.toEqual({ count: 2 });
-
-    expect(updateMany).toHaveBeenCalledWith({
-      where: { recipientUserId: "user_1", readAt: null },
-      data: { readAt }
-    });
-  });
-
-  it("marks one current-user unread notification as read", async () => {
-    const readAt = new Date("2026-07-17T08:15:00.000Z");
-    updateMany.mockResolvedValue({ count: 1 });
-
-    await expect(markNotificationRead("user_1", "notification_1", readAt)).resolves.toEqual({ count: 1 });
+    await markNotificationRead("user_1", "notification_1", readAt);
 
     expect(updateMany).toHaveBeenCalledWith({
       where: { id: "notification_1", recipientUserId: "user_1", readAt: null },

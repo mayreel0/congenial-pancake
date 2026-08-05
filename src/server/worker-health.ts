@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 type WorkerEnv = Record<string, string | undefined>;
 
 export const COMBINED_JOBS_WORKER_ID = "combined-jobs-worker";
-const COMBINED_JOBS_WORKER_NAME = "AI 칭찬/랭킹 통합 worker";
+const COMBINED_JOBS_WORKER_NAME = "Comfort MVP 진단 worker";
 const STALE_AFTER_MS = 15 * 60 * 1000;
 
 export type WorkerHealthSummary = {
@@ -16,18 +16,8 @@ export type WorkerHealthSummary = {
 
 export function getWorkerPreflightWarnings(env: WorkerEnv = process.env): string[] {
   const warnings: string[] = [];
-  const provider = env.AI_PROVIDER?.toLowerCase() === "openai" ? "openai" : "gemini";
-
-  if (!env.REDIS_URL) {
-    warnings.push("REDIS_URL is not set; defaulting to redis://localhost:6379.");
-  }
-
-  if (provider === "openai" && !env.OPENAI_API_KEY) {
-    warnings.push("OPENAI_API_KEY is not set; AI praise jobs will fail when provider calls run.");
-  }
-
-  if (provider === "gemini" && !env.GEMINI_API_KEY && !env.GOOGLE_API_KEY) {
-    warnings.push("GEMINI_API_KEY or GOOGLE_API_KEY is not set; AI praise jobs will fail when provider calls run.");
+  if (env.REDIS_URL) {
+    warnings.push("REDIS_URL is set, but the comfort MVP worker does not start Redis-backed AI praise queues.");
   }
 
   return warnings;

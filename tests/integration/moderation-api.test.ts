@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const authMock = vi.hoisted(() => vi.fn());
 const findUniqueOrThrowMock = vi.hoisted(() => vi.fn());
 const applyTrustDeltaMock = vi.hoisted(() => vi.fn());
-const reviewCommentVisibilityMock = vi.hoisted(() => vi.fn());
+const reviewComfortContentVisibilityMock = vi.hoisted(() => vi.fn());
 const reviewReportMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/auth", () => ({
@@ -18,7 +18,7 @@ vi.mock("@/lib/db", () => ({
 
 vi.mock("@/server/moderation", () => ({
   applyTrustDelta: applyTrustDeltaMock,
-  reviewCommentVisibility: reviewCommentVisibilityMock,
+  reviewComfortContentVisibility: reviewComfortContentVisibilityMock,
   reviewReport: reviewReportMock
 }));
 
@@ -28,7 +28,7 @@ describe("moderation API actions", () => {
     authMock.mockReset();
     findUniqueOrThrowMock.mockReset();
     applyTrustDeltaMock.mockReset();
-    reviewCommentVisibilityMock.mockReset();
+    reviewComfortContentVisibilityMock.mockReset();
     reviewReportMock.mockReset();
   });
 
@@ -47,29 +47,31 @@ describe("moderation API actions", () => {
     ).rejects.toThrow("MODERATOR_REQUIRED");
   });
 
-  it("routes comment visibility reviews to the moderation domain", async () => {
+  it("routes comfort visibility reviews to the moderation domain", async () => {
     authMock.mockResolvedValue({ user: { id: "mod_1" } });
     findUniqueOrThrowMock.mockResolvedValue({ id: "mod_1", isModerator: true });
-    reviewCommentVisibilityMock.mockResolvedValue([{ id: "comment_1" }, { id: "event_1" }]);
+    reviewComfortContentVisibilityMock.mockResolvedValue([{ id: "request_1" }, { id: "event_1" }]);
     const { POST } = await import("@/app/api/moderation/route");
 
     const response = await POST(
       new Request("http://localhost/api/moderation", {
         method: "POST",
         body: JSON.stringify({
-          action: "reviewCommentVisibility",
-          commentId: "comment_1",
-          visibilityState: "VISIBLE",
+          action: "reviewComfortContentVisibility",
+          targetType: "COMFORT_REQUEST",
+          targetId: "request_1",
+          status: "VISIBLE",
           reason: "approved"
         })
       })
     );
 
     expect(response.status).toBe(200);
-    expect(reviewCommentVisibilityMock).toHaveBeenCalledWith({
-      commentId: "comment_1",
+    expect(reviewComfortContentVisibilityMock).toHaveBeenCalledWith({
+      targetType: "COMFORT_REQUEST",
+      targetId: "request_1",
       moderatorId: "mod_1",
-      visibilityState: "VISIBLE",
+      status: "VISIBLE",
       reason: "approved"
     });
   });
