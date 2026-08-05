@@ -42,6 +42,7 @@ export function calculateSanctionState(trustScore: number): SanctionState {
 const trustDeltaRetryLimit = 3;
 const acceptedActionableReportTrustDelta = -10;
 type ReviewableReportStatus = Extract<ReportStatus, "REVIEWED" | "DISMISSED">;
+type ComfortModerationTargetType = Extract<ModerationTargetType, "COMFORT_REQUEST" | "COMFORT_REPLY">;
 
 type ModerationTransaction = Prisma.TransactionClient;
 
@@ -127,7 +128,7 @@ export async function recordReport(
 }
 
 export async function reviewComfortContentVisibility(input: {
-  targetType: ModerationTargetType.COMFORT_REQUEST | ModerationTargetType.COMFORT_REPLY;
+  targetType: ComfortModerationTargetType;
   targetId: string;
   moderatorId: string;
   status: VisibilityState;

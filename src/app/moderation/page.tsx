@@ -13,6 +13,7 @@ import { getModerationDashboardSummary } from "@/server/moderation-summary";
 import { revalidatePath } from "next/cache";
 
 type ReviewableReportStatus = Extract<ReportStatus, "REVIEWED" | "DISMISSED">;
+type ComfortModerationTargetType = Extract<ModerationTargetType, "COMFORT_REQUEST" | "COMFORT_REPLY">;
 
 async function requireModeratorUserId() {
   const session = await auth();
@@ -69,7 +70,7 @@ function formatWorkerLastSeen(lastSeenAt: Date | null) {
   }).format(lastSeenAt)}`;
 }
 
-function parseComfortTargetType(value: string): ModerationTargetType.COMFORT_REQUEST | ModerationTargetType.COMFORT_REPLY {
+function parseComfortTargetType(value: string): ComfortModerationTargetType {
   if (value === ModerationTargetType.COMFORT_REQUEST || value === ModerationTargetType.COMFORT_REPLY) {
     return value;
   }

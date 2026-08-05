@@ -1,4 +1,4 @@
-import { ModerationTargetType } from "@prisma/client";
+import { ModerationTargetType, VisibilityState } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
@@ -40,7 +40,7 @@ async function requireModerator() {
 
 export async function GET() {
   await requireModerator();
-  const pendingStatuses = ["HELD", "AUTHOR_ONLY", "HIDDEN"] as const;
+  const pendingStatuses = [VisibilityState.HELD, VisibilityState.AUTHOR_ONLY, VisibilityState.HIDDEN];
   const [reports, heldRequests, heldReplies] = await Promise.all([
     db.report.findMany({ orderBy: { createdAt: "desc" }, take: 50 }),
     db.comfortRequest.findMany({
