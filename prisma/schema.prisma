@@ -26,12 +26,6 @@ enum SanctionState {
   SERVICE_BANNED
 }
 
-enum ReactionType {
-  THANK_YOU
-  HELPED_ME
-  MOVED_ME
-}
-
 enum ReportStatus {
   OPEN
   REVIEWED
@@ -39,9 +33,9 @@ enum ReportStatus {
 }
 
 enum ModerationTargetType {
-  POST
-  COMMENT
-  REPLY
+  COMFORT_REQUEST
+  COMFORT_REPLY
+  AI_REPLY_SUGGESTION
   USER
 }
 
@@ -56,59 +50,67 @@ enum ModerationEventType {
   SANCTION_CHANGED
 }
 
-enum AiJobType {
-  INITIAL_PRAISE
-  INACTIVITY_PRAISE
-}
-
-enum AiJobStatus {
-  PENDING
-  RUNNING
-  COMPLETED
-  SKIPPED
-  FAILED
-}
-
 enum AiUsageEventStatus {
   RUN
   SKIPPED
   FAILED
 }
 
-enum RankingType {
-  WARM_PRAISER
-  NEEDS_ENCOURAGEMENT
+enum NotificationType {
+  FIRST_REPLY_ON_REQUEST
+  REPLY_ON_REQUEST
 }
 
-enum NotificationType {
-  COMMENT_ON_POST
-  REPLY_ON_COMMENT
+enum QualityTargetType {
+  COMFORT_REQUEST
+  COMFORT_REPLY
+  AI_REPLY_SUGGESTION
+}
+
+enum QualityLabel {
+  SUPPORTIVE
+  LOW_EFFORT
+  SARCASTIC
+  BACKHANDED
+  DISMISSIVE
+  ADVICE_PUSHING
+  SELF_CENTERED
+  UNSAFE
+  SPAM
+  ALLOWED
+}
+
+enum AiSuggestionStatus {
+  CANDIDATE
+  SHOWN
+  DISMISSED
+  ADOPTED
+  REJECTED
 }
 
 model User {
-  id                    String            @id @default(cuid())
+  id                    String              @id @default(cuid())
   name                  String?
-  email                 String?           @unique
+  email                 String?             @unique
   emailVerified         DateTime?
   image                 String?
-  nickname              String            @unique
+  nickname              String              @unique
   passwordHash          String?
-  trustScore            Int               @default(100)
-  sanctionState         SanctionState     @default(NORMAL)
-  isModerator           Boolean           @default(false)
-  nicknameSetupRequired Boolean           @default(false)
-  createdAt             DateTime          @default(now())
-  updatedAt             DateTime          @updatedAt
+  trustScore            Int                 @default(100)
+  sanctionState         SanctionState       @default(NORMAL)
+  isModerator           Boolean             @default(false)
+  nicknameSetupRequired Boolean             @default(false)
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
   accounts              Account[]
   sessions              Session[]
-  posts                 PraisePost[]
-  comments              PraiseComment[]
-  reactions             Reaction[]
-  replies               Reply[]
-  reports               Report[]          @relation("ReporterReports")
+  comfortRequests       ComfortRequest[]
+  comfortReplies        ComfortReply[]
+  reports               Report[]            @relation("ReporterReports")
   moderationLogs        ModerationEvent[]
-  notifications         Notification[]    @relation("RecipientNotifications")
-  actedNotifications    Notification[]    @relation("ActorNotifications")
+  notifications         Notification[]      @relation("RecipientNotifications")
+  actedNotifications    Notification[]      @relation("ActorNotifications")
+  aiReplySuggestions    AiReplySuggestion[]
 }
 
 model Account {
@@ -145,96 +147,101 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-model PraisePost {
+model ComfortRequest {
+  id             String              @id @default(cuid())
+  authorUserId   String
+  displayMode    DisplayMode
+  body           String
+  status         VisibilityState     @default(VISIBLE)
+  qualityScore   Int                 @default(0)
+  qualityLabel   QualityLabel        @default(ALLOWED)
+  firstRepliedAt DateTime?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  author         User                @relation(fields: [authorUserId], references: [id], onDelete: Cascade)
+  replies        ComfortReply[]
+  notifications  Notification[]
+  aiSuggestions  AiReplySuggestion[]
+
+  @@index([authorUserId, createdAt])
+  @@index([status, createdAt])
+  @@index([status, firstRepliedAt, createdAt])
+}
+
+model ComfortReply {
   id            String          @id @default(cuid())
+  requestId     String
   authorUserId  String
   displayMode   DisplayMode
-  title         String
   body          String
-  promptAnswers Json?
   status        VisibilityState @default(VISIBLE)
+  qualityScore  Int             @default(0)
+  qualityLabel  QualityLabel    @default(ALLOWED)
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
+  request       ComfortRequest  @relation(fields: [requestId], references: [id], onDelete: Cascade)
   author        User            @relation(fields: [authorUserId], references: [id], onDelete: Cascade)
-  comments      PraiseComment[]
-  reactions     Reaction[]
-  replies       Reply[]
-  aiJobs        AiPraiseJob[]
   notifications Notification[]
 
-  @@index([createdAt])
-  @@index([status])
+  @@unique([requestId, authorUserId])
+  @@index([requestId, createdAt])
+  @@index([authorUserId, createdAt])
+  @@index([status, createdAt])
 }
 
-model PraiseComment {
-  id              String          @id @default(cuid())
-  postId          String
-  authorUserId    String?
-  isAiGenerated   Boolean         @default(false)
-  displayMode     DisplayMode     @default(NICKNAME)
-  body            String
-  visibilityState VisibilityState @default(VISIBLE)
-  moderationRisk  Int             @default(0)
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-  post            PraisePost      @relation(fields: [postId], references: [id], onDelete: Cascade)
-  author          User?           @relation(fields: [authorUserId], references: [id], onDelete: SetNull)
-  reactions       Reaction[]
-  replies         Reply[]
-  notifications   Notification[]
+model ContentQualityReview {
+  id            String            @id @default(cuid())
+  targetType    QualityTargetType
+  targetId      String
+  label         QualityLabel
+  score         Int
+  reason        String
+  modelProvider String?
+  modelName     String?
+  createdAt     DateTime          @default(now())
 
-  @@index([postId, createdAt])
-  @@index([authorUserId])
-  @@index([visibilityState])
+  @@index([targetType, targetId])
+  @@index([label, createdAt])
 }
 
-model Reaction {
-  id           String        @id @default(cuid())
-  postId       String
-  commentId    String
-  authorUserId String
-  type         ReactionType
-  createdAt    DateTime      @default(now())
-  post         PraisePost    @relation(fields: [postId], references: [id], onDelete: Cascade)
-  comment      PraiseComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  author       User          @relation(fields: [authorUserId], references: [id], onDelete: Cascade)
+model AiReplySuggestion {
+  id                 String             @id @default(cuid())
+  requestId          String
+  suggestedForUserId String?
+  body               String
+  qualityScore       Int                @default(0)
+  qualityLabel       QualityLabel       @default(ALLOWED)
+  status             AiSuggestionStatus @default(CANDIDATE)
+  provider           String
+  model              String
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  request            ComfortRequest     @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  suggestedFor       User?              @relation(fields: [suggestedForUserId], references: [id], onDelete: SetNull)
 
-  @@unique([commentId, authorUserId, type])
-}
-
-model Reply {
-  id              String          @id @default(cuid())
-  postId          String
-  commentId       String
-  authorUserId    String
-  body            String
-  visibilityState VisibilityState @default(VISIBLE)
-  createdAt       DateTime        @default(now())
-  post            PraisePost      @relation(fields: [postId], references: [id], onDelete: Cascade)
-  comment         PraiseComment   @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  author          User            @relation(fields: [authorUserId], references: [id], onDelete: Cascade)
-  notifications   Notification[]
+  @@index([requestId, status, createdAt])
+  @@index([suggestedForUserId, createdAt])
 }
 
 model Notification {
-  id              String           @id @default(cuid())
+  id              String               @id @default(cuid())
   recipientUserId String
   actorUserId     String?
   type            NotificationType
-  postId          String
-  commentId       String?
+  targetType      ModerationTargetType
+  targetId        String
+  requestId       String?
   replyId         String?
   readAt          DateTime?
-  createdAt       DateTime         @default(now())
-  recipient       User             @relation("RecipientNotifications", fields: [recipientUserId], references: [id], onDelete: Cascade)
-  actor           User?            @relation("ActorNotifications", fields: [actorUserId], references: [id], onDelete: SetNull)
-  post            PraisePost       @relation(fields: [postId], references: [id], onDelete: Cascade)
-  comment         PraiseComment?   @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  reply           Reply?           @relation(fields: [replyId], references: [id], onDelete: Cascade)
+  createdAt       DateTime             @default(now())
+  recipient       User                 @relation("RecipientNotifications", fields: [recipientUserId], references: [id], onDelete: Cascade)
+  actor           User?                @relation("ActorNotifications", fields: [actorUserId], references: [id], onDelete: SetNull)
+  request         ComfortRequest?      @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  reply           ComfortReply?        @relation(fields: [replyId], references: [id], onDelete: Cascade)
 
   @@index([recipientUserId, readAt, createdAt])
-  @@index([postId])
-  @@index([commentId])
+  @@index([targetType, targetId])
+  @@index([requestId])
   @@index([replyId])
 }
 
@@ -265,30 +272,6 @@ model ModerationEvent {
 
   @@index([userId, createdAt])
   @@index([targetType, targetId])
-}
-
-model AiPraiseJob {
-  id               String      @id @default(cuid())
-  postId           String
-  jobType          AiJobType
-  scheduledAt      DateTime
-  status           AiJobStatus @default(PENDING)
-  resultCommentIds String[]    @default([])
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
-  post             PraisePost  @relation(fields: [postId], references: [id], onDelete: Cascade)
-
-  @@index([status, scheduledAt])
-}
-
-model RankingSnapshot {
-  id          String      @id @default(cuid())
-  rankingType RankingType
-  period      String
-  entries     Json
-  computedAt  DateTime    @default(now())
-
-  @@unique([rankingType, period])
 }
 
 model AiControlSetting {
