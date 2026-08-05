@@ -47,7 +47,7 @@ CREATE TABLE "ComfortReply" (
     "requestId" TEXT NOT NULL,
     "authorUserId" TEXT NOT NULL,
     "displayMode" "DisplayMode" NOT NULL,
-    "body" TEXT NOT NULL,
+    "body" VARCHAR(1000) NOT NULL,
     "status" "VisibilityState" NOT NULL DEFAULT 'VISIBLE',
     "qualityScore" INTEGER NOT NULL DEFAULT 0,
     "qualityLabel" "QualityLabel" NOT NULL DEFAULT 'ALLOWED',

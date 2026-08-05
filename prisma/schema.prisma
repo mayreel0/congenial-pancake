@@ -173,7 +173,7 @@ model ComfortReply {
   requestId     String
   authorUserId  String
   displayMode   DisplayMode
-  body          String
+  body          String          @db.VarChar(1000)
   status        VisibilityState @default(VISIBLE)
   qualityScore  Int             @default(0)
   qualityLabel  QualityLabel    @default(ALLOWED)
