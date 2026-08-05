@@ -1,4 +1,5 @@
 import { DisplayMode, ReactionType } from "@prisma/client";
+import { z } from "zod";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -33,4 +34,24 @@ export function parseReactionInput(value: unknown): { type: ReactionType } {
     throw new Error("INVALID_REACTION_TYPE");
   }
   return { type: value.type as ReactionType };
+}
+
+const displayModeSchema = z.nativeEnum(DisplayMode);
+
+export function parseComfortRequestInput(value: unknown) {
+  return z
+    .object({
+      body: z.string().trim().min(1).max(3000),
+      displayMode: displayModeSchema.default(DisplayMode.ANONYMOUS)
+    })
+    .parse(value);
+}
+
+export function parseComfortReplyInput(value: unknown) {
+  return z
+    .object({
+      body: z.string().trim().min(1).max(1000),
+      displayMode: displayModeSchema.default(DisplayMode.ANONYMOUS)
+    })
+    .parse(value);
 }
