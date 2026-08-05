@@ -150,6 +150,7 @@ model VerificationToken {
 model ComfortRequest {
   id             String              @id @default(cuid())
   authorUserId   String
+  localDate      String
   displayMode    DisplayMode
   body           String
   status         VisibilityState     @default(VISIBLE)
@@ -164,6 +165,7 @@ model ComfortRequest {
   aiSuggestions  AiReplySuggestion[]
 
   @@index([authorUserId, createdAt])
+  @@unique([authorUserId, localDate])
   @@index([status, createdAt])
   @@index([status, firstRepliedAt, createdAt])
 }

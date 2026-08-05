@@ -41,18 +41,31 @@ export function normalizeComfortReplyBody(body: string): string {
   return normalized;
 }
 
-export function getUtcDayRange(now = new Date()) {
-  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-  const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
-  return { start, end };
+export function getKstLocalDate(now = new Date()): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(now);
+  const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
+  return `${values.year}-${values.month}-${values.day}`;
 }
 
 export async function hasWrittenComfortRequestToday(authorUserId: string, now = new Date()) {
-  const { start, end } = getUtcDayRange(now);
-  const count = await db.comfortRequest.count({
-    where: { authorUserId, createdAt: { gte: start, lt: end } }
+  const request = await db.comfortRequest.findUnique({
+    where: { authorUserId_localDate: { authorUserId, localDate: getKstLocalDate(now) } },
+    select: { id: true }
   });
-  return count > 0;
+  return request !== null;
+}
+
+function isUniqueConflictForFields(error: unknown, fields: string[]) {
+  if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2002") return false;
+
+  const target = error.meta?.target;
+  if (Array.isArray(target)) return fields.every((field) => target.includes(field));
+  return typeof target === "string" && fields.every((field) => target.includes(field));
 }
 
 export async function createComfortRequest(input: ComfortRequestInput, authorUserId: string, now = new Date()) {
@@ -62,23 +75,29 @@ export async function createComfortRequest(input: ComfortRequestInput, authorUse
   });
   assertCanWrite(user);
 
-  if (await hasWrittenComfortRequestToday(authorUserId, now)) {
-    throw new Error("COMFORT_REQUEST_DAILY_LIMIT");
-  }
-
   const body = normalizeComfortRequestBody(input.body);
   const quality = evaluateContentQuality({ targetType: "COMFORT_REQUEST", text: body });
   const status = qualityDecisionToVisibility(quality);
-  const request = await db.comfortRequest.create({
-    data: {
-      authorUserId,
-      body,
-      displayMode: input.displayMode,
-      status,
-      qualityScore: quality.score,
-      qualityLabel: quality.label
+  let request;
+
+  try {
+    request = await db.comfortRequest.create({
+      data: {
+        authorUserId,
+        localDate: getKstLocalDate(now),
+        body,
+        displayMode: input.displayMode,
+        status,
+        qualityScore: quality.score,
+        qualityLabel: quality.label
+      }
+    });
+  } catch (error) {
+    if (isUniqueConflictForFields(error, ["authorUserId", "localDate"])) {
+      throw new Error("COMFORT_REQUEST_DAILY_LIMIT");
     }
-  });
+    throw error;
+  }
 
   await db.contentQualityReview.create({
     data: {
@@ -112,11 +131,14 @@ export async function createComfortReply(
     return await db.$transaction(async (tx) => {
       const request = await tx.comfortRequest.findUniqueOrThrow({
         where: { id: requestId },
-        select: { authorUserId: true, firstRepliedAt: true }
+        select: { authorUserId: true, status: true }
       });
 
       if (request.authorUserId === authorUserId) {
         throw new Error("COMFORT_REPLY_SELF_NOT_ALLOWED");
+      }
+      if (request.status !== VisibilityState.VISIBLE) {
+        throw new Error("COMFORT_REQUEST_NOT_VISIBLE");
       }
 
       const reply = await tx.comfortReply.create({
@@ -141,28 +163,30 @@ export async function createComfortReply(
         }
       });
 
-      if (status === VisibilityState.VISIBLE && request.firstRepliedAt === null) {
-        await tx.comfortRequest.update({
-          where: { id: requestId },
+      if (status === VisibilityState.VISIBLE) {
+        const firstReplyUpdate = await tx.comfortRequest.updateMany({
+          where: { id: requestId, firstRepliedAt: null },
           data: { firstRepliedAt: reply.createdAt }
         });
-        await tx.notification.create({
-          data: {
-            recipientUserId: request.authorUserId,
-            actorUserId: authorUserId,
-            type: NotificationType.FIRST_REPLY_ON_REQUEST,
-            targetType: ModerationTargetType.COMFORT_REQUEST,
-            targetId: requestId,
-            requestId,
-            replyId: reply.id
-          }
-        });
+        if (firstReplyUpdate.count === 1) {
+          await tx.notification.create({
+            data: {
+              recipientUserId: request.authorUserId,
+              actorUserId: authorUserId,
+              type: NotificationType.FIRST_REPLY_ON_REQUEST,
+              targetType: ModerationTargetType.COMFORT_REQUEST,
+              targetId: requestId,
+              requestId,
+              replyId: reply.id
+            }
+          });
+        }
       }
 
       return reply;
     });
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+    if (isUniqueConflictForFields(error, ["requestId", "authorUserId"])) {
       throw new Error("COMFORT_REPLY_ALREADY_EXISTS");
     }
     throw error;

@@ -30,6 +30,7 @@ CREATE TYPE "AiSuggestionStatus" AS ENUM ('CANDIDATE', 'SHOWN', 'DISMISSED', 'AD
 CREATE TABLE "ComfortRequest" (
     "id" TEXT NOT NULL,
     "authorUserId" TEXT NOT NULL,
+    "localDate" TEXT NOT NULL,
     "displayMode" "DisplayMode" NOT NULL,
     "body" TEXT NOT NULL,
     "status" "VisibilityState" NOT NULL DEFAULT 'VISIBLE',
@@ -103,6 +104,7 @@ CREATE TABLE "Notification" (
 );
 
 CREATE INDEX "ComfortRequest_authorUserId_createdAt_idx" ON "ComfortRequest"("authorUserId", "createdAt");
+CREATE UNIQUE INDEX "ComfortRequest_authorUserId_localDate_key" ON "ComfortRequest"("authorUserId", "localDate");
 CREATE INDEX "ComfortRequest_status_createdAt_idx" ON "ComfortRequest"("status", "createdAt");
 CREATE INDEX "ComfortRequest_status_firstRepliedAt_createdAt_idx" ON "ComfortRequest"("status", "firstRepliedAt", "createdAt");
 CREATE UNIQUE INDEX "ComfortReply_requestId_authorUserId_key" ON "ComfortReply"("requestId", "authorUserId");

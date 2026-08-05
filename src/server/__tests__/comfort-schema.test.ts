@@ -25,4 +25,17 @@ describe("comfort Prisma schema", () => {
     expect(schema).toMatch(/model ComfortReply \{[\s\S]*?body\s+String\s+@db\.VarChar\(1000\)/);
     expect(comfortReply?.uniqueFields).toContainEqual(["requestId", "authorUserId"]);
   });
+
+  it("enforces one request per author on each KST local date", () => {
+    const comfortRequest = Prisma.dmmf.datamodel.models.find((model) => model.name === "ComfortRequest");
+    const schema = readFileSync(resolve(process.cwd(), "prisma/schema.prisma"), "utf8");
+    const migration = readFileSync(
+      resolve(process.cwd(), "prisma/migrations/20260805195000_comfort_request_reply_domain/migration.sql"),
+      "utf8"
+    );
+
+    expect(schema).toMatch(/model ComfortRequest \{[\s\S]*?localDate\s+String/);
+    expect(comfortRequest?.uniqueFields).toContainEqual(["authorUserId", "localDate"]);
+    expect(migration).toContain('CREATE UNIQUE INDEX "ComfortRequest_authorUserId_localDate_key" ON "ComfortRequest"("authorUserId", "localDate")');
+  });
 });
