@@ -48,6 +48,7 @@ MVP에서 제외한다:
 - AI가 사람처럼 자동 댓글을 쓰는 기능.
 - 공개 활동량 경쟁.
 - AI 답변 fine-tuning.
+- 기존 `PraisePost`/`PraiseComment` 도메인 재사용.
 
 후순위로 둔다:
 
@@ -145,9 +146,20 @@ PC에서는 메인 상단에 최근 위로/답변 섹션을 먼저 배치한다.
 - 상대의 상황을 단정하지 않는 문장.
 - AI가 쓴 것처럼 보이는 문장 패턴과 과한 문어체는 피한다.
 
-## AI 답변 품질 루프
+## AI 역할
 
-MVP에서 AI가 사람처럼 자동 댓글을 게시하는 기능은 제외한다. 다만 사용자가 답변을 쓰기 어려워할 때 참고할 수 있는 보조 초안, 운영자가 검수할 수 있는 예시 답변, 또는 향후 시즌별 좋은 말 생성에는 AI가 쓰일 수 있다.
+MVP에서 AI가 사람처럼 자동 댓글을 게시하는 기능은 제외한다. AI는 답변자인 척하지 않고 작성 보조와 안전 필터 역할에 집중한다.
+
+AI를 사용할 수 있는 위치:
+
+- 사용자가 답변을 쓰기 어려워할 때 참고할 수 있는 보조 초안.
+- 운영자가 검수할 수 있는 예시 답변 후보.
+- 비꼼, 무의미 글, 위험 표현, 홍보성 글을 판정하는 콘텐츠 품질 게이트.
+- 향후 시즌별 좋은 말 생성의 검수 전 후보.
+
+공개 답변은 사람의 선택과 제출을 거친다. AI 초안이 사용자에게 제안되더라도 사용자가 그대로 게시할 수 있게 두지 않고, 최소한 수정 또는 확인 행동을 거치게 한다.
+
+## AI 답변 품질 루프
 
 이때 목표는 모델을 바로 fine-tuning하는 것이 아니다. 초기에는 좋은 답변과 나쁜 답변 기준을 명확히 만들고, 생성 결과를 저장 전 평가하는 루프를 구축한다.
 
@@ -323,20 +335,133 @@ MVP에서는 다음 정도만 표현한다.
 - 페이지네이션과 날짜 정렬 패턴.
 - `npm run verify` 기반 검증 규약.
 
-축소하거나 숨긴다:
+대체하거나 제거한다:
 
+- `PraisePost`, `PraiseComment` 중심 도메인 모델.
+- `Reaction`, `Reply` 중심의 감사 반응/작성자 답글 구조.
+- `AiPraiseJob` 기반 자동 칭찬 댓글 worker.
+- `RankingSnapshot` 기반 랭킹 구조.
 - 랭킹 페이지.
 - 공개 커뮤니티 피드 중심 UX.
 - AI 자동 칭찬 댓글.
 - 감사 반응과 작성자 답글 중심의 칭찬방 UX.
 - 운영자 화면의 AI 제어가 핵심인 배치.
 
-구현 시 데이터 모델은 두 가지 선택지가 있다.
+## 데이터 모델 방향
 
-1. 기존 `PraisePost`, `PraiseComment`를 의미만 바꿔 재사용한다.
-2. `ComfortRequest`, `ComfortReply`처럼 새 개념 모델을 추가한다.
+운영 데이터가 아직 없으므로 기존 칭찬 커뮤니티 데이터와 모델을 보존하기 위한 마이그레이션은 MVP 필수 조건이 아니다. 피벗 구현은 `ComfortRequest`와 `ComfortReply` 신규 모델을 기준으로 한다.
 
-MVP 피벗 구현에서는 1안을 우선 검토한다. 기존 마이그레이션과 테스트 자산을 크게 살릴 수 있기 때문이다. 다만 코드와 UI 텍스트에서 "칭찬글", "칭찬방", "랭킹"이 서비스 방향과 계속 충돌한다면 2안으로 전환한다.
+기존 `PraisePost`와 `PraiseComment`를 의미만 바꿔 재사용하지 않는다. 이유는 다음과 같다.
+
+- 기존 모델은 제목, 프롬프트 답변, 칭찬 댓글, 감사 반응, AI 칭찬 작업, 랭킹과 강하게 연결되어 있다.
+- 새 서비스는 위로 요청의 문맥을 파악하고, 칭찬과 위로 중 어떤 톤이 필요한지 판단하며, 한 사람당 한 답변만 허용해야 한다.
+- 기존 이름과 relation을 유지하면 코드와 문서에 "칭찬글", "칭찬방", "AI 칭찬", "랭킹"의 의미가 계속 남아 다음 작업자의 판단을 흐릴 가능성이 높다.
+- 현재 데이터는 운영 데이터가 아니므로 도메인 모델을 새로 세우는 비용보다 장기 혼동을 줄이는 가치가 크다.
+
+### ComfortRequest
+
+위로 또는 칭찬을 받고 싶은 일을 나타낸다.
+
+주요 필드:
+
+- `id`
+- `authorUserId`
+- `displayMode`: `NICKNAME` 또는 `ANONYMOUS`
+- `body`
+- `status`: `VISIBLE`, `HELD`, `HIDDEN`, `AUTHOR_ONLY`
+- `qualityScore`
+- `qualityLabel`
+- `firstRepliedAt`
+- `createdAt`
+- `updatedAt`
+
+정책:
+
+- 사용자당 하루 1개 작성을 기본으로 한다.
+- 오늘 작성 여부 조회를 빠르게 할 수 있도록 `authorUserId`, `createdAt` 인덱스를 둔다.
+- 최근 위로/답변 섹션을 위해 `status`, `createdAt`, `firstRepliedAt` 기준 조회를 고려한다.
+
+### ComfortReply
+
+위로 요청에 대한 사람의 답변을 나타낸다.
+
+주요 필드:
+
+- `id`
+- `requestId`
+- `authorUserId`
+- `displayMode`: `NICKNAME` 또는 `ANONYMOUS`
+- `body`
+- `status`: `VISIBLE`, `HELD`, `HIDDEN`, `AUTHOR_ONLY`
+- `qualityScore`
+- `qualityLabel`
+- `createdAt`
+- `updatedAt`
+
+정책:
+
+- `body`는 최대 1000자다.
+- 한 사용자는 한 요청에 답변 1개만 남길 수 있다.
+- 이를 위해 `(requestId, authorUserId)` unique 제약을 둔다.
+- 최근 위로/답변 섹션에서는 요청 하나당 1-2개만 미리보기로 가져오고, 상세에서는 최대 4-5개 노출을 기본으로 한다.
+
+### ContentQualityReview
+
+위로 요청, 답변, AI 보조 답변 후보의 품질 판정 결과를 기록한다.
+
+주요 필드:
+
+- `id`
+- `targetType`: `COMFORT_REQUEST`, `COMFORT_REPLY`, `AI_REPLY_SUGGESTION`
+- `targetId`
+- `label`: `supportive`, `low_effort`, `sarcastic`, `backhanded`, `dismissive`, `advice_pushing`, `self_centered`, `unsafe`, `spam`
+- `score`
+- `reason`
+- `modelProvider`
+- `modelName`
+- `createdAt`
+
+이 테이블은 운영자 판정과 품질 게이트 개선을 위한 데이터셋 역할을 한다.
+
+### AiReplySuggestion
+
+AI가 공개 댓글을 직접 작성하지 않고, 보조 초안 또는 운영 검수 후보를 저장하는 모델이다.
+
+주요 필드:
+
+- `id`
+- `requestId`
+- `suggestedForUserId`
+- `body`
+- `qualityScore`
+- `qualityLabel`
+- `status`: `CANDIDATE`, `SHOWN`, `DISMISSED`, `ADOPTED`, `REJECTED`
+- `provider`
+- `model`
+- `createdAt`
+- `updatedAt`
+
+AI 사용량 기록은 기존 `AiUsageEvent` 구조를 일반화해서 사용할 수 있다. 기존 `AiPraiseJob`은 자동 칭찬 댓글 전용이므로 피벗 MVP에서는 제거하거나 비활성화한다.
+
+### Notification
+
+기존 알림은 `postId`가 필수라 위로 요청/답변 모델에 그대로 맞지 않는다. 피벗 구현에서는 다음 중 하나를 선택한다.
+
+1. 기존 `Notification`을 `comfortRequestId`, `comfortReplyId`를 받을 수 있게 일반화한다.
+2. 기존 알림 테이블을 교체하고 `targetType`, `targetId` 기반의 범용 알림으로 단순화한다.
+
+운영 데이터가 없으므로 2안을 우선 검토한다. MVP 알림의 첫 목표는 내가 쓴 위로 요청에 첫 답변이 달렸을 때 알림을 만드는 것이다.
+
+### Report와 ModerationEvent
+
+신고와 운영 이벤트는 유지하되 target enum을 새 도메인에 맞춘다.
+
+- `COMFORT_REQUEST`
+- `COMFORT_REPLY`
+- `AI_REPLY_SUGGESTION`
+- `USER`
+
+기존 `POST`, `COMMENT`, `REPLY`는 피벗 마이그레이션에서 제거하거나 더 이상 사용하지 않는다.
 
 ## 성공 기준
 
