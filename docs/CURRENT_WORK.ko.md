@@ -1,6 +1,6 @@
 # 현재 작업 상태
 
-마지막 업데이트: 2026-07-25
+마지막 업데이트: 2026-08-05
 
 ## 현재 기준
 
@@ -10,7 +10,25 @@
 - 새 작업 브랜치 규칙: `codex/<topic>`
 - 완료된 작업 worktree는 PR merge 후 삭제합니다.
 
-## main에 포함된 MVP 기능
+## 제품 방향
+
+프로젝트는 기존 "칭찬 커뮤니티"에서 "익명 위로/칭찬 교환 서비스"로 피벗합니다.
+
+피벗 설계 기준:
+
+- [위로/칭찬 교환 서비스 피벗 설계](./superpowers/specs/2026-08-01-comfort-pivot-design.ko.md)
+
+핵심 결정:
+
+- 기존 `PraisePost`/`PraiseComment`를 의미만 바꿔 재사용하지 않습니다.
+- 신규 `ComfortRequest`/`ComfortReply` 모델을 기준으로 구현합니다.
+- 아직 운영 데이터가 없으므로 기존 칭찬 커뮤니티 데이터 보존 마이그레이션은 MVP 필수 조건이 아닙니다.
+- AI는 자동 공개 댓글 작성자가 아니라 작성 보조와 안전/품질 필터 역할로 사용합니다.
+- 기존 랭킹, 칭찬방, 감사 반응, AI 자동 칭찬 worker 중심 UX는 피벗 구현에서 대체하거나 제거합니다.
+
+## main에 포함된 기존 MVP 기능
+
+아래 기능은 현재 코드에 존재하지만, 일부는 피벗 후 유지 대상이고 일부는 대체 대상입니다.
 
 - 이메일/비밀번호 회원가입, Auth.js credentials 로그인, 선택적 네이버 OAuth 로그인.
 - OAuth 첫 로그인 후 닉네임 설정 온보딩.
@@ -32,6 +50,28 @@
 - worker heartbeat 저장과 `/moderation` worker 최근 활동 표시.
 - 랭킹 카드와 응원이 필요한 글 CTA.
 - `npm run verify`와 GitHub Actions CI.
+
+## 피벗 후 유지 대상
+
+- 이메일/비밀번호 회원가입, Auth.js credentials 로그인, 선택적 네이버 OAuth 로그인.
+- OAuth 첫 로그인 후 닉네임 설정 온보딩.
+- 로그아웃, 내 계정 상태 표시, 제재 사용자의 쓰기 제한.
+- 신고, 운영자 검토, 제재, 신뢰 점수 구조.
+- 인앱 알림 기반 구조.
+- 페이지네이션과 날짜 정렬 패턴.
+- AI provider 연동과 AI 사용량 기록 구조.
+- worker heartbeat 구조.
+- `npm run verify`와 GitHub Actions CI.
+
+## 피벗 후 대체 또는 제거 대상
+
+- `PraisePost`, `PraiseComment` 중심 도메인.
+- 공개 칭찬글 피드와 `/posts` 중심 UX.
+- 글 상세 칭찬방 `PraiseRoom`.
+- 감사 반응 `Reaction`과 작성자 답글 `Reply` 중심 흐름.
+- `AiPraiseJob` 기반 자동 칭찬 댓글 worker.
+- 랭킹 스냅샷과 `/rankings` 중심 UX.
+- 운영자 화면에서 AI 자동 칭찬 제어가 핵심인 배치.
 
 ## 운영 전 필수 확인
 
@@ -90,8 +130,11 @@ npx prisma migrate status
 
 ## 다음 기능 후보
 
-- 신고 처리 결과에 따른 자동 신뢰 점수 변화와 반복 위반자 처리.
-- 제재 해제 요청 또는 운영자 메모 MVP.
-- AI 실패 원인 분류, 위기/자해성 글 안전 처리, provider 진단 개선.
-- 새 알림 카운트의 polling/SSE 기반 실시간성 개선.
-- Playwright smoke를 로그인, 글쓰기, worker heartbeat, 알림 읽음까지 확장.
+- 피벗 구현 계획 문서 작성.
+- `ComfortRequest`/`ComfortReply` Prisma schema와 마이그레이션.
+- 기존 `/posts`, `/rankings`, `PraiseRoom`, AI 자동 칭찬 worker 대체 계획.
+- 메인 화면: 오늘 위로 요청 여부, 위로 요청 작성, 다른 사람에게 답변하기.
+- 최근 위로/답변 실제 데이터 섹션.
+- 로그인 전 로컬 임시 저장과 로그인 후 이어받기.
+- 첫 답변 알림.
+- 콘텐츠 품질 게이트와 AI 보조 답변 품질 루프.
