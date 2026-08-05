@@ -1,17 +1,18 @@
-import { NotificationType } from "@prisma/client";
 import Link from "next/link";
 import { markNotificationReadAction, markNotificationsRead } from "@/app/notifications/actions";
 import NotificationsPageRefresh from "@/components/NotificationsPageRefresh";
 import { auth } from "@/lib/auth";
-import { getNotificationSummary, listNotifications, type NotificationListItem } from "@/server/notifications";
+import { getNotificationSummary, listNotifications, notificationMessage, type NotificationListItem } from "@/server/notifications";
 
 export const dynamic = "force-dynamic";
 
-function notificationMessage(notification: NotificationListItem): string {
-  if (notification.type === NotificationType.REPLY_ON_COMMENT) {
-    return `${notification.actorNickname}님이 내 칭찬에 답글을 남겼습니다.`;
-  }
-  return `${notification.actorNickname}님이 내 글에 칭찬을 남겼습니다.`;
+function pageNotificationMessage(notification: NotificationListItem): string {
+  return notificationMessage({
+    type: notification.type,
+    actor: { nickname: notification.actorNickname },
+    request: { body: notification.requestPreview },
+    reply: { body: notification.bodyPreview }
+  });
 }
 
 export default async function NotificationsPage() {
@@ -38,7 +39,7 @@ export default async function NotificationsPage() {
       <div className="section-heading-row">
         <div>
           <h1>알림</h1>
-          <p>내 글과 칭찬에 새 반응이 생기면 여기에서 확인할 수 있습니다.</p>
+          <p>내 위로 요청에 새 답변이 생기면 여기에서 확인할 수 있습니다.</p>
           <small className="state-note">
             {unreadCount > 0 ? `읽지 않은 알림 ${unreadCount}개` : "모든 알림을 읽었습니다"}
           </small>
@@ -58,13 +59,13 @@ export default async function NotificationsPage() {
               className={notification.readAt === null ? "notification-item unread" : "notification-item"}
             >
               <div className="notification-title-row">
-                <p>{notificationMessage(notification)}</p>
+                <p>{pageNotificationMessage(notification)}</p>
                 <span>{notification.readAt === null ? "읽지 않음" : "읽음"}</span>
               </div>
               <blockquote>{notification.bodyPreview}</blockquote>
               <div className="notification-footer">
                 <small>
-                  <Link href={`/posts/${notification.postId}`}>{notification.postTitle}</Link> ·{" "}
+                  <Link href="/">{notification.requestPreview}</Link> ·{" "}
                   {notification.createdAt.toLocaleString("ko-KR")}
                 </small>
                 {notification.readAt === null ? (
@@ -79,7 +80,7 @@ export default async function NotificationsPage() {
         ) : (
           <div className="empty-state">
             <p>아직 새 알림이 없습니다.</p>
-            <Link href="/posts">칭찬글 보러 가기</Link>
+            <Link href="/">위로 요청 보러 가기</Link>
           </div>
         )}
       </div>

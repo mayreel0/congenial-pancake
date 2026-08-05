@@ -1,4 +1,4 @@
-import { ReportStatus, VisibilityState } from "@prisma/client";
+import { ModerationTargetType, ReportStatus, VisibilityState } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import {
@@ -7,10 +7,9 @@ import {
   listTodayAiUsageEvents,
   updateAiControlSetting
 } from "@/server/ai-controls";
-import { applyTrustDelta, reviewCommentVisibility, reviewReport } from "@/server/moderation";
+import { applyTrustDelta, reviewComfortContentVisibility, reviewReport } from "@/server/moderation";
 import { listOpenReportsForModeration } from "@/server/moderation-review";
 import { getModerationDashboardSummary } from "@/server/moderation-summary";
-import { recomputeRankingSnapshots } from "@/server/rankings";
 import { revalidatePath } from "next/cache";
 
 type ReviewableReportStatus = Extract<ReportStatus, "REVIEWED" | "DISMISSED">;
@@ -70,14 +69,22 @@ function formatWorkerLastSeen(lastSeenAt: Date | null) {
   }).format(lastSeenAt)}`;
 }
 
-async function reviewCommentAction(formData: FormData) {
+function parseComfortTargetType(value: string): ModerationTargetType.COMFORT_REQUEST | ModerationTargetType.COMFORT_REPLY {
+  if (value === ModerationTargetType.COMFORT_REQUEST || value === ModerationTargetType.COMFORT_REPLY) {
+    return value;
+  }
+  throw new Error("MODERATION_ACTION_INVALID");
+}
+
+async function reviewComfortContentAction(formData: FormData) {
   "use server";
 
   const moderatorId = await requireModeratorUserId();
-  await reviewCommentVisibility({
+  await reviewComfortContentVisibility({
     moderatorId,
-    commentId: formString(formData, "commentId"),
-    visibilityState: parseVisibilityState(formString(formData, "visibilityState")),
+    targetType: parseComfortTargetType(formString(formData, "targetType")),
+    targetId: formString(formData, "targetId"),
+    status: parseVisibilityState(formString(formData, "status")),
     reason: formString(formData, "reason")
   });
   revalidatePath("/moderation");
@@ -108,15 +115,6 @@ async function adjustTrustAction(formData: FormData) {
   revalidatePath("/moderation");
 }
 
-async function recomputeRankingsAction() {
-  "use server";
-
-  await requireModeratorUserId();
-  await recomputeRankingSnapshots();
-  revalidatePath("/rankings");
-  revalidatePath("/moderation");
-}
-
 export default async function ModerationPage() {
   const session = await auth();
   if (!session?.user?.id) {
@@ -128,10 +126,16 @@ export default async function ModerationPage() {
     return <section className="page-section"><h1>운영자만 접근할 수 있습니다</h1></section>;
   }
 
-  const [summary, heldComments, reports, aiSetting, aiUsage, aiUsageEvents] = await Promise.all([
+  const pendingStatuses = [VisibilityState.HELD, VisibilityState.AUTHOR_ONLY, VisibilityState.HIDDEN];
+  const [summary, heldRequests, heldReplies, reports, aiSetting, aiUsage, aiUsageEvents] = await Promise.all([
     getModerationDashboardSummary(),
-    db.praiseComment.findMany({
-      where: { visibilityState: { in: ["HELD", "AUTHOR_ONLY", "HIDDEN"] } },
+    db.comfortRequest.findMany({
+      where: { status: { in: pendingStatuses } },
+      orderBy: { createdAt: "desc" },
+      take: 50
+    }),
+    db.comfortReply.findMany({
+      where: { status: { in: pendingStatuses } },
       orderBy: { createdAt: "desc" },
       take: 50
     }),
@@ -151,7 +155,11 @@ export default async function ModerationPage() {
         </div>
         <div className="stack-list">
           <article className="review-item">
-            <strong>보류 댓글 {summary.pendingCommentCount}개</strong>
+            <strong>보류 요청 {summary.pendingRequestCount}개</strong>
+            <small>검토 대기</small>
+          </article>
+          <article className="review-item">
+            <strong>보류 답변 {summary.pendingReplyCount}개</strong>
             <small>검토 대기</small>
           </article>
           <article className="review-item">
@@ -199,35 +207,73 @@ export default async function ModerationPage() {
         </form>
       </section>
       <section className="moderation-panel">
-        <h2>보류 댓글</h2>
+        <h2>보류된 위로 요청</h2>
         <div className="stack-list">
-          {heldComments.map((comment) => (
-            <article className="review-item" key={comment.id}>
-              <p>{comment.body}</p>
-              <small>{comment.visibilityState} · risk {comment.moderationRisk}</small>
+          {heldRequests.map((request) => (
+            <article className="review-item" key={request.id}>
+              <p>{request.body}</p>
+              <small>{request.status} · quality {request.qualityScore} · {request.qualityLabel}</small>
               <div className="action-row">
-                <form action={reviewCommentAction}>
-                  <input name="commentId" type="hidden" value={comment.id} />
-                  <input name="visibilityState" type="hidden" value={VisibilityState.VISIBLE} />
-                  <input name="reason" type="hidden" value="moderator_approved_comment" />
+                <form action={reviewComfortContentAction}>
+                  <input name="targetType" type="hidden" value={ModerationTargetType.COMFORT_REQUEST} />
+                  <input name="targetId" type="hidden" value={request.id} />
+                  <input name="status" type="hidden" value={VisibilityState.VISIBLE} />
+                  <input name="reason" type="hidden" value="moderator_approved_comfort_request" />
                   <button type="submit">공개</button>
                 </form>
-                <form action={reviewCommentAction}>
-                  <input name="commentId" type="hidden" value={comment.id} />
-                  <input name="visibilityState" type="hidden" value={VisibilityState.AUTHOR_ONLY} />
-                  <input name="reason" type="hidden" value="moderator_author_only_comment" />
+                <form action={reviewComfortContentAction}>
+                  <input name="targetType" type="hidden" value={ModerationTargetType.COMFORT_REQUEST} />
+                  <input name="targetId" type="hidden" value={request.id} />
+                  <input name="status" type="hidden" value={VisibilityState.AUTHOR_ONLY} />
+                  <input name="reason" type="hidden" value="moderator_author_only_comfort_request" />
                   <button type="submit">작성자만</button>
                 </form>
-                <form action={reviewCommentAction}>
-                  <input name="commentId" type="hidden" value={comment.id} />
-                  <input name="visibilityState" type="hidden" value={VisibilityState.HIDDEN} />
-                  <input name="reason" type="hidden" value="moderator_hidden_comment" />
+                <form action={reviewComfortContentAction}>
+                  <input name="targetType" type="hidden" value={ModerationTargetType.COMFORT_REQUEST} />
+                  <input name="targetId" type="hidden" value={request.id} />
+                  <input name="status" type="hidden" value={VisibilityState.HIDDEN} />
+                  <input name="reason" type="hidden" value="moderator_hidden_comfort_request" />
                   <button type="submit">숨김</button>
                 </form>
               </div>
             </article>
           ))}
-          {heldComments.length === 0 ? <p>검토할 댓글이 없습니다.</p> : null}
+          {heldRequests.length === 0 ? <p>검토할 위로 요청이 없습니다.</p> : null}
+        </div>
+      </section>
+      <section className="moderation-panel">
+        <h2>보류된 답변</h2>
+        <div className="stack-list">
+          {heldReplies.map((reply) => (
+            <article className="review-item" key={reply.id}>
+              <p>{reply.body}</p>
+              <small>{reply.status} · quality {reply.qualityScore} · {reply.qualityLabel}</small>
+              <div className="action-row">
+                <form action={reviewComfortContentAction}>
+                  <input name="targetType" type="hidden" value={ModerationTargetType.COMFORT_REPLY} />
+                  <input name="targetId" type="hidden" value={reply.id} />
+                  <input name="status" type="hidden" value={VisibilityState.VISIBLE} />
+                  <input name="reason" type="hidden" value="moderator_approved_comfort_reply" />
+                  <button type="submit">공개</button>
+                </form>
+                <form action={reviewComfortContentAction}>
+                  <input name="targetType" type="hidden" value={ModerationTargetType.COMFORT_REPLY} />
+                  <input name="targetId" type="hidden" value={reply.id} />
+                  <input name="status" type="hidden" value={VisibilityState.AUTHOR_ONLY} />
+                  <input name="reason" type="hidden" value="moderator_author_only_comfort_reply" />
+                  <button type="submit">작성자만</button>
+                </form>
+                <form action={reviewComfortContentAction}>
+                  <input name="targetType" type="hidden" value={ModerationTargetType.COMFORT_REPLY} />
+                  <input name="targetId" type="hidden" value={reply.id} />
+                  <input name="status" type="hidden" value={VisibilityState.HIDDEN} />
+                  <input name="reason" type="hidden" value="moderator_hidden_comfort_reply" />
+                  <button type="submit">숨김</button>
+                </form>
+              </div>
+            </article>
+          ))}
+          {heldReplies.length === 0 ? <p>검토할 답변이 없습니다.</p> : null}
         </div>
       </section>
       <section className="moderation-panel">
@@ -285,13 +331,6 @@ export default async function ModerationPage() {
             <input name="reason" />
           </label>
           <button type="submit">적용</button>
-        </form>
-      </section>
-      <section className="moderation-panel">
-        <h2>랭킹 관리</h2>
-        <p>현재 글과 댓글 상태를 기준으로 랭킹 스냅샷을 다시 계산합니다.</p>
-        <form action={recomputeRankingsAction}>
-          <button type="submit">랭킹 재계산</button>
         </form>
       </section>
       <section className="moderation-panel">

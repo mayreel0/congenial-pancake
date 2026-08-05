@@ -4,7 +4,8 @@ import { getUtcDayRange } from "@/server/ai-controls";
 import { getWorkerHealthSummary, type WorkerHealthSummary } from "@/server/worker-health";
 
 export type ModerationDashboardSummary = {
-  pendingCommentCount: number;
+  pendingRequestCount: number;
+  pendingReplyCount: number;
   openReportCount: number;
   todayAiFailureCount: number;
   workerHealth: WorkerHealthSummary;
@@ -12,9 +13,13 @@ export type ModerationDashboardSummary = {
 
 export async function getModerationDashboardSummary(now = new Date()): Promise<ModerationDashboardSummary> {
   const { start, end } = getUtcDayRange(now);
-  const [pendingCommentCount, openReportCount, todayAiFailureCount, workerHealth] = await Promise.all([
-    db.praiseComment.count({
-      where: { visibilityState: { in: [VisibilityState.HELD, VisibilityState.AUTHOR_ONLY, VisibilityState.HIDDEN] } }
+  const pendingStatuses = [VisibilityState.HELD, VisibilityState.AUTHOR_ONLY, VisibilityState.HIDDEN];
+  const [pendingRequestCount, pendingReplyCount, openReportCount, todayAiFailureCount, workerHealth] = await Promise.all([
+    db.comfortRequest.count({
+      where: { status: { in: pendingStatuses } }
+    }),
+    db.comfortReply.count({
+      where: { status: { in: pendingStatuses } }
     }),
     db.report.count({
       where: { status: ReportStatus.OPEN }
@@ -29,7 +34,8 @@ export async function getModerationDashboardSummary(now = new Date()): Promise<M
   ]);
 
   return {
-    pendingCommentCount,
+    pendingRequestCount,
+    pendingReplyCount,
     openReportCount,
     todayAiFailureCount,
     workerHealth

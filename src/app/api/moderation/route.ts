@@ -1,8 +1,9 @@
+import { ModerationTargetType } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { applyTrustDelta, reviewCommentVisibility, reviewReport } from "@/server/moderation";
+import { applyTrustDelta, reviewComfortContentVisibility, reviewReport } from "@/server/moderation";
 import { requireUser } from "@/server/permissions";
 
 const trustDeltaSchema = z.object({
@@ -12,10 +13,11 @@ const trustDeltaSchema = z.object({
   reason: z.string().trim().min(1).max(500)
 });
 
-const commentVisibilityReviewSchema = z.object({
-  action: z.literal("reviewCommentVisibility"),
-  commentId: z.string().min(1),
-  visibilityState: z.enum(["VISIBLE", "HIDDEN", "AUTHOR_ONLY"]),
+const comfortVisibilityReviewSchema = z.object({
+  action: z.literal("reviewComfortContentVisibility"),
+  targetType: z.enum([ModerationTargetType.COMFORT_REQUEST, ModerationTargetType.COMFORT_REPLY]),
+  targetId: z.string().min(1),
+  status: z.enum(["VISIBLE", "HIDDEN", "AUTHOR_ONLY"]),
   reason: z.string().trim().min(1).max(500)
 });
 
@@ -26,7 +28,7 @@ const reportReviewSchema = z.object({
   reason: z.string().trim().min(1).max(500)
 });
 
-const moderationActionSchema = z.union([trustDeltaSchema, commentVisibilityReviewSchema, reportReviewSchema]);
+const moderationActionSchema = z.union([trustDeltaSchema, comfortVisibilityReviewSchema, reportReviewSchema]);
 
 async function requireModerator() {
   const session = await auth();
@@ -38,15 +40,21 @@ async function requireModerator() {
 
 export async function GET() {
   await requireModerator();
-  const [reports, heldComments] = await Promise.all([
+  const pendingStatuses = ["HELD", "AUTHOR_ONLY", "HIDDEN"] as const;
+  const [reports, heldRequests, heldReplies] = await Promise.all([
     db.report.findMany({ orderBy: { createdAt: "desc" }, take: 50 }),
-    db.praiseComment.findMany({
-      where: { visibilityState: { in: ["HELD", "AUTHOR_ONLY", "HIDDEN"] } },
+    db.comfortRequest.findMany({
+      where: { status: { in: pendingStatuses } },
+      orderBy: { createdAt: "desc" },
+      take: 50
+    }),
+    db.comfortReply.findMany({
+      where: { status: { in: pendingStatuses } },
       orderBy: { createdAt: "desc" },
       take: 50
     })
   ]);
-  return NextResponse.json({ reports, heldComments });
+  return NextResponse.json({ reports, heldRequests, heldReplies });
 }
 
 export async function POST(request: Request) {
@@ -57,14 +65,15 @@ export async function POST(request: Request) {
   }
 
   const input = parsed.data;
-  if (input.action === "reviewCommentVisibility") {
-    const [comment, event] = await reviewCommentVisibility({
-      commentId: input.commentId,
+  if (input.action === "reviewComfortContentVisibility") {
+    const [target, event] = await reviewComfortContentVisibility({
+      targetType: input.targetType,
+      targetId: input.targetId,
       moderatorId,
-      visibilityState: input.visibilityState,
+      status: input.status,
       reason: input.reason
     });
-    return NextResponse.json({ comment, event });
+    return NextResponse.json({ target, event });
   }
 
   if (input.action === "reviewReport") {

@@ -126,29 +126,36 @@ export async function recordReport(
   });
 }
 
-export async function reviewCommentVisibility(input: {
-  commentId: string;
+export async function reviewComfortContentVisibility(input: {
+  targetType: ModerationTargetType.COMFORT_REQUEST | ModerationTargetType.COMFORT_REPLY;
+  targetId: string;
   moderatorId: string;
-  visibilityState: VisibilityState;
+  status: VisibilityState;
   reason: string;
 }) {
   return db.$transaction(async (tx) => {
-    const comment = await tx.praiseComment.update({
-      where: { id: input.commentId },
-      data: { visibilityState: input.visibilityState }
-    });
+    const target =
+      input.targetType === ModerationTargetType.COMFORT_REQUEST
+        ? await tx.comfortRequest.update({
+            where: { id: input.targetId },
+            data: { status: input.status }
+          })
+        : await tx.comfortReply.update({
+            where: { id: input.targetId },
+            data: { status: input.status }
+          });
     const event = await tx.moderationEvent.create({
       data: {
         userId: input.moderatorId,
-        targetType: ModerationTargetType.COMMENT,
-        targetId: input.commentId,
+        targetType: input.targetType,
+        targetId: input.targetId,
         eventType: ModerationEventType.VISIBILITY_CHANGED,
         riskReason: input.reason,
         trustScoreDelta: 0
       }
     });
 
-    return [comment, event] as const;
+    return [target, event] as const;
   });
 }
 
@@ -213,27 +220,23 @@ async function resolveReportTargetAuthorId(
     return user?.id ?? null;
   }
 
-  if (targetType === ModerationTargetType.POST) {
-    const post = await tx.praisePost.findUnique({
+  if (targetType === ModerationTargetType.COMFORT_REQUEST) {
+    const request = await tx.comfortRequest.findUnique({
       where: { id: targetId },
       select: { authorUserId: true }
     });
-    return post?.authorUserId ?? null;
+    return request?.authorUserId ?? null;
   }
 
-  if (targetType === ModerationTargetType.COMMENT) {
-    const comment = await tx.praiseComment.findUnique({
+  if (targetType === ModerationTargetType.COMFORT_REPLY) {
+    const reply = await tx.comfortReply.findUnique({
       where: { id: targetId },
       select: { authorUserId: true }
     });
-    return comment?.authorUserId ?? null;
+    return reply?.authorUserId ?? null;
   }
 
-  const reply = await tx.reply.findUnique({
-    where: { id: targetId },
-    select: { authorUserId: true }
-  });
-  return reply?.authorUserId ?? null;
+  return null;
 }
 
 async function applyTrustDeltaInTransaction(

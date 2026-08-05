@@ -55,30 +55,22 @@ function idsFor(reports: OpenReportWithReporter[], targetType: ModerationTargetT
 
 export async function listOpenReportsForModeration(): Promise<ModerationReportContext[]> {
   const reports = await fetchOpenReports();
-  const [posts, comments, replies, users] = await Promise.all([
-    db.praisePost.findMany({
-      where: { id: { in: idsFor(reports, ModerationTargetType.POST) } },
+  const [requests, replies, users] = await Promise.all([
+    db.comfortRequest.findMany({
+      where: { id: { in: idsFor(reports, ModerationTargetType.COMFORT_REQUEST) } },
       select: {
-        id: true,
-        title: true,
         body: true,
+        id: true,
         author: { select: targetSelectAuthor }
       }
     }),
-    db.praiseComment.findMany({
-      where: { id: { in: idsFor(reports, ModerationTargetType.COMMENT) } },
+    db.comfortReply.findMany({
+      where: { id: { in: idsFor(reports, ModerationTargetType.COMFORT_REPLY) } },
       select: {
         id: true,
         body: true,
-        author: { select: targetSelectAuthor }
-      }
-    }),
-    db.reply.findMany({
-      where: { id: { in: idsFor(reports, ModerationTargetType.REPLY) } },
-      select: {
-        id: true,
-        body: true,
-        author: { select: targetSelectAuthor }
+        author: { select: targetSelectAuthor },
+        request: { select: { body: true } }
       }
     }),
     db.user.findMany({
@@ -87,8 +79,7 @@ export async function listOpenReportsForModeration(): Promise<ModerationReportCo
     })
   ]);
 
-  const postById = new Map(posts.map((post) => [post.id, post]));
-  const commentById = new Map(comments.map((comment) => [comment.id, comment]));
+  const requestById = new Map(requests.map((request) => [request.id, request]));
   const replyById = new Map(replies.map((reply) => [reply.id, reply]));
   const userById = new Map(users.map((user) => [user.id, user]));
 
@@ -103,33 +94,22 @@ export async function listOpenReportsForModeration(): Promise<ModerationReportCo
         })
       ]);
 
-      if (report.targetType === ModerationTargetType.POST) {
-        const post = postById.get(report.targetId);
+      if (report.targetType === ModerationTargetType.COMFORT_REQUEST) {
+        const request = requestById.get(report.targetId);
         return {
           ...report,
-          targetPreview: post ? previewText(`${post.title} ${post.body}`) : "삭제되었거나 찾을 수 없는 글",
-          targetAuthor: post?.author ?? null,
+          targetPreview: request ? previewText(request.body) : "삭제되었거나 찾을 수 없는 위로 요청",
+          targetAuthor: request?.author ?? null,
           priorAcceptedCount,
           priorDismissedCount
         };
       }
 
-      if (report.targetType === ModerationTargetType.COMMENT) {
-        const comment = commentById.get(report.targetId);
-        return {
-          ...report,
-          targetPreview: comment ? previewText(comment.body) : "삭제되었거나 찾을 수 없는 댓글",
-          targetAuthor: comment?.author ?? null,
-          priorAcceptedCount,
-          priorDismissedCount
-        };
-      }
-
-      if (report.targetType === ModerationTargetType.REPLY) {
+      if (report.targetType === ModerationTargetType.COMFORT_REPLY) {
         const reply = replyById.get(report.targetId);
         return {
           ...report,
-          targetPreview: reply ? previewText(reply.body) : "삭제되었거나 찾을 수 없는 답글",
+          targetPreview: reply ? previewText(`${reply.request.body} ${reply.body}`) : "삭제되었거나 찾을 수 없는 답변",
           targetAuthor: reply?.author ?? null,
           priorAcceptedCount,
           priorDismissedCount

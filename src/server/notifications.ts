@@ -7,9 +7,16 @@ export type NotificationListItem = {
   readAt: Date | null;
   createdAt: Date;
   actorNickname: string;
-  postId: string;
-  postTitle: string;
+  requestId: string;
+  requestPreview: string;
   bodyPreview: string;
+};
+
+export type NotificationMessageInput = {
+  type: NotificationType;
+  actor: { nickname: string } | null;
+  request: { body: string } | null;
+  reply: { body: string } | null;
 };
 
 export type NotificationSummary = {
@@ -21,6 +28,14 @@ export type NotificationSummary = {
 function previewText(value: string | null | undefined): string {
   const normalized = (value ?? "").trim();
   return normalized.length > 80 ? `${normalized.slice(0, 80)}...` : normalized;
+}
+
+export function notificationMessage(notification: NotificationMessageInput): string {
+  const actorNickname = notification.actor?.nickname ?? "누군가";
+  if (notification.type === NotificationType.FIRST_REPLY_ON_REQUEST) {
+    return `${actorNickname}님이 내 위로 요청에 첫 답변을 남겼습니다.`;
+  }
+  return `${actorNickname}님이 내 위로 요청에 답변을 남겼습니다.`;
 }
 
 export async function getUnreadNotificationCount(userId: string): Promise<number> {
@@ -53,22 +68,23 @@ export async function listNotifications(userId: string): Promise<NotificationLis
     take: 30,
     include: {
       actor: { select: { nickname: true } },
-      post: { select: { id: true, title: true } },
-      comment: { select: { body: true } },
+      request: { select: { id: true, body: true } },
       reply: { select: { body: true } }
     }
   });
 
-  return notifications.map((notification) => ({
-    id: notification.id,
-    type: notification.type,
-    readAt: notification.readAt,
-    createdAt: notification.createdAt,
-    actorNickname: notification.actor?.nickname ?? "칭찬러",
-    postId: notification.post.id,
-    postTitle: notification.post.title,
-    bodyPreview: previewText(notification.reply?.body ?? notification.comment?.body)
-  }));
+  return notifications
+    .filter((notification) => notification.request !== null)
+    .map((notification) => ({
+      id: notification.id,
+      type: notification.type,
+      readAt: notification.readAt,
+      createdAt: notification.createdAt,
+      actorNickname: notification.actor?.nickname ?? "누군가",
+      requestId: notification.request?.id ?? "",
+      requestPreview: previewText(notification.request?.body),
+      bodyPreview: previewText(notification.reply?.body)
+    }));
 }
 
 export async function markAllNotificationsRead(userId: string, readAt = new Date()) {
