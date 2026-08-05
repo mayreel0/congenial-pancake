@@ -8,6 +8,14 @@ type RecentComfortExamplesProps = {
   examples: RecentComfortExample[];
 };
 
+const REQUEST_PREVIEW_LENGTH = 160;
+const REPLY_PREVIEW_LENGTH = 120;
+const REPLY_PREVIEW_LIMIT = 2;
+
+function truncatePreview(body: string, maxLength: number) {
+  return body.length > maxLength ? `${body.slice(0, maxLength)}...` : body;
+}
+
 export default function RecentComfortExamples({ examples }: RecentComfortExamplesProps) {
   return (
     <section className="comfort-examples" aria-labelledby="recent-comfort-examples-heading">
@@ -16,10 +24,10 @@ export default function RecentComfortExamples({ examples }: RecentComfortExample
       <div className="comfort-example-list">
         {examples.map((example) => (
           <article key={example.id} className="feed-item">
-            <p>{example.body}</p>
+            <p>{truncatePreview(example.body, REQUEST_PREVIEW_LENGTH)}</p>
             {example.replies.length > 0 ? (
               <div className="comfort-replies" aria-label="남겨진 답변">
-                {example.replies.map((reply) => <p key={reply.id}>{reply.body}</p>)}
+                {example.replies.slice(0, REPLY_PREVIEW_LIMIT).map((reply) => <p key={reply.id}>{truncatePreview(reply.body, REPLY_PREVIEW_LENGTH)}</p>)}
               </div>
             ) : (
               <small>아직 답변이 없어요.</small>

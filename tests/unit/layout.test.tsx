@@ -52,6 +52,20 @@ describe("RootLayout", () => {
     expect(screen.queryByRole("button", { name: "로그아웃" })).not.toBeInTheDocument();
   });
 
+  it("keeps current destinations and omits redirect-only praise links", async () => {
+    const layout = await RootLayout({
+      children: <p>본문</p>
+    });
+
+    render(layout);
+
+    expect(screen.getByRole("link", { name: "홈" })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("link", { name: "내 활동" })).toHaveAttribute("href", "/me");
+    expect(screen.queryByRole("link", { name: "칭찬글" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "랭킹" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "글쓰기" })).not.toBeInTheDocument();
+  });
+
   it("renders an unread notification count in the global navigation", async () => {
     const layout = await RootLayout({
       children: <p>본문</p>

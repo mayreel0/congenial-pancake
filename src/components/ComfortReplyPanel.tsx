@@ -32,20 +32,25 @@ export default function ComfortReplyPanel({ requests, isAuthenticated }: Comfort
 
     setError(null);
     setIsSubmitting(true);
-    const formData = new FormData(event.currentTarget);
-    const response = await fetch(`/api/comfort/requests/${selectedRequest.id}/replies`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ body: String(formData.get("body") ?? "") })
-    });
+    try {
+      const formData = new FormData(event.currentTarget);
+      const response = await fetch(`/api/comfort/requests/${selectedRequest.id}/replies`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body: String(formData.get("body") ?? "") })
+      });
 
-    if (response.ok) {
-      window.location.reload();
-      return;
+      if (response.ok) {
+        window.location.reload();
+        return;
+      }
+
+      setError("답변을 남기지 못했습니다. 다시 시도해주세요.");
+    } catch {
+      setError("답변을 남기지 못했습니다. 다시 시도해주세요.");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setIsSubmitting(false);
-    setError("답변을 남기지 못했습니다. 다시 시도해주세요.");
   }
 
   return (

@@ -24,16 +24,16 @@ export default function ComfortMain({ hasRequestedToday, isAuthenticated, recent
         </div>
       </div>
       <RecentComfortExamples examples={recentExamples} />
-      <div className="comfort-tabs" role="tablist" aria-label="오늘 할 일">
-        <button type="button" role="tab" aria-selected={mode === "request"} onClick={() => setMode("request")}>
+      <div className="comfort-tabs" aria-label="오늘 할 일">
+        <button type="button" aria-pressed={mode === "request"} onClick={() => setMode("request")}>
           위로 요청하기
         </button>
-        <button type="button" role="tab" aria-selected={mode === "reply"} onClick={() => setMode("reply")}>
+        <button type="button" aria-pressed={mode === "reply"} onClick={() => setMode("reply")}>
           다른 사람에게 답변하기
         </button>
       </div>
       {mode === "request" ? (
-        <ComfortRequestForm disabled={hasRequestedToday || !isAuthenticated} />
+        <ComfortRequestForm hasRequestedToday={hasRequestedToday} isAuthenticated={isAuthenticated} />
       ) : (
         <ComfortReplyPanel requests={answerableRequests} isAuthenticated={isAuthenticated} />
       )}

@@ -36,3 +36,30 @@ Complete. The home route now renders the Comfort MVP with today's request state,
 
 - Branch-wide `npm run verify` was intentionally not run, per Task 5 instructions. It is expected to remain affected by later-task praise-domain cleanup and old tests.
 - `src/components/PraiseRoom.tsx` remains as an unused legacy component so existing old-domain tests are not independently broken; requested legacy page routes now redirect and no active route imports it.
+
+---
+
+## Review Fixes
+
+### Status
+
+Resolved the Task 5 UI review findings without changing moderation, notifications, worker behavior, or legacy praise-domain tests.
+
+### Changes
+
+- Updated global navigation to remove redirect-only `칭찬글`, `랭킹`, and `글쓰기` links, keeping home, activity, notification, and authentication actions.
+- Passed explicit authentication and daily-request state to the request form so signed-in users who already requested today see a daily-limit message instead of login guidance.
+- Replaced incomplete tab ARIA with ordinary pressed-state mode buttons.
+- Truncated recent request previews to 160 characters, reply previews to 120 characters, and limited rendered reply previews to two.
+- Added `try/catch/finally` around request and reply submissions to restore submission state and show generic Korean errors after rejected fetches.
+- Expanded focused UI tests for mode switching, disabled messaging, network recovery, bounded previews, and global navigation.
+
+### Verification
+
+- `npm run test -- src/components/__tests__/ComfortMain.test.tsx tests/unit/layout.test.tsx` - passed: 2 files, 9 tests.
+- `npx eslint src/app/layout.tsx src/components/ComfortMain.tsx src/components/ComfortRequestForm.tsx src/components/ComfortReplyPanel.tsx src/components/RecentComfortExamples.tsx src/components/__tests__/ComfortMain.test.tsx tests/unit/layout.test.tsx` - passed with no output.
+- `git diff --check` - passed with no output.
+
+### Concerns
+
+- Full `npm run verify` remains outside this focused Task 5 review-fix scope because the branch still contains expected later-task praise-domain cleanup work.
