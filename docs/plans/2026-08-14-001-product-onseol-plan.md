@@ -14,7 +14,7 @@ execution: code
 - **Objective:** 사람들이 오늘 힘들었던 일, 칭찬받고 싶은 일, 위로받고 싶은 일을 짧게 남기고 다른 사람이 현실적이고 담백한 답장을 남기는 Korean-first 서비스 **온설**을 만든다.
 - **Product authority:** 이 문서는 2026년 8월 14일까지의 제품/기술 결정 기록이다. 아직 requirements-only 상태이며, 구현 전 `ce-plan` 수준의 implementation-ready 계획이 필요하다.
 - **Current stage:** localStorage 기반 프론트엔드 프로토타입을 먼저 만들고, 이후 Nest.js 백엔드를 가진 풀스택 MVP로 확장한다.
-- **Open blockers:** MVP 인증 방식, 첫 데이터베이스 운영 위치, 개인 서버 운영 방식, 클라우드 전환 순서, 최소 관리자/신고 처리 방식은 아직 확정하지 않았다.
+- **Open blockers:** 첫 데이터베이스 운영 위치, 개인 서버 운영 방식, 클라우드 전환 순서, 최소 관리자/신고 처리 방식은 아직 확정하지 않았다.
 
 ---
 
@@ -40,8 +40,9 @@ MVP는 단순함을 유지하면서 실제 백엔드, 저장소, 인증, 신고,
 - **KD4. 빠른 웹 우선으로 간다.** Next.js, React, TypeScript, Tailwind CSS를 기본 프론트엔드 스택으로 둔다.
 - **KD5. Supabase는 필수가 아니다.** Supabase에 종속되는 설계는 피하고, 개인 PC/서버와 AWS식 클라우드 운영 가능성을 열어 둔다.
 - **KD6. MVP 백엔드는 Nest.js를 사용한다.** 신고, 필터, 1인 1답변, 관리자 검토 같은 서버 규칙을 명시적으로 다루기 위해 별도 API 서버를 둔다.
-- **KD7. 전략/Provider 경계는 쓰되 과신하지 않는다.** 인증, 저장소, 필터, 알림은 교체 가능한 경계를 두지만, 인증/세션 전환이 무비용이라고 가정하지 않는다.
-- **KD8. 큰 결정은 물어보고 간다.** 제품, UX, 백엔드, 인프라, 신고/필터 정책은 추천안과 이유를 제시한 뒤 확정한다.
+- **KD7. MVP 인증은 Nest.js 자체 세션/JWT로 시작한다.** Supabase Auth는 사용하지 않고, Nest.js가 로그인과 세션/JWT 발급 및 검증을 담당한다.
+- **KD8. 전략/Provider 경계는 쓰되 과신하지 않는다.** 인증, 저장소, 필터, 알림은 교체 가능한 경계를 두지만, 인증/세션 전환이 무비용이라고 가정하지 않는다.
+- **KD9. 큰 결정은 물어보고 간다.** 제품, UX, 백엔드, 인프라, 신고/필터 정책은 추천안과 이유를 제시한 뒤 확정한다.
 
 ### Requirements
 
@@ -73,10 +74,11 @@ MVP는 단순함을 유지하면서 실제 백엔드, 저장소, 인증, 신고,
 
 - R19. 웹 프론트엔드는 Next.js, React, TypeScript, Tailwind CSS, 작은 custom component를 기본으로 한다.
 - R20. MVP 백엔드는 Nest.js와 TypeScript를 사용한다.
-- R21. 백엔드는 auth provider, request repository, reply repository, report repository, moderation provider 같은 경계를 둔다.
-- R22. 첫 배포 경로는 프론트엔드 Vercel, 백엔드 개인 PC/서버 운영을 허용한다.
-- R23. 클라우드 경로는 AWS식 인프라와 managed Postgres를 열어 두며 Supabase 채택을 전제하지 않는다.
-- R24. Supabase는 나중에 비교할 수 있는 인프라/Provider 후보이지 기본 아키텍처가 아니다.
+- R21. MVP 인증은 Nest.js 자체 세션/JWT로 시작하고 Supabase Auth를 사용하지 않는다.
+- R22. 백엔드는 auth provider, request repository, reply repository, report repository, moderation provider 같은 경계를 둔다.
+- R23. 첫 배포 경로는 프론트엔드 Vercel, 백엔드 개인 PC/서버 운영을 허용한다.
+- R24. 클라우드 경로는 AWS식 인프라와 managed Postgres를 열어 두며 Supabase 채택을 전제하지 않는다.
+- R25. Supabase는 나중에 비교할 수 있는 인프라/Provider 후보이지 기본 아키텍처가 아니다.
 
 ### Key Flows
 
@@ -135,9 +137,9 @@ MVP는 단순함을 유지하면서 실제 백엔드, 저장소, 인증, 신고,
 
 ### Open Questions
 
-- **Resolve Before Planning:** 개인 서버에서 돌릴 첫 Nest.js 백엔드는 cookie session, JWT, 외부 provider token 검증 중 무엇을 쓸 것인가?
 - **Resolve Before Planning:** 첫 실제 데이터베이스는 개인 서버 Postgres, AWS/RDS식 managed Postgres, 다른 managed Postgres 중 어디에 둘 것인가?
 - **Resolve Before Planning:** MVP에서 필요한 최소 관리자/신고 처리 흐름은 어디까지인가?
+- **Deferred to Planning:** Nest.js 자체 인증을 cookie session으로 구현할지 JWT로 구현할지, 또는 둘을 조합할지의 세부 설계.
 - **Deferred to Planning:** Next.js 프로젝트 구조, component 구조, Nest.js module 구조, DTO 이름, repository interface 이름.
 - **Deferred to Planning:** 개인 PC/서버 단계의 reverse proxy, TLS, backup, monitoring, deploy 방식.
 
