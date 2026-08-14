@@ -84,5 +84,7 @@ Do not silently finalize meaningful tradeoffs.
 ## Knowledge Capture Purpose
 
 The applied `effective-doodle` system is the project's LLM wiki workflow.
-As work progresses, capture important concepts, decisions, mistakes, fixes, and process lessons so they can be promoted into the project wiki.
+The working agent does not need to run wiki mode unless the user explicitly asks.
+Do not add wiki-writing tasks to product or implementation plans unless the user explicitly requests them.
+As work progresses, keep detailed records of important concepts, decisions, alternatives considered, rationale, implementation process, mistakes, fixes, verification results, unresolved questions, commits, and PR links so a separate wiki agent can promote them without losing context.
 When `OBSIDIAN_VAULT_DIR` is available and wiki writing is requested, store those notes in the configured Obsidian Vault project folder, not in this repository.
