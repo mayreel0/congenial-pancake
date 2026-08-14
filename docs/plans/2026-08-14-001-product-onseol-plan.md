@@ -11,7 +11,7 @@ execution: code
 
 ## Goal Capsule
 
-- **Objective:** 사람들이 오늘 힘들었던 일, 칭찬받고 싶은 일, 위로받고 싶은 일을 짧게 남기고 다른 사람이 현실적이고 담백한 답장을 남기는 Korean-first 서비스 **온설**을 만든다.
+- **Objective:** 사람들이 오늘 힘들었던 일, 칭찬받고 싶은 일, 위로받고 싶은 일을 짧게 남기고 다른 사람이 현실적이고 담백한 답장을 남기는 서비스 **온설**을 만든다.
 - **Product authority:** 이 문서는 2026년 8월 14일까지의 제품/기술 결정 기록이다. 아직 requirements-only 상태이며, 구현 전 `ce-plan` 수준의 implementation-ready 계획이 필요하다.
 - **Current stage:** localStorage 기반 프론트엔드 프로토타입을 먼저 만들고, 이후 Nest.js 백엔드를 가진 풀스택 MVP로 확장한다.
 - **Open blockers:** 첫 데이터베이스 운영 위치, 개인 서버 운영 방식, 클라우드 전환 순서, 최소 관리자/신고 처리 방식은 아직 확정하지 않았다.
