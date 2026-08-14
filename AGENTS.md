@@ -75,3 +75,14 @@ If unsure where to store wiki documents, ask before writing.
 
 Do not default to writing wiki documents into the current repository.
 <!-- project-wiki-mode:end -->
+
+## Project Decision Rules
+
+Before making a product, UX, technical stack, backend, infrastructure, deployment, moderation, or workflow decision, present the recommended choice with rationale and ask the user to confirm.
+Do not silently finalize meaningful tradeoffs.
+
+## Knowledge Capture Purpose
+
+The applied `effective-doodle` system is the project's LLM wiki workflow.
+As work progresses, capture important concepts, decisions, mistakes, fixes, and process lessons so they can be promoted into the project wiki.
+When `OBSIDIAN_VAULT_DIR` is available and wiki writing is requested, store those notes in the configured Obsidian Vault project folder, not in this repository.
