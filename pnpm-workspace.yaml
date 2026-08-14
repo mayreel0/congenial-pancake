@@ -1,0 +1,9 @@
+allowBuilds:
+  unrs-resolver: true
+ignoredBuiltDependencies:
+  - sharp
+minimumReleaseAgeExclude:
+  - next
+  - eslint-config-next
+  - '@next/*'
+  - electron-to-chromium
