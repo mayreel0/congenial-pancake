@@ -9,7 +9,7 @@ scope: static landing prototype
 
 ## Context
 
-온설은 사용자가 오늘 힘들었던 일, 칭찬받고 싶은 일, 위로받고 싶은 일을 짧게 남기고 다른 사용자가 담백한 답장을 남기는 Korean-first 서비스다.
+온설은 사용자가 오늘 힘들었던 일, 칭찬받고 싶은 일, 위로받고 싶은 일을 짧게 남기고 다른 사용자가 담백한 답장을 남기는 서비스다.
 현재 저장소에는 제품 결정 문서만 있고 앱 코드는 없다.
 첫 구현은 전체 localStorage 프로토타입을 한 번에 만들지 않고, 정적 랜딩 페이지부터 만든다.
 
@@ -148,8 +148,8 @@ scope: static landing prototype
 ## Implementation Sequence
 
 1. 이 스펙을 승인받는다.
-2. 새 worktree를 만들고 구현 브랜치를 생성한다.
-3. Next.js, React, TypeScript, Tailwind CSS 기반 프로젝트를 스캐폴드한다.
-4. `/` 정적 랜딩만 구현한다.
-5. lint, typecheck, build, 브라우저 확인을 실행한다.
-6. 구현 변경을 PR로 남긴다.
+2. 새 worktree를 만들고 보일러플레이트 생성 브랜치를 만든다.
+3. Next.js, React, TypeScript, Tailwind CSS 기반 프로젝트 보일러플레이트만 생성한다.
+4. 보일러플레이트의 lint, typecheck, build가 가능한지 확인한다.
+5. 보일러플레이트 변경을 먼저 PR로 남긴다.
+6. 그 다음 별도 구현 브랜치에서 `/` 정적 랜딩 구현 계획과 작업을 진행한다.

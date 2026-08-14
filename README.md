@@ -1,3 +1,3 @@
 # v1
 
-Korean-first comfort service.
+온설은 짧은 위로 요청과 담백한 답장을 주고받는 서비스입니다.
