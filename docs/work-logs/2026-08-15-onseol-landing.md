@@ -26,6 +26,32 @@
 - 이 결정은 앱 코드의 문제가 아니라 현재 로컬/CI 안정성을 위한 빌드 엔진 선택이다.
 - 나중에 Turbopack 권한 문제가 해결되거나 Next 16 빌드 환경이 안정화되면 `build` 스크립트를 다시 `next build`로 되돌릴 수 있다.
 
+## 로컬 실행 환경
+
+- 사용자가 worktree에서 `pnpm install`을 실행했을 때 `Node.js v23.3.0` 환경에서 `Error [ERR_UNKNOWN_BUILTIN_MODULE]: No such built-in module: node:sqlite` 오류가 발생했다.
+- 원인은 pnpm 11과 현재 의존성 일부가 Node의 최신 built-in API를 요구하는데, `v23.3.0`에는 해당 조건이 맞지 않았기 때문이다.
+- lockfile에는 일부 패키지의 Node 엔진 조건으로 `^20.19.0 || ^22.13.0 || >=23.5.0` 같은 범위가 포함되어 있다.
+- 구현 및 검증은 `Node.js v24.14.0`, `pnpm v11.21.0`에서 진행했다.
+- 재현 가능한 실행을 위해 `.nvmrc`에 `24.14.0`을 기록했다.
+- nvm 사용자는 worktree에서 아래 순서로 실행한다.
+
+```bash
+nvm install
+nvm use
+corepack enable
+pnpm install
+pnpm dev
+```
+
+- fnm 사용자는 `.nvmrc`를 읽어 같은 버전을 선택한 뒤 실행한다.
+
+```bash
+fnm install
+fnm use
+pnpm install
+pnpm dev
+```
+
 ## 검증 관점
 
 - `pnpm lint`로 ESLint를 확인한다.
@@ -41,3 +67,4 @@
 - 다크모드는 초기 설계부터 고려하되, 토글은 후순위로 미뤘다.
 - Next 16의 기본 Turbopack 빌드가 현재 환경에서 실패했기 때문에 webpack 빌드를 임시 기본값으로 사용한다.
 - 이 임시 결정은 나중에 제거 가능한 기술 부채로 기록해야 한다.
+- Node 실행 버전은 `.nvmrc`의 `24.14.0`을 기준으로 맞춘다.
