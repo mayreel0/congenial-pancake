@@ -1,0 +1,70 @@
+# 온설 랜딩 구현 기록
+
+## 배경
+
+- 사용자는 온설 서비스를 아주 짧은 진입 페이지에서 먼저 보여주길 원했다.
+- 랜딩은 앱 본 화면과 분리하고, 이후 앱 또는 웹 선택 진입점으로 발전할 여지를 남긴다.
+- 이번 PR에서는 `/` 정적 랜딩만 구현한다.
+- `/today`, 요청 작성, 답변 작성, localStorage, 로그인, 백엔드, 신고/필터는 다음 PR 범위로 남긴다.
+
+## 구현 결정
+
+- 루트 경로 `/`에 정적 랜딩을 구현했다.
+- 랜딩 컴포넌트는 `app/components/landing/` 아래로 분리했다.
+- 페이지 라우트와 상태 흐름을 나중에 분리하기 쉽도록, 이번 랜딩에는 앱 상태를 넣지 않았다.
+- 다크모드는 사용자 시스템 설정의 `prefers-color-scheme`만 따른다.
+- 이번 PR에는 테마 토글을 넣지 않는다.
+- 색상은 따뜻한 인상을 주되 베이지 한 계열로만 보이지 않도록 세이지, 스톤, 브라운 포인트를 섞었다.
+- 핵심 문구는 과하게 감성적이거나 AI 답변처럼 보이지 않게 담백한 톤으로 작성했다.
+
+## 빌드 결정
+
+- 처음 `pnpm build`를 실행했을 때 `next/font/google`이 Google Fonts에 접근하지 못해 실패했다.
+- 네트워크가 허용된 환경에서 다시 실행하자 외부 폰트 문제는 사라졌지만, Next 16 기본 Turbopack 빌드가 CSS 처리 과정에서 `binding to a port`, `Operation not permitted` 오류로 실패했다.
+- 같은 코드에서 `pnpm exec next build --webpack`은 성공했다.
+- 사용자의 승인을 받고 `package.json`의 `build` 스크립트를 `next build --webpack`으로 임시 고정했다.
+- 이 결정은 앱 코드의 문제가 아니라 현재 로컬/CI 안정성을 위한 빌드 엔진 선택이다.
+- 나중에 Turbopack 권한 문제가 해결되거나 Next 16 빌드 환경이 안정화되면 `build` 스크립트를 다시 `next build`로 되돌릴 수 있다.
+
+## 로컬 실행 환경
+
+- 사용자가 worktree에서 `pnpm install`을 실행했을 때 `Node.js v23.3.0` 환경에서 `Error [ERR_UNKNOWN_BUILTIN_MODULE]: No such built-in module: node:sqlite` 오류가 발생했다.
+- 원인은 pnpm 11과 현재 의존성 일부가 Node의 최신 built-in API를 요구하는데, `v23.3.0`에는 해당 조건이 맞지 않았기 때문이다.
+- lockfile에는 일부 패키지의 Node 엔진 조건으로 `^20.19.0 || ^22.13.0 || >=23.5.0` 같은 범위가 포함되어 있다.
+- 구현 및 검증은 `Node.js v24.14.0`, `pnpm v11.21.0`에서 진행했다.
+- 재현 가능한 실행을 위해 `.nvmrc`에 `24.14.0`을 기록했다.
+- nvm 사용자는 worktree에서 아래 순서로 실행한다.
+
+```bash
+nvm install
+nvm use
+corepack enable
+pnpm install
+pnpm dev
+```
+
+- fnm 사용자는 `.nvmrc`를 읽어 같은 버전을 선택한 뒤 실행한다.
+
+```bash
+fnm install
+fnm use
+pnpm install
+pnpm dev
+```
+
+## 검증 관점
+
+- `pnpm lint`로 ESLint를 확인한다.
+- `pnpm typecheck`로 TypeScript 타입을 확인한다.
+- `pnpm build`로 실제 PR/CI에서 사용할 빌드를 확인한다.
+- 개발 서버에서 루트 페이지가 온설 랜딩 텍스트를 렌더링하는지 확인한다.
+- 라이트/다크 모드에서 CSS 변수가 전환되는지 확인한다.
+
+## 위키로 옮길 때 중요한 내용
+
+- 온설의 첫 구현은 “앱”이 아니라 “서비스 방향을 보여주는 짧은 랜딩”이다.
+- 구현 범위를 작게 유지하기 위해 랜딩과 이후 앱 흐름을 의도적으로 분리했다.
+- 다크모드는 초기 설계부터 고려하되, 토글은 후순위로 미뤘다.
+- Next 16의 기본 Turbopack 빌드가 현재 환경에서 실패했기 때문에 webpack 빌드를 임시 기본값으로 사용한다.
+- 이 임시 결정은 나중에 제거 가능한 기술 부채로 기록해야 한다.
+- Node 실행 버전은 `.nvmrc`의 `24.14.0`을 기준으로 맞춘다.
