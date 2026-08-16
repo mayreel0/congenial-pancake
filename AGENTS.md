@@ -89,6 +89,18 @@ Do not add wiki-writing tasks to product or implementation plans unless the user
 As work progresses, keep detailed records of important concepts, decisions, alternatives considered, rationale, implementation process, mistakes, fixes, verification results, unresolved questions, commits, and PR links so a separate wiki agent can promote them without losing context.
 When `OBSIDIAN_VAULT_DIR` is available and wiki writing is requested, store those notes in the configured Obsidian Vault project folder, not in this repository.
 
+## Review-Time Knowledge Capture
+
+When the user says "위키에 쓸 수 있게", "기록해줘", "정리해줘", or similar during an active PR review, do not interpret that as permission to create Obsidian wiki pages or to open a new PR.
+
+Instead:
+
+- Record the note in the relevant in-repository work log, decision document, or review note so a separate wiki agent can promote it later.
+- Keep review-time notes batched with the active PR branch unless the user explicitly asks for a separate branch or PR.
+- Do not commit or push every small note immediately while the user is still reviewing. Accumulate the notes, then commit/push them when the user asks to include them in the PR or says the review batch is ready.
+- If the user explicitly says to include a note in the current PR, add it to the current PR branch and push that branch, not a new branch.
+- If `OBSIDIAN_VAULT_DIR` is missing, do not ask for the Vault path unless the user explicitly requests Project Wiki Mode or direct wiki writing.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know
