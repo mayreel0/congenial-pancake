@@ -40,6 +40,62 @@
 - 프로토타입에서도 신고/숨김처럼 사용자가 즉시 체감하는 동작은 모델 helper와 UI 동작이 같은 기준을 사용해야 한다.
 - 이후 Storybook 도입 시 컴포넌트 외형만 분리하지 말고, 답변 없음, 내가 쓴 요청, 신고 후 빈 목록, 이미 답변한 상태 같은 상태 변형을 함께 등록해야 한다.
 
+## 리뷰 중 추가 메모: `hydrated` 플래그의 의미
+
+- `useOnseolPrototype`의 `hydrated`는 React hydration 자체를 직접 완료시키거나 제어하는 값이 아니다.
+- 이 코드에서 `hydrated`는 애플리케이션 레벨의 플래그이며, 의미는 “브라우저 localStorage에서 기존 프로토타입 상태를 읽는 초기 동기화가 끝났다”에 가깝다.
+- 이름 때문에 “React가 hydrate 됐는지”로 오해할 수 있지만, 실제 목적은 localStorage 읽기 전 기본 상태가 기존 저장값을 덮어쓰지 않게 막는 것이다.
+
+### 왜 필요한가
+
+- Next.js App Router에서는 `"use client"` 컴포넌트도 서버에서 먼저 HTML을 만들 수 있다.
+- 서버에는 `window`와 `localStorage`가 없으므로 첫 HTML은 기본 샘플 상태 기준으로 만들어진다.
+- 브라우저 첫 렌더에서 localStorage를 즉시 읽으면 서버가 만든 HTML과 클라이언트 첫 렌더 결과가 달라질 수 있다.
+- 온설에서는 요청 초안 글자 수가 대표 사례였다. 서버는 빈 초안 기준으로 `160자`를 렌더했지만, 브라우저가 저장된 초안을 즉시 읽으면 `130자`처럼 다른 값이 렌더되어 hydration mismatch가 발생할 수 있었다.
+
+### 현재 구현 의도
+
+- 첫 렌더는 `createInitialPrototypeState(new Date())`로 만든 안정적인 기본 상태를 사용한다.
+- 브라우저 마운트 이후 `useEffect`에서 `readPrototypeState()`를 호출해 localStorage 값을 읽는다.
+- localStorage 읽기가 끝난 뒤 `setHydrated(true)`를 호출한다.
+- 별도 effect는 `hydrated === true`일 때만 `writePrototypeState(state)`를 실행한다.
+
+```ts
+const [state, setState] = useState<PrototypeState>(() =>
+  createInitialPrototypeState(new Date()),
+);
+const [hydrated, setHydrated] = useState(false);
+
+useEffect(() => {
+  const timeoutId = window.setTimeout(() => {
+    setState(readPrototypeState());
+    setHydrated(true);
+  }, 0);
+
+  return () => window.clearTimeout(timeoutId);
+}, []);
+
+useEffect(() => {
+  if (hydrated) {
+    writePrototypeState(state);
+  }
+}, [hydrated, state]);
+```
+
+### 읽기와 쓰기를 분리해야 하는 이유
+
+- localStorage에서 기존 상태를 읽기 전에 기본 샘플 상태를 저장하면 사용자가 이전에 작성하던 draft를 덮어쓸 수 있다.
+- 따라서 “첫 렌더용 기본 상태”, “브라우저 저장소에서 읽은 상태”, “저장소에 다시 써도 되는 상태”를 구분해야 한다.
+- `hydrated`는 이 중 “저장소에 다시 써도 되는 상태”를 판별하는 안전장치다.
+
+### 위키로 승격할 때 남길 교훈
+
+- 클라이언트 컴포넌트라고 해서 초기 렌더에서 브라우저 전용 값을 바로 읽어도 되는 것은 아니다.
+- Next.js App Router에서 localStorage 기반 프로토타입을 만들 때도 SSR/hydration 관점을 고려해야 한다.
+- 브라우저 저장소의 읽기와 쓰기를 같은 시점에 두면 hydration mismatch 또는 draft 유실이 생길 수 있다.
+- 첫 렌더는 서버와 클라이언트가 같은 결과를 내는 기본 상태로 맞추고, localStorage 읽기와 쓰기는 마운트 이후 단계적으로 수행한다.
+- 더 정확한 이름을 원한다면 `hydrated`보다 `hasLoadedStoredState` 또는 `storageReady` 같은 이름이 의도를 더 잘 설명할 수 있다. 다만 현재 PR에서는 React 생태계에서 흔히 쓰는 용어와 짧은 플래그명을 우선해 `hydrated`를 사용했다.
+
 ## 검증 기록
 
 - `pnpm lint` 통과.
