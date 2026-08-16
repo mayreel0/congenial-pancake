@@ -1,0 +1,116 @@
+# localStorage 프로토타입 구현 기록
+
+## 배경
+
+- 온설은 사용자가 오늘 힘들었던 일이나 칭찬받고 싶은 일을 짧게 남기고, 다른 사용자가 채팅처럼 담백한 답변을 남기는 서비스다.
+- 이번 단계는 백엔드, 인증, DB, AI 필터를 붙이기 전에 핵심 화면 흐름을 빠르게 확인하는 프론트엔드 프로토타입이다.
+- 사용자가 명시적으로 승인한 범위는 `/today` localStorage 프로토타입 구현이며, 세밀한 로딩/팬딩/패칭 인터랙션 설계는 프로토타입 이후 단계로 미룬다.
+
+## 구현 범위
+
+- `/today` 라우트를 추가했다.
+- 랜딩의 `웹에서 시작하기` 동작을 `/today` 링크로 연결했다.
+- localStorage 기반으로 요청, 답변, 요청 초안, 답변 초안, 선택된 요청, 로컬 뷰어 정보를 저장한다.
+- 최초 진입 시 샘플 요청 2개와 샘플 답변 2개를 자동 생성한다.
+- 요청 작성, 요청 선택, 답변 작성, 최근 온설, 내 정보, 신고 후 즉시 숨김, 프로토타입 초기화를 구현했다.
+- 한 사용자는 한 요청에 답변을 1개만 남길 수 있도록 클라이언트 상태에서 제한했다.
+
+## localStorage 키
+
+- `onseol.prototype.viewer`
+- `onseol.prototype.requests`
+- `onseol.prototype.replies`
+- `onseol.prototype.requestDraft`
+- `onseol.prototype.replyDrafts`
+- `onseol.prototype.selectedRequestId`
+
+## 의사결정 기록
+
+- 화면은 복잡한 2열 업무형 UI보다 단일 흐름을 우선했다. 사용자가 처음 들어왔을 때 작성과 읽기, 답변을 위에서 아래로 자연스럽게 이해하는 것이 더 중요하다고 판단했다.
+- 답변 부족 요청은 오늘 올라온 요청, 답변 수가 적은 요청, 최신 요청 순으로 우선 노출한다.
+- 신고는 서버 검증이 없는 프로토타입이므로 신고 즉시 `hidden` 처리한다. 실제 MVP에서는 중복 신고, 신고자, 필터 결과, 관리자 검토 상태가 별도 모델로 분리되어야 한다.
+- 로그인 전 작성 UX는 실제 인증 대신 localStorage 초안 저장으로만 표현한다. 이후 Nest.js 인증을 붙일 때 로그인 후 이어서 제출하는 흐름으로 연결한다.
+- 디자인은 기존 온설 디자인 토큰을 사용하고, 라이트/다크 모드에서 모두 동작하도록 새 색상 토큰을 추가하지 않았다.
+
+## 반복하지 말아야 할 실수
+
+- 상태를 갱신하면서 localStorage를 다시 읽는 방식은 현재 화면 상태와 저장소 상태가 어긋날 수 있다. 상태 전환은 React의 현재 상태를 기준으로 만들고, 그 결과만 저장해야 한다.
+- Next.js App Router에서 클라이언트 컴포넌트도 서버에서 프리렌더될 수 있다. `useState` 초기값에서 localStorage를 바로 읽으면 서버 HTML과 클라이언트 첫 렌더가 달라져 hydration mismatch가 날 수 있으므로, 첫 렌더는 안정적인 기본 상태로 맞추고 마운트 이후 저장값을 불러와야 한다.
+- `한 요청에 한 답변` 규칙은 화면에 보이는 답변 수와 분리해야 한다. 답변을 신고해 숨기더라도 사용자가 이미 답변했다는 이력은 남아야 하며, 빠른 중복 클릭도 막기 위해 제출 가드는 React functional update 내부의 최신 상태를 기준으로 확인해야 한다.
+- 프로토타입에서도 신고/숨김처럼 사용자가 즉시 체감하는 동작은 모델 helper와 UI 동작이 같은 기준을 사용해야 한다.
+- 이후 Storybook 도입 시 컴포넌트 외형만 분리하지 말고, 답변 없음, 내가 쓴 요청, 신고 후 빈 목록, 이미 답변한 상태 같은 상태 변형을 함께 등록해야 한다.
+
+## 리뷰 중 추가 메모: `hydrated` 플래그의 의미
+
+- `useOnseolPrototype`의 `hydrated`는 React hydration 자체를 직접 완료시키거나 제어하는 값이 아니다.
+- 이 코드에서 `hydrated`는 애플리케이션 레벨의 플래그이며, 의미는 “브라우저 localStorage에서 기존 프로토타입 상태를 읽는 초기 동기화가 끝났다”에 가깝다.
+- 이름 때문에 “React가 hydrate 됐는지”로 오해할 수 있지만, 실제 목적은 localStorage 읽기 전 기본 상태가 기존 저장값을 덮어쓰지 않게 막는 것이다.
+
+### 왜 필요한가
+
+- Next.js App Router에서는 `"use client"` 컴포넌트도 서버에서 먼저 HTML을 만들 수 있다.
+- 서버에는 `window`와 `localStorage`가 없으므로 첫 HTML은 기본 샘플 상태 기준으로 만들어진다.
+- 브라우저 첫 렌더에서 localStorage를 즉시 읽으면 서버가 만든 HTML과 클라이언트 첫 렌더 결과가 달라질 수 있다.
+- 온설에서는 요청 초안 글자 수가 대표 사례였다. 서버는 빈 초안 기준으로 `160자`를 렌더했지만, 브라우저가 저장된 초안을 즉시 읽으면 `130자`처럼 다른 값이 렌더되어 hydration mismatch가 발생할 수 있었다.
+
+### 현재 구현 의도
+
+- 첫 렌더는 `createInitialPrototypeState(new Date())`로 만든 안정적인 기본 상태를 사용한다.
+- 브라우저 마운트 이후 `useEffect`에서 `readPrototypeState()`를 호출해 localStorage 값을 읽는다.
+- localStorage 읽기가 끝난 뒤 `setHydrated(true)`를 호출한다.
+- 별도 effect는 `hydrated === true`일 때만 `writePrototypeState(state)`를 실행한다.
+
+```ts
+const [state, setState] = useState<PrototypeState>(() =>
+  createInitialPrototypeState(new Date()),
+);
+const [hydrated, setHydrated] = useState(false);
+
+useEffect(() => {
+  const timeoutId = window.setTimeout(() => {
+    setState(readPrototypeState());
+    setHydrated(true);
+  }, 0);
+
+  return () => window.clearTimeout(timeoutId);
+}, []);
+
+useEffect(() => {
+  if (hydrated) {
+    writePrototypeState(state);
+  }
+}, [hydrated, state]);
+```
+
+### 읽기와 쓰기를 분리해야 하는 이유
+
+- localStorage에서 기존 상태를 읽기 전에 기본 샘플 상태를 저장하면 사용자가 이전에 작성하던 draft를 덮어쓸 수 있다.
+- 따라서 “첫 렌더용 기본 상태”, “브라우저 저장소에서 읽은 상태”, “저장소에 다시 써도 되는 상태”를 구분해야 한다.
+- `hydrated`는 이 중 “저장소에 다시 써도 되는 상태”를 판별하는 안전장치다.
+
+### 위키로 승격할 때 남길 교훈
+
+- 클라이언트 컴포넌트라고 해서 초기 렌더에서 브라우저 전용 값을 바로 읽어도 되는 것은 아니다.
+- Next.js App Router에서 localStorage 기반 프로토타입을 만들 때도 SSR/hydration 관점을 고려해야 한다.
+- 브라우저 저장소의 읽기와 쓰기를 같은 시점에 두면 hydration mismatch 또는 draft 유실이 생길 수 있다.
+- 첫 렌더는 서버와 클라이언트가 같은 결과를 내는 기본 상태로 맞추고, localStorage 읽기와 쓰기는 마운트 이후 단계적으로 수행한다.
+- 더 정확한 이름을 원한다면 `hydrated`보다 `hasLoadedStoredState` 또는 `storageReady` 같은 이름이 의도를 더 잘 설명할 수 있다. 다만 현재 PR에서는 React 생태계에서 흔히 쓰는 용어와 짧은 플래그명을 우선해 `hydrated`를 사용했다.
+
+## 검증 기록
+
+- `pnpm lint` 통과.
+- `pnpm typecheck` 통과. 단, `pnpm build`와 병렬로 실행했을 때 `.next/types` 생성 타이밍과 겹쳐 일시 실패했으므로 단독 재실행으로 확인했다. 앞으로 `typecheck`와 `build`는 병렬 실행하지 않는 편이 안전하다.
+- `pnpm build` 통과. `/`와 `/today`가 정적 라우트로 생성됐다.
+- 브라우저 확인에서 랜딩의 `웹에서 시작하기` 링크가 `/today`로 이동하는 것을 확인했다.
+- 브라우저 확인에서 최초 샘플 데이터 노출, 요청 초안 새로고침 복원, 요청 제출 후 초안 초기화, 답변 제출, 같은 요청에 대한 두 번째 답변 버튼 비활성화, 답변 신고 후 숨김, 초기화 후 샘플 복원을 확인했다.
+- 첫 브라우저 확인에서 hydration mismatch가 발생했다. 원인은 `useState` 초기값에서 localStorage를 즉시 읽어 서버 프리렌더 결과와 클라이언트 첫 렌더 결과가 달라진 것이었다. 첫 렌더는 안정적인 샘플 상태로 맞추고, 마운트 이후 저장값을 불러오도록 수정한 뒤 콘솔 오류가 사라졌다.
+- 코드 리뷰에서 신고로 숨긴 내 답변 뒤에 다시 답변할 수 있는 문제와 빠른 중복 제출 가능성이 지적됐다. 숨김 여부와 무관하게 `hasViewerReplied`가 내 답변 이력을 확인하도록 바꾸고, 답변 제출 가드를 functional update 내부로 이동했다.
+- 리뷰 반영 후 `pnpm lint`, `pnpm build`, `pnpm typecheck`를 다시 실행해 통과를 확인했다.
+- 브라우저 회귀 확인에서 답변 작성 후 버튼 비활성화, 답변 신고 후 숨김, 숨긴 뒤에도 답변 버튼 비활성 유지, 콘솔 오류 0건을 확인했다.
+- 기본 브라우저 폭에서 문서 가로 overflow가 없음을 확인했다.
+- 브라우저 도구의 viewport override가 390px로 적용되지 않아 모바일 390px 수치 검증은 완료하지 못했다. 코드 구조는 기본 모바일 우선 클래스와 `sm:` 확장 중심으로 작성했으나, 다음 PR 또는 수동 확인에서 390px 실제 브라우저 검증이 필요하다.
+
+## 후속 작업
+
+- 프로토타입 확인 후 로딩, 팬딩, 패칭, 실패, 빈 상태, 신고 확인, 인증 전환 같은 인터랙션 상세 설계를 별도 문서로 작성한다.
+- Storybook을 도입하면 `RequestComposer`, `NoteCard`, `ReplyComposer`, `ReplyCard`, `RecentExchangeList`, `MyActivityList`를 우선 스토리 대상으로 삼는다.
