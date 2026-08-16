@@ -1,13 +1,14 @@
+import Link from "next/link";
+
 export function EntryActions() {
   return (
     <div className="flex flex-col gap-3 sm:flex-row">
-      <button
+      <Link
         className="inline-flex h-12 items-center justify-center rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:opacity-90 whitespace-nowrap"
-        type="button"
-        aria-disabled="true"
+        href="/today"
       >
         웹에서 시작하기
-      </button>
+      </Link>
       <button
         className="inline-flex h-12 items-center justify-center rounded-lg border border-line bg-surface px-5 text-sm font-semibold text-foreground whitespace-nowrap"
         type="button"
