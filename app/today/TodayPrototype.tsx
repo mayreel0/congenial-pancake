@@ -45,6 +45,7 @@ export function TodayPrototype() {
       </header>
 
       <RequestComposer
+        status={prototype.requestSubmitStatus}
         value={prototype.state.requestDraft}
         onChange={prototype.updateRequestDraft}
         onSubmit={prototype.submitRequest}
