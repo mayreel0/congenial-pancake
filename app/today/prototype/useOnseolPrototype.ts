@@ -40,7 +40,7 @@ type UseOnseolPrototypeResult = {
   myRequests: OnseolRequest[];
   myReplies: OnseolReply[];
   updateRequestDraft(value: string): void;
-  submitRequest(): Promise<void>;
+  submitRequest(bodyOverride?: string): Promise<void>;
   selectRequest(requestId: string): void;
   updateReplyDraft(requestId: string, value: string): void;
   submitReply(requestId: string): void;
@@ -119,10 +119,10 @@ export function useOnseolPrototype(): UseOnseolPrototypeResult {
     updateState((current) => ({ ...current, requestDraft: value }));
   }
 
-  async function submitRequest(): Promise<void> {
+  async function submitRequest(bodyOverride?: string): Promise<void> {
     if (requestSubmittingRef.current) return;
 
-    const body = state.requestDraft.trim();
+    const body = (bodyOverride ?? state.requestDraft).trim();
     if (!body) return;
 
     requestSubmittingRef.current = true;

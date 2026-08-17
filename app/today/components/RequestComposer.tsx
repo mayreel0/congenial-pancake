@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 
 const MIN_TEXTAREA_HEIGHT = 44;
 const MAX_TEXTAREA_HEIGHT = 128;
@@ -9,7 +9,7 @@ type RequestComposerProps = {
   value: string;
   status: "idle" | "pending" | "success";
   onChange(value: string): void;
-  onSubmit(): void | Promise<void>;
+  onSubmit(value: string): void | Promise<void>;
 };
 
 export function RequestComposer({
@@ -19,8 +19,19 @@ export function RequestComposer({
   onSubmit,
 }: RequestComposerProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [draftState, setDraftState] = useState({
+    propValue: value,
+    localValue: value,
+  });
+  let localValue = draftState.localValue;
+
+  if (draftState.propValue !== value) {
+    localValue = value;
+    setDraftState({ propValue: value, localValue: value });
+  }
+
   const isPending = status === "pending";
-  const canSubmit = Boolean(value.trim()) && !isPending;
+  const canSubmit = Boolean(localValue.trim()) && !isPending;
 
   useLayoutEffect(() => {
     const textarea = textareaRef.current;
@@ -31,14 +42,14 @@ export function RequestComposer({
     textarea.style.height = `${Math.max(nextHeight, MIN_TEXTAREA_HEIGHT)}px`;
     textarea.style.overflowY =
       textarea.scrollHeight > MAX_TEXTAREA_HEIGHT ? "auto" : "hidden";
-  }, [value]);
+  }, [localValue]);
 
   return (
     <form
       className="mx-auto w-full max-w-2xl"
       onSubmit={(event) => {
         event.preventDefault();
-        if (canSubmit) void onSubmit();
+        if (canSubmit) void onSubmit(localValue.trim());
       }}
     >
       <label className="sr-only" htmlFor="request-body">
@@ -53,8 +64,12 @@ export function RequestComposer({
           placeholder="오늘 어떤 말을 듣고 싶나요?"
           ref={textareaRef}
           rows={1}
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
+          value={localValue}
+          onChange={(event) => {
+            const nextValue = event.currentTarget.value;
+            setDraftState({ propValue: value, localValue: nextValue });
+            onChange(nextValue);
+          }}
         />
         <button
           className="inline-flex h-10 shrink-0 items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"

@@ -27,8 +27,8 @@ export function TodayPrototype() {
     };
   }, []);
 
-  const submitRequest = async () => {
-    await prototype.submitRequest();
+  const submitRequest = async (body: string) => {
+    await prototype.submitRequest(body);
     setShowSuccessToast(true);
 
     if (toastTimerRef.current !== null) {
@@ -51,9 +51,9 @@ export function TodayPrototype() {
   };
 
   return (
-    <main className="flex min-h-screen bg-background px-5 py-10 text-foreground sm:items-center sm:px-8">
+    <main className="flex min-h-dvh bg-background px-5 py-10 text-foreground sm:items-center sm:px-8">
       <section
-        className="mx-auto grid min-h-[calc(100vh-5rem)] w-full max-w-3xl grid-rows-[1fr_auto_auto] gap-7 text-center sm:min-h-0 sm:grid-rows-none sm:gap-8"
+        className="mx-auto grid min-h-[calc(100dvh-5rem)] w-full max-w-3xl grid-rows-[1fr_auto_auto] gap-7 text-center sm:min-h-0 sm:grid-rows-none sm:gap-8"
         data-testid="today-entry-layout"
       >
         <div

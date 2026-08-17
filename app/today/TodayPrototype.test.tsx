@@ -15,8 +15,9 @@ describe("TodayPrototype", () => {
       screen.getByRole("heading", { name: "오늘 어떤 말을 듣고 싶나요?" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "보내기" })).toBeInTheDocument();
+    expect(screen.getByRole("main")).toHaveClass("min-h-dvh");
     expect(screen.getByTestId("today-entry-layout")).toHaveClass(
-      "min-h-[calc(100vh-5rem)]",
+      "min-h-[calc(100dvh-5rem)]",
       "grid-rows-[1fr_auto_auto]",
     );
     expect(screen.getByTestId("today-entry-copy")).toHaveClass(
@@ -36,12 +37,35 @@ describe("TodayPrototype", () => {
     expect(screen.queryByText("선택한 요청")).not.toBeInTheDocument();
   });
 
+  it("enables send when mobile input events update the request", () => {
+    render(<TodayPrototype />);
+
+    const textarea = screen.getByLabelText("오늘 어떤 말을 듣고 싶나요?");
+    fireEvent.input(textarea, {
+      target: { value: "모바일에서 입력한 온설입니다." },
+    });
+
+    expect(screen.getByRole("button", { name: "보내기" })).toBeEnabled();
+  });
+
+  it("keeps send enabled while mobile IME composition is still active", () => {
+    render(<TodayPrototype />);
+
+    const textarea = screen.getByLabelText("오늘 어떤 말을 듣고 싶나요?");
+    fireEvent.compositionStart(textarea);
+    fireEvent.input(textarea, {
+      target: { value: "힘" },
+    });
+
+    expect(screen.getByRole("button", { name: "보내기" })).toBeEnabled();
+  });
+
   it("shows a temporary toast after a request is submitted", async () => {
     vi.useFakeTimers();
 
     render(<TodayPrototype />);
 
-    fireEvent.change(screen.getByLabelText("오늘 어떤 말을 듣고 싶나요?"), {
+    fireEvent.input(screen.getByLabelText("오늘 어떤 말을 듣고 싶나요?"), {
       target: { value: "오늘은 조금 지쳤어요." },
     });
     fireEvent.click(screen.getByRole("button", { name: "보내기" }));
@@ -68,7 +92,7 @@ describe("TodayPrototype", () => {
 
     render(<TodayPrototype />);
 
-    fireEvent.change(screen.getByLabelText("오늘 어떤 말을 듣고 싶나요?"), {
+    fireEvent.input(screen.getByLabelText("오늘 어떤 말을 듣고 싶나요?"), {
       target: { value: "오늘은 조금 지쳤어요." },
     });
     fireEvent.click(screen.getByRole("button", { name: "보내기" }));
