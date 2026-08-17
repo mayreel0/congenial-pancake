@@ -53,6 +53,28 @@ export function getRecentExchanges(
     }));
 }
 
+export function getRecentNonViewerRequests(
+  state: PrototypeState,
+  limit = 5,
+): OnseolRequest[] {
+  return getVisibleRequests(state)
+    .filter((request) => request.authorId !== state.viewer.id)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .slice(0, limit);
+}
+
+export function getTodayEntryMessages(
+  state: PrototypeState,
+  fallbackMessages: string[],
+  limit = 5,
+): string[] {
+  const recentMessages = getRecentNonViewerRequests(state, limit).map(
+    (request) => request.body,
+  );
+
+  return recentMessages.length > 0 ? recentMessages : fallbackMessages;
+}
+
 export function getMyRequests(state: PrototypeState): OnseolRequest[] {
   return getVisibleRequests(state)
     .filter((request) => request.authorId === state.viewer.id)

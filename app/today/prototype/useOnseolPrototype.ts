@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   getMyReplies,
   getMyRequests,
   getPriorityRequests,
   getRecentExchanges,
+  getTodayEntryMessages,
   getVisibleRepliesForRequest,
   hasViewerReplied,
 } from "./model";
@@ -17,8 +18,21 @@ import {
 } from "./storage";
 import type { OnseolReply, OnseolRequest, PrototypeState } from "./types";
 
+type RequestSubmitStatus = "idle" | "pending" | "success";
+
+export const REQUEST_SUBMIT_PENDING_MS = 450;
+
+const FALLBACK_ONSEOL_MESSAGES = [
+  "오늘 실수한 일이 계속 떠올라요.",
+  "별일 아닌데 마음이 좀 가라앉았어요.",
+  "끝내긴 했는데 잘한 건지 모르겠어요.",
+  "그냥 오늘 하루 버틴 걸 알아줬으면 해요.",
+];
+
 type UseOnseolPrototypeResult = {
   state: PrototypeState;
+  requestSubmitStatus: RequestSubmitStatus;
+  todayEntryMessages: string[];
   priorityRequests: OnseolRequest[];
   selectedRequest: OnseolRequest | null;
   selectedReplies: OnseolReply[];
@@ -26,7 +40,7 @@ type UseOnseolPrototypeResult = {
   myRequests: OnseolRequest[];
   myReplies: OnseolReply[];
   updateRequestDraft(value: string): void;
-  submitRequest(): void;
+  submitRequest(): Promise<void>;
   selectRequest(requestId: string): void;
   updateReplyDraft(requestId: string, value: string): void;
   submitReply(requestId: string): void;
@@ -49,6 +63,9 @@ export function useOnseolPrototype(): UseOnseolPrototypeResult {
     createInitialPrototypeState(new Date()),
   );
   const [hydrated, setHydrated] = useState(false);
+  const [requestSubmitStatus, setRequestSubmitStatus] =
+    useState<RequestSubmitStatus>("idle");
+  const requestSubmittingRef = useRef(false);
   const now = useMemo(() => new Date(), []);
 
   useEffect(() => {
@@ -78,6 +95,10 @@ export function useOnseolPrototype(): UseOnseolPrototypeResult {
     ? getVisibleRepliesForRequest(state, selectedRequest.id)
     : [];
   const recentExchanges = getRecentExchanges(state);
+  const todayEntryMessages = getTodayEntryMessages(
+    state,
+    FALLBACK_ONSEOL_MESSAGES,
+  );
   const myRequests = getMyRequests(state);
   const myReplies = getMyReplies(state);
 
@@ -92,12 +113,24 @@ export function useOnseolPrototype(): UseOnseolPrototypeResult {
   }
 
   function updateRequestDraft(value: string): void {
+    if (requestSubmitStatus === "success") {
+      setRequestSubmitStatus("idle");
+    }
     updateState((current) => ({ ...current, requestDraft: value }));
   }
 
-  function submitRequest(): void {
+  async function submitRequest(): Promise<void> {
+    if (requestSubmittingRef.current) return;
+
     const body = state.requestDraft.trim();
     if (!body) return;
+
+    requestSubmittingRef.current = true;
+    setRequestSubmitStatus("pending");
+
+    await new Promise((resolve) =>
+      window.setTimeout(resolve, REQUEST_SUBMIT_PENDING_MS),
+    );
 
     const request: OnseolRequest = {
       id: createRequestId(),
@@ -113,8 +146,10 @@ export function useOnseolPrototype(): UseOnseolPrototypeResult {
       ...current,
       requests: [request, ...current.requests],
       requestDraft: "",
-      selectedRequestId: request.id,
+      selectedRequestId: current.selectedRequestId,
     }));
+    requestSubmittingRef.current = false;
+    setRequestSubmitStatus("success");
   }
 
   function selectRequest(requestId: string): void {
@@ -200,6 +235,8 @@ export function useOnseolPrototype(): UseOnseolPrototypeResult {
 
   return {
     state,
+    requestSubmitStatus,
+    todayEntryMessages,
     priorityRequests,
     selectedRequest,
     selectedReplies,

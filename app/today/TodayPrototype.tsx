@@ -1,139 +1,105 @@
 "use client";
 
-import { ActivitySummary } from "./components/ActivitySummary";
-import { MyActivityList } from "./components/MyActivityList";
-import { NoteCard } from "./components/NoteCard";
-import { RecentExchangeList } from "./components/RecentExchangeList";
-import { ReplyCard } from "./components/ReplyCard";
-import { ReplyComposer } from "./components/ReplyComposer";
+import { useEffect, useRef, useState } from "react";
 import { RequestComposer } from "./components/RequestComposer";
-import { getVisibleRepliesForRequest } from "./prototype/model";
+import { RotatingOnseolLine } from "./components/RotatingOnseolLine";
 import { useOnseolPrototype } from "./prototype/useOnseolPrototype";
+
+const TOAST_VISIBLE_MS = 2000;
 
 export function TodayPrototype() {
   const prototype = useOnseolPrototype();
-  const visibleReplyCount = prototype.state.replies.filter(
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const toastTimerRef = useRef<number | null>(null);
+  const isTyping = prototype.state.requestDraft.trim().length > 0;
+  const requestCount = prototype.state.requests.filter(
+    (request) => !request.hidden,
+  ).length;
+  const replyCount = prototype.state.replies.filter(
     (reply) => !reply.hidden,
   ).length;
-  const waitingCount = prototype.priorityRequests.filter(
-    (request) =>
-      getVisibleRepliesForRequest(prototype.state, request.id).length === 0,
-  ).length;
-  const selectedRequest = prototype.selectedRequest;
-  const selectedDraft = selectedRequest
-    ? prototype.state.replyDrafts[selectedRequest.id] ?? ""
-    : "";
+
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current !== null) {
+        window.clearTimeout(toastTimerRef.current);
+      }
+    };
+  }, []);
+
+  const submitRequest = async () => {
+    await prototype.submitRequest();
+    setShowSuccessToast(true);
+
+    if (toastTimerRef.current !== null) {
+      window.clearTimeout(toastTimerRef.current);
+    }
+
+    toastTimerRef.current = window.setTimeout(() => {
+      setShowSuccessToast(false);
+      toastTimerRef.current = null;
+    }, TOAST_VISIBLE_MS);
+  };
+
+  const dismissSuccessToast = () => {
+    setShowSuccessToast(false);
+
+    if (toastTimerRef.current !== null) {
+      window.clearTimeout(toastTimerRef.current);
+      toastTimerRef.current = null;
+    }
+  };
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
-      <header className="border-b border-line bg-surface px-5 py-5 sm:px-8">
-        <div className="mx-auto flex max-w-3xl items-center justify-between gap-4">
-          <div>
-            <p className="text-sm text-muted">온화하게 나누는 오늘의 한마디</p>
-            <h1 className="mt-1 text-2xl font-semibold text-foreground">
-              온설
-            </h1>
-          </div>
+    <main className="flex min-h-screen bg-background px-5 py-10 text-foreground sm:items-center sm:px-8">
+      <section
+        className="mx-auto grid min-h-[calc(100vh-5rem)] w-full max-w-3xl grid-rows-[1fr_auto_auto] gap-7 text-center sm:min-h-0 sm:grid-rows-none sm:gap-8"
+        data-testid="today-entry-layout"
+      >
+        <div
+          className="self-center space-y-4 sm:self-auto"
+          data-testid="today-entry-copy"
+        >
+          <p className="text-sm text-muted">온설</p>
+          <h1 className="text-2xl font-semibold tracking-normal text-foreground sm:text-4xl">
+            오늘 어떤 말을 듣고 싶나요?
+          </h1>
+          <RotatingOnseolLine
+            messages={prototype.todayEntryMessages}
+            paused={isTyping}
+          />
+        </div>
+
+        <div className="self-end sm:self-auto" data-testid="today-entry-composer">
+          <RequestComposer
+            status={prototype.requestSubmitStatus}
+            value={prototype.state.requestDraft}
+            onChange={prototype.updateRequestDraft}
+            onSubmit={submitRequest}
+          />
+        </div>
+
+        <p className="text-sm text-muted">
+          오늘 {requestCount}개의 이야기가 남겨졌고, {replyCount}개의 답장이
+          도착했어요.
+        </p>
+      </section>
+      {showSuccessToast ? (
+        <div
+          className="fixed bottom-5 left-1/2 z-10 flex w-[calc(100%-2.5rem)] max-w-sm -translate-x-1/2 items-center justify-between gap-3 rounded-lg border border-line bg-surface px-4 py-3 text-sm text-foreground shadow-sm sm:bottom-8 sm:w-auto sm:min-w-64"
+          role="status"
+        >
+          <span>온설을 남겼어요</span>
           <button
-            className="inline-flex h-10 items-center justify-center rounded-lg border border-line px-3 text-xs font-semibold text-muted transition hover:bg-surface-muted hover:text-foreground"
+            aria-label="알림 닫기"
+            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-lg leading-none text-muted transition hover:bg-surface-muted hover:text-foreground"
             type="button"
-            onClick={prototype.resetPrototype}
+            onClick={dismissSuccessToast}
           >
-            초기화
+            ×
           </button>
         </div>
-      </header>
-
-      <RequestComposer
-        value={prototype.state.requestDraft}
-        onChange={prototype.updateRequestDraft}
-        onSubmit={prototype.submitRequest}
-      />
-
-      <ActivitySummary
-        requestCount={prototype.priorityRequests.length}
-        replyCount={visibleReplyCount}
-        waitingCount={waitingCount}
-      />
-
-      <div className="mx-auto grid max-w-3xl gap-8 px-5 py-8 sm:px-8">
-        <section className="space-y-3">
-          <h2 className="text-base font-semibold text-foreground">
-            답변을 기다리는 말
-          </h2>
-          {prototype.priorityRequests.length === 0 ? (
-            <p className="rounded-lg border border-line bg-surface px-4 py-4 text-sm text-muted">
-              지금은 보이는 글이 없습니다. 오늘 있었던 일을 짧게 남겨보세요.
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {prototype.priorityRequests.map((request) => {
-                const replyCount = getVisibleRepliesForRequest(
-                  prototype.state,
-                  request.id,
-                ).length;
-
-                return (
-                  <NoteCard
-                    active={selectedRequest?.id === request.id}
-                    key={request.id}
-                    mine={request.authorId === prototype.state.viewer.id}
-                    replyCount={replyCount}
-                    request={request}
-                    onReport={() => prototype.reportRequest(request.id)}
-                    onSelect={() => prototype.selectRequest(request.id)}
-                  />
-                );
-              })}
-            </div>
-          )}
-        </section>
-
-        {selectedRequest ? (
-          <section className="space-y-4">
-            <div className="rounded-lg border border-line bg-surface px-4 py-4">
-              <h2 className="text-base font-semibold text-foreground">
-                선택한 요청
-              </h2>
-              <p className="mt-3 text-base leading-7 text-foreground">
-                {selectedRequest.body}
-              </p>
-            </div>
-
-            <div className="space-y-3">
-              {prototype.selectedReplies.length === 0 ? (
-                <p className="rounded-lg border border-line bg-surface px-4 py-4 text-sm text-muted">
-                  아직 답변이 없습니다. 첫 답변을 남겨주세요.
-                </p>
-              ) : (
-                prototype.selectedReplies.map((reply) => (
-                  <ReplyCard
-                    key={reply.id}
-                    mine={reply.authorId === prototype.state.viewer.id}
-                    reply={reply}
-                    onReport={() => prototype.reportReply(reply.id)}
-                  />
-                ))
-              )}
-            </div>
-
-            <ReplyComposer
-              disabled={prototype.hasViewerRepliedToSelected}
-              value={selectedDraft}
-              onChange={(value) =>
-                prototype.updateReplyDraft(selectedRequest.id, value)
-              }
-              onSubmit={() => prototype.submitReply(selectedRequest.id)}
-            />
-          </section>
-        ) : null}
-
-        <RecentExchangeList exchanges={prototype.recentExchanges} />
-        <MyActivityList
-          replies={prototype.myReplies}
-          requests={prototype.myRequests}
-        />
-      </div>
+      ) : null}
     </main>
   );
 }
