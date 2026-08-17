@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { RequestComposer } from "./RequestComposer";
@@ -33,6 +33,30 @@ describe("RequestComposer", () => {
     await user.click(screen.getByRole("button", { name: "보내기" }));
 
     expect(onSubmit).toHaveBeenCalledTimes(1);
+  });
+
+  it("enables send from the local input value before parent state catches up", () => {
+    const onChange = vi.fn();
+    const onSubmit = vi.fn();
+
+    render(
+      <RequestComposer
+        status="idle"
+        value=""
+        onChange={onChange}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    fireEvent.input(screen.getByLabelText("오늘 어떤 말을 듣고 싶나요?"), {
+      target: { value: "모바일에서 입력한 온설입니다." },
+    });
+
+    expect(screen.getByRole("button", { name: "보내기" })).toBeEnabled();
+    fireEvent.click(screen.getByRole("button", { name: "보내기" }));
+
+    expect(onChange).toHaveBeenCalledWith("모바일에서 입력한 온설입니다.");
+    expect(onSubmit).toHaveBeenCalledWith("모바일에서 입력한 온설입니다.");
   });
 
   it("expands the textarea as the request grows and resets when cleared", () => {
