@@ -78,12 +78,26 @@ export function ServiceNav({ activePath }: ServiceNavProps) {
               })}
           </nav>
         </div>
-        <Link
-          className="inline-flex h-9 items-center justify-center rounded-lg px-3 text-sm font-semibold text-muted transition hover:bg-surface-muted hover:text-foreground"
-          href={landingEntryLinks.login}
-        >
-          로그인
-        </Link>
+        <nav aria-label="개인 영역" className="flex items-center gap-1">
+          <Link
+            aria-current={isActive(activePath, "/me") ? "page" : undefined}
+            className={[
+              "hidden h-9 items-center justify-center rounded-lg px-3 text-sm font-semibold transition sm:inline-flex",
+              isActive(activePath, "/me")
+                ? "bg-surface-muted text-foreground"
+                : "text-muted hover:bg-surface-muted hover:text-foreground",
+            ].join(" ")}
+            href="/me"
+          >
+            내 기록
+          </Link>
+          <Link
+            className="inline-flex h-9 items-center justify-center rounded-lg px-3 text-sm font-semibold text-muted transition hover:bg-surface-muted hover:text-foreground"
+            href={landingEntryLinks.login}
+          >
+            로그인
+          </Link>
+        </nav>
       </div>
       {menuOpen ? (
         <nav

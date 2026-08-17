@@ -7,6 +7,7 @@ describe("ServiceNav", () => {
     render(<ServiceNav activePath="/today" />);
 
     const desktopNav = screen.getByLabelText("서비스 주요 이동");
+    const personalNav = screen.getByLabelText("개인 영역");
     expect(
       within(desktopNav).getByRole("link", { name: "남기기" }),
     ).toHaveAttribute("href", "/today");
@@ -16,7 +17,11 @@ describe("ServiceNav", () => {
     expect(
       within(desktopNav).getByRole("link", { name: "온설 읽기" }),
     ).toHaveAttribute("href", "/read");
-    expect(screen.getByRole("link", { name: "로그인" })).toHaveAttribute(
+    expect(within(personalNav).getByRole("link", { name: "내 기록" })).toHaveAttribute(
+      "href",
+      "/me",
+    );
+    expect(within(personalNav).getByRole("link", { name: "로그인" })).toHaveAttribute(
       "href",
       "/login",
     );
@@ -26,6 +31,16 @@ describe("ServiceNav", () => {
     render(<ServiceNav activePath="/answer" />);
 
     expect(screen.getByRole("link", { name: "답하기" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+  });
+
+  it("marks my records active in the personal area", () => {
+    render(<ServiceNav activePath="/me" />);
+
+    const personalNav = screen.getByLabelText("개인 영역");
+    expect(within(personalNav).getByRole("link", { name: "내 기록" })).toHaveAttribute(
       "aria-current",
       "page",
     );
