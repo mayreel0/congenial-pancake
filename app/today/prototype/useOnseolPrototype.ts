@@ -6,6 +6,7 @@ import {
   getMyRequests,
   getPriorityRequests,
   getRecentExchanges,
+  getTodayEntryMessages,
   getVisibleRepliesForRequest,
   hasViewerReplied,
 } from "./model";
@@ -21,9 +22,17 @@ type RequestSubmitStatus = "idle" | "pending" | "success";
 
 export const REQUEST_SUBMIT_PENDING_MS = 450;
 
+const FALLBACK_ONSEOL_MESSAGES = [
+  "오늘 실수한 일이 계속 떠올라요.",
+  "별일 아닌데 마음이 좀 가라앉았어요.",
+  "끝내긴 했는데 잘한 건지 모르겠어요.",
+  "그냥 오늘 하루 버틴 걸 알아줬으면 해요.",
+];
+
 type UseOnseolPrototypeResult = {
   state: PrototypeState;
   requestSubmitStatus: RequestSubmitStatus;
+  todayEntryMessages: string[];
   priorityRequests: OnseolRequest[];
   selectedRequest: OnseolRequest | null;
   selectedReplies: OnseolReply[];
@@ -86,6 +95,10 @@ export function useOnseolPrototype(): UseOnseolPrototypeResult {
     ? getVisibleRepliesForRequest(state, selectedRequest.id)
     : [];
   const recentExchanges = getRecentExchanges(state);
+  const todayEntryMessages = getTodayEntryMessages(
+    state,
+    FALLBACK_ONSEOL_MESSAGES,
+  );
   const myRequests = getMyRequests(state);
   const myReplies = getMyReplies(state);
 
@@ -223,6 +236,7 @@ export function useOnseolPrototype(): UseOnseolPrototypeResult {
   return {
     state,
     requestSubmitStatus,
+    todayEntryMessages,
     priorityRequests,
     selectedRequest,
     selectedReplies,
