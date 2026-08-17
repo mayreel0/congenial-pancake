@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   getMyReplies,
   getMyRequests,
@@ -17,8 +17,13 @@ import {
 } from "./storage";
 import type { OnseolReply, OnseolRequest, PrototypeState } from "./types";
 
+type RequestSubmitStatus = "idle" | "pending" | "success";
+
+export const REQUEST_SUBMIT_PENDING_MS = 450;
+
 type UseOnseolPrototypeResult = {
   state: PrototypeState;
+  requestSubmitStatus: RequestSubmitStatus;
   priorityRequests: OnseolRequest[];
   selectedRequest: OnseolRequest | null;
   selectedReplies: OnseolReply[];
@@ -26,7 +31,7 @@ type UseOnseolPrototypeResult = {
   myRequests: OnseolRequest[];
   myReplies: OnseolReply[];
   updateRequestDraft(value: string): void;
-  submitRequest(): void;
+  submitRequest(): Promise<void>;
   selectRequest(requestId: string): void;
   updateReplyDraft(requestId: string, value: string): void;
   submitReply(requestId: string): void;
@@ -49,6 +54,9 @@ export function useOnseolPrototype(): UseOnseolPrototypeResult {
     createInitialPrototypeState(new Date()),
   );
   const [hydrated, setHydrated] = useState(false);
+  const [requestSubmitStatus, setRequestSubmitStatus] =
+    useState<RequestSubmitStatus>("idle");
+  const requestSubmittingRef = useRef(false);
   const now = useMemo(() => new Date(), []);
 
   useEffect(() => {
@@ -92,12 +100,24 @@ export function useOnseolPrototype(): UseOnseolPrototypeResult {
   }
 
   function updateRequestDraft(value: string): void {
+    if (requestSubmitStatus === "success") {
+      setRequestSubmitStatus("idle");
+    }
     updateState((current) => ({ ...current, requestDraft: value }));
   }
 
-  function submitRequest(): void {
+  async function submitRequest(): Promise<void> {
+    if (requestSubmittingRef.current) return;
+
     const body = state.requestDraft.trim();
     if (!body) return;
+
+    requestSubmittingRef.current = true;
+    setRequestSubmitStatus("pending");
+
+    await new Promise((resolve) =>
+      window.setTimeout(resolve, REQUEST_SUBMIT_PENDING_MS),
+    );
 
     const request: OnseolRequest = {
       id: createRequestId(),
@@ -113,8 +133,10 @@ export function useOnseolPrototype(): UseOnseolPrototypeResult {
       ...current,
       requests: [request, ...current.requests],
       requestDraft: "",
-      selectedRequestId: request.id,
+      selectedRequestId: current.selectedRequestId,
     }));
+    requestSubmittingRef.current = false;
+    setRequestSubmitStatus("success");
   }
 
   function selectRequest(requestId: string): void {
@@ -200,6 +222,7 @@ export function useOnseolPrototype(): UseOnseolPrototypeResult {
 
   return {
     state,
+    requestSubmitStatus,
     priorityRequests,
     selectedRequest,
     selectedReplies,
