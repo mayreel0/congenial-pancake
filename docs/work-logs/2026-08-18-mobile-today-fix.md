@@ -15,6 +15,8 @@
 
 모바일 상단 빈 공간은 `100vh` 기준 레이아웃이 브라우저 주소창과 키보드에 맞춰 변하는 visual viewport를 충분히 반영하지 못해서 생길 수 있다.
 
+포트포워딩으로 `tttwg.iptime.org` 같은 외부 도메인을 통해 Next.js dev 서버에 접근하면, HTML은 200으로 내려와도 `_next/static` dev 리소스가 cross-origin dev resource 정책에 막힐 수 있다. 이 경우 React client bundle이 붙지 않아 입력해도 버튼 상태가 바뀌지 않는 것처럼 보인다.
+
 ## 수정
 
 - `RequestComposer`가 로컬 입력값을 즉시 보관하고, 버튼 활성화 여부도 로컬 입력값 기준으로 판단하게 했다.
@@ -23,6 +25,7 @@
 - `useOnseolPrototype.submitRequest`는 optional body override를 받아 부모 state 반영이 늦어도 제출값을 잃지 않게 했다.
 - 모바일 viewport 기준은 `100vh` 대신 `100dvh`를 사용한다.
 - 입력창은 하단 composer row에 남겨두어 줄이 늘어날 때 위쪽으로 확장되는 구조를 유지한다.
+- `next.config.ts`에 `allowedDevOrigins: ["tttwg.iptime.org"]`를 추가해 포트포워딩 도메인에서도 dev 리소스가 로드되게 했다.
 
 ## 검증 기준
 
