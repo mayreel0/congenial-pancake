@@ -1,3 +1,10 @@
+"use client";
+
+import { useLayoutEffect, useRef } from "react";
+
+const MIN_TEXTAREA_HEIGHT = 44;
+const MAX_TEXTAREA_HEIGHT = 128;
+
 type RequestComposerProps = {
   value: string;
   status: "idle" | "pending" | "success";
@@ -11,8 +18,20 @@ export function RequestComposer({
   onChange,
   onSubmit,
 }: RequestComposerProps) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isPending = status === "pending";
   const canSubmit = Boolean(value.trim()) && !isPending;
+
+  useLayoutEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    textarea.style.height = `${MIN_TEXTAREA_HEIGHT}px`;
+    const nextHeight = Math.min(textarea.scrollHeight, MAX_TEXTAREA_HEIGHT);
+    textarea.style.height = `${Math.max(nextHeight, MIN_TEXTAREA_HEIGHT)}px`;
+    textarea.style.overflowY =
+      textarea.scrollHeight > MAX_TEXTAREA_HEIGHT ? "auto" : "hidden";
+  }, [value]);
 
   return (
     <form
@@ -32,6 +51,7 @@ export function RequestComposer({
           id="request-body"
           maxLength={160}
           placeholder="오늘 어떤 말을 듣고 싶나요?"
+          ref={textareaRef}
           rows={1}
           value={value}
           onChange={(event) => onChange(event.target.value)}

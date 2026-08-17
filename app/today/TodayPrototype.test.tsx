@@ -15,6 +15,11 @@ describe("TodayPrototype", () => {
       screen.getByRole("heading", { name: "오늘 어떤 말을 듣고 싶나요?" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "보내기" })).toBeInTheDocument();
+    expect(screen.getByTestId("today-entry-layout")).toHaveClass(
+      "min-h-[calc(100vh-5rem)]",
+      "content-end",
+      "sm:content-center",
+    );
   });
 
   it("does not render the old all-in-one dashboard sections", () => {
@@ -39,11 +44,33 @@ describe("TodayPrototype", () => {
     });
 
     expect(screen.getByRole("status")).toHaveTextContent("온설을 남겼어요");
+    expect(
+      screen.getByRole("button", { name: "알림 닫기" }),
+    ).toBeInTheDocument();
     expect(screen.queryByText("남겨졌어요")).not.toBeInTheDocument();
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(2000);
     });
+
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("lets the success toast be dismissed immediately", async () => {
+    vi.useFakeTimers();
+
+    render(<TodayPrototype />);
+
+    fireEvent.change(screen.getByLabelText("오늘 어떤 말을 듣고 싶나요?"), {
+      target: { value: "오늘은 조금 지쳤어요." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "보내기" }));
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(450);
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "알림 닫기" }));
 
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
