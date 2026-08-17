@@ -53,10 +53,13 @@ export function TodayPrototype() {
   return (
     <main className="flex min-h-screen bg-background px-5 py-10 text-foreground sm:items-center sm:px-8">
       <section
-        className="mx-auto grid min-h-[calc(100vh-5rem)] w-full max-w-3xl content-end gap-7 text-center sm:min-h-0 sm:content-center sm:gap-8"
+        className="mx-auto grid min-h-[calc(100vh-5rem)] w-full max-w-3xl grid-rows-[1fr_auto_auto] gap-7 text-center sm:min-h-0 sm:grid-rows-none sm:gap-8"
         data-testid="today-entry-layout"
       >
-        <div className="space-y-4">
+        <div
+          className="self-center space-y-4 sm:self-auto"
+          data-testid="today-entry-copy"
+        >
           <p className="text-sm text-muted">온설</p>
           <h1 className="text-2xl font-semibold tracking-normal text-foreground sm:text-4xl">
             오늘 어떤 말을 듣고 싶나요?
@@ -67,12 +70,14 @@ export function TodayPrototype() {
           />
         </div>
 
-        <RequestComposer
-          status={prototype.requestSubmitStatus}
-          value={prototype.state.requestDraft}
-          onChange={prototype.updateRequestDraft}
-          onSubmit={submitRequest}
-        />
+        <div className="self-end sm:self-auto" data-testid="today-entry-composer">
+          <RequestComposer
+            status={prototype.requestSubmitStatus}
+            value={prototype.state.requestDraft}
+            onChange={prototype.updateRequestDraft}
+            onSubmit={submitRequest}
+          />
+        </div>
 
         <p className="text-sm text-muted">
           오늘 {requestCount}개의 이야기가 남겨졌고, {replyCount}개의 답장이

@@ -17,8 +17,15 @@ describe("TodayPrototype", () => {
     expect(screen.getByRole("button", { name: "보내기" })).toBeInTheDocument();
     expect(screen.getByTestId("today-entry-layout")).toHaveClass(
       "min-h-[calc(100vh-5rem)]",
-      "content-end",
-      "sm:content-center",
+      "grid-rows-[1fr_auto_auto]",
+    );
+    expect(screen.getByTestId("today-entry-copy")).toHaveClass(
+      "self-center",
+      "sm:self-auto",
+    );
+    expect(screen.getByTestId("today-entry-composer")).toHaveClass(
+      "self-end",
+      "sm:self-auto",
     );
   });
 
