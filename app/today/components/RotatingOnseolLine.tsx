@@ -36,7 +36,8 @@ export function RotatingOnseolLine({
 
   return (
     <p
-      className="onseol-soft-wipe mx-auto min-h-8 max-w-2xl text-center text-base leading-7 text-muted sm:text-lg"
+      key={`${index}-${message}`}
+      className="onseol-soft-wipe mx-auto line-clamp-2 min-h-14 max-w-2xl text-center text-base leading-7 text-muted sm:text-lg"
       style={
         {
           "--onseol-transition-ms": `${transitionMs}ms`,

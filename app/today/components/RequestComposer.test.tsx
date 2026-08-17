@@ -35,7 +35,7 @@ describe("RequestComposer", () => {
     expect(onSubmit).toHaveBeenCalledTimes(1);
   });
 
-  it("shows pending and success states", () => {
+  it("shows pending without adding inline success copy", () => {
     const { rerender } = render(
       <RequestComposer
         status="pending"
@@ -56,6 +56,7 @@ describe("RequestComposer", () => {
       />,
     );
 
-    expect(screen.getByText("남겨졌어요")).toBeInTheDocument();
+    expect(screen.queryByText("남겨졌어요")).not.toBeInTheDocument();
+    expect(screen.queryByText("온설을 남겼어요")).not.toBeInTheDocument();
   });
 });

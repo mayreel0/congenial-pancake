@@ -44,9 +44,6 @@ export function RequestComposer({
           {isPending ? "남기는 중" : "보내기"}
         </button>
       </div>
-      {status === "success" ? (
-        <p className="mt-3 text-center text-sm text-muted">남겨졌어요</p>
-      ) : null}
     </form>
   );
 }

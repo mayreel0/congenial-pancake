@@ -19,6 +19,22 @@ describe("RotatingOnseolLine", () => {
     ).toBeInTheDocument();
   });
 
+  it("keeps the rotating line in a stable two-line viewport", () => {
+    render(
+      <RotatingOnseolLine
+        messages={[
+          "모바일에서 길어질 수 있는 온설 문구가 들어와도 입력창 위치가 흔들리지 않게 보여줘요.",
+        ]}
+        paused={false}
+      />,
+    );
+
+    expect(screen.getByText(/모바일에서 길어질 수 있는/)).toHaveClass(
+      "line-clamp-2",
+      "min-h-14",
+    );
+  });
+
   it("advances messages after the interval", () => {
     vi.useFakeTimers();
 
@@ -35,6 +51,9 @@ describe("RotatingOnseolLine", () => {
     });
 
     expect(screen.getByText("두 번째 온설")).toBeInTheDocument();
+    expect(screen.getByText("두 번째 온설")).toHaveStyle({
+      "--onseol-transition-ms": "600ms",
+    });
 
     vi.useRealTimers();
   });

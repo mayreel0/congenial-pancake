@@ -1,11 +1,16 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { RequestComposer } from "./components/RequestComposer";
 import { RotatingOnseolLine } from "./components/RotatingOnseolLine";
 import { useOnseolPrototype } from "./prototype/useOnseolPrototype";
 
+const TOAST_VISIBLE_MS = 2000;
+
 export function TodayPrototype() {
   const prototype = useOnseolPrototype();
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const toastTimerRef = useRef<number | null>(null);
   const isTyping = prototype.state.requestDraft.trim().length > 0;
   const requestCount = prototype.state.requests.filter(
     (request) => !request.hidden,
@@ -13,6 +18,28 @@ export function TodayPrototype() {
   const replyCount = prototype.state.replies.filter(
     (reply) => !reply.hidden,
   ).length;
+
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current !== null) {
+        window.clearTimeout(toastTimerRef.current);
+      }
+    };
+  }, []);
+
+  const submitRequest = async () => {
+    await prototype.submitRequest();
+    setShowSuccessToast(true);
+
+    if (toastTimerRef.current !== null) {
+      window.clearTimeout(toastTimerRef.current);
+    }
+
+    toastTimerRef.current = window.setTimeout(() => {
+      setShowSuccessToast(false);
+      toastTimerRef.current = null;
+    }, TOAST_VISIBLE_MS);
+  };
 
   return (
     <main className="flex min-h-screen items-center bg-background px-5 py-10 text-foreground sm:px-8">
@@ -32,7 +59,7 @@ export function TodayPrototype() {
           status={prototype.requestSubmitStatus}
           value={prototype.state.requestDraft}
           onChange={prototype.updateRequestDraft}
-          onSubmit={prototype.submitRequest}
+          onSubmit={submitRequest}
         />
 
         <p className="text-sm text-muted">
@@ -40,6 +67,14 @@ export function TodayPrototype() {
           도착했어요.
         </p>
       </section>
+      {showSuccessToast ? (
+        <div
+          className="fixed bottom-5 left-1/2 z-10 -translate-x-1/2 rounded-lg border border-line bg-surface px-4 py-3 text-sm text-foreground shadow-sm sm:bottom-8"
+          role="status"
+        >
+          온설을 남겼어요
+        </div>
+      ) : null}
     </main>
   );
 }
