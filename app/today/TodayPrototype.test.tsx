@@ -15,9 +15,11 @@ describe("TodayPrototype", () => {
       screen.getByRole("heading", { name: "오늘 어떤 말을 듣고 싶나요?" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "보내기" })).toBeInTheDocument();
-    expect(screen.getByRole("main")).toHaveClass("min-h-dvh");
+    expect(screen.getByRole("main")).toHaveClass(
+      "min-h-[calc(100dvh-3.5rem)]",
+    );
     expect(screen.getByTestId("today-entry-layout")).toHaveClass(
-      "min-h-[calc(100dvh-5rem)]",
+      "min-h-[calc(100dvh-8.5rem)]",
       "grid-rows-[1fr_auto_auto]",
     );
     expect(screen.getByTestId("today-entry-copy")).toHaveClass(
@@ -27,6 +29,23 @@ describe("TodayPrototype", () => {
     expect(screen.getByTestId("today-entry-composer")).toHaveClass(
       "self-end",
       "sm:self-auto",
+    );
+  });
+
+  it("renders service navigation on today", () => {
+    render(<TodayPrototype />);
+
+    expect(screen.getByRole("link", { name: "온설" })).toHaveAttribute(
+      "href",
+      "/today",
+    );
+    expect(screen.getByRole("link", { name: "남기기" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(screen.getByRole("link", { name: "로그인" })).toHaveAttribute(
+      "href",
+      "/login",
     );
   });
 

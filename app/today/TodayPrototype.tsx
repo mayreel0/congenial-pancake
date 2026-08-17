@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { ServiceNav } from "../components/navigation/ServiceNav";
 import { RequestComposer } from "./components/RequestComposer";
 import { RotatingOnseolLine } from "./components/RotatingOnseolLine";
 import { useOnseolPrototype } from "./prototype/useOnseolPrototype";
@@ -51,39 +52,45 @@ export function TodayPrototype() {
   };
 
   return (
-    <main className="flex min-h-dvh bg-background px-5 py-10 text-foreground sm:items-center sm:px-8">
-      <section
-        className="mx-auto grid min-h-[calc(100dvh-5rem)] w-full max-w-3xl grid-rows-[1fr_auto_auto] gap-7 text-center sm:min-h-0 sm:grid-rows-none sm:gap-8"
-        data-testid="today-entry-layout"
-      >
-        <div
-          className="self-center space-y-4 sm:self-auto"
-          data-testid="today-entry-copy"
+    <div className="min-h-dvh bg-background text-foreground">
+      <ServiceNav activePath="/today" />
+      <main className="flex min-h-[calc(100dvh-3.5rem)] px-5 py-10 sm:items-center sm:px-8">
+        <section
+          className="mx-auto grid min-h-[calc(100dvh-8.5rem)] w-full max-w-3xl grid-rows-[1fr_auto_auto] gap-7 text-center sm:min-h-0 sm:grid-rows-none sm:gap-8"
+          data-testid="today-entry-layout"
         >
-          <p className="text-sm text-muted">온설</p>
-          <h1 className="text-2xl font-semibold tracking-normal text-foreground sm:text-4xl">
-            오늘 어떤 말을 듣고 싶나요?
-          </h1>
-          <RotatingOnseolLine
-            messages={prototype.todayEntryMessages}
-            paused={isTyping}
-          />
-        </div>
+          <div
+            className="self-center space-y-4 sm:self-auto"
+            data-testid="today-entry-copy"
+          >
+            <p className="text-sm text-muted">온설</p>
+            <h1 className="text-2xl font-semibold tracking-normal text-foreground sm:text-4xl">
+              오늘 어떤 말을 듣고 싶나요?
+            </h1>
+            <RotatingOnseolLine
+              messages={prototype.todayEntryMessages}
+              paused={isTyping}
+            />
+          </div>
 
-        <div className="self-end sm:self-auto" data-testid="today-entry-composer">
-          <RequestComposer
-            status={prototype.requestSubmitStatus}
-            value={prototype.state.requestDraft}
-            onChange={prototype.updateRequestDraft}
-            onSubmit={submitRequest}
-          />
-        </div>
+          <div
+            className="self-end sm:self-auto"
+            data-testid="today-entry-composer"
+          >
+            <RequestComposer
+              status={prototype.requestSubmitStatus}
+              value={prototype.state.requestDraft}
+              onChange={prototype.updateRequestDraft}
+              onSubmit={submitRequest}
+            />
+          </div>
 
-        <p className="text-sm text-muted">
-          오늘 {requestCount}개의 이야기가 남겨졌고, {replyCount}개의 답장이
-          도착했어요.
-        </p>
-      </section>
+          <p className="text-sm text-muted">
+            오늘 {requestCount}개의 이야기가 남겨졌고, {replyCount}개의 답장이
+            도착했어요.
+          </p>
+        </section>
+      </main>
       {showSuccessToast ? (
         <div
           className="fixed bottom-5 left-1/2 z-10 flex w-[calc(100%-2.5rem)] max-w-sm -translate-x-1/2 items-center justify-between gap-3 rounded-lg border border-line bg-surface px-4 py-3 text-sm text-foreground shadow-sm sm:bottom-8 sm:w-auto sm:min-w-64"
@@ -100,6 +107,6 @@ export function TodayPrototype() {
           </button>
         </div>
       ) : null}
-    </main>
+    </div>
   );
 }
