@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  getAnswerQueue,
+  getHeldRequests,
+  getMyAnswerLog,
   getPriorityRequests,
   getRecentNonViewerRequests,
   getTodayEntryMessages,
@@ -184,5 +187,188 @@ describe("getRecentNonViewerRequests", () => {
     };
 
     expect(getTodayEntryMessages(state, ["기본 샘플"])).toEqual(["기본 샘플"]);
+  });
+});
+
+describe("getAnswerQueue", () => {
+  const state: PrototypeState = {
+    viewer: { id: "viewer-local" },
+    requests: [
+      {
+        id: "mine",
+        body: "내가 쓴 글",
+        createdAt: "2026-08-19T09:00:00.000Z",
+        authorId: "viewer-local",
+        replyIds: [],
+        reportCount: 0,
+        hidden: false,
+      },
+      {
+        id: "already-answered",
+        body: "이미 답한 글",
+        createdAt: "2026-08-19T09:00:00.000Z",
+        authorId: "author-1",
+        replyIds: ["reply-mine"],
+        reportCount: 0,
+        hidden: false,
+      },
+      {
+        id: "skipped",
+        body: "스킵한 글",
+        createdAt: "2026-08-19T09:00:00.000Z",
+        authorId: "author-2",
+        replyIds: [],
+        reportCount: 0,
+        hidden: false,
+      },
+      {
+        id: "held",
+        body: "보류한 글",
+        createdAt: "2026-08-19T09:00:00.000Z",
+        authorId: "author-3",
+        replyIds: [],
+        reportCount: 0,
+        hidden: false,
+      },
+      {
+        id: "answerable",
+        body: "답할 수 있는 글",
+        createdAt: "2026-08-19T09:00:00.000Z",
+        authorId: "author-4",
+        replyIds: [],
+        reportCount: 0,
+        hidden: false,
+      },
+    ],
+    replies: [
+      {
+        id: "reply-mine",
+        requestId: "already-answered",
+        body: "내가 이미 남긴 답변",
+        createdAt: "2026-08-19T09:30:00.000Z",
+        authorId: "viewer-local",
+        reportCount: 0,
+        hidden: false,
+      },
+    ],
+    requestDraft: "",
+    replyDrafts: {},
+    selectedRequestId: null,
+    skippedRequestIds: ["skipped"],
+    heldRequestIds: ["held"],
+  };
+
+  it("excludes own requests, already-answered requests, skipped requests, and held requests", () => {
+    const queue = getAnswerQueue(state, new Date("2026-08-19T12:00:00.000Z"));
+
+    expect(queue.map((request) => request.id)).toEqual(["answerable"]);
+  });
+});
+
+describe("getHeldRequests", () => {
+  it("returns held requests in the order they were held, skipping hidden ones", () => {
+    const state: PrototypeState = {
+      viewer: { id: "viewer-local" },
+      requests: [
+        {
+          id: "held-first",
+          body: "먼저 보류한 글",
+          createdAt: "2026-08-19T09:00:00.000Z",
+          authorId: "author-1",
+          replyIds: [],
+          reportCount: 0,
+          hidden: false,
+        },
+        {
+          id: "held-second",
+          body: "나중에 보류한 글",
+          createdAt: "2026-08-19T09:00:00.000Z",
+          authorId: "author-2",
+          replyIds: [],
+          reportCount: 0,
+          hidden: false,
+        },
+        {
+          id: "held-hidden",
+          body: "신고돼서 숨겨진 글",
+          createdAt: "2026-08-19T09:00:00.000Z",
+          authorId: "author-3",
+          replyIds: [],
+          reportCount: 1,
+          hidden: true,
+        },
+      ],
+      replies: [],
+      requestDraft: "",
+      replyDrafts: {},
+      selectedRequestId: null,
+      skippedRequestIds: [],
+      heldRequestIds: ["held-first", "held-second", "held-hidden"],
+    };
+
+    expect(getHeldRequests(state).map((request) => request.id)).toEqual([
+      "held-first",
+      "held-second",
+    ]);
+  });
+});
+
+describe("getMyAnswerLog", () => {
+  it("pairs my replies with their requests, oldest reply first", () => {
+    const state: PrototypeState = {
+      viewer: { id: "viewer-local" },
+      requests: [
+        {
+          id: "request-a",
+          body: "요청 A",
+          createdAt: "2026-08-15T09:00:00.000Z",
+          authorId: "author-1",
+          replyIds: ["reply-a"],
+          reportCount: 0,
+          hidden: false,
+        },
+        {
+          id: "request-b",
+          body: "요청 B",
+          createdAt: "2026-08-10T09:00:00.000Z",
+          authorId: "author-2",
+          replyIds: ["reply-b"],
+          reportCount: 0,
+          hidden: false,
+        },
+      ],
+      replies: [
+        {
+          id: "reply-a",
+          requestId: "request-a",
+          body: "최근에 답한 것",
+          createdAt: "2026-08-19T10:00:00.000Z",
+          authorId: "viewer-local",
+          reportCount: 0,
+          hidden: false,
+        },
+        {
+          id: "reply-b",
+          requestId: "request-b",
+          body: "보류했다가 방금 답한 것",
+          createdAt: "2026-08-19T11:00:00.000Z",
+          authorId: "viewer-local",
+          reportCount: 0,
+          hidden: false,
+        },
+      ],
+      requestDraft: "",
+      replyDrafts: {},
+      selectedRequestId: null,
+      skippedRequestIds: [],
+      heldRequestIds: [],
+    };
+
+    const log = getMyAnswerLog(state);
+
+    expect(log.map((entry) => entry.request.id)).toEqual([
+      "request-a",
+      "request-b",
+    ]);
   });
 });
