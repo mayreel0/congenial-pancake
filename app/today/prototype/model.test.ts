@@ -51,6 +51,8 @@ const baseState: PrototypeState = {
   requestDraft: "",
   replyDrafts: {},
   selectedRequestId: null,
+  skippedRequestIds: [],
+  heldRequestIds: [],
 };
 
 describe("getPriorityRequests", () => {
@@ -114,6 +116,8 @@ describe("getRecentNonViewerRequests", () => {
       requestDraft: "",
       replyDrafts: {},
       selectedRequestId: null,
+      skippedRequestIds: [],
+      heldRequestIds: [],
     };
 
     expect(
@@ -148,6 +152,8 @@ describe("getRecentNonViewerRequests", () => {
       requestDraft: "",
       replyDrafts: {},
       selectedRequestId: null,
+      skippedRequestIds: [],
+      heldRequestIds: [],
     };
 
     expect(
@@ -173,6 +179,8 @@ describe("getRecentNonViewerRequests", () => {
       requestDraft: "",
       replyDrafts: {},
       selectedRequestId: null,
+      skippedRequestIds: [],
+      heldRequestIds: [],
     };
 
     expect(getTodayEntryMessages(state, ["기본 샘플"])).toEqual(["기본 샘플"]);

@@ -5,4 +5,6 @@ export const PROTOTYPE_STORAGE_KEYS = {
   requestDraft: "onseol.prototype.requestDraft",
   replyDrafts: "onseol.prototype.replyDrafts",
   selectedRequestId: "onseol.prototype.selectedRequestId",
+  skippedRequestIds: "onseol.prototype.skippedRequestIds",
+  heldRequestIds: "onseol.prototype.heldRequestIds",
 } as const;
