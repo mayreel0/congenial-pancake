@@ -115,7 +115,7 @@ export function getHeldRequests(state: PrototypeState): OnseolRequest[] {
     .map((id) => state.requests.find((request) => request.id === id))
     .filter(
       (request): request is OnseolRequest =>
-        Boolean(request) && !request.hidden,
+        request !== undefined && !request.hidden,
     );
 }
 

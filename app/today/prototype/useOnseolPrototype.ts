@@ -2,6 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  getAnswerQueue,
+  getHeldRequests,
+  getMyAnswerLog,
   getMyReplies,
   getMyRequests,
   getPriorityRequests,
@@ -39,11 +42,20 @@ type UseOnseolPrototypeResult = {
   recentExchanges: Array<{ request: OnseolRequest; reply: OnseolReply | null }>;
   myRequests: OnseolRequest[];
   myReplies: OnseolReply[];
+  answerQueue: OnseolRequest[];
+  heldRequests: OnseolRequest[];
+  answerLog: Array<{ request: OnseolRequest; reply: OnseolReply }>;
+  currentAnswerTarget: OnseolRequest | null;
+  isAnsweringHeldRequest: boolean;
   updateRequestDraft(value: string): void;
   submitRequest(bodyOverride?: string): Promise<void>;
   selectRequest(requestId: string): void;
   updateReplyDraft(requestId: string, value: string): void;
   submitReply(requestId: string): void;
+  skipRequest(requestId: string): void;
+  holdRequest(requestId: string): void;
+  openHeldRequest(requestId: string): void;
+  closeHeldRequest(): void;
   reportRequest(requestId: string): void;
   reportReply(replyId: string): void;
   resetPrototype(): void;
@@ -101,6 +113,22 @@ export function useOnseolPrototype(): UseOnseolPrototypeResult {
   );
   const myRequests = getMyRequests(state);
   const myReplies = getMyReplies(state);
+  const [activeHeldRequestId, setActiveHeldRequestId] = useState<
+    string | null
+  >(null);
+
+  const answerQueue = useMemo(() => getAnswerQueue(state, now), [now, state]);
+  const heldRequests = useMemo(() => getHeldRequests(state), [state]);
+  const answerLog = useMemo(() => getMyAnswerLog(state), [state]);
+  const activeHeldRequest = activeHeldRequestId
+    ? (state.requests.find(
+        (request) =>
+          request.id === activeHeldRequestId &&
+          !request.hidden &&
+          state.heldRequestIds.includes(request.id),
+      ) ?? null)
+    : null;
+  const currentAnswerTarget = activeHeldRequest ?? answerQueue[0] ?? null;
 
   function updateState(
     updater: (current: PrototypeState) => PrototypeState,
@@ -193,8 +221,49 @@ export function useOnseolPrototype(): UseOnseolPrototypeResult {
           ...current.replyDrafts,
           [requestId]: "",
         },
+        heldRequestIds: current.heldRequestIds.filter(
+          (id) => id !== requestId,
+        ),
       };
     });
+
+    if (activeHeldRequestId === requestId) setActiveHeldRequestId(null);
+  }
+
+  function skipRequest(requestId: string): void {
+    updateState((current) => {
+      if (current.skippedRequestIds.includes(requestId)) return current;
+
+      return {
+        ...current,
+        skippedRequestIds: [...current.skippedRequestIds, requestId],
+        heldRequestIds: current.heldRequestIds.filter(
+          (id) => id !== requestId,
+        ),
+      };
+    });
+
+    if (activeHeldRequestId === requestId) setActiveHeldRequestId(null);
+  }
+
+  function holdRequest(requestId: string): void {
+    updateState((current) => {
+      if (current.heldRequestIds.includes(requestId)) return current;
+
+      return {
+        ...current,
+        heldRequestIds: [...current.heldRequestIds, requestId],
+      };
+    });
+  }
+
+  function openHeldRequest(requestId: string): void {
+    if (!state.heldRequestIds.includes(requestId)) return;
+    setActiveHeldRequestId(requestId);
+  }
+
+  function closeHeldRequest(): void {
+    setActiveHeldRequestId(null);
   }
 
   function reportRequest(requestId: string): void {
@@ -243,11 +312,20 @@ export function useOnseolPrototype(): UseOnseolPrototypeResult {
     recentExchanges,
     myRequests,
     myReplies,
+    answerQueue,
+    heldRequests,
+    answerLog,
+    currentAnswerTarget,
+    isAnsweringHeldRequest: activeHeldRequest !== null,
     updateRequestDraft,
     submitRequest,
     selectRequest,
     updateReplyDraft,
     submitReply,
+    skipRequest,
+    holdRequest,
+    openHeldRequest,
+    closeHeldRequest,
     reportRequest,
     reportReply,
     resetPrototype,
