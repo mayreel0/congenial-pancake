@@ -81,3 +81,22 @@
 - `pnpm lint`
 - `pnpm typecheck`
 - `pnpm build`
+
+## 네비게이션 구현 메모
+
+- 랜딩과 서비스 네비게이션을 분리했다.
+- 랜딩에는 `온설`, `로그인`, `웹에서 시작하기` 진입을 두고, 서비스 내부 메뉴 전체는 노출하지 않는다.
+- 서비스 웹 네비게이션은 상단 nav로 두고, 모바일 네비게이션은 하단 탭이 아니라 상단 메뉴 버튼으로 둔다.
+- `내 기록`은 웹의 주요 서비스 nav에 섞지 않고 우측 개인 영역에 둔다. 이는 이전 IA 결정인 `내 기록은 상단 우측에 따로 둔다`와 맞춘 것이다.
+- `/today`에 서비스 네비게이션을 연결했다.
+- `/answer`, `/read`, `/me`, `/login`은 이동 검증을 위한 placeholder로만 추가했다.
+- 실제 인증, 내 기록 데이터, 읽기/답하기 본문 구현은 후속 PR로 남긴다.
+- repo-local `.worktrees`, `.pnpm-store`, `.superpowers`는 ESLint 대상에서 제외했다. 특히 `.worktrees/**` 안의 Next 생성물이 lint에 포함되면 현재 PR과 무관한 `.next` 산출물 오류가 대량 발생한다.
+- pre-PR review에서 desktop `/me` 접근과 landing landmark 구조가 지적되었다. `내 기록`은 우측 개인 영역 링크로 추가했고, 랜딩 header는 `<main>` 밖으로 이동했다.
+
+## 네비게이션 구현 검증
+
+- `CI=true` and Node `24.14.0` with `pnpm test` -> 17 files, 74 tests passed.
+- `CI=true` and Node `24.14.0` with `pnpm lint` -> passed.
+- `CI=true` and Node `24.14.0` with `pnpm typecheck` -> passed.
+- `CI=true` and Node `24.14.0` with `pnpm build` -> passed after rerun with network access for Google Fonts.
