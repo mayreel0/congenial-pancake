@@ -16,10 +16,10 @@ describe("TodayPrototype", () => {
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "보내기" })).toBeInTheDocument();
     expect(screen.getByRole("main")).toHaveClass(
-      "min-h-[calc(100dvh-3.5rem)]",
+      "min-h-[calc(100dvh-3.5rem-1px)]",
     );
     expect(screen.getByTestId("today-entry-layout")).toHaveClass(
-      "min-h-[calc(100dvh-8.5rem)]",
+      "min-h-[calc(100dvh-8.5rem-1px)]",
       "grid-rows-[1fr_auto_auto]",
     );
     expect(screen.getByTestId("today-entry-copy")).toHaveClass(

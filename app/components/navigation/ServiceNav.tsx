@@ -16,7 +16,7 @@ export function ServiceNav({ activePath }: ServiceNavProps) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-20 border-b border-line bg-background/95 backdrop-blur">
+    <header className="relative sticky top-0 z-20 border-b border-line bg-background/95 backdrop-blur">
       <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-5 sm:px-8">
         <div className="flex items-center gap-4">
           <button
@@ -102,7 +102,7 @@ export function ServiceNav({ activePath }: ServiceNavProps) {
       {menuOpen ? (
         <nav
           aria-label="모바일 서비스 이동"
-          className="border-t border-line bg-background px-5 py-3 md:hidden"
+          className="absolute left-0 right-0 top-full border-b border-line bg-background px-5 py-3 shadow-sm md:hidden"
         >
           <div className="mx-auto grid w-full max-w-6xl gap-1">
             {serviceNavItems.map((item) => {
