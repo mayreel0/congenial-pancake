@@ -27,7 +27,7 @@ const item: ReadFeedItem = {
 };
 
 describe("ReadThread", () => {
-  it("renders the request and every reply, and wires save/report callbacks behind each bubble's more menu", () => {
+  it("renders the request and every reply, and wires save/report callbacks", () => {
     const onToggleSaveReply = vi.fn();
     const onReportRequest = vi.fn();
     const onReportReply = vi.fn();
@@ -53,6 +53,9 @@ describe("ReadThread", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("괜히 커 보일 때가 있죠.")).toBeInTheDocument();
 
+    fireEvent.click(screen.getByRole("button", { name: "마음에 남기기" }));
+    expect(onToggleSaveReply).toHaveBeenCalledWith("reply-1");
+
     const [requestMoreButton, replyMoreButton] = screen.getAllByRole(
       "button",
       { name: "더보기" },
@@ -67,18 +70,28 @@ describe("ReadThread", () => {
     expect(onReportRequest).toHaveBeenCalledOnce();
 
     fireEvent.click(replyMoreButton);
-    const replyMenu = screen.getByLabelText("답변 도구");
-    fireEvent.click(
-      within(replyMenu).getByRole("button", { name: "마음에 남기기" }),
-    );
-    expect(onToggleSaveReply).toHaveBeenCalledWith("reply-1");
-
-    fireEvent.click(replyMoreButton);
     fireEvent.click(
       within(screen.getByLabelText("답변 도구")).getByRole("button", {
         name: "신고하기",
       }),
     );
     expect(onReportReply).toHaveBeenCalledWith("reply-1");
+  });
+
+  it("shows the saved state on the standalone save button", () => {
+    render(
+      <ReadThread
+        authorLabels={new Map()}
+        item={item}
+        savedReplyIds={new Set(["reply-1"])}
+        onReportReply={() => {}}
+        onReportRequest={() => {}}
+        onToggleSaveReply={() => {}}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: /마음에 남긴 답변/ }),
+    ).toHaveAttribute("aria-pressed", "true");
   });
 });

@@ -111,17 +111,11 @@ describe("ReadFeed", () => {
     render(<ReadFeed />);
     await screen.findByText("요청");
 
-    const [, replyMoreButton] = screen.getAllByRole("button", {
-      name: "더보기",
-    });
-
-    fireEvent.click(replyMoreButton);
     fireEvent.click(screen.getByRole("button", { name: "마음에 남기기" }));
 
-    fireEvent.click(replyMoreButton);
     expect(
-      screen.getByRole("button", { name: "마음에서 지우기" }),
-    ).toBeInTheDocument();
+      screen.getByRole("button", { name: /마음에 남긴 답변/ }),
+    ).toHaveAttribute("aria-pressed", "true");
   });
 
   it("toggles save per reply, independent of other replies on the same request", async () => {
@@ -162,24 +156,15 @@ describe("ReadFeed", () => {
     render(<ReadFeed />);
     await screen.findByText("여러 답변이 달린 요청");
 
-    const [, firstReplyMore, secondReplyMore] = screen.getAllByRole(
+    const [firstSaveButton, secondSaveButton] = screen.getAllByRole(
       "button",
-      { name: "더보기" },
+      { name: "마음에 남기기" },
     );
 
-    fireEvent.click(firstReplyMore);
-    fireEvent.click(screen.getByRole("button", { name: "마음에 남기기" }));
+    fireEvent.click(firstSaveButton);
 
-    fireEvent.click(firstReplyMore);
-    expect(
-      screen.getByRole("button", { name: "마음에서 지우기" }),
-    ).toBeInTheDocument();
-    fireEvent.click(firstReplyMore);
-
-    fireEvent.click(secondReplyMore);
-    expect(
-      screen.getByRole("button", { name: "마음에 남기기" }),
-    ).toBeInTheDocument();
+    expect(firstSaveButton).toHaveAttribute("aria-pressed", "true");
+    expect(secondSaveButton).toHaveAttribute("aria-pressed", "false");
   });
 
   it("requires confirmation before a report removes an item, and removes the whole card when the only reply is reported", async () => {
