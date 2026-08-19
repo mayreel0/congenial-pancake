@@ -11,9 +11,9 @@ scope: /read feed implementation
 
 `docs/superpowers/plans/2026-08-20-onseol-read-feed-implementation.md`를 기준으로 `/read` placeholder를 실제 읽기 피드로 교체했다.
 
-- `PrototypeState`에 `savedRequestIds`를 추가하고 localStorage 저장/복원을 확장했다 (`app/today/prototype/types.ts`, `storage-keys.ts`, `storage.ts`, `seed-data.ts`).
+- `PrototypeState`에 `savedReplyIds`를 추가하고 localStorage 저장/복원을 확장했다 (`app/today/prototype/types.ts`, `storage-keys.ts`, `storage.ts`, `seed-data.ts`).
 - `model.ts`에 `getReadFeed`를 추가했다 — 요청 + (숨김 제외) 모든 답변을 오래된 순으로 묶고, 답변이 하나도 없는 요청은 제외하며, 요청은 최신순으로 정렬한다. 본인 글도 포함한다.
-- `useOnseolPrototype` 훅에 `readFeed`(메모이즈)와 `toggleSavedRequest`(양방향 토글, 확인 없음)를 추가했다.
+- `useOnseolPrototype` 훅에 `readFeed`(메모이즈)와 `toggleSavedReply`(양방향 토글, 확인 없음)를 추가했다.
 - `app/read/` 아래에 전용 컴포넌트를 새로 만들었다: `icons.tsx`(FlagIcon 복제 + BookmarkIcon 신규), `SaveToggleButton`, `ReadRequestBubble`/`ReadReplyBubble`(읽기 전용, 입력창/보류/스킵 없음), `ActionConfirmDialog`(복제), `ReadThread`(요청 1 + 답변 N 카드), `prototype/format.ts`(복제) · `prototype/labels.ts`(신규 — 요청/답변 작성자 모두 라벨링).
 - `ReadFeed`를 조립해 `app/read/page.tsx`의 placeholder를 교체했다.
 
@@ -46,3 +46,11 @@ Chrome에 3개 요청(여러 답변 1건, 단일 답변 1건, 본인 글 1건) +
 
 - `마음에 남긴 온설` 목록을 `/me`에서 어떻게 보여줄지 (이번 범위 밖).
 - 피드가 길어질 경우 페이지네이션/무한 스크롤 필요 여부.
+
+## 리뷰 라운드: 마음에 남기기를 답변 단위로 변경 (2026-08-20)
+
+첫 구현은 카드(요청) 단위로 마음에 남기기를 뒀는데, 사용자 리뷰에서 "나중에 마음에 남긴 글을 볼 때 특정 답변이 기억나지 세션 전체가 기억나지 않는다"는 이유로 답변 단위로 바꿔달라는 요청을 받았다.
+
+- `savedRequestIds` → `savedReplyIds`로 데이터 필드를 바꾸고, 저장 버튼을 `ReadThread`(카드 전체에 하나)에서 `ReadReplyBubble`(답변마다 하나)로 옮겼다.
+- 백엔드/저장 비용 관점에서는 차이가 없다 — `(user, request)` 대신 `(user, reply)`를 참조하는 것뿐이고, `OnseolReply`에 이미 `requestId`가 있어서 나중에 `/me`에서 "저장한 답변이 있는 요청들과 그 답변들"을 보여줄 때도 추가 데이터 없이 그룹핑만 하면 된다.
+- 한 요청에 답변이 여러 개일 때, 답변별로 독립적으로 저장되는지 테스트(`ReadFeed.test.tsx`)와 Chrome 실측으로 확인했다.
