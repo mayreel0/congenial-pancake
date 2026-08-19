@@ -57,5 +57,6 @@ export function createInitialPrototypeState(now: Date): PrototypeState {
     selectedRequestId: requestA.id,
     skippedRequestIds: [],
     heldRequestIds: [],
+    savedRequestIds: [],
   };
 }

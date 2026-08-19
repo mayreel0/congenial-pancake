@@ -56,6 +56,7 @@ const baseState: PrototypeState = {
   selectedRequestId: null,
   skippedRequestIds: [],
   heldRequestIds: [],
+  savedRequestIds: [],
 };
 
 describe("getPriorityRequests", () => {
@@ -121,6 +122,7 @@ describe("getRecentNonViewerRequests", () => {
       selectedRequestId: null,
       skippedRequestIds: [],
       heldRequestIds: [],
+      savedRequestIds: [],
     };
 
     expect(
@@ -157,6 +159,7 @@ describe("getRecentNonViewerRequests", () => {
       selectedRequestId: null,
       skippedRequestIds: [],
       heldRequestIds: [],
+      savedRequestIds: [],
     };
 
     expect(
@@ -184,6 +187,7 @@ describe("getRecentNonViewerRequests", () => {
       selectedRequestId: null,
       skippedRequestIds: [],
       heldRequestIds: [],
+      savedRequestIds: [],
     };
 
     expect(getTodayEntryMessages(state, ["기본 샘플"])).toEqual(["기본 샘플"]);
@@ -256,6 +260,7 @@ describe("getAnswerQueue", () => {
     selectedRequestId: null,
     skippedRequestIds: ["skipped"],
     heldRequestIds: ["held"],
+    savedRequestIds: [],
   };
 
   it("excludes own requests, already-answered requests, skipped requests, and held requests", () => {
@@ -304,6 +309,7 @@ describe("getHeldRequests", () => {
       selectedRequestId: null,
       skippedRequestIds: [],
       heldRequestIds: ["held-first", "held-second", "held-hidden"],
+      savedRequestIds: [],
     };
 
     expect(getHeldRequests(state).map((request) => request.id)).toEqual([
@@ -362,6 +368,7 @@ describe("getMyAnswerLog", () => {
       selectedRequestId: null,
       skippedRequestIds: [],
       heldRequestIds: [],
+      savedRequestIds: [],
     };
 
     const log = getMyAnswerLog(state);
