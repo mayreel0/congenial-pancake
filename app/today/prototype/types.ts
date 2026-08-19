@@ -31,4 +31,6 @@ export type PrototypeState = {
   requestDraft: string;
   replyDrafts: ReplyDrafts;
   selectedRequestId: string | null;
+  skippedRequestIds: string[];
+  heldRequestIds: string[];
 };

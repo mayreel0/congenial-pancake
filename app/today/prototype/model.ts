@@ -97,6 +97,44 @@ export function hasViewerReplied(
   );
 }
 
+export function getAnswerQueue(
+  state: PrototypeState,
+  now: Date,
+): OnseolRequest[] {
+  return getPriorityRequests(state, now).filter(
+    (request) =>
+      request.authorId !== state.viewer.id &&
+      !hasViewerReplied(state, request.id) &&
+      !state.skippedRequestIds.includes(request.id) &&
+      !state.heldRequestIds.includes(request.id),
+  );
+}
+
+export function getHeldRequests(state: PrototypeState): OnseolRequest[] {
+  return state.heldRequestIds
+    .map((id) => state.requests.find((request) => request.id === id))
+    .filter(
+      (request): request is OnseolRequest =>
+        request !== undefined && !request.hidden,
+    );
+}
+
+export function getMyAnswerLog(
+  state: PrototypeState,
+): Array<{ request: OnseolRequest; reply: OnseolReply }> {
+  return state.replies
+    .filter((reply) => reply.authorId === state.viewer.id && !reply.hidden)
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+    .map((reply) => {
+      const request = state.requests.find((r) => r.id === reply.requestId);
+      return request ? { request, reply } : null;
+    })
+    .filter(
+      (entry): entry is { request: OnseolRequest; reply: OnseolReply } =>
+        entry !== null,
+    );
+}
+
 export function truncatePreview(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text;
   return `${text.slice(0, maxLength).trimEnd()}...`;

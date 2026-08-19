@@ -51,6 +51,12 @@ export function readPrototypeState(): PrototypeState {
   const selectedRequestId = readJson<string | null>(
     PROTOTYPE_STORAGE_KEYS.selectedRequestId,
   );
+  const skippedRequestIds = readJson<string[]>(
+    PROTOTYPE_STORAGE_KEYS.skippedRequestIds,
+  );
+  const heldRequestIds = readJson<string[]>(
+    PROTOTYPE_STORAGE_KEYS.heldRequestIds,
+  );
 
   return {
     viewer: viewer ?? fallback.viewer,
@@ -59,6 +65,8 @@ export function readPrototypeState(): PrototypeState {
     requestDraft: requestDraft ?? "",
     replyDrafts: replyDrafts ?? {},
     selectedRequestId: selectedRequestId ?? requests[0]?.id ?? null,
+    skippedRequestIds: skippedRequestIds ?? [],
+    heldRequestIds: heldRequestIds ?? [],
   };
 }
 
@@ -69,6 +77,8 @@ export function writePrototypeState(state: PrototypeState): void {
   writeJson(PROTOTYPE_STORAGE_KEYS.requestDraft, state.requestDraft);
   writeJson(PROTOTYPE_STORAGE_KEYS.replyDrafts, state.replyDrafts);
   writeJson(PROTOTYPE_STORAGE_KEYS.selectedRequestId, state.selectedRequestId);
+  writeJson(PROTOTYPE_STORAGE_KEYS.skippedRequestIds, state.skippedRequestIds);
+  writeJson(PROTOTYPE_STORAGE_KEYS.heldRequestIds, state.heldRequestIds);
 }
 
 export function resetPrototypeState(): PrototypeState {

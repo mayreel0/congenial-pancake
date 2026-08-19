@@ -1,0 +1,181 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { ServiceNav } from "../components/navigation/ServiceNav";
+import { useOnseolPrototype } from "../today/prototype/useOnseolPrototype";
+import { ActionConfirmDialog } from "./components/ActionConfirmDialog";
+import { AnswerComposer } from "./components/AnswerComposer";
+import { AnswerLog } from "./components/AnswerLog";
+import { HoldPanel } from "./components/HoldPanel";
+import { buildAnonymousLabels } from "./prototype/labels";
+
+const BUBBLE_LEAVE_MS = 180;
+const NEXT_REQUEST_LOAD_MS = 400;
+const ANSWER_SUBMIT_PENDING_MS = 450;
+
+type PendingActionType = "report" | "skip" | "hold";
+
+type PendingAction = {
+  type: PendingActionType;
+  requestId: string;
+};
+
+const ACTION_CONFIRM_COPY: Record<
+  PendingActionType,
+  { message: string; confirmLabel: string }
+> = {
+  report: {
+    message: "이 온설을 신고할까요? 신고하면 이 글은 답하기 목록에서 사라집니다.",
+    confirmLabel: "신고하기",
+  },
+  skip: {
+    message: "이 글을 넘길까요? 넘기면 답하기 목록에서 다시 보이지 않습니다.",
+    confirmLabel: "넘기기",
+  },
+  hold: {
+    message:
+      "이 온설을 보류할까요? 보류하면 보류함으로 옮겨지고, 나중에 다시 답할 수 있어요.",
+    confirmLabel: "보류하기",
+  },
+};
+
+export function AnswerSession() {
+  const prototype = useOnseolPrototype();
+  const [holdPanelOpen, setHoldPanelOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<PendingAction | null>(
+    null,
+  );
+  const [leavingRequestId, setLeavingRequestId] = useState<string | null>(
+    null,
+  );
+  const [loadingNext, setLoadingNext] = useState(false);
+  const [answerSubmitStatus, setAnswerSubmitStatus] = useState<
+    "idle" | "pending"
+  >("idle");
+
+  const currentTarget = prototype.currentAnswerTarget;
+  const draft = currentTarget
+    ? (prototype.state.replyDrafts[currentTarget.id] ?? "")
+    : "";
+  const isTyping =
+    Boolean(currentTarget) &&
+    draft.trim().length > 0 &&
+    answerSubmitStatus === "idle" &&
+    !loadingNext;
+
+  const authorLabels = useMemo(() => {
+    const orderedRequests = [
+      ...prototype.answerLog.map((entry) => entry.request),
+      ...(currentTarget ? [currentTarget] : []),
+    ];
+    return buildAnonymousLabels(orderedRequests);
+  }, [prototype.answerLog, currentTarget]);
+
+  function runWithLeaveAnimation(requestId: string, action: () => void) {
+    setLeavingRequestId(requestId);
+    window.setTimeout(() => {
+      setLeavingRequestId((current) =>
+        current === requestId ? null : current,
+      );
+      setLoadingNext(true);
+      window.setTimeout(() => {
+        action();
+        setLoadingNext(false);
+      }, NEXT_REQUEST_LOAD_MS);
+    }, BUBBLE_LEAVE_MS);
+  }
+
+  function requestAction(type: PendingActionType, requestId: string) {
+    setPendingAction({ type, requestId });
+  }
+
+  function confirmPendingAction() {
+    if (!pendingAction) return;
+    const { type, requestId } = pendingAction;
+    setPendingAction(null);
+
+    runWithLeaveAnimation(requestId, () => {
+      if (type === "report") prototype.reportRequest(requestId);
+      if (type === "skip") prototype.skipRequest(requestId);
+      if (type === "hold") prototype.holdRequest(requestId);
+    });
+  }
+
+  async function handleSubmit() {
+    if (!currentTarget || answerSubmitStatus === "pending") return;
+
+    setAnswerSubmitStatus("pending");
+    await new Promise((resolve) =>
+      window.setTimeout(resolve, ANSWER_SUBMIT_PENDING_MS),
+    );
+    prototype.submitReply(currentTarget.id);
+    setAnswerSubmitStatus("idle");
+
+    setLoadingNext(true);
+    await new Promise((resolve) =>
+      window.setTimeout(resolve, NEXT_REQUEST_LOAD_MS),
+    );
+    setLoadingNext(false);
+  }
+
+  return (
+    <div className="flex h-dvh flex-col bg-background text-foreground">
+      <ServiceNav activePath="/answer" />
+      <div className="flex min-h-0 flex-1 flex-col">
+        <AnswerLog
+          authorLabels={authorLabels}
+          currentRequest={currentTarget}
+          entries={prototype.answerLog}
+          isTyping={isTyping}
+          leavingRequestId={leavingRequestId}
+          loadingNext={loadingNext}
+          onHold={(requestId) => requestAction("hold", requestId)}
+          onReport={(requestId) => requestAction("report", requestId)}
+          onSkip={(requestId) => requestAction("skip", requestId)}
+        />
+        <div className="relative border-t border-line px-5 pt-2 sm:px-8">
+          <HoldPanel
+            heldRequests={prototype.heldRequests}
+            open={holdPanelOpen}
+            onClose={() => setHoldPanelOpen(false)}
+            onSelect={(requestId) => {
+              prototype.openHeldRequest(requestId);
+              setHoldPanelOpen(false);
+            }}
+          />
+          <div className="mx-auto flex w-full max-w-6xl items-center justify-between">
+            <button
+              className="text-xs font-medium text-muted transition hover:text-foreground"
+              type="button"
+              onClick={() => setHoldPanelOpen((open) => !open)}
+            >
+              보류 중 ({prototype.heldRequests.length})
+            </button>
+          </div>
+        </div>
+        <AnswerComposer
+          disabled={!currentTarget || loadingNext}
+          isAnsweringHeldRequest={prototype.isAnsweringHeldRequest}
+          pending={answerSubmitStatus === "pending"}
+          value={draft}
+          onCancelHeld={prototype.closeHeldRequest}
+          onChange={(value) =>
+            currentTarget && prototype.updateReplyDraft(currentTarget.id, value)
+          }
+          onSubmit={handleSubmit}
+        />
+      </div>
+      <ActionConfirmDialog
+        confirmLabel={
+          pendingAction ? ACTION_CONFIRM_COPY[pendingAction.type].confirmLabel : ""
+        }
+        message={
+          pendingAction ? ACTION_CONFIRM_COPY[pendingAction.type].message : ""
+        }
+        open={pendingAction !== null}
+        onCancel={() => setPendingAction(null)}
+        onConfirm={confirmPendingAction}
+      />
+    </div>
+  );
+}

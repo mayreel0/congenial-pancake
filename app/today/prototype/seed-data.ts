@@ -55,5 +55,7 @@ export function createInitialPrototypeState(now: Date): PrototypeState {
     requestDraft: "",
     replyDrafts: {},
     selectedRequestId: requestA.id,
+    skippedRequestIds: [],
+    heldRequestIds: [],
   };
 }
