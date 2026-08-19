@@ -1,6 +1,6 @@
 import type { OnseolRequest } from "../../today/prototype/types";
-import { ReportButton } from "../../today/components/ReportButton";
 import { formatTimestamp } from "../prototype/format";
+import { BookmarkIcon, FlagIcon } from "./icons";
 
 type RequestBubbleProps = {
   request: OnseolRequest;
@@ -8,9 +8,11 @@ type RequestBubbleProps = {
   showActions: boolean;
   leaving?: boolean;
   onReport?(): void;
-  onSkip?(): void;
   onHold?(): void;
 };
+
+const iconButtonClassName =
+  "inline-flex h-7 w-7 items-center justify-center rounded-md text-muted transition hover:bg-surface-muted hover:text-foreground";
 
 export function RequestBubble({
   request,
@@ -18,7 +20,6 @@ export function RequestBubble({
   showActions,
   leaving = false,
   onReport,
-  onSkip,
   onHold,
 }: RequestBubbleProps) {
   return (
@@ -28,31 +29,32 @@ export function RequestBubble({
         leaving ? "onseol-bubble-leave" : "onseol-bubble-enter",
       ].join(" ")}
     >
-      <p className="text-xs font-semibold text-foreground">{authorLabel}</p>
-      <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-1">
-        <p className="min-w-0 flex-1 text-sm leading-6 text-foreground">
-          {request.body}
-        </p>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs font-semibold text-foreground">{authorLabel}</p>
         {showActions ? (
-          <div className="flex shrink-0 items-center gap-1">
-            <ReportButton label="신고" onReport={() => onReport?.()} />
+          <div className="flex shrink-0 items-center gap-0.5">
             <button
-              className="inline-flex h-9 items-center justify-center rounded-lg px-3 text-xs font-medium text-muted transition hover:bg-surface-muted hover:text-foreground"
+              aria-label="신고"
+              className={iconButtonClassName}
+              title="신고"
               type="button"
-              onClick={() => onSkip?.()}
+              onClick={() => onReport?.()}
             >
-              스킵
+              <FlagIcon className="h-4 w-4" />
             </button>
             <button
-              className="inline-flex h-9 items-center justify-center rounded-lg px-3 text-xs font-medium text-muted transition hover:bg-surface-muted hover:text-foreground"
+              aria-label="보류"
+              className={iconButtonClassName}
+              title="보류"
               type="button"
               onClick={() => onHold?.()}
             >
-              보류
+              <BookmarkIcon className="h-4 w-4" />
             </button>
           </div>
         ) : null}
       </div>
+      <p className="text-sm leading-6 text-foreground">{request.body}</p>
       <time
         className="block text-xs text-muted"
         dateTime={request.createdAt}

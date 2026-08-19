@@ -71,12 +71,12 @@ describe("AnswerSession", () => {
     seedRequests();
     await renderHydrated();
 
-    fireEvent.click(screen.getByRole("button", { name: "스킵" }));
+    fireEvent.click(screen.getByRole("button", { name: "다음 글" }));
     expect(
-      screen.getByText(/스킵하면 이 글은 답하기 목록에서 다시 보이지 않습니다/),
+      screen.getByText(/넘기면 답하기 목록에서 다시 보이지 않습니다/),
     ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "스킵하기" }));
+    fireEvent.click(screen.getByRole("button", { name: "넘기기" }));
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(200);
@@ -92,7 +92,7 @@ describe("AnswerSession", () => {
     seedRequests();
     await renderHydrated();
 
-    fireEvent.click(screen.getByRole("button", { name: "스킵" }));
+    fireEvent.click(screen.getByRole("button", { name: "다음 글" }));
     fireEvent.click(screen.getByRole("button", { name: "취소" }));
 
     expect(

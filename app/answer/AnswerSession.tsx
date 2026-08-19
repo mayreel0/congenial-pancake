@@ -28,9 +28,8 @@ const ACTION_CONFIRM_COPY: Record<
     confirmLabel: "신고하기",
   },
   skip: {
-    message:
-      "이 온설을 스킵할까요? 스킵하면 이 글은 답하기 목록에서 다시 보이지 않습니다.",
-    confirmLabel: "스킵하기",
+    message: "이 글을 넘길까요? 넘기면 답하기 목록에서 다시 보이지 않습니다.",
+    confirmLabel: "넘기기",
   },
   hold: {
     message:

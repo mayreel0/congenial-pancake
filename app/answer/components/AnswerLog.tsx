@@ -1,6 +1,7 @@
 import type { OnseolRequest, OnseolReply } from "../../today/prototype/types";
 import { RequestBubble } from "./RequestBubble";
 import { ReplyBubble } from "./ReplyBubble";
+import { SkipIcon } from "./icons";
 
 type AnswerLogProps = {
   entries: Array<{ request: OnseolRequest; reply: OnseolReply }>;
@@ -37,15 +38,26 @@ export function AnswerLog({
         </div>
       ))}
       {currentRequest ? (
-        <RequestBubble
-          authorLabel={authorLabels.get(currentRequest.authorId) ?? "익명"}
-          leaving={currentRequest.id === leavingRequestId}
-          request={currentRequest}
-          showActions
-          onHold={() => onHold(currentRequest.id)}
-          onReport={() => onReport(currentRequest.id)}
-          onSkip={() => onSkip(currentRequest.id)}
-        />
+        <>
+          <RequestBubble
+            authorLabel={authorLabels.get(currentRequest.authorId) ?? "익명"}
+            leaving={currentRequest.id === leavingRequestId}
+            request={currentRequest}
+            showActions
+            onHold={() => onHold(currentRequest.id)}
+            onReport={() => onReport(currentRequest.id)}
+          />
+          <div className="sticky bottom-1 z-10 flex justify-end">
+            <button
+              className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 text-xs font-medium text-muted shadow-sm transition hover:bg-surface-muted hover:text-foreground"
+              type="button"
+              onClick={() => onSkip(currentRequest.id)}
+            >
+              다음 글
+              <SkipIcon className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </>
       ) : (
         <p className="text-sm text-muted">지금은 답할 수 있는 온설이 없어요.</p>
       )}
