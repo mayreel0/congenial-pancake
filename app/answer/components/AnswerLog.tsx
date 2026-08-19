@@ -6,6 +6,7 @@ type AnswerLogProps = {
   entries: Array<{ request: OnseolRequest; reply: OnseolReply }>;
   currentRequest: OnseolRequest | null;
   authorLabels: Map<string, string>;
+  leavingRequestId: string | null;
   onReport(requestId: string): void;
   onSkip(requestId: string): void;
   onHold(requestId: string): void;
@@ -15,13 +16,14 @@ export function AnswerLog({
   entries,
   currentRequest,
   authorLabels,
+  leavingRequestId,
   onReport,
   onSkip,
   onHold,
 }: AnswerLogProps) {
   return (
     <div
-      className="flex flex-1 flex-col gap-4 overflow-y-auto px-5 py-6 sm:px-8"
+      className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 overflow-y-auto px-5 py-6 sm:px-8"
       data-testid="answer-log"
     >
       {entries.map(({ request, reply }) => (
@@ -37,6 +39,7 @@ export function AnswerLog({
       {currentRequest ? (
         <RequestBubble
           authorLabel={authorLabels.get(currentRequest.authorId) ?? "익명"}
+          leaving={currentRequest.id === leavingRequestId}
           request={currentRequest}
           showActions
           onHold={() => onHold(currentRequest.id)}

@@ -1,14 +1,18 @@
-type ReportConfirmDialogProps = {
+type ActionConfirmDialogProps = {
   open: boolean;
+  message: string;
+  confirmLabel: string;
   onCancel(): void;
   onConfirm(): void;
 };
 
-export function ReportConfirmDialog({
+export function ActionConfirmDialog({
   open,
+  message,
+  confirmLabel,
   onCancel,
   onConfirm,
-}: ReportConfirmDialogProps) {
+}: ActionConfirmDialogProps) {
   if (!open) return null;
 
   return (
@@ -18,9 +22,7 @@ export function ReportConfirmDialog({
       role="dialog"
     >
       <div className="w-full max-w-sm space-y-4 rounded-lg border border-line bg-surface p-5 shadow-sm">
-        <p className="text-sm leading-6 text-foreground">
-          이 온설을 신고할까요? 신고하면 이 글은 답하기 목록에서 사라집니다.
-        </p>
+        <p className="text-sm leading-6 text-foreground">{message}</p>
         <div className="flex justify-end gap-2">
           <button
             className="inline-flex h-10 items-center justify-center rounded-lg px-4 text-sm font-medium text-muted transition hover:bg-surface-muted"
@@ -34,7 +36,7 @@ export function ReportConfirmDialog({
             type="button"
             onClick={onConfirm}
           >
-            신고하기
+            {confirmLabel}
           </button>
         </div>
       </div>

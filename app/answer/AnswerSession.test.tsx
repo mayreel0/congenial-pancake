@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { PROTOTYPE_STORAGE_KEYS } from "../today/prototype/storage-keys";
 import { AnswerSession } from "./AnswerSession";
 
@@ -32,8 +32,16 @@ function seedRequests(overrides: Array<Record<string, unknown>> = []) {
   );
 }
 
+async function renderHydrated() {
+  render(<AnswerSession />);
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(0);
+  });
+}
+
 describe("AnswerSession", () => {
   afterEach(() => {
+    vi.useRealTimers();
     window.localStorage.clear();
   });
 
@@ -58,26 +66,52 @@ describe("AnswerSession", () => {
     expect(screen.queryByText("내가 쓴 글")).not.toBeInTheDocument();
   });
 
-  it("advances the queue when the current request is skipped", async () => {
+  it("advances the queue after skip is confirmed", async () => {
+    vi.useFakeTimers();
     seedRequests();
-
-    render(<AnswerSession />);
-    await screen.findByText("오늘 실수한 일이 계속 떠올라요.");
+    await renderHydrated();
 
     fireEvent.click(screen.getByRole("button", { name: "스킵" }));
+    expect(
+      screen.getByText(/스킵하면 이 글은 답하기 목록에서 다시 보이지 않습니다/),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "스킵하기" }));
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(200);
+    });
 
     expect(
       screen.getByText("끝내긴 했는데 잘한 건지 모르겠어요."),
     ).toBeInTheDocument();
   });
 
-  it("moves a held request into the hold panel and back out when answered", async () => {
+  it("does nothing when skip is cancelled", async () => {
+    vi.useFakeTimers();
     seedRequests();
+    await renderHydrated();
 
-    render(<AnswerSession />);
-    await screen.findByText("오늘 실수한 일이 계속 떠올라요.");
+    fireEvent.click(screen.getByRole("button", { name: "스킵" }));
+    fireEvent.click(screen.getByRole("button", { name: "취소" }));
+
+    expect(
+      screen.getByText("오늘 실수한 일이 계속 떠올라요."),
+    ).toBeInTheDocument();
+  });
+
+  it("moves a held request into the hold panel and back out when answered", async () => {
+    vi.useFakeTimers();
+    seedRequests();
+    await renderHydrated();
 
     fireEvent.click(screen.getByRole("button", { name: "보류" }));
+    fireEvent.click(screen.getByRole("button", { name: "보류하기" }));
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(200);
+    });
+
     expect(
       screen.getByRole("button", { name: "보류 중 (1)" }),
     ).toBeInTheDocument();
@@ -91,6 +125,12 @@ describe("AnswerSession", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "답변하기" }));
 
+    expect(screen.getByRole("button", { name: "답하는 중" })).toBeDisabled();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(450);
+    });
+
     expect(
       screen.getByRole("button", { name: "보류 중 (0)" }),
     ).toBeInTheDocument();
@@ -98,10 +138,9 @@ describe("AnswerSession", () => {
   });
 
   it("requires confirmation before a report takes effect", async () => {
+    vi.useFakeTimers();
     seedRequests();
-
-    render(<AnswerSession />);
-    await screen.findByText("오늘 실수한 일이 계속 떠올라요.");
+    await renderHydrated();
 
     fireEvent.click(screen.getByRole("button", { name: "신고" }));
     expect(
@@ -115,6 +154,10 @@ describe("AnswerSession", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "신고" }));
     fireEvent.click(screen.getByRole("button", { name: "신고하기" }));
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(200);
+    });
 
     expect(
       screen.queryByText("오늘 실수한 일이 계속 떠올라요."),
