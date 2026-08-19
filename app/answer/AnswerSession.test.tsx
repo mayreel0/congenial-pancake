@@ -81,6 +81,20 @@ describe("AnswerSession", () => {
     expect(screen.getByText("입력 중")).toBeInTheDocument();
   });
 
+  it("closes the more menu when clicking outside it", async () => {
+    seedRequests();
+
+    render(<AnswerSession />);
+    await screen.findByText("오늘 실수한 일이 계속 떠올라요.");
+
+    fireEvent.click(screen.getByRole("button", { name: "더보기" }));
+    expect(screen.getByText("보류하기")).toBeInTheDocument();
+
+    fireEvent.mouseDown(document.body);
+
+    expect(screen.queryByText("보류하기")).not.toBeInTheDocument();
+  });
+
   it("advances the queue after skip is confirmed", async () => {
     vi.useFakeTimers();
     seedRequests();

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { OnseolRequest } from "../../today/prototype/types";
 import { formatTimestamp } from "../prototype/format";
 import { ArchiveIcon, FlagIcon, MoreIcon } from "./icons";
@@ -26,6 +26,23 @@ export function RequestBubble({
   onHold,
 }: RequestBubbleProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+
+    function handlePointerDown(event: MouseEvent) {
+      if (
+        menuContainerRef.current &&
+        !menuContainerRef.current.contains(event.target as Node)
+      ) {
+        setMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, [menuOpen]);
 
   return (
     <article
@@ -37,7 +54,7 @@ export function RequestBubble({
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs font-semibold text-foreground">{authorLabel}</p>
         {showActions ? (
-          <div className="relative shrink-0">
+          <div className="relative shrink-0" ref={menuContainerRef}>
             <button
               aria-expanded={menuOpen}
               aria-label="더보기"

@@ -1,3 +1,10 @@
+"use client";
+
+import { useLayoutEffect, useRef } from "react";
+
+const MIN_TEXTAREA_HEIGHT = 44;
+const MAX_TEXTAREA_HEIGHT = 128;
+
 type AnswerComposerProps = {
   value: string;
   disabled: boolean;
@@ -18,6 +25,18 @@ export function AnswerComposer({
   onCancelHeld,
 }: AnswerComposerProps) {
   const fieldDisabled = disabled || pending;
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useLayoutEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    textarea.style.height = `${MIN_TEXTAREA_HEIGHT}px`;
+    const nextHeight = Math.min(textarea.scrollHeight, MAX_TEXTAREA_HEIGHT);
+    textarea.style.height = `${Math.max(nextHeight, MIN_TEXTAREA_HEIGHT)}px`;
+    textarea.style.overflowY =
+      textarea.scrollHeight > MAX_TEXTAREA_HEIGHT ? "auto" : "hidden";
+  }, [value]);
 
   return (
     <form
@@ -43,21 +62,23 @@ export function AnswerComposer({
             </button>
           </div>
         ) : null}
-        <div className="flex items-end gap-2">
+        <div className="flex items-end gap-2 rounded-lg border border-line bg-surface px-3 py-2 transition focus-within:border-primary">
           <label className="sr-only" htmlFor="answer-body">
             답변 남기기
           </label>
           <textarea
-            className="max-h-32 min-h-11 flex-1 resize-none rounded-lg border border-line bg-surface px-4 py-3 text-sm leading-6 text-foreground outline-none transition placeholder:text-muted focus:border-primary disabled:cursor-not-allowed disabled:opacity-60"
+            className="max-h-32 min-h-11 flex-1 resize-none bg-transparent py-2 text-sm leading-6 text-foreground outline-none placeholder:text-muted disabled:cursor-not-allowed disabled:opacity-60"
             disabled={fieldDisabled}
             id="answer-body"
             maxLength={180}
             placeholder="그 마음이 오래 남을 수 있죠. 그래도 오늘 버틴 건 분명해요."
+            ref={textareaRef}
+            rows={1}
             value={value}
             onChange={(event) => onChange(event.target.value)}
           />
           <button
-            className="inline-flex h-11 shrink-0 items-center justify-center rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-10 shrink-0 items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={fieldDisabled || !value.trim()}
             type="submit"
           >
