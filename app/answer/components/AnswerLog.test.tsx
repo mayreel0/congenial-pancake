@@ -111,9 +111,9 @@ describe("AnswerLog date dividers", () => {
 
     const dividers = screen.getAllByRole("separator");
     expect(dividers.map((divider) => divider.textContent)).toEqual([
-      "8월 15일",
-      "8월 17일",
       "오늘",
+      "8월 17일",
+      "8월 15일",
     ]);
 
     expect(screen.getByText("8월 15일 답변 1")).toBeInTheDocument();

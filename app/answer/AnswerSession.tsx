@@ -119,9 +119,9 @@ export function AnswerSession() {
   }
 
   return (
-    <div className="flex min-h-dvh flex-col bg-background text-foreground">
+    <div className="flex h-dvh flex-col bg-background text-foreground">
       <ServiceNav activePath="/answer" />
-      <div className="relative flex min-h-[calc(100dvh-3.5rem)] flex-1 flex-col">
+      <div className="relative flex min-h-0 flex-1 flex-col">
         <AnswerLog
           authorLabels={authorLabels}
           currentRequest={currentTarget}
