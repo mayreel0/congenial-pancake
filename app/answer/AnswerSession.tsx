@@ -121,7 +121,7 @@ export function AnswerSession() {
   return (
     <div className="flex h-dvh flex-col bg-background text-foreground">
       <ServiceNav activePath="/answer" />
-      <div className="relative flex min-h-0 flex-1 flex-col">
+      <div className="flex min-h-0 flex-1 flex-col">
         <AnswerLog
           authorLabels={authorLabels}
           currentRequest={currentTarget}
@@ -133,16 +133,16 @@ export function AnswerSession() {
           onReport={(requestId) => requestAction("report", requestId)}
           onSkip={(requestId) => requestAction("skip", requestId)}
         />
-        <HoldPanel
-          heldRequests={prototype.heldRequests}
-          open={holdPanelOpen}
-          onClose={() => setHoldPanelOpen(false)}
-          onSelect={(requestId) => {
-            prototype.openHeldRequest(requestId);
-            setHoldPanelOpen(false);
-          }}
-        />
-        <div className="border-t border-line px-5 pt-2 sm:px-8">
+        <div className="relative border-t border-line px-5 pt-2 sm:px-8">
+          <HoldPanel
+            heldRequests={prototype.heldRequests}
+            open={holdPanelOpen}
+            onClose={() => setHoldPanelOpen(false)}
+            onSelect={(requestId) => {
+              prototype.openHeldRequest(requestId);
+              setHoldPanelOpen(false);
+            }}
+          />
           <div className="mx-auto flex w-full max-w-6xl items-center justify-between">
             <button
               className="text-xs font-medium text-muted transition hover:text-foreground"
