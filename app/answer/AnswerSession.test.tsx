@@ -125,7 +125,8 @@ describe("AnswerSession", () => {
     seedRequests();
     await renderHydrated();
 
-    fireEvent.click(screen.getByRole("button", { name: "보류" }));
+    fireEvent.click(screen.getByRole("button", { name: "더보기" }));
+    fireEvent.click(screen.getByRole("button", { name: "보류하기" }));
     fireEvent.click(screen.getByRole("button", { name: "보류하기" }));
 
     await act(async () => {
@@ -162,7 +163,8 @@ describe("AnswerSession", () => {
     seedRequests();
     await renderHydrated();
 
-    fireEvent.click(screen.getByRole("button", { name: "신고" }));
+    fireEvent.click(screen.getByRole("button", { name: "더보기" }));
+    fireEvent.click(screen.getByRole("button", { name: "신고하기" }));
     expect(
       screen.getByText(/신고하면 이 글은 답하기 목록에서 사라집니다/),
     ).toBeInTheDocument();
@@ -172,7 +174,8 @@ describe("AnswerSession", () => {
       screen.getByText("오늘 실수한 일이 계속 떠올라요."),
     ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "신고" }));
+    fireEvent.click(screen.getByRole("button", { name: "더보기" }));
+    fireEvent.click(screen.getByRole("button", { name: "신고하기" }));
     fireEvent.click(screen.getByRole("button", { name: "신고하기" }));
 
     await act(async () => {

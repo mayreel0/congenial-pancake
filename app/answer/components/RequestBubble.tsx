@@ -1,6 +1,9 @@
+"use client";
+
+import { useState } from "react";
 import type { OnseolRequest } from "../../today/prototype/types";
 import { formatTimestamp } from "../prototype/format";
-import { ArchiveIcon, FlagIcon } from "./icons";
+import { ArchiveIcon, FlagIcon, MoreIcon } from "./icons";
 
 type RequestBubbleProps = {
   request: OnseolRequest;
@@ -22,6 +25,8 @@ export function RequestBubble({
   onReport,
   onHold,
 }: RequestBubbleProps) {
+  const [menuOpen, setMenuOpen] = useState(false);
+
   return (
     <article
       className={[
@@ -32,25 +37,46 @@ export function RequestBubble({
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs font-semibold text-foreground">{authorLabel}</p>
         {showActions ? (
-          <div className="flex shrink-0 items-center gap-0.5">
+          <div className="relative shrink-0">
             <button
-              aria-label="신고"
+              aria-expanded={menuOpen}
+              aria-label="더보기"
               className={iconButtonClassName}
-              title="신고"
+              title="더보기"
               type="button"
-              onClick={() => onReport?.()}
+              onClick={() => setMenuOpen((open) => !open)}
             >
-              <FlagIcon className="h-4 w-4" />
+              <MoreIcon className="h-4 w-4" />
             </button>
-            <button
-              aria-label="보류"
-              className={iconButtonClassName}
-              title="보류"
-              type="button"
-              onClick={() => onHold?.()}
-            >
-              <ArchiveIcon className="h-4 w-4" />
-            </button>
+            {menuOpen ? (
+              <div
+                aria-label="답하기 도구"
+                className="absolute right-0 top-full z-20 mt-1 w-32 overflow-hidden rounded-lg border border-line bg-surface shadow-sm"
+              >
+                <button
+                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-foreground transition hover:bg-surface-muted"
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onHold?.();
+                  }}
+                >
+                  <ArchiveIcon className="h-4 w-4" />
+                  보류하기
+                </button>
+                <button
+                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-foreground transition hover:bg-surface-muted"
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onReport?.();
+                  }}
+                >
+                  <FlagIcon className="h-4 w-4" />
+                  신고하기
+                </button>
+              </div>
+            ) : null}
           </div>
         ) : null}
       </div>

@@ -18,7 +18,6 @@ export function AnswerComposer({
   onCancelHeld,
 }: AnswerComposerProps) {
   const fieldDisabled = disabled || pending;
-  const isTyping = value.trim().length > 0 && !fieldDisabled;
 
   return (
     <form
@@ -29,28 +28,9 @@ export function AnswerComposer({
       }}
     >
       <div className="mx-auto w-full max-w-6xl">
-        <div className="flex items-center justify-between gap-3 pb-2 text-xs text-muted">
-          <span>정답을 쓰지 않아도 됩니다. 짧게 들었다는 말이면 충분해요.</span>
-          {isTyping ? (
-            <span
-              aria-live="polite"
-              className="inline-flex shrink-0 items-center gap-1.5"
-            >
-              입력 중
-              <span className="flex items-center gap-0.5">
-                <span className="onseol-typing-dot h-1 w-1 rounded-full bg-current" />
-                <span
-                  className="onseol-typing-dot h-1 w-1 rounded-full bg-current"
-                  style={{ animationDelay: "160ms" }}
-                />
-                <span
-                  className="onseol-typing-dot h-1 w-1 rounded-full bg-current"
-                  style={{ animationDelay: "320ms" }}
-                />
-              </span>
-            </span>
-          ) : null}
-        </div>
+        <p className="pb-2 text-xs text-muted">
+          정답을 쓰지 않아도 됩니다. 짧게 들었다는 말이면 충분해요.
+        </p>
         {isAnsweringHeldRequest ? (
           <div className="flex items-center justify-between pb-2 text-xs text-muted">
             <span>보류한 온설에 답하는 중이에요.</span>

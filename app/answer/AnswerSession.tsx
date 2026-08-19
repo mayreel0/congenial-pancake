@@ -57,6 +57,11 @@ export function AnswerSession() {
   const draft = currentTarget
     ? (prototype.state.replyDrafts[currentTarget.id] ?? "")
     : "";
+  const isTyping =
+    Boolean(currentTarget) &&
+    draft.trim().length > 0 &&
+    answerSubmitStatus === "idle" &&
+    !loadingNext;
 
   const authorLabels = useMemo(() => {
     const orderedRequests = [
@@ -105,6 +110,12 @@ export function AnswerSession() {
     );
     prototype.submitReply(currentTarget.id);
     setAnswerSubmitStatus("idle");
+
+    setLoadingNext(true);
+    await new Promise((resolve) =>
+      window.setTimeout(resolve, NEXT_REQUEST_LOAD_MS),
+    );
+    setLoadingNext(false);
   }
 
   return (
@@ -115,6 +126,7 @@ export function AnswerSession() {
           authorLabels={authorLabels}
           currentRequest={currentTarget}
           entries={prototype.answerLog}
+          isTyping={isTyping}
           leavingRequestId={leavingRequestId}
           loadingNext={loadingNext}
           onHold={(requestId) => requestAction("hold", requestId)}
