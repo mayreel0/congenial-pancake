@@ -33,5 +33,5 @@ export type PrototypeState = {
   selectedRequestId: string | null;
   skippedRequestIds: string[];
   heldRequestIds: string[];
-  savedRequestIds: string[];
+  savedReplyIds: string[];
 };

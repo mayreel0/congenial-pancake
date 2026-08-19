@@ -1,13 +1,12 @@
 import type { ReadFeedItem } from "../../today/prototype/model";
 import { ReadReplyBubble } from "./ReadReplyBubble";
 import { ReadRequestBubble } from "./ReadRequestBubble";
-import { SaveToggleButton } from "./SaveToggleButton";
 
 type ReadThreadProps = {
   item: ReadFeedItem;
   authorLabels: Map<string, string>;
-  saved: boolean;
-  onToggleSave(): void;
+  savedReplyIds: Set<string>;
+  onToggleSaveReply(replyId: string): void;
   onReportRequest(): void;
   onReportReply(replyId: string): void;
 };
@@ -15,8 +14,8 @@ type ReadThreadProps = {
 export function ReadThread({
   item,
   authorLabels,
-  saved,
-  onToggleSave,
+  savedReplyIds,
+  onToggleSaveReply,
   onReportRequest,
   onReportReply,
 }: ReadThreadProps) {
@@ -33,11 +32,12 @@ export function ReadThread({
             authorLabel={authorLabels.get(reply.authorId) ?? "익명"}
             key={reply.id}
             reply={reply}
+            saved={savedReplyIds.has(reply.id)}
             onReport={() => onReportReply(reply.id)}
+            onToggleSave={() => onToggleSaveReply(reply.id)}
           />
         ))}
       </div>
-      <SaveToggleButton saved={saved} onToggle={onToggleSave} />
     </section>
   );
 }

@@ -28,7 +28,7 @@ const item: ReadFeedItem = {
 
 describe("ReadThread", () => {
   it("renders the request and every reply, and wires save/report callbacks", () => {
-    const onToggleSave = vi.fn();
+    const onToggleSaveReply = vi.fn();
     const onReportRequest = vi.fn();
     const onReportReply = vi.fn();
 
@@ -41,10 +41,10 @@ describe("ReadThread", () => {
           ])
         }
         item={item}
-        saved={false}
+        savedReplyIds={new Set()}
         onReportReply={onReportReply}
         onReportRequest={onReportRequest}
-        onToggleSave={onToggleSave}
+        onToggleSaveReply={onToggleSaveReply}
       />,
     );
 
@@ -54,7 +54,7 @@ describe("ReadThread", () => {
     expect(screen.getByText("괜히 커 보일 때가 있죠.")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "마음에 남기기" }));
-    expect(onToggleSave).toHaveBeenCalledOnce();
+    expect(onToggleSaveReply).toHaveBeenCalledWith("reply-1");
 
     fireEvent.click(screen.getByRole("button", { name: "이 온설 신고하기" }));
     expect(onReportRequest).toHaveBeenCalledOnce();

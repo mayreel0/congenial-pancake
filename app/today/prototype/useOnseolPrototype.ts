@@ -61,7 +61,7 @@ type UseOnseolPrototypeResult = {
   closeHeldRequest(): void;
   reportRequest(requestId: string): void;
   reportReply(replyId: string): void;
-  toggleSavedRequest(requestId: string): void;
+  toggleSavedReply(replyId: string): void;
   resetPrototype(): void;
   hasViewerRepliedToSelected: boolean;
 };
@@ -303,14 +303,14 @@ export function useOnseolPrototype(): UseOnseolPrototypeResult {
     }));
   }
 
-  function toggleSavedRequest(requestId: string): void {
+  function toggleSavedReply(replyId: string): void {
     updateState((current) => {
-      const saved = current.savedRequestIds.includes(requestId);
+      const saved = current.savedReplyIds.includes(replyId);
       return {
         ...current,
-        savedRequestIds: saved
-          ? current.savedRequestIds.filter((id) => id !== requestId)
-          : [...current.savedRequestIds, requestId],
+        savedReplyIds: saved
+          ? current.savedReplyIds.filter((id) => id !== replyId)
+          : [...current.savedReplyIds, replyId],
       };
     });
   }
@@ -346,7 +346,7 @@ export function useOnseolPrototype(): UseOnseolPrototypeResult {
     closeHeldRequest,
     reportRequest,
     reportReply,
-    toggleSavedRequest,
+    toggleSavedReply,
     resetPrototype,
     hasViewerRepliedToSelected: selectedRequest
       ? hasViewerReplied(state, selectedRequest.id)

@@ -57,8 +57,8 @@ export function readPrototypeState(): PrototypeState {
   const heldRequestIds = readJson<string[]>(
     PROTOTYPE_STORAGE_KEYS.heldRequestIds,
   );
-  const savedRequestIds = readJson<string[]>(
-    PROTOTYPE_STORAGE_KEYS.savedRequestIds,
+  const savedReplyIds = readJson<string[]>(
+    PROTOTYPE_STORAGE_KEYS.savedReplyIds,
   );
 
   return {
@@ -70,7 +70,7 @@ export function readPrototypeState(): PrototypeState {
     selectedRequestId: selectedRequestId ?? requests[0]?.id ?? null,
     skippedRequestIds: skippedRequestIds ?? [],
     heldRequestIds: heldRequestIds ?? [],
-    savedRequestIds: savedRequestIds ?? [],
+    savedReplyIds: savedReplyIds ?? [],
   };
 }
 
@@ -83,7 +83,7 @@ export function writePrototypeState(state: PrototypeState): void {
   writeJson(PROTOTYPE_STORAGE_KEYS.selectedRequestId, state.selectedRequestId);
   writeJson(PROTOTYPE_STORAGE_KEYS.skippedRequestIds, state.skippedRequestIds);
   writeJson(PROTOTYPE_STORAGE_KEYS.heldRequestIds, state.heldRequestIds);
-  writeJson(PROTOTYPE_STORAGE_KEYS.savedRequestIds, state.savedRequestIds);
+  writeJson(PROTOTYPE_STORAGE_KEYS.savedReplyIds, state.savedReplyIds);
 }
 
 export function resetPrototypeState(): PrototypeState {

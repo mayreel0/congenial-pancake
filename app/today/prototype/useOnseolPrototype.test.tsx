@@ -173,17 +173,17 @@ function ReadHarness() {
   return (
     <div>
       <p data-testid="feed-count">{prototype.readFeed.length}</p>
-      <p data-testid="saved-count">
-        {prototype.state.savedRequestIds.length}
-      </p>
-      {prototype.readFeed.map((item) => (
-        <button
-          key={item.request.id}
-          onClick={() => prototype.toggleSavedRequest(item.request.id)}
-        >
-          toggle {item.request.body}
-        </button>
-      ))}
+      <p data-testid="saved-count">{prototype.state.savedReplyIds.length}</p>
+      {prototype.readFeed.map((item) =>
+        item.replies.map((reply) => (
+          <button
+            key={reply.id}
+            onClick={() => prototype.toggleSavedReply(reply.id)}
+          >
+            toggle {reply.body}
+          </button>
+        )),
+      )}
     </div>
   );
 }
@@ -199,7 +199,7 @@ describe("useOnseolPrototype read feed", () => {
     expect(screen.getByTestId("feed-count")).toHaveTextContent("2");
   });
 
-  it("toggles a request in and out of savedRequestIds and persists it", () => {
+  it("toggles a reply in and out of savedReplyIds and persists it", () => {
     render(<ReadHarness />);
 
     const target = screen.getAllByRole("button", { name: /^toggle / })[0];

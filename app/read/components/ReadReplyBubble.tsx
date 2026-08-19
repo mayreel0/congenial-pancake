@@ -1,17 +1,22 @@
 import type { OnseolReply } from "../../today/prototype/types";
 import { formatTimestamp } from "../prototype/format";
 import { FlagIcon } from "./icons";
+import { SaveToggleButton } from "./SaveToggleButton";
 
 type ReadReplyBubbleProps = {
   reply: OnseolReply;
   authorLabel: string;
+  saved: boolean;
   onReport(): void;
+  onToggleSave(): void;
 };
 
 export function ReadReplyBubble({
   reply,
   authorLabel,
+  saved,
   onReport,
+  onToggleSave,
 }: ReadReplyBubbleProps) {
   return (
     <article className="max-w-[85%] space-y-1.5 self-end rounded-lg bg-primary/10 px-4 py-3 sm:max-w-[70%]">
@@ -27,13 +32,16 @@ export function ReadReplyBubble({
         </button>
       </div>
       <p className="text-sm leading-6 text-foreground">{reply.body}</p>
-      <time
-        className="block text-xs text-muted"
-        dateTime={reply.createdAt}
-        suppressHydrationWarning
-      >
-        {formatTimestamp(reply.createdAt)}
-      </time>
+      <div className="flex items-center justify-between gap-3">
+        <time
+          className="text-xs text-muted"
+          dateTime={reply.createdAt}
+          suppressHydrationWarning
+        >
+          {formatTimestamp(reply.createdAt)}
+        </time>
+        <SaveToggleButton saved={saved} onToggle={onToggleSave} />
+      </div>
     </article>
   );
 }

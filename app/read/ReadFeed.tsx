@@ -18,8 +18,8 @@ export function ReadFeed() {
   );
 
   const savedSet = useMemo(
-    () => new Set(prototype.state.savedRequestIds),
-    [prototype.state.savedRequestIds],
+    () => new Set(prototype.state.savedReplyIds),
+    [prototype.state.savedReplyIds],
   );
   const authorLabels = useMemo(
     () => buildReadAuthorLabels(prototype.readFeed),
@@ -52,7 +52,7 @@ export function ReadFeed() {
               authorLabels={authorLabels}
               item={item}
               key={item.request.id}
-              saved={savedSet.has(item.request.id)}
+              savedReplyIds={savedSet}
               onReportReply={(replyId) =>
                 setPendingReport({
                   kind: "reply",
@@ -63,7 +63,9 @@ export function ReadFeed() {
               onReportRequest={() =>
                 setPendingReport({ kind: "request", requestId: item.request.id })
               }
-              onToggleSave={() => prototype.toggleSavedRequest(item.request.id)}
+              onToggleSaveReply={(replyId) =>
+                prototype.toggleSavedReply(replyId)
+              }
             />
           ))
         )}

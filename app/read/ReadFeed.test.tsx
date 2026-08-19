@@ -118,6 +118,59 @@ describe("ReadFeed", () => {
     ).toBeInTheDocument();
   });
 
+  it("toggles save per reply, independent of other replies on the same request", async () => {
+    seed(
+      [
+        {
+          id: "req-1",
+          body: "여러 답변이 달린 요청",
+          createdAt: new Date().toISOString(),
+          authorId: "other-author",
+          replyIds: ["r1", "r2"],
+          reportCount: 0,
+          hidden: false,
+        },
+      ],
+      [
+        {
+          id: "r1",
+          requestId: "req-1",
+          body: "첫 번째 답변",
+          createdAt: "2026-08-19T09:00:00.000Z",
+          authorId: "replier-1",
+          reportCount: 0,
+          hidden: false,
+        },
+        {
+          id: "r2",
+          requestId: "req-1",
+          body: "두 번째 답변",
+          createdAt: "2026-08-19T10:00:00.000Z",
+          authorId: "replier-2",
+          reportCount: 0,
+          hidden: false,
+        },
+      ],
+    );
+
+    render(<ReadFeed />);
+    await screen.findByText("여러 답변이 달린 요청");
+
+    const saveButtons = screen.getAllByRole("button", {
+      name: "마음에 남기기",
+    });
+    expect(saveButtons).toHaveLength(2);
+
+    fireEvent.click(saveButtons[0]);
+
+    expect(
+      screen.getAllByRole("button", { name: /마음에 남긴 온설/ }),
+    ).toHaveLength(1);
+    expect(
+      screen.getAllByRole("button", { name: "마음에 남기기" }),
+    ).toHaveLength(1);
+  });
+
   it("requires confirmation before a report removes an item, and removes the whole card when the only reply is reported", async () => {
     seed(
       [

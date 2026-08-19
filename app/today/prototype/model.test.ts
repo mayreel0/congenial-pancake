@@ -57,7 +57,7 @@ const baseState: PrototypeState = {
   selectedRequestId: null,
   skippedRequestIds: [],
   heldRequestIds: [],
-  savedRequestIds: [],
+  savedReplyIds: [],
 };
 
 describe("getPriorityRequests", () => {
@@ -123,7 +123,7 @@ describe("getRecentNonViewerRequests", () => {
       selectedRequestId: null,
       skippedRequestIds: [],
       heldRequestIds: [],
-      savedRequestIds: [],
+      savedReplyIds: [],
     };
 
     expect(
@@ -160,7 +160,7 @@ describe("getRecentNonViewerRequests", () => {
       selectedRequestId: null,
       skippedRequestIds: [],
       heldRequestIds: [],
-      savedRequestIds: [],
+      savedReplyIds: [],
     };
 
     expect(
@@ -188,7 +188,7 @@ describe("getRecentNonViewerRequests", () => {
       selectedRequestId: null,
       skippedRequestIds: [],
       heldRequestIds: [],
-      savedRequestIds: [],
+      savedReplyIds: [],
     };
 
     expect(getTodayEntryMessages(state, ["기본 샘플"])).toEqual(["기본 샘플"]);
@@ -261,7 +261,7 @@ describe("getAnswerQueue", () => {
     selectedRequestId: null,
     skippedRequestIds: ["skipped"],
     heldRequestIds: ["held"],
-    savedRequestIds: [],
+    savedReplyIds: [],
   };
 
   it("excludes own requests, already-answered requests, skipped requests, and held requests", () => {
@@ -310,7 +310,7 @@ describe("getHeldRequests", () => {
       selectedRequestId: null,
       skippedRequestIds: [],
       heldRequestIds: ["held-first", "held-second", "held-hidden"],
-      savedRequestIds: [],
+      savedReplyIds: [],
     };
 
     expect(getHeldRequests(state).map((request) => request.id)).toEqual([
@@ -369,7 +369,7 @@ describe("getMyAnswerLog", () => {
       selectedRequestId: null,
       skippedRequestIds: [],
       heldRequestIds: [],
-      savedRequestIds: [],
+      savedReplyIds: [],
     };
 
     const log = getMyAnswerLog(state);
@@ -465,7 +465,7 @@ describe("getReadFeed", () => {
     selectedRequestId: null,
     skippedRequestIds: [],
     heldRequestIds: [],
-    savedRequestIds: [],
+    savedReplyIds: [],
   };
 
   it("includes the viewer's own requests and excludes ones with no visible reply, sorted newest-request-first", () => {
