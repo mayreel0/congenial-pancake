@@ -10,6 +10,7 @@ import { HoldPanel } from "./components/HoldPanel";
 import { buildAnonymousLabels } from "./prototype/labels";
 
 const BUBBLE_LEAVE_MS = 180;
+const NEXT_REQUEST_LOAD_MS = 400;
 const ANSWER_SUBMIT_PENDING_MS = 450;
 
 type PendingActionType = "report" | "skip" | "hold";
@@ -47,6 +48,7 @@ export function AnswerSession() {
   const [leavingRequestId, setLeavingRequestId] = useState<string | null>(
     null,
   );
+  const [loadingNext, setLoadingNext] = useState(false);
   const [answerSubmitStatus, setAnswerSubmitStatus] = useState<
     "idle" | "pending"
   >("idle");
@@ -67,10 +69,14 @@ export function AnswerSession() {
   function runWithLeaveAnimation(requestId: string, action: () => void) {
     setLeavingRequestId(requestId);
     window.setTimeout(() => {
-      action();
       setLeavingRequestId((current) =>
         current === requestId ? null : current,
       );
+      setLoadingNext(true);
+      window.setTimeout(() => {
+        action();
+        setLoadingNext(false);
+      }, NEXT_REQUEST_LOAD_MS);
     }, BUBBLE_LEAVE_MS);
   }
 
@@ -110,6 +116,7 @@ export function AnswerSession() {
           currentRequest={currentTarget}
           entries={prototype.answerLog}
           leavingRequestId={leavingRequestId}
+          loadingNext={loadingNext}
           onHold={(requestId) => requestAction("hold", requestId)}
           onReport={(requestId) => requestAction("report", requestId)}
           onSkip={(requestId) => requestAction("skip", requestId)}
@@ -135,7 +142,7 @@ export function AnswerSession() {
           </div>
         </div>
         <AnswerComposer
-          disabled={!currentTarget}
+          disabled={!currentTarget || loadingNext}
           isAnsweringHeldRequest={prototype.isAnsweringHeldRequest}
           pending={answerSubmitStatus === "pending"}
           value={draft}

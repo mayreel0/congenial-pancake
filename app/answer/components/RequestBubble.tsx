@@ -1,6 +1,6 @@
 import type { OnseolRequest } from "../../today/prototype/types";
 import { formatTimestamp } from "../prototype/format";
-import { BookmarkIcon, FlagIcon } from "./icons";
+import { ArchiveIcon, FlagIcon } from "./icons";
 
 type RequestBubbleProps = {
   request: OnseolRequest;
@@ -12,7 +12,7 @@ type RequestBubbleProps = {
 };
 
 const iconButtonClassName =
-  "inline-flex h-7 w-7 items-center justify-center rounded-md text-muted transition hover:bg-surface-muted hover:text-foreground";
+  "inline-flex h-6 w-6 items-center justify-center rounded-md text-muted transition hover:bg-surface-muted hover:text-foreground";
 
 export function RequestBubble({
   request,
@@ -49,7 +49,7 @@ export function RequestBubble({
               type="button"
               onClick={() => onHold?.()}
             >
-              <BookmarkIcon className="h-4 w-4" />
+              <ArchiveIcon className="h-4 w-4" />
             </button>
           </div>
         ) : null}

@@ -8,6 +8,7 @@ type AnswerLogProps = {
   currentRequest: OnseolRequest | null;
   authorLabels: Map<string, string>;
   leavingRequestId: string | null;
+  loadingNext: boolean;
   onReport(requestId: string): void;
   onSkip(requestId: string): void;
   onHold(requestId: string): void;
@@ -18,6 +19,7 @@ export function AnswerLog({
   currentRequest,
   authorLabels,
   leavingRequestId,
+  loadingNext,
   onReport,
   onSkip,
   onHold,
@@ -37,7 +39,14 @@ export function AnswerLog({
           <ReplyBubble reply={reply} />
         </div>
       ))}
-      {currentRequest ? (
+      {loadingNext ? (
+        <div
+          aria-live="polite"
+          className="onseol-bubble-enter max-w-[85%] animate-pulse self-start rounded-lg border border-line bg-surface px-4 py-3 sm:max-w-[70%]"
+        >
+          <p className="text-xs text-muted">다음 글 불러오는 중…</p>
+        </div>
+      ) : currentRequest ? (
         <>
           <RequestBubble
             authorLabel={authorLabels.get(currentRequest.authorId) ?? "익명"}

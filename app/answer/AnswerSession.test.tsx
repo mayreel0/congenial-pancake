@@ -66,6 +66,21 @@ describe("AnswerSession", () => {
     expect(screen.queryByText("내가 쓴 글")).not.toBeInTheDocument();
   });
 
+  it("shows a typing indicator while the answer draft has text", async () => {
+    seedRequests();
+
+    render(<AnswerSession />);
+    await screen.findByText("오늘 실수한 일이 계속 떠올라요.");
+
+    expect(screen.queryByText("입력 중")).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("답변 남기기"), {
+      target: { value: "짧게" },
+    });
+
+    expect(screen.getByText("입력 중")).toBeInTheDocument();
+  });
+
   it("advances the queue after skip is confirmed", async () => {
     vi.useFakeTimers();
     seedRequests();
@@ -79,7 +94,12 @@ describe("AnswerSession", () => {
     fireEvent.click(screen.getByRole("button", { name: "넘기기" }));
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(200);
+      await vi.advanceTimersByTimeAsync(250);
+    });
+    expect(screen.getByText("다음 글 불러오는 중…")).toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
     });
 
     expect(
@@ -109,7 +129,7 @@ describe("AnswerSession", () => {
     fireEvent.click(screen.getByRole("button", { name: "보류하기" }));
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(200);
+      await vi.advanceTimersByTimeAsync(700);
     });
 
     expect(
@@ -156,7 +176,7 @@ describe("AnswerSession", () => {
     fireEvent.click(screen.getByRole("button", { name: "신고하기" }));
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(200);
+      await vi.advanceTimersByTimeAsync(700);
     });
 
     expect(
