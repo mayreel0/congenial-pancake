@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { PROTOTYPE_STORAGE_KEYS } from "../today/prototype/storage-keys";
 import { ReadFeed } from "./ReadFeed";
@@ -111,10 +111,16 @@ describe("ReadFeed", () => {
     render(<ReadFeed />);
     await screen.findByText("요청");
 
+    const [, replyMoreButton] = screen.getAllByRole("button", {
+      name: "더보기",
+    });
+
+    fireEvent.click(replyMoreButton);
     fireEvent.click(screen.getByRole("button", { name: "마음에 남기기" }));
 
+    fireEvent.click(replyMoreButton);
     expect(
-      screen.getByRole("button", { name: /마음에 남긴 온설/ }),
+      screen.getByRole("button", { name: "마음에서 지우기" }),
     ).toBeInTheDocument();
   });
 
@@ -156,19 +162,24 @@ describe("ReadFeed", () => {
     render(<ReadFeed />);
     await screen.findByText("여러 답변이 달린 요청");
 
-    const saveButtons = screen.getAllByRole("button", {
-      name: "마음에 남기기",
-    });
-    expect(saveButtons).toHaveLength(2);
+    const [, firstReplyMore, secondReplyMore] = screen.getAllByRole(
+      "button",
+      { name: "더보기" },
+    );
 
-    fireEvent.click(saveButtons[0]);
+    fireEvent.click(firstReplyMore);
+    fireEvent.click(screen.getByRole("button", { name: "마음에 남기기" }));
 
+    fireEvent.click(firstReplyMore);
     expect(
-      screen.getAllByRole("button", { name: /마음에 남긴 온설/ }),
-    ).toHaveLength(1);
+      screen.getByRole("button", { name: "마음에서 지우기" }),
+    ).toBeInTheDocument();
+    fireEvent.click(firstReplyMore);
+
+    fireEvent.click(secondReplyMore);
     expect(
-      screen.getAllByRole("button", { name: "마음에 남기기" }),
-    ).toHaveLength(1);
+      screen.getByRole("button", { name: "마음에 남기기" }),
+    ).toBeInTheDocument();
   });
 
   it("requires confirmation before a report removes an item, and removes the whole card when the only reply is reported", async () => {
@@ -200,11 +211,25 @@ describe("ReadFeed", () => {
     render(<ReadFeed />);
     await screen.findByText("요청 본문");
 
-    fireEvent.click(screen.getByRole("button", { name: "이 답변 신고하기" }));
+    const [, replyMoreButton] = screen.getAllByRole("button", {
+      name: "더보기",
+    });
+
+    fireEvent.click(replyMoreButton);
+    fireEvent.click(
+      within(screen.getByLabelText("답변 도구")).getByRole("button", {
+        name: "신고하기",
+      }),
+    );
     fireEvent.click(screen.getByRole("button", { name: "취소" }));
     expect(screen.getByText("요청 본문")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "이 답변 신고하기" }));
+    fireEvent.click(replyMoreButton);
+    fireEvent.click(
+      within(screen.getByLabelText("답변 도구")).getByRole("button", {
+        name: "신고하기",
+      }),
+    );
     fireEvent.click(screen.getByRole("button", { name: "신고하기" }));
 
     expect(screen.queryByText("요청 본문")).not.toBeInTheDocument();
