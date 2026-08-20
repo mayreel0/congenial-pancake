@@ -3,6 +3,8 @@ packages:
 publicHoistPattern:
   - next
 allowBuilds:
+  bcrypt: true
+  esbuild: true
   unrs-resolver: true
 ignoredBuiltDependencies:
   - sharp
