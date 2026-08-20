@@ -1,9 +1,9 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen, within } from "../../lib/test-utils";
+import { describe, expect, it, vi } from "vitest";
 import { ServiceNav } from "./ServiceNav";
 
 describe("ServiceNav", () => {
-  it("shows desktop service links and login entry", () => {
+  it("shows desktop service links and login entry", async () => {
     render(<ServiceNav activePath="/today" />);
 
     const desktopNav = screen.getByLabelText("서비스 주요 이동");
@@ -21,10 +21,10 @@ describe("ServiceNav", () => {
       "href",
       "/me",
     );
-    expect(within(personalNav).getByRole("link", { name: "로그인" })).toHaveAttribute(
-      "href",
-      "/login",
-    );
+    // Auth state resolves asynchronously (AuthProvider fetches /auth/me on mount).
+    expect(
+      await within(personalNav).findByRole("link", { name: "로그인" }),
+    ).toHaveAttribute("href", "/login");
   });
 
   it("marks the active route", () => {
@@ -65,5 +65,29 @@ describe("ServiceNav", () => {
     render(<ServiceNav activePath="/today" />);
 
     expect(screen.queryByLabelText("하단 탭")).not.toBeInTheDocument();
+  });
+
+  it("shows the user's email and a logout button when authenticated", async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: () =>
+        Promise.resolve({
+          id: "1",
+          email: "test@example.com",
+          createdAt: "2026-08-20T00:00:00.000Z",
+        }),
+    });
+
+    render(<ServiceNav activePath="/today" />);
+
+    const personalNav = screen.getByLabelText("개인 영역");
+    expect(await within(personalNav).findByText("test@example.com")).toBeInTheDocument();
+    expect(
+      within(personalNav).getByRole("button", { name: "로그아웃" }),
+    ).toBeInTheDocument();
+    expect(
+      within(personalNav).queryByRole("link", { name: "로그인" }),
+    ).not.toBeInTheDocument();
   });
 });

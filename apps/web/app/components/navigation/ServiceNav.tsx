@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useAuth } from "../../lib/auth/AuthContext";
 import { landingEntryLinks, serviceNavItems } from "./routes";
 
 type ServiceNavProps = {
@@ -14,6 +15,7 @@ function isActive(activePath: string, href: string) {
 
 export function ServiceNav({ activePath }: ServiceNavProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const { status, user, logout } = useAuth();
 
   return (
     <header className="relative sticky top-0 z-20 border-b border-line bg-background/95 backdrop-blur">
@@ -91,12 +93,27 @@ export function ServiceNav({ activePath }: ServiceNavProps) {
           >
             내 기록
           </Link>
-          <Link
-            className="inline-flex h-9 items-center justify-center rounded-lg px-3 text-sm font-semibold text-muted transition hover:bg-surface-muted hover:text-foreground"
-            href={landingEntryLinks.login}
-          >
-            로그인
-          </Link>
+          {status === "authenticated" && user ? (
+            <>
+              <span className="hidden max-w-32 truncate text-sm text-muted sm:inline">
+                {user.email}
+              </span>
+              <button
+                className="inline-flex h-9 items-center justify-center rounded-lg px-3 text-sm font-semibold text-muted transition hover:bg-surface-muted hover:text-foreground"
+                type="button"
+                onClick={() => void logout()}
+              >
+                로그아웃
+              </button>
+            </>
+          ) : status === "anonymous" ? (
+            <Link
+              className="inline-flex h-9 items-center justify-center rounded-lg px-3 text-sm font-semibold text-muted transition hover:bg-surface-muted hover:text-foreground"
+              href={landingEntryLinks.login}
+            >
+              로그인
+            </Link>
+          ) : null}
         </nav>
       </div>
       {menuOpen ? (

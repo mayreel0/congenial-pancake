@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "../lib/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PROTOTYPE_STORAGE_KEYS } from "../today/prototype/storage-keys";
 import { AnswerSession } from "./AnswerSession";
