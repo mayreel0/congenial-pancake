@@ -101,12 +101,9 @@ Instead:
 - If the user explicitly says to include a note in the current PR, add it to the current PR branch and push that branch, not a new branch.
 - If `OBSIDIAN_VAULT_DIR` is missing, do not ask for the Vault path unless the user explicitly requests Project Wiki Mode or direct wiki writing.
 
-<!-- BEGIN:nextjs-agent-rules -->
+## Workspace Layout
 
-# This is NOT the Next.js you know
+This is a pnpm workspace (`packages: apps/*`). Each app keeps its own `AGENTS.md`/`CLAUDE.md` for app-specific, tool-specific notes; this root file stays scoped to project-wide rules (branching, decision process, wiki mode). When working inside an app, its own `AGENTS.md` applies in addition to this one.
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
-
-This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
-
-<!-- END:nextjs-agent-rules -->
+- `apps/web` — Next.js frontend. Run scripts via `pnpm --filter web <script>` from the repo root, or `cd apps/web` first. `apps/web/AGENTS.md` is written and re-added by `next dev` itself (Next.js's own agent-rules block, not authored by us) — do not remove it or treat it as stale; it regenerates on the next `next dev` run if deleted. `apps/web/CLAUDE.md` just imports it (`@AGENTS.md`).
+- `apps/api` — Nest.js backend (not yet scaffolded). When it's added, give it its own `AGENTS.md` for Nest-specific conventions rather than growing this root file.
