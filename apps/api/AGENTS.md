@@ -25,15 +25,17 @@ Controllers never accept or return Drizzle schema types (`typeof requests.$infer
 - **Response DTOs** (or plain mapper functions) convert a repository's domain/row type into exactly what the client should see — this is also where a DB row's internal fields (e.g. a future `passwordHash`) get dropped before serialization.
 - Domain/internal types stay in `src/database/schema` and repository return types; they never cross the HTTP boundary unmapped.
 
-This wasn't needed yet — `health` has no input, and `auth`'s session pieces aren't wired to routes yet — but it's the convention starting with the first real controller (the login PR).
+See `src/auth/dto/` for the first real example: `SignupDto`/`LoginDto` (request) and `UserResponseDto`/`toUserResponseDto` (response — drops `passwordHash`).
 
-## OAuth (planned, not yet implemented)
+## OAuth
 
-Login will support Google, Naver, and Kakao in addition to email/password. This is compatible with the DB-session design as-is: an OAuth callback looks up or creates a `users` row, then issues a normal session via `SessionService` — no separate auth path. Not yet reflected in the `users` schema (e.g. `password_hash` will need to become nullable for OAuth-only accounts, and an identity/linking table is likely needed) — do that as part of the login PR, not before there's a controller to use it.
+Google is implemented (`src/auth/oauth/google-oauth.provider.ts`); Kakao and Naver are planned follow-ups reusing the same `OAuthProvider` interface. **No Passport** — `passport-kakao`/`passport-naver` have been unmaintained since 2022, so each provider is a small class that calls the provider's authorize/token/userinfo endpoints directly via `fetch`, matching the "explicit, no magic" reasoning behind picking Drizzle over Prisma. An OAuth account links to a `users` row via `oauth_identities` (`(provider, provider_account_id)` unique) — `password_hash` on `users` is nullable for OAuth-only accounts. If someone signs in with Google using an email that already has a password account, it links to that existing account rather than creating a duplicate.
 
-## Error codes (planned, not yet implemented)
+`GET /auth/:provider` redirects to the provider with a CSRF `state` stored in a short-lived cookie; `GET /auth/:provider/callback` verifies that state before exchanging the code.
 
-A consistent error response shape (HTTP status + a stable domain error code the frontend can branch on) and a global exception filter land with the first real routes (the login PR) — not before, since there's nothing yet to standardize against.
+## Error codes
+
+Every error response is `{ statusCode, code, message }`, produced by the global `AppExceptionFilter` (`src/common/filters/`, registered in `main.ts`). Domain errors extend `AppException` (`src/common/exceptions/app.exception.ts`) with a stable `code` string the frontend can branch on (e.g. `AUTH_EMAIL_TAKEN`, `AUTH_INVALID_CREDENTIALS`). Plain Nest `HttpException`s (like `ValidationPipe`'s 400s) get a generic code derived from their status (`VALIDATION_ERROR`, `NOT_FOUND`, ...); anything unexpected becomes a 500 with `INTERNAL_ERROR` and a generic message — internals never leak into the response.
 
 ## DB / reporting & admin rules
 
@@ -41,4 +43,8 @@ Schema, the report threshold, and admin identification are all grounded in `docs
 
 ## Still-empty modules
 
-`users`, `requests`, `replies`, `reports`, `moderation`, `admin` currently have only a folder and an empty `@Module({})` — no real providers/controllers yet. Each gets filled in by its own feature PR. Leaving them empty is intentional, not an omission.
+`requests`, `replies`, `reports`, `moderation`, `admin` currently have only a folder and an empty `@Module({})` — no real providers/controllers yet (`users` and `auth` are now implemented). Each gets filled in by its own feature PR. Leaving them empty is intentional, not an omission.
+
+## Not yet wired to the frontend
+
+`apps/web` is still a 100% localStorage prototype — it does not call this API yet. `/auth/*` routes are verified via unit tests and manual `curl` against a local Postgres, not from the actual UI. Real frontend integration (`/login` form, Google button, session-aware nav) is a separate, later PR.

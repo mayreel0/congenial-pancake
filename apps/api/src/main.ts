@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { ValidationPipe } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
+import { AppExceptionFilter } from './common/filters/app-exception.filter';
 import type { Env } from './config/env.schema';
 
 async function bootstrap() {
@@ -19,6 +20,7 @@ async function bootstrap() {
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }),
   );
+  app.useGlobalFilters(new AppExceptionFilter());
 
   await app.listen(config.get('PORT', { infer: true }));
 }
