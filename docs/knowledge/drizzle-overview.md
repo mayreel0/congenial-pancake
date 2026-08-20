@@ -2,7 +2,7 @@
 title: Drizzle 개요와 이 프로젝트에서의 역할
 date: 2026-08-21
 status: reference
-scope: apps/api가 쓰는 Drizzle의 범위, Prisma와의 비교, Next.js/apps/web과의 경계
+scope: apps/api가 쓰는 Drizzle의 범위, Prisma와의 비교, Nest.js/apps/web과의 경계
 ---
 
 # Drizzle 개요
@@ -17,6 +17,7 @@ Drizzle(`drizzle-orm`)은 **ORM/쿼리 빌더**다. `apps/api`(Nest.js 백엔드
 
 ## Drizzle이 하지 않는 일
 
+- **HTTP/DI를 전혀 모른다.** 요청이 어떤 라우트로 왔는지, 누가 인증됐는지 같은 건 전부 Nest.js(`apps/api`) 쪽 관심사다. Drizzle 코드(`*.repository.ts`)는 "이 쿼리를 실행해라"만 받고, 그걸 호출한 게 컨트롤러인지 서비스인지도 모른다. 자세한 경계는 `docs/knowledge/nestjs-overview.md` 참고 — 원래 이 질문의 핵심이 여기다.
 - **DB 자체를 만들지 않는다.** `CREATE DATABASE onseol;`은 Drizzle/마이그레이션 이전에 사람이(또는 인프라 스크립트가) 직접 해야 한다. Drizzle은 이미 존재하는 DB 안에 테이블만 만든다.
 - **Next.js/`apps/web`과 무관하다.** 프론트엔드는 Drizzle을 import하지 않는다. DB 데이터가 필요하면 `apps/api`가 HTTP API로 내려준다.
 
@@ -35,4 +36,4 @@ Drizzle을 선택하면서 Prisma의 장단점을 검토한 전체 근거는 `do
 
 - ORM 선택 근거 전문: `docs/decisions/2026-08-21-onseol-backend-structure-decisions.md`
 - 스키마/신고 임계치 근거: `docs/decisions/2026-08-21-onseol-db-and-moderation-decisions.md`
-- Next.js와의 역할 비교: `docs/knowledge/nextjs-overview.md`
+- Nest.js와의 역할 비교: `docs/knowledge/nestjs-overview.md`
