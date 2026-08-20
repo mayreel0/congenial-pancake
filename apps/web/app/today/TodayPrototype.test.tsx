@@ -37,7 +37,7 @@ describe("TodayPrototype", () => {
 
     expect(screen.getByRole("link", { name: "온설" })).toHaveAttribute(
       "href",
-      "/today",
+      "/",
     );
     expect(screen.getByRole("link", { name: "남기기" })).toHaveAttribute(
       "aria-current",

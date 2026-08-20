@@ -50,7 +50,7 @@ export function ServiceNav({ activePath }: ServiceNavProps) {
               ].join(" ")}
             />
           </button>
-          <Link className="text-base font-semibold text-foreground" href="/today">
+          <Link className="text-base font-semibold text-foreground" href="/">
             온설
           </Link>
           <nav
