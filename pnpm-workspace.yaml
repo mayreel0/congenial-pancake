@@ -1,3 +1,7 @@
+packages:
+  - "apps/*"
+publicHoistPattern:
+  - next
 allowBuilds:
   unrs-resolver: true
 ignoredBuiltDependencies:

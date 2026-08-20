@@ -101,12 +101,6 @@ Instead:
 - If the user explicitly says to include a note in the current PR, add it to the current PR branch and push that branch, not a new branch.
 - If `OBSIDIAN_VAULT_DIR` is missing, do not ask for the Vault path unless the user explicitly requests Project Wiki Mode or direct wiki writing.
 
-<!-- BEGIN:nextjs-agent-rules -->
+## Workspace Layout
 
-# This is NOT the Next.js you know
-
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
-
-This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
-
-<!-- END:nextjs-agent-rules -->
+This is a pnpm workspace. The Next.js frontend lives in `apps/web`, not at the repo root — run its scripts via `pnpm --filter web <script>` from the repo root, or `cd apps/web` first. `next dev` writes its own auto-generated agent-rules block into `apps/web/AGENTS.md` (not this file) since that's where the `next` package resolves from now; treat that as Next.js's own file, not part of this repo's working rules.
