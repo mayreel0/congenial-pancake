@@ -1,10 +1,10 @@
 import type { ReactNode } from "react";
 import type { OnseolRequest, OnseolReply } from "../../today/prototype/types";
-import { formatDayLabel, isSameCalendarDay } from "../prototype/format";
+import { formatDayLabel, isSameCalendarDay } from "../../lib/format";
 import { DateDivider } from "./DateDivider";
 import { RequestBubble } from "./RequestBubble";
 import { ReplyBubble } from "./ReplyBubble";
-import { SkipIcon } from "./icons";
+import { SkipIcon } from "../../components/shared/icons";
 import { TypingBubble } from "./TypingBubble";
 
 type AnswerLogProps = {

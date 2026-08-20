@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { OnseolRequest } from "../../today/prototype/types";
-import { formatTimestamp } from "../prototype/format";
-import { FlagIcon, MoreIcon } from "./icons";
+import { formatTimestamp } from "../../lib/format";
+import { FlagIcon, MoreIcon } from "../../components/shared/icons";
 
 type ReadRequestBubbleProps = {
   request: OnseolRequest;
