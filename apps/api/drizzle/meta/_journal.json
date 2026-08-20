@@ -8,6 +8,13 @@
       "when": 1787250910046,
       "tag": "0000_eager_vindicator",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1787258207427,
+      "tag": "0001_amusing_hitman",
+      "breakpoints": true
     }
   ]
 }

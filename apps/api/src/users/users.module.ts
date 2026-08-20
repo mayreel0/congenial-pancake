@@ -1,5 +1,11 @@
 import { Module } from '@nestjs/common';
+import { DatabaseModule } from '../database/database.module';
+import { UsersRepository } from './users.repository';
+import { UsersService } from './users.service';
 
-// Repository/service/controller land with the signup/login feature PR.
-@Module({})
+@Module({
+  imports: [DatabaseModule],
+  providers: [UsersRepository, UsersService],
+  exports: [UsersService],
+})
 export class UsersModule {}

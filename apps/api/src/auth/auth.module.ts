@@ -1,17 +1,26 @@
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from '../database/database.module';
+import { UsersModule } from '../users/users.module';
+import { AuthController } from './auth.controller';
+import { AuthService } from './auth.service';
+import { OAuthIdentitiesRepository } from './oauth-identities.repository';
+import { GoogleOAuthProvider } from './oauth/google-oauth.provider';
 import { PasswordHasherService } from './password/password-hasher.service';
 import { SessionGuard } from './session.guard';
 import { SessionService } from './session.service';
 import { SessionsRepository } from './sessions.repository';
 
 @Module({
-  imports: [DatabaseModule],
+  imports: [DatabaseModule, UsersModule],
+  controllers: [AuthController],
   providers: [
     SessionsRepository,
     SessionService,
     SessionGuard,
     PasswordHasherService,
+    OAuthIdentitiesRepository,
+    GoogleOAuthProvider,
+    AuthService,
   ],
   exports: [SessionService, SessionGuard, PasswordHasherService],
 })

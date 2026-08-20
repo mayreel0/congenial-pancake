@@ -1,0 +1,139 @@
+import { randomBytes } from 'node:crypto';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  InternalServerErrorException,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import type { Request, Response } from 'express';
+import type { Env } from '../config/env.schema';
+import { OAuthExchangeFailedException } from '../common/exceptions/app.exception';
+import { AuthService } from './auth.service';
+import type { AuthenticatedRequest } from './authenticated-request';
+import { CurrentUser } from './current-user.decorator';
+import { LoginDto } from './dto/login.dto';
+import { SignupDto } from './dto/signup.dto';
+import {
+  toUserResponseDto,
+  type UserResponseDto,
+} from './dto/user-response.dto';
+import { GoogleOAuthProvider } from './oauth/google-oauth.provider';
+import { clearSessionCookie, setSessionCookie } from './session-cookie';
+import { SessionGuard } from './session.guard';
+import { SessionService } from './session.service';
+import { UsersService } from '../users/users.service';
+
+const OAUTH_STATE_COOKIE = 'oauth_state';
+const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
+
+@Controller('auth')
+export class AuthController {
+  constructor(
+    private readonly authService: AuthService,
+    private readonly sessionService: SessionService,
+    private readonly usersService: UsersService,
+    private readonly googleOAuthProvider: GoogleOAuthProvider,
+    private readonly config: ConfigService<Env, true>,
+  ) {}
+
+  @Post('signup')
+  @HttpCode(HttpStatus.CREATED)
+  async signup(
+    @Body() dto: SignupDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<UserResponseDto> {
+    const { user, session } = await this.authService.signup(
+      dto,
+      req.headers['user-agent'],
+    );
+    setSessionCookie(res, this.config, session.token, session.expiresAt);
+    return toUserResponseDto(user);
+  }
+
+  @Post('login')
+  @HttpCode(HttpStatus.OK)
+  async login(
+    @Body() dto: LoginDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<UserResponseDto> {
+    const { user, session } = await this.authService.login(
+      dto,
+      req.headers['user-agent'],
+    );
+    setSessionCookie(res, this.config, session.token, session.expiresAt);
+    return toUserResponseDto(user);
+  }
+
+  @Post('logout')
+  @UseGuards(SessionGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async logout(
+    @Req() req: AuthenticatedRequest,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<void> {
+    const token = req.cookies?.[
+      this.config.get('SESSION_COOKIE_NAME', { infer: true })
+    ] as string | undefined;
+    if (token) await this.sessionService.revokeToken(token);
+    clearSessionCookie(res, this.config);
+  }
+
+  @Get('me')
+  @UseGuards(SessionGuard)
+  async me(@CurrentUser() userId: string): Promise<UserResponseDto> {
+    const user = await this.usersService.findById(userId);
+    if (!user) {
+      throw new InternalServerErrorException(
+        'Session references a missing user.',
+      );
+    }
+    return toUserResponseDto(user);
+  }
+
+  @Get('google')
+  google(@Res() res: Response): void {
+    const state = randomBytes(16).toString('hex');
+    res.cookie(OAUTH_STATE_COOKIE, state, {
+      httpOnly: true,
+      maxAge: OAUTH_STATE_TTL_MS,
+      sameSite: 'lax',
+    });
+    res.redirect(this.googleOAuthProvider.getAuthorizeUrl(state));
+  }
+
+  @Get('google/callback')
+  async googleCallback(
+    @Req() req: Request,
+    @Res() res: Response,
+  ): Promise<void> {
+    const code = req.query.code;
+    const state = req.query.state;
+    const cookieState = req.cookies?.[OAUTH_STATE_COOKIE] as string | undefined;
+    res.clearCookie(OAUTH_STATE_COOKIE);
+
+    if (
+      typeof code !== 'string' ||
+      typeof state !== 'string' ||
+      state !== cookieState
+    ) {
+      throw new OAuthExchangeFailedException('google');
+    }
+
+    const profile = await this.googleOAuthProvider.exchangeCode(code);
+    const { session } = await this.authService.loginWithGoogle(
+      profile,
+      req.headers['user-agent'],
+    );
+    setSessionCookie(res, this.config, session.token, session.expiresAt);
+    res.redirect(this.config.get('CORS_ORIGIN', { infer: true }));
+  }
+}
