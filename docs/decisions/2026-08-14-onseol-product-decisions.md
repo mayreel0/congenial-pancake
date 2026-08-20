@@ -68,9 +68,9 @@ Supabase는 나중에 비교할 수 있는 인프라/provider 후보 중 하나�
 ## 확정 전에 물어볼 결정
 
 - Nest.js 자체 인증을 cookie session으로 구현할지 JWT로 구현할지, 또는 둘을 조합할지.
-- 첫 실제 데이터베이스: 개인 서버 Postgres, AWS/RDS식 Postgres, 다른 managed Postgres 중 어디에 둘지.
+- ~~첫 실제 데이터베이스: 개인 서버 Postgres, AWS/RDS식 Postgres, 다른 managed Postgres 중 어디에 둘지.~~ Resolved 2026-08-21: `docs/decisions/2026-08-21-onseol-db-and-moderation-decisions.md`.
 - 개인 서버 운영 방식: reverse proxy, TLS, backup, monitoring, deploy flow.
-- 신고된 요청/답변을 처리할 최소 관리자/운영 흐름.
+- ~~신고된 요청/답변을 처리할 최소 관리자/운영 흐름.~~ Resolved 2026-08-21: `docs/decisions/2026-08-21-onseol-db-and-moderation-decisions.md`.
 - 모바일 앱 작업을 언제 실제 scope로 올릴지.
 
 ## 작업 합의
