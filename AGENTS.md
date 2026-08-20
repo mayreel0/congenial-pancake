@@ -103,4 +103,7 @@ Instead:
 
 ## Workspace Layout
 
-This is a pnpm workspace. The Next.js frontend lives in `apps/web`, not at the repo root — run its scripts via `pnpm --filter web <script>` from the repo root, or `cd apps/web` first. `next dev` writes its own auto-generated agent-rules block into `apps/web/AGENTS.md` (not this file) since that's where the `next` package resolves from now; treat that as Next.js's own file, not part of this repo's working rules.
+This is a pnpm workspace (`packages: apps/*`). Each app keeps its own `AGENTS.md`/`CLAUDE.md` for app-specific, tool-specific notes; this root file stays scoped to project-wide rules (branching, decision process, wiki mode). When working inside an app, its own `AGENTS.md` applies in addition to this one.
+
+- `apps/web` — Next.js frontend. Run scripts via `pnpm --filter web <script>` from the repo root, or `cd apps/web` first. `apps/web/AGENTS.md` is written and re-added by `next dev` itself (Next.js's own agent-rules block, not authored by us) — do not remove it or treat it as stale; it regenerates on the next `next dev` run if deleted. `apps/web/CLAUDE.md` just imports it (`@AGENTS.md`).
+- `apps/api` — Nest.js backend (not yet scaffolded). When it's added, give it its own `AGENTS.md` for Nest-specific conventions rather than growing this root file.
