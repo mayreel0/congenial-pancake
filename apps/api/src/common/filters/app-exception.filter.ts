@@ -4,6 +4,7 @@ import {
   ExceptionFilter,
   HttpException,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { AppException } from '../exceptions/app.exception';
@@ -32,6 +33,8 @@ function extractMessage(response: unknown, fallback: string): string {
 
 @Catch()
 export class AppExceptionFilter implements ExceptionFilter {
+  private readonly logger = new Logger(AppExceptionFilter.name);
+
   catch(exception: unknown, host: ArgumentsHost): void {
     const response = host.switchToHttp().getResponse<Response>();
 
@@ -53,6 +56,14 @@ export class AppExceptionFilter implements ExceptionFilter {
       });
       return;
     }
+
+    // The client only ever sees a generic message — log the real cause here
+    // or it's lost. Nest's default filter does this for you; a custom
+    // @Catch() filter has to do it itself.
+    this.logger.error(
+      exception instanceof Error ? exception.message : 'Unknown error',
+      exception instanceof Error ? exception.stack : undefined,
+    );
 
     response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
       statusCode: HttpStatus.INTERNAL_SERVER_ERROR,

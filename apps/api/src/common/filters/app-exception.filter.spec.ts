@@ -1,5 +1,5 @@
 import type { ArgumentsHost } from '@nestjs/common';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Logger, NotFoundException } from '@nestjs/common';
 import type { Response } from 'express';
 import { InvalidCredentialsException } from '../exceptions/app.exception';
 import { AppExceptionFilter } from './app-exception.filter';
@@ -70,5 +70,16 @@ describe('AppExceptionFilter', () => {
       code: 'INTERNAL_ERROR',
       message: 'Something went wrong.',
     });
+  });
+
+  it('logs the real error for unknown errors so it is not silently lost', () => {
+    const { host } = makeHost();
+    const errorSpy = jest.spyOn(Logger.prototype, 'error').mockImplementation();
+
+    const boom = new Error('boom');
+    filter.catch(boom, host);
+
+    expect(errorSpy).toHaveBeenCalledWith('boom', boom.stack);
+    errorSpy.mockRestore();
   });
 });
