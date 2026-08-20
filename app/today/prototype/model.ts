@@ -135,6 +135,23 @@ export function getMyAnswerLog(
     );
 }
 
+export type ReadFeedItem = {
+  request: OnseolRequest;
+  replies: OnseolReply[];
+};
+
+export function getReadFeed(state: PrototypeState): ReadFeedItem[] {
+  return getVisibleRequests(state)
+    .map((request) => ({
+      request,
+      replies: getVisibleRepliesForRequest(state, request.id)
+        .slice()
+        .reverse(),
+    }))
+    .filter((item) => item.replies.length > 0)
+    .sort((a, b) => b.request.createdAt.localeCompare(a.request.createdAt));
+}
+
 export function truncatePreview(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text;
   return `${text.slice(0, maxLength).trimEnd()}...`;

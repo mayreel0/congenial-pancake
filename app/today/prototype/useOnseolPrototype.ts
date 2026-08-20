@@ -8,11 +8,13 @@ import {
   getMyReplies,
   getMyRequests,
   getPriorityRequests,
+  getReadFeed,
   getRecentExchanges,
   getTodayEntryMessages,
   getVisibleRepliesForRequest,
   hasViewerReplied,
 } from "./model";
+import type { ReadFeedItem } from "./model";
 import { createInitialPrototypeState } from "./seed-data";
 import {
   readPrototypeState,
@@ -47,6 +49,7 @@ type UseOnseolPrototypeResult = {
   answerLog: Array<{ request: OnseolRequest; reply: OnseolReply }>;
   currentAnswerTarget: OnseolRequest | null;
   isAnsweringHeldRequest: boolean;
+  readFeed: ReadFeedItem[];
   updateRequestDraft(value: string): void;
   submitRequest(bodyOverride?: string): Promise<void>;
   selectRequest(requestId: string): void;
@@ -58,6 +61,7 @@ type UseOnseolPrototypeResult = {
   closeHeldRequest(): void;
   reportRequest(requestId: string): void;
   reportReply(replyId: string): void;
+  toggleSavedReply(replyId: string): void;
   resetPrototype(): void;
   hasViewerRepliedToSelected: boolean;
 };
@@ -129,6 +133,7 @@ export function useOnseolPrototype(): UseOnseolPrototypeResult {
       ) ?? null)
     : null;
   const currentAnswerTarget = activeHeldRequest ?? answerQueue[0] ?? null;
+  const readFeed = useMemo(() => getReadFeed(state), [state]);
 
   function updateState(
     updater: (current: PrototypeState) => PrototypeState,
@@ -298,6 +303,18 @@ export function useOnseolPrototype(): UseOnseolPrototypeResult {
     }));
   }
 
+  function toggleSavedReply(replyId: string): void {
+    updateState((current) => {
+      const saved = current.savedReplyIds.includes(replyId);
+      return {
+        ...current,
+        savedReplyIds: saved
+          ? current.savedReplyIds.filter((id) => id !== replyId)
+          : [...current.savedReplyIds, replyId],
+      };
+    });
+  }
+
   function resetPrototype(): void {
     setState(resetPrototypeState());
   }
@@ -317,6 +334,7 @@ export function useOnseolPrototype(): UseOnseolPrototypeResult {
     answerLog,
     currentAnswerTarget,
     isAnsweringHeldRequest: activeHeldRequest !== null,
+    readFeed,
     updateRequestDraft,
     submitRequest,
     selectRequest,
@@ -328,6 +346,7 @@ export function useOnseolPrototype(): UseOnseolPrototypeResult {
     closeHeldRequest,
     reportRequest,
     reportReply,
+    toggleSavedReply,
     resetPrototype,
     hasViewerRepliedToSelected: selectedRequest
       ? hasViewerReplied(state, selectedRequest.id)
