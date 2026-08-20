@@ -139,8 +139,8 @@ MVP는 단순함을 유지하면서 실제 백엔드, 저장소, 인증, 신고,
 
 ### Open Questions
 
-- **Resolve Before Planning:** 첫 실제 데이터베이스는 개인 서버 Postgres, AWS/RDS식 managed Postgres, 다른 managed Postgres 중 어디에 둘 것인가?
-- **Resolve Before Planning:** MVP에서 필요한 최소 관리자/신고 처리 흐름은 어디까지인가?
+- ~~**Resolve Before Planning:** 첫 실제 데이터베이스는 개인 서버 Postgres, AWS/RDS식 managed Postgres, 다른 managed Postgres 중 어디에 둘 것인가?~~ Resolved 2026-08-21: `docs/decisions/2026-08-21-onseol-db-and-moderation-decisions.md`.
+- ~~**Resolve Before Planning:** MVP에서 필요한 최소 관리자/신고 처리 흐름은 어디까지인가?~~ Resolved 2026-08-21: `docs/decisions/2026-08-21-onseol-db-and-moderation-decisions.md`.
 - **Deferred to Planning:** Nest.js 자체 인증을 cookie session으로 구현할지 JWT로 구현할지, 또는 둘을 조합할지의 세부 설계.
 - **Deferred to Planning:** Next.js 프로젝트 구조, component 구조, Nest.js module 구조, DTO 이름, repository interface 이름.
 - **Deferred to Planning:** 개인 PC/서버 단계의 reverse proxy, TLS, backup, monitoring, deploy 방식.
