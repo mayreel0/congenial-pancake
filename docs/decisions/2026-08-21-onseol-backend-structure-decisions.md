@@ -52,3 +52,11 @@ Drizzle은 기존 프론트엔드 프로토타입이 이미 가진 "명시적, �
 
 - `apps/api` Nest.js 스캐폴딩(`feat/nestjs-api-scaffold`): `config`(zod 환경변수 검증), `database`(Drizzle client + `users`/`sessions`/`requests`/`replies`/`reports` 스키마 + 첫 마이그레이션), `auth`(세션 리포지토리/서비스/가드/데코레이터, bcrypt 비밀번호 해셔), `health`(`GET /health`). `users`/`requests`/`replies`/`reports`/`moderation`/`admin`은 폴더와 빈 모듈만 두고 각자의 기능 PR에서 채운다.
 - `docs/decisions/2026-08-14-onseol-product-decisions.md`의 "cookie session vs JWT" 항목을 이 문서로 resolved 처리.
+
+## 추가 결정 (2026-08-21, 스캐폴딩 PR 리뷰 중)
+
+같은 스캐폴딩 PR을 리뷰하던 중 나온 질문에서 세 가지를 추가로 확정했다. 실제 구현은 아직 안 했다 — 실제 라우트가 생기는 로그인 기능 PR에서 함께 처리하기로 했다(자세한 이유는 `apps/api/AGENTS.md`의 "OAuth"/"Error codes" 절 참고).
+
+- **OAuth**: 이메일/비밀번호 외에 Google, Naver, Kakao를 지원한다. 기존 DB 세션 설계와 그대로 호환된다 — OAuth 콜백에서 `users` 행을 찾거나 만든 뒤 동일한 `SessionService`로 세션을 발급하면 된다. `users` 스키마는 로그인 PR에서 조정 필요(`password_hash`를 nullable로, OAuth 계정 연결을 위한 테이블 추가 검토).
+- **에러 코드**: 공통 에러 응답 형태(HTTP status + 프론트가 분기할 수 있는 안정적인 도메인 에러 코드) + 전역 exception filter를 로그인 PR에서 함께 설계한다. 지금은 표준화할 실제 라우트가 없어서 먼저 만들지 않는다.
+- **DTO/도메인 모델 분리**: 컨트롤러는 Drizzle 스키마 타입을 절대 직접 주고받지 않는다 — 요청은 `class-validator` DTO, 응답은 DTO/매퍼로 변환해서 내려준다. 이번 PR에서 `class-validator`/`class-transformer`를 설치하고 전역 `ValidationPipe`(`whitelist: true, forbidNonWhitelisted: true`)를 `main.ts`에 미리 켜뒀다 — 아직 DTO가 하나도 없어서 지금은 동작에 영향이 없지만, 로그인 PR부터 이 컨벤션을 따른다.
