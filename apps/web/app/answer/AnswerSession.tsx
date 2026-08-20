@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { ServiceNav } from "../components/navigation/ServiceNav";
 import { useOnseolPrototype } from "../today/prototype/useOnseolPrototype";
-import { ActionConfirmDialog } from "./components/ActionConfirmDialog";
+import { ActionConfirmDialog } from "../components/shared/ActionConfirmDialog";
 import { AnswerComposer } from "./components/AnswerComposer";
 import { AnswerLog } from "./components/AnswerLog";
 import { HoldPanel } from "./components/HoldPanel";

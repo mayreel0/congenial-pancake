@@ -28,24 +28,25 @@ Storybook은 컴포넌트를 앱 화면과 분리해서 볼 수 있게 한다. �
 - AI 가드레일
 - Storybook 도입 전략
 
-### 2단계: Storybook 설치
+### 2단계: Storybook 설치 (완료)
 
-다음 PR 후보다.
+`apps/web`에 설치했다(`@storybook/nextjs-vite`, Next 16 + React 19 공식 지원 버전 확인 후 진행).
 
-- Storybook을 Next.js/React 프로젝트에 맞춰 설치한다.
-- `pnpm storybook`, `pnpm build-storybook` 스크립트를 추가한다.
-- 전역 CSS와 Tailwind 스타일이 Storybook에서도 동일하게 적용되게 한다.
-- 라이트/다크 모드 전환을 story에서 확인할 수 있게 한다.
+- `pnpm --filter web storybook`, `pnpm --filter web build-storybook` 스크립트 추가.
+- `.storybook/preview.tsx`에서 `app/globals.css`를 그대로 import해서 Tailwind 스타일이 동일하게 적용된다.
+- 라이트/다크 전환은 `@storybook/addon-themes`의 `withThemeByDataAttribute`로 구현 — 툴바에서 토글하면 `<html data-theme="...">`가 바뀌고, `globals.css`에 추가한 `:root[data-theme="dark"]`/`:root[data-theme="light"]` 오버라이드가 반응한다(앱 자체는 `data-theme`을 쓰지 않으므로 프로덕션 동작에는 영향 없음).
+- 컴포넌트/테스트 컨벤션과 통일하기 위해 story 파일은 별도 `stories/` 폴더가 아니라 **컴포넌트 옆에 콜로케이션**한다(예: `app/today/components/NoteCard.stories.tsx`).
+- 초기 설치 시 CLI가 자동으로 추가한 `@storybook/addon-vitest`(interaction/component 테스트), `@chromatic-com/storybook`(시각 회귀), `@storybook/addon-mcp`는 제거했다 — 4단계("테스트 연결")는 의도적으로 나중에 한다는 이 문서의 원래 방침과 맞지 않아서다.
 
-### 3단계: 핵심 story 작성
+### 3단계: 핵심 story 작성 (완료)
 
-초기 story 후보:
+문서 작성 당시 후보 목록(`Button`, `ActivityStat`, `LandingPreview`)은 실제 컴포넌트명과 달라서(범용 `Button`은 없고 `ReportButton`만 존재, `LandingPreview`도 없음) 아래처럼 실제 이름으로 작성했다:
 
-- `Button`
-- `ActivityStat`
 - `NoteCard`
 - `ReplyCard`
-- `LandingPreview`
+- `ActivitySummary`
+- `LandingHero`
+- `shared/ActionConfirmDialog` (컴포넌트 정리 과정에서 `answer`/`read`가 공유하게 된 컴포넌트)
 
 각 story는 최소한 기본 상태, 긴 한국어 텍스트, 모바일 폭에서의 표시, 다크모드 표시를 포함한다.
 

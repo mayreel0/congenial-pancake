@@ -1,5 +1,12 @@
 packages:
   - "apps/*"
+overrides:
+  # storybook@10.5.9 bundles @testing-library/jest-dom@6.x as a transitive
+  # dependency, which duplicates apps/web's own 7.0.1 and collides on the
+  # global ambient type augmentation (breaks toHaveStyle typechecking in
+  # unrelated tests). We don't use jest-dom through Storybook itself, so
+  # force everyone onto the version apps/web actually depends on.
+  "@testing-library/jest-dom": ^7.0.1
 publicHoistPattern:
   - next
 allowBuilds:

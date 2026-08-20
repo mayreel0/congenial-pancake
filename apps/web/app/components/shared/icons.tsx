@@ -60,3 +60,25 @@ export function SkipIcon({ className }: IconProps) {
     </svg>
   );
 }
+
+export function BookmarkIcon({
+  className,
+  filled,
+}: IconProps & { filled: boolean }) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill={filled ? "currentColor" : "none"}
+      stroke="currentColor"
+      strokeWidth={1.6}
+      viewBox="0 0 24 24"
+    >
+      <path
+        d="M7 3.5A1.5 1.5 0 0 1 8.5 2h7A1.5 1.5 0 0 1 17 3.5V21l-5-3.6L7 21V3.5Z"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
