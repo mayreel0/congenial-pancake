@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "../lib/test-utils";
 import { afterEach, describe, expect, it } from "vitest";
 import { PROTOTYPE_STORAGE_KEYS } from "../today/prototype/storage-keys";
 import { ReadFeed } from "./ReadFeed";

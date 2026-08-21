@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useAuth } from "../../lib/auth/AuthContext";
 import { landingEntryLinks, serviceNavItems } from "./routes";
 
 type ServiceNavProps = {
@@ -14,6 +15,25 @@ function isActive(activePath: string, href: string) {
 
 export function ServiceNav({ activePath }: ServiceNavProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
+  const { status, user, logout } = useAuth();
+
+  useEffect(() => {
+    if (!profileMenuOpen) return;
+
+    function handlePointerDown(event: MouseEvent) {
+      if (
+        profileMenuRef.current &&
+        !profileMenuRef.current.contains(event.target as Node)
+      ) {
+        setProfileMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, [profileMenuOpen]);
 
   return (
     <header className="relative sticky top-0 z-20 border-b border-line bg-background/95 backdrop-blur">
@@ -79,24 +99,54 @@ export function ServiceNav({ activePath }: ServiceNavProps) {
           </nav>
         </div>
         <nav aria-label="개인 영역" className="flex items-center gap-1">
-          <Link
-            aria-current={isActive(activePath, "/me") ? "page" : undefined}
-            className={[
-              "hidden h-9 items-center justify-center rounded-lg px-3 text-sm font-semibold transition sm:inline-flex",
-              isActive(activePath, "/me")
-                ? "bg-surface-muted text-foreground"
-                : "text-muted hover:bg-surface-muted hover:text-foreground",
-            ].join(" ")}
-            href="/me"
-          >
-            내 기록
-          </Link>
-          <Link
-            className="inline-flex h-9 items-center justify-center rounded-lg px-3 text-sm font-semibold text-muted transition hover:bg-surface-muted hover:text-foreground"
-            href={landingEntryLinks.login}
-          >
-            로그인
-          </Link>
+          {status === "authenticated" && user ? (
+            <div className="relative" ref={profileMenuRef}>
+              <button
+                aria-expanded={profileMenuOpen}
+                aria-label="프로필 메뉴"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground transition hover:opacity-90"
+                type="button"
+                onClick={() => setProfileMenuOpen((open) => !open)}
+              >
+                {user.email.charAt(0).toUpperCase()}
+              </button>
+              {profileMenuOpen ? (
+                <div
+                  aria-label="프로필"
+                  className="absolute right-0 top-full z-20 mt-1 w-44 overflow-hidden rounded-lg border border-line bg-surface shadow-sm"
+                >
+                  <p className="truncate border-b border-line px-3 py-2 text-xs text-muted">
+                    {user.email}
+                  </p>
+                  <Link
+                    aria-current={isActive(activePath, "/me") ? "page" : undefined}
+                    className="block px-3 py-2 text-sm text-foreground transition hover:bg-surface-muted aria-[current=page]:bg-surface-muted"
+                    href="/me"
+                    onClick={() => setProfileMenuOpen(false)}
+                  >
+                    내 기록
+                  </Link>
+                  <button
+                    className="block w-full px-3 py-2 text-left text-sm text-foreground transition hover:bg-surface-muted"
+                    type="button"
+                    onClick={() => {
+                      setProfileMenuOpen(false);
+                      void logout();
+                    }}
+                  >
+                    로그아웃
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          ) : status === "anonymous" ? (
+            <Link
+              className="inline-flex h-9 items-center justify-center rounded-lg px-3 text-sm font-semibold text-muted transition hover:bg-surface-muted hover:text-foreground"
+              href={landingEntryLinks.login}
+            >
+              로그인
+            </Link>
+          ) : null}
         </nav>
       </div>
       {menuOpen ? (
@@ -105,7 +155,9 @@ export function ServiceNav({ activePath }: ServiceNavProps) {
           className="absolute left-0 right-0 top-full border-b border-line bg-background px-5 py-3 shadow-sm md:hidden"
         >
           <div className="mx-auto grid w-full max-w-6xl gap-1">
-            {serviceNavItems.map((item) => {
+            {serviceNavItems
+              .filter((item) => item.href !== "/me" || status === "authenticated")
+              .map((item) => {
               const active = isActive(activePath, item.href);
 
               return (

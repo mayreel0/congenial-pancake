@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "../lib/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { TodayPrototype } from "./TodayPrototype";
 
@@ -32,7 +32,7 @@ describe("TodayPrototype", () => {
     );
   });
 
-  it("renders service navigation on today", () => {
+  it("renders service navigation on today", async () => {
     render(<TodayPrototype />);
 
     expect(screen.getByRole("link", { name: "온설" })).toHaveAttribute(
@@ -43,10 +43,10 @@ describe("TodayPrototype", () => {
       "aria-current",
       "page",
     );
-    expect(screen.getByRole("link", { name: "로그인" })).toHaveAttribute(
-      "href",
-      "/login",
-    );
+    // Auth state resolves asynchronously (AuthProvider fetches /auth/me on mount).
+    expect(
+      await screen.findByRole("link", { name: "로그인" }),
+    ).toHaveAttribute("href", "/login");
   });
 
   it("does not render the old all-in-one dashboard sections", () => {

@@ -25,3 +25,8 @@ export function formatDayLabel(iso: string, now: Date = new Date()): string {
   const date = new Date(iso);
   return `${date.getMonth() + 1}월 ${date.getDate()}일`;
 }
+
+export function formatJoinedDate(iso: string): string {
+  const date = new Date(iso);
+  return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`;
+}
