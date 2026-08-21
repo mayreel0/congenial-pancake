@@ -8,6 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useRouter } from "next/navigation";
 import {
   fetchCurrentUser,
   login as apiLogin,
@@ -36,6 +37,7 @@ type AuthProviderProps = {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [status, setStatus] = useState<AuthStatus>("loading");
   const [user, setUser] = useState<CurrentUser | null>(null);
+  const router = useRouter();
 
   const refresh = useCallback(async () => {
     try {
@@ -73,7 +75,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     await apiLogout();
     setUser(null);
     setStatus("anonymous");
-  }, []);
+    // Otherwise the current page just quietly drops its login state, and it's
+    // easy to miss that logout actually worked.
+    router.push("/");
+  }, [router]);
 
   return (
     <AuthContext.Provider value={{ status, user, login, signup, logout, refresh }}>
