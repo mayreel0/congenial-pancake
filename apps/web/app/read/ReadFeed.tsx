@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ServiceNav } from "../components/navigation/ServiceNav";
-import { useOnseolPrototype } from "../today/prototype/useOnseolPrototype";
+import { useReadFeed } from "../today/prototype/useReadFeed";
 import { ActionConfirmDialog } from "../components/shared/ActionConfirmDialog";
 import { ReadThread } from "./components/ReadThread";
 import { buildReadAuthorLabels } from "./prototype/labels";
@@ -12,14 +12,14 @@ type PendingReport =
   | { kind: "reply"; requestId: string; replyId: string };
 
 export function ReadFeed() {
-  const prototype = useOnseolPrototype();
+  const prototype = useReadFeed();
   const [pendingReport, setPendingReport] = useState<PendingReport | null>(
     null,
   );
 
   const savedSet = useMemo(
-    () => new Set(prototype.state.savedReplyIds),
-    [prototype.state.savedReplyIds],
+    () => new Set(prototype.savedReplyIds),
+    [prototype.savedReplyIds],
   );
   const authorLabels = useMemo(
     () => buildReadAuthorLabels(prototype.readFeed),

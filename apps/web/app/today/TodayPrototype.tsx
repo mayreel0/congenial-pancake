@@ -4,21 +4,17 @@ import { useEffect, useRef, useState } from "react";
 import { ServiceNav } from "../components/navigation/ServiceNav";
 import { RequestComposer } from "./components/RequestComposer";
 import { RotatingOnseolLine } from "./components/RotatingOnseolLine";
-import { useOnseolPrototype } from "./prototype/useOnseolPrototype";
+import { useTodayComposer } from "./prototype/useTodayComposer";
 
 const TOAST_VISIBLE_MS = 2000;
 
 export function TodayPrototype() {
-  const prototype = useOnseolPrototype();
+  const prototype = useTodayComposer();
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const toastTimerRef = useRef<number | null>(null);
-  const isTyping = prototype.state.requestDraft.trim().length > 0;
-  const requestCount = prototype.state.requests.filter(
-    (request) => !request.hidden,
-  ).length;
-  const replyCount = prototype.state.replies.filter(
-    (reply) => !reply.hidden,
-  ).length;
+  const isTyping = prototype.requestDraft.trim().length > 0;
+  const requestCount = prototype.requestCount;
+  const replyCount = prototype.replyCount;
 
   useEffect(() => {
     return () => {
@@ -79,7 +75,7 @@ export function TodayPrototype() {
           >
             <RequestComposer
               status={prototype.requestSubmitStatus}
-              value={prototype.state.requestDraft}
+              value={prototype.requestDraft}
               onChange={prototype.updateRequestDraft}
               onSubmit={submitRequest}
             />
