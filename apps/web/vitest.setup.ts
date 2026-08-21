@@ -17,21 +17,35 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
-// AuthProvider calls /auth/me on mount. Default every test to "not logged
-// in" so components that render it (most of the app, via ServiceNav) don't
-// need real network access. Tests that care about auth state override this.
+// AuthProvider calls /auth/me on mount, and useRequestsQuery calls
+// GET /requests on mount (rendered by /today, via ServiceNav's app shell
+// isn't involved here but the page itself is). Default every test to "not
+// logged in" / "no requests yet" so components don't need real network
+// access. Tests that care about either override with mockResolvedValueOnce.
 beforeEach(() => {
   vi.stubGlobal(
     "fetch",
-    vi.fn().mockResolvedValue({
-      ok: false,
-      status: 401,
-      json: () =>
-        Promise.resolve({
-          statusCode: 401,
-          code: "UNAUTHORIZED",
-          message: "Unauthorized",
-        }),
+    vi.fn((input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input.toString();
+
+      if (url.includes("/requests")) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve([]),
+        });
+      }
+
+      return Promise.resolve({
+        ok: false,
+        status: 401,
+        json: () =>
+          Promise.resolve({
+            statusCode: 401,
+            code: "UNAUTHORIZED",
+            message: "Unauthorized",
+          }),
+      });
     }),
   );
 });
