@@ -1,14 +1,21 @@
 import { Module } from '@nestjs/common';
+import { AnswerInteractionsModule } from '../answer-interactions/answer-interactions.module';
 import { AuthModule } from '../auth/auth.module';
 import { DatabaseModule } from '../database/database.module';
 import { RequestsModule } from '../requests/requests.module';
 import { RepliesController } from './replies.controller';
+import { RepliesMineController } from './replies-mine.controller';
 import { RepliesRepository } from './replies.repository';
 import { RepliesService } from './replies.service';
 
 @Module({
-  imports: [DatabaseModule, AuthModule, RequestsModule],
-  controllers: [RepliesController],
+  imports: [
+    DatabaseModule,
+    AuthModule,
+    RequestsModule,
+    AnswerInteractionsModule,
+  ],
+  controllers: [RepliesController, RepliesMineController],
   providers: [RepliesRepository, RepliesService],
   exports: [RepliesService],
 })

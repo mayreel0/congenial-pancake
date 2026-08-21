@@ -42,6 +42,16 @@ export class RequestsService {
     return this.requestsRepository.findVisibleById(id);
   }
 
+  async findQueueCandidate(
+    userId: string | undefined,
+    guestId: string | undefined,
+  ): Promise<RequestWithReplyCount | undefined> {
+    if (!userId && !guestId) throw new GuestIdRequiredException();
+    return this.requestsRepository.findQueueCandidate(
+      userId ? { authorId: userId } : { guestId },
+    );
+  }
+
   hide(id: string): Promise<void> {
     return this.requestsRepository.setHidden(id, true);
   }

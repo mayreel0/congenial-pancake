@@ -1,8 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, count, desc, eq, isNull } from 'drizzle-orm';
+import { and, asc, count, desc, eq, isNull } from 'drizzle-orm';
 import { DRIZZLE } from '../database/database.constants';
 import type { Database } from '../database/database.types';
-import { replies } from '../database/schema';
+import { replies, requests } from '../database/schema';
+import type { RequestRecord } from '../requests/requests.repository';
+import type { ViewerIdentity } from '../requests/requests.repository';
 
 export type CreateReplyInput = {
   requestId: string;
@@ -12,6 +14,7 @@ export type CreateReplyInput = {
 };
 
 export type ReplyRecord = typeof replies.$inferSelect;
+export type ReplyWithRequest = { reply: ReplyRecord; request: RequestRecord };
 
 @Injectable()
 export class RepliesRepository {
@@ -70,5 +73,18 @@ export class RepliesRepository {
 
   async setHidden(id: string, hidden: boolean): Promise<void> {
     await this.db.update(replies).set({ hidden }).where(eq(replies.id, id));
+  }
+
+  findMine(viewer: ViewerIdentity): Promise<ReplyWithRequest[]> {
+    return this.db
+      .select({ reply: replies, request: requests })
+      .from(replies)
+      .innerJoin(requests, eq(requests.id, replies.requestId))
+      .where(
+        viewer.authorId
+          ? eq(replies.authorId, viewer.authorId)
+          : eq(replies.guestId, viewer.guestId!),
+      )
+      .orderBy(asc(replies.createdAt));
   }
 }

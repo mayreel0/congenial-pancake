@@ -1,8 +1,18 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, count, desc, eq, isNull } from 'drizzle-orm';
+import {
+  and,
+  count,
+  desc,
+  eq,
+  gt,
+  isNull,
+  lt,
+  not,
+  notInArray,
+} from 'drizzle-orm';
 import { DRIZZLE } from '../database/database.constants';
 import type { Database } from '../database/database.types';
-import { replies, requests } from '../database/schema';
+import { answerInteractions, replies, requests } from '../database/schema';
 
 export type CreateRequestInput = {
   body: string;
@@ -12,6 +22,11 @@ export type CreateRequestInput = {
 
 export type RequestRecord = typeof requests.$inferSelect;
 export type RequestWithReplyCount = RequestRecord & { replyCount: number };
+export type ViewerIdentity = { authorId?: string; guestId?: string };
+
+// See docs/decisions/2026-08-22-onseol-answer-queue-decisions.md.
+const QUEUE_FRESHNESS_HOURS = 60;
+const QUEUE_REPLY_CAP = 5;
 
 @Injectable()
 export class RequestsRepository {
@@ -66,5 +81,101 @@ export class RequestsRepository {
 
   async setHidden(id: string, hidden: boolean): Promise<void> {
     await this.db.update(requests).set({ hidden }).where(eq(requests.id, id));
+  }
+
+  // The next request this viewer should be offered to answer: fresh
+  // (within QUEUE_FRESHNESS_HOURS), not theirs, not already replied to or
+  // skipped/held by them, fewest visible replies first (capped at
+  // QUEUE_REPLY_CAP so replies spread out) with newest-first as the
+  // tiebreak. Falls back to ignoring the cap only when every eligible
+  // request has already hit it — see docs/decisions/2026-08-22-onseol-
+  // answer-queue-decisions.md.
+  async findQueueCandidate(
+    viewer: ViewerIdentity,
+  ): Promise<RequestWithReplyCount | undefined> {
+    const excludedRequestIds = await this.findExcludedRequestIds(viewer);
+    const selfAuthoredCondition = viewer.authorId
+      ? eq(requests.authorId, viewer.authorId)
+      : eq(requests.guestId, viewer.guestId!);
+    const freshnessCutoff = new Date(
+      Date.now() - QUEUE_FRESHNESS_HOURS * 60 * 60 * 1000,
+    );
+
+    const baseWhere = and(
+      eq(requests.hidden, false),
+      isNull(requests.deletedAt),
+      gt(requests.createdAt, freshnessCutoff),
+      not(selfAuthoredCondition),
+      excludedRequestIds.length > 0
+        ? notInArray(requests.id, excludedRequestIds)
+        : undefined,
+    );
+
+    const capped = await this.queueCandidateQuery(baseWhere, true);
+    if (capped) return capped;
+    return this.queueCandidateQuery(baseWhere, false);
+  }
+
+  private async findExcludedRequestIds(
+    viewer: ViewerIdentity,
+  ): Promise<string[]> {
+    const identityFilter = <T extends { authorId: unknown; guestId: unknown }>(
+      table: T,
+    ) =>
+      viewer.authorId
+        ? eq(table.authorId as never, viewer.authorId)
+        : eq(table.guestId as never, viewer.guestId!);
+
+    const [repliedRows, interactionRows] = await Promise.all([
+      this.db
+        .select({ requestId: replies.requestId })
+        .from(replies)
+        .where(identityFilter(replies)),
+      this.db
+        .select({ requestId: answerInteractions.requestId })
+        .from(answerInteractions)
+        .where(identityFilter(answerInteractions)),
+    ]);
+
+    return [
+      ...new Set([
+        ...repliedRows.map((row) => row.requestId),
+        ...interactionRows.map((row) => row.requestId),
+      ]),
+    ];
+  }
+
+  private async queueCandidateQuery(
+    baseWhere: ReturnType<typeof and>,
+    applyCap: boolean,
+  ): Promise<RequestWithReplyCount | undefined> {
+    const replyCount = count(replies.id);
+    const rows = await this.db
+      .select({
+        id: requests.id,
+        body: requests.body,
+        authorId: requests.authorId,
+        guestId: requests.guestId,
+        createdAt: requests.createdAt,
+        hidden: requests.hidden,
+        deletedAt: requests.deletedAt,
+        replyCount,
+      })
+      .from(requests)
+      .leftJoin(
+        replies,
+        and(
+          eq(replies.requestId, requests.id),
+          eq(replies.hidden, false),
+          isNull(replies.deletedAt),
+        ),
+      )
+      .where(baseWhere)
+      .groupBy(requests.id)
+      .having(applyCap ? lt(replyCount, QUEUE_REPLY_CAP) : undefined)
+      .orderBy(replyCount, desc(requests.createdAt))
+      .limit(1);
+
+    return rows[0];
   }
 }

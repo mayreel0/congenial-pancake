@@ -30,6 +30,7 @@ describe('RequestsService', () => {
       findVisible: jest.fn(),
       findByGuestId: jest.fn(),
       setHidden: jest.fn(),
+      findQueueCandidate: jest.fn(),
     } as unknown as jest.Mocked<RequestsRepository>;
 
     requestsService = new RequestsService(requestsRepository);
@@ -86,6 +87,43 @@ describe('RequestsService', () => {
         guestId: 'guest-1',
       });
       expect(result).toEqual(created);
+    });
+  });
+
+  describe('findQueueCandidate', () => {
+    it('throws when there is no session and no guestId', async () => {
+      await expect(
+        requestsService.findQueueCandidate(undefined, undefined),
+      ).rejects.toBeInstanceOf(GuestIdRequiredException);
+      expect(requestsRepository.findQueueCandidate).not.toHaveBeenCalled();
+    });
+
+    it('resolves the viewer identity for a logged-in user', async () => {
+      const candidate = makeRequest({ id: 'request-2' });
+      requestsRepository.findQueueCandidate.mockResolvedValue({
+        ...candidate,
+        replyCount: 0,
+      });
+
+      const result = await requestsService.findQueueCandidate(
+        'user-1',
+        undefined,
+      );
+
+      expect(requestsRepository.findQueueCandidate).toHaveBeenCalledWith({
+        authorId: 'user-1',
+      });
+      expect(result?.id).toBe('request-2');
+    });
+
+    it('resolves the viewer identity for a guest', async () => {
+      requestsRepository.findQueueCandidate.mockResolvedValue(undefined);
+
+      await requestsService.findQueueCandidate(undefined, 'guest-1');
+
+      expect(requestsRepository.findQueueCandidate).toHaveBeenCalledWith({
+        guestId: 'guest-1',
+      });
     });
   });
 
