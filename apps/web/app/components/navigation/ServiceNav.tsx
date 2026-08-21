@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { useAuth } from "../../lib/auth/AuthContext";
+import { useAuth } from "../../lib/auth/useAuth";
 import { landingEntryLinks, serviceNavItems } from "./routes";
 
 type ServiceNavProps = {
