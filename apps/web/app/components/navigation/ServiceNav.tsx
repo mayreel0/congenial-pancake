@@ -104,19 +104,23 @@ export function ServiceNav({ activePath }: ServiceNavProps) {
               <button
                 aria-expanded={profileMenuOpen}
                 aria-label="프로필 메뉴"
-                className="inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-semibold text-muted transition hover:bg-surface-muted hover:text-foreground"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground transition hover:opacity-90"
                 type="button"
                 onClick={() => setProfileMenuOpen((open) => !open)}
               >
-                <span className="max-w-28 truncate">{user.email}</span>
+                {user.email.charAt(0).toUpperCase()}
               </button>
               {profileMenuOpen ? (
                 <div
                   aria-label="프로필"
-                  className="absolute right-0 top-full z-20 mt-1 w-36 overflow-hidden rounded-lg border border-line bg-surface shadow-sm"
+                  className="absolute right-0 top-full z-20 mt-1 w-44 overflow-hidden rounded-lg border border-line bg-surface shadow-sm"
                 >
+                  <p className="truncate border-b border-line px-3 py-2 text-xs text-muted">
+                    {user.email}
+                  </p>
                   <Link
-                    className="block px-3 py-2 text-sm text-foreground transition hover:bg-surface-muted"
+                    aria-current={isActive(activePath, "/me") ? "page" : undefined}
+                    className="block px-3 py-2 text-sm text-foreground transition hover:bg-surface-muted aria-[current=page]:bg-surface-muted"
                     href="/me"
                     onClick={() => setProfileMenuOpen(false)}
                   >
@@ -136,26 +140,12 @@ export function ServiceNav({ activePath }: ServiceNavProps) {
               ) : null}
             </div>
           ) : status === "anonymous" ? (
-            <>
-              <Link
-                aria-current={isActive(activePath, "/me") ? "page" : undefined}
-                className={[
-                  "hidden h-9 items-center justify-center rounded-lg px-3 text-sm font-semibold transition sm:inline-flex",
-                  isActive(activePath, "/me")
-                    ? "bg-surface-muted text-foreground"
-                    : "text-muted hover:bg-surface-muted hover:text-foreground",
-                ].join(" ")}
-                href="/me"
-              >
-                내 기록
-              </Link>
-              <Link
-                className="inline-flex h-9 items-center justify-center rounded-lg px-3 text-sm font-semibold text-muted transition hover:bg-surface-muted hover:text-foreground"
-                href={landingEntryLinks.login}
-              >
-                로그인
-              </Link>
-            </>
+            <Link
+              className="inline-flex h-9 items-center justify-center rounded-lg px-3 text-sm font-semibold text-muted transition hover:bg-surface-muted hover:text-foreground"
+              href={landingEntryLinks.login}
+            >
+              로그인
+            </Link>
           ) : null}
         </nav>
       </div>
@@ -165,7 +155,9 @@ export function ServiceNav({ activePath }: ServiceNavProps) {
           className="absolute left-0 right-0 top-full border-b border-line bg-background px-5 py-3 shadow-sm md:hidden"
         >
           <div className="mx-auto grid w-full max-w-6xl gap-1">
-            {serviceNavItems.map((item) => {
+            {serviceNavItems
+              .filter((item) => item.href !== "/me" || status === "authenticated")
+              .map((item) => {
               const active = isActive(activePath, item.href);
 
               return (
