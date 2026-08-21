@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { ServiceNav } from "../components/navigation/ServiceNav";
 import { formatJoinedDate } from "../lib/format";
-import { useAuth } from "../lib/auth/AuthContext";
+import { useAuth } from "../lib/auth/useAuth";
 
 export default function MePage() {
   const { status, user } = useAuth();

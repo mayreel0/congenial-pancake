@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ApiError, googleLoginUrl } from "../lib/api";
-import { useAuth } from "../lib/auth/AuthContext";
+import { useAuth } from "../lib/auth/useAuth";
 
 type Mode = "login" | "signup";
 type SubmitStatus = "idle" | "pending";
