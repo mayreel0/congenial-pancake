@@ -17,13 +17,13 @@ describe("ServiceNav", () => {
     expect(
       within(desktopNav).getByRole("link", { name: "온설 읽기" }),
     ).toHaveAttribute("href", "/read");
-    expect(within(personalNav).getByRole("link", { name: "내 기록" })).toHaveAttribute(
-      "href",
-      "/me",
-    );
-    // Auth state resolves asynchronously (AuthProvider fetches /auth/me on mount).
+    // Auth state resolves asynchronously (AuthProvider fetches /auth/me on mount) —
+    // the personal-area links only render once it settles to "anonymous".
     expect(
-      await within(personalNav).findByRole("link", { name: "로그인" }),
+      await within(personalNav).findByRole("link", { name: "내 기록" }),
+    ).toHaveAttribute("href", "/me");
+    expect(
+      within(personalNav).getByRole("link", { name: "로그인" }),
     ).toHaveAttribute("href", "/login");
   });
 
@@ -36,14 +36,13 @@ describe("ServiceNav", () => {
     );
   });
 
-  it("marks my records active in the personal area", () => {
+  it("marks my records active in the personal area", async () => {
     render(<ServiceNav activePath="/me" />);
 
     const personalNav = screen.getByLabelText("개인 영역");
-    expect(within(personalNav).getByRole("link", { name: "내 기록" })).toHaveAttribute(
-      "aria-current",
-      "page",
-    );
+    expect(
+      await within(personalNav).findByRole("link", { name: "내 기록" }),
+    ).toHaveAttribute("aria-current", "page");
   });
 
   it("opens mobile menu with service links including my records", () => {
@@ -67,7 +66,7 @@ describe("ServiceNav", () => {
     expect(screen.queryByLabelText("하단 탭")).not.toBeInTheDocument();
   });
 
-  it("shows the user's email and a logout button when authenticated", async () => {
+  it("shows the user's email as a profile menu trigger when authenticated", async () => {
     (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
       status: 200,
@@ -84,10 +83,37 @@ describe("ServiceNav", () => {
     const personalNav = screen.getByLabelText("개인 영역");
     expect(await within(personalNav).findByText("test@example.com")).toBeInTheDocument();
     expect(
-      within(personalNav).getByRole("button", { name: "로그아웃" }),
-    ).toBeInTheDocument();
-    expect(
       within(personalNav).queryByRole("link", { name: "로그인" }),
     ).not.toBeInTheDocument();
+    // Not open yet — 내 기록/로그아웃 live inside the profile menu.
+    expect(
+      within(personalNav).queryByRole("button", { name: "로그아웃" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("opens the profile menu with my-records and logout", async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: () =>
+        Promise.resolve({
+          id: "1",
+          email: "test@example.com",
+          createdAt: "2026-08-20T00:00:00.000Z",
+        }),
+    });
+
+    render(<ServiceNav activePath="/today" />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "프로필 메뉴" }));
+
+    const profileMenu = screen.getByLabelText("프로필");
+    expect(within(profileMenu).getByRole("link", { name: "내 기록" })).toHaveAttribute(
+      "href",
+      "/me",
+    );
+    expect(
+      within(profileMenu).getByRole("button", { name: "로그아웃" }),
+    ).toBeInTheDocument();
   });
 });

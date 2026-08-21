@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../../lib/auth/AuthContext";
 import { landingEntryLinks, serviceNavItems } from "./routes";
 
@@ -15,7 +15,25 @@ function isActive(activePath: string, href: string) {
 
 export function ServiceNav({ activePath }: ServiceNavProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
   const { status, user, logout } = useAuth();
+
+  useEffect(() => {
+    if (!profileMenuOpen) return;
+
+    function handlePointerDown(event: MouseEvent) {
+      if (
+        profileMenuRef.current &&
+        !profileMenuRef.current.contains(event.target as Node)
+      ) {
+        setProfileMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, [profileMenuOpen]);
 
   return (
     <header className="relative sticky top-0 z-20 border-b border-line bg-background/95 backdrop-blur">
@@ -50,7 +68,7 @@ export function ServiceNav({ activePath }: ServiceNavProps) {
               ].join(" ")}
             />
           </button>
-          <Link className="text-base font-semibold text-foreground" href="/">
+          <Link className="text-base font-semibold text-foreground" href="/today">
             온설
           </Link>
           <nav
@@ -81,38 +99,63 @@ export function ServiceNav({ activePath }: ServiceNavProps) {
           </nav>
         </div>
         <nav aria-label="개인 영역" className="flex items-center gap-1">
-          <Link
-            aria-current={isActive(activePath, "/me") ? "page" : undefined}
-            className={[
-              "hidden h-9 items-center justify-center rounded-lg px-3 text-sm font-semibold transition sm:inline-flex",
-              isActive(activePath, "/me")
-                ? "bg-surface-muted text-foreground"
-                : "text-muted hover:bg-surface-muted hover:text-foreground",
-            ].join(" ")}
-            href="/me"
-          >
-            내 기록
-          </Link>
           {status === "authenticated" && user ? (
-            <>
-              <span className="hidden max-w-32 truncate text-sm text-muted sm:inline">
-                {user.email}
-              </span>
+            <div className="relative" ref={profileMenuRef}>
               <button
-                className="inline-flex h-9 items-center justify-center rounded-lg px-3 text-sm font-semibold text-muted transition hover:bg-surface-muted hover:text-foreground"
+                aria-expanded={profileMenuOpen}
+                aria-label="프로필 메뉴"
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-semibold text-muted transition hover:bg-surface-muted hover:text-foreground"
                 type="button"
-                onClick={() => void logout()}
+                onClick={() => setProfileMenuOpen((open) => !open)}
               >
-                로그아웃
+                <span className="max-w-28 truncate">{user.email}</span>
               </button>
-            </>
+              {profileMenuOpen ? (
+                <div
+                  aria-label="프로필"
+                  className="absolute right-0 top-full z-20 mt-1 w-36 overflow-hidden rounded-lg border border-line bg-surface shadow-sm"
+                >
+                  <Link
+                    className="block px-3 py-2 text-sm text-foreground transition hover:bg-surface-muted"
+                    href="/me"
+                    onClick={() => setProfileMenuOpen(false)}
+                  >
+                    내 기록
+                  </Link>
+                  <button
+                    className="block w-full px-3 py-2 text-left text-sm text-foreground transition hover:bg-surface-muted"
+                    type="button"
+                    onClick={() => {
+                      setProfileMenuOpen(false);
+                      void logout();
+                    }}
+                  >
+                    로그아웃
+                  </button>
+                </div>
+              ) : null}
+            </div>
           ) : status === "anonymous" ? (
-            <Link
-              className="inline-flex h-9 items-center justify-center rounded-lg px-3 text-sm font-semibold text-muted transition hover:bg-surface-muted hover:text-foreground"
-              href={landingEntryLinks.login}
-            >
-              로그인
-            </Link>
+            <>
+              <Link
+                aria-current={isActive(activePath, "/me") ? "page" : undefined}
+                className={[
+                  "hidden h-9 items-center justify-center rounded-lg px-3 text-sm font-semibold transition sm:inline-flex",
+                  isActive(activePath, "/me")
+                    ? "bg-surface-muted text-foreground"
+                    : "text-muted hover:bg-surface-muted hover:text-foreground",
+                ].join(" ")}
+                href="/me"
+              >
+                내 기록
+              </Link>
+              <Link
+                className="inline-flex h-9 items-center justify-center rounded-lg px-3 text-sm font-semibold text-muted transition hover:bg-surface-muted hover:text-foreground"
+                href={landingEntryLinks.login}
+              >
+                로그인
+              </Link>
+            </>
           ) : null}
         </nav>
       </div>

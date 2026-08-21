@@ -134,6 +134,6 @@ export class AuthController {
       req.headers['user-agent'],
     );
     setSessionCookie(res, this.config, session.token, session.expiresAt);
-    res.redirect(this.config.get('CORS_ORIGIN', { infer: true }));
+    res.redirect(`${this.config.get('CORS_ORIGIN', { infer: true })}/today`);
   }
 }
