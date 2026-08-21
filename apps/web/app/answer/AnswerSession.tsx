@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ServiceNav } from "../components/navigation/ServiceNav";
-import { useOnseolPrototype } from "../today/prototype/useOnseolPrototype";
+import { useAnswerQueue } from "../today/prototype/useAnswerQueue";
 import { ActionConfirmDialog } from "../components/shared/ActionConfirmDialog";
 import { AnswerComposer } from "./components/AnswerComposer";
 import { AnswerLog } from "./components/AnswerLog";
@@ -40,7 +40,7 @@ const ACTION_CONFIRM_COPY: Record<
 };
 
 export function AnswerSession() {
-  const prototype = useOnseolPrototype();
+  const prototype = useAnswerQueue();
   const [holdPanelOpen, setHoldPanelOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(
     null,
@@ -55,7 +55,7 @@ export function AnswerSession() {
 
   const currentTarget = prototype.currentAnswerTarget;
   const draft = currentTarget
-    ? (prototype.state.replyDrafts[currentTarget.id] ?? "")
+    ? (prototype.replyDrafts[currentTarget.id] ?? "")
     : "";
   const isTyping =
     Boolean(currentTarget) &&
