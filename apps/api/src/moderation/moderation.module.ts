@@ -1,6 +1,11 @@
 import { Module } from '@nestjs/common';
+import { RepliesModule } from '../replies/replies.module';
+import { RequestsModule } from '../requests/requests.module';
+import { ModerationService } from './moderation.service';
 
-// Auto-hide-at-3-distinct-reporters provider lands with the reporting feature PR
-// (see docs/decisions/2026-08-21-onseol-db-and-moderation-decisions.md).
-@Module({})
+@Module({
+  imports: [RequestsModule, RepliesModule],
+  providers: [ModerationService],
+  exports: [ModerationService],
+})
 export class ModerationModule {}

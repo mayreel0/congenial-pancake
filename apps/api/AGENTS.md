@@ -33,18 +33,22 @@ Google is implemented (`src/auth/oauth/google-oauth.provider.ts`); Kakao and Nav
 
 `GET /auth/:provider` redirects to the provider with a CSRF `state` stored in a short-lived cookie; `GET /auth/:provider/callback` verifies that state before exchanging the code.
 
+## Anonymous (guest) writes
+
+`requests`/`replies` allow writing without logging in — see `docs/decisions/2026-08-21-onseol-anonymous-posting-decisions.md`. Routes that accept both use `OptionalSessionGuard` (`src/auth/optional-session.guard.ts`) instead of `SessionGuard`: it never rejects the request, it just sets `request.userId` when a valid session exists. Read it with `OptionalCurrentUser()` (`string | undefined`), not `CurrentUser()` (which still throws outside a guarded route). Anonymous callers identify themselves via the `X-Guest-Id` header (`GuestId()` decorator, `src/common/decorators/guest-id.decorator.ts`) — a client-generated id the server trusts without verification. `requests.author_id`/`replies.author_id` are nullable with a matching `guest_id` column and a `CHECK (author_id IS NOT NULL OR guest_id IS NOT NULL)` constraint; guests are capped at 1 request and 5 replies per request (enforced in `RequestsService`/`RepliesService`, not the DB, except the 1-request cap which is a unique constraint on `guest_id`). `reports` did **not** get this treatment — guests can't report at all (`SessionGuard`, not optional), so `reports.reporter_id` stays `NOT NULL` and the 3-distinct-reporter threshold is unaffected.
+
 ## Error codes
 
 Every error response is `{ statusCode, code, message }`, produced by the global `AppExceptionFilter` (`src/common/filters/`, registered in `main.ts`). Domain errors extend `AppException` (`src/common/exceptions/app.exception.ts`) with a stable `code` string the frontend can branch on (e.g. `AUTH_EMAIL_TAKEN`, `AUTH_INVALID_CREDENTIALS`). Plain Nest `HttpException`s (like `ValidationPipe`'s 400s) get a generic code derived from their status (`VALIDATION_ERROR`, `NOT_FOUND`, ...); anything unexpected becomes a 500 with `INTERNAL_ERROR` and a generic message — internals never leak into the response.
 
 ## DB / reporting & admin rules
 
-Schema, the report threshold, and admin identification are all grounded in `docs/decisions/2026-08-21-onseol-db-and-moderation-decisions.md` — in particular, the `reports` table's `(target_type, target_id, reporter_id)` unique constraint and the "3 distinct reporters" auto-hide rule must be preserved across schema changes.
+Schema, the report threshold, and admin identification are all grounded in `docs/decisions/2026-08-21-onseol-db-and-moderation-decisions.md` — in particular, the `reports` table's `(target_type, target_id, reporter_id)` unique constraint and the "3 distinct reporters" auto-hide rule must be preserved across schema changes. `ReportsService` inserts the report row, counts distinct reporters, then hands that count to `ModerationService.evaluateAutoHide()` (`src/moderation/`), which sets `hidden` on the target via `RequestsService.hide()`/`RepliesService.hide()` — `ModerationService` never touches the `reports` table itself.
 
 ## Still-empty modules
 
-`requests`, `replies`, `reports`, `moderation`, `admin` currently have only a folder and an empty `@Module({})` — no real providers/controllers yet (`users` and `auth` are now implemented). Each gets filled in by its own feature PR. Leaving them empty is intentional, not an omission.
+Only `admin` currently has just a folder and an empty `@Module({})` — it gets filled in by its own feature PR (whitelist guard + "신고 검토" review controller, per `docs/decisions/2026-08-21-onseol-db-and-moderation-decisions.md`). `users`, `auth`, `requests`, `replies`, `reports`, and `moderation` are all implemented now.
 
 ## Not yet wired to the frontend
 
-`apps/web` is still a 100% localStorage prototype — it does not call this API yet. `/auth/*` routes are verified via unit tests and manual `curl` against a local Postgres, not from the actual UI. Real frontend integration (`/login` form, Google button, session-aware nav) is a separate, later PR.
+`apps/web` is still a 100% localStorage prototype — it does not call this API yet. Routes are verified via unit tests and manual `curl` against a local Postgres, not from the actual UI. Real frontend integration (auth's `/login` form, Google button, session-aware nav; requests/replies' data/service layer replacing the localStorage hooks) is separate, later work.
