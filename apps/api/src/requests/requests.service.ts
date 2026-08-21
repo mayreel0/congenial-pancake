@@ -4,7 +4,11 @@ import {
   RequestGuestLimitExceededException,
 } from '../common/exceptions/app.exception';
 import type { CreateRequestDto } from './dto/create-request.dto';
-import { RequestsRepository, type RequestRecord } from './requests.repository';
+import {
+  RequestsRepository,
+  type RequestRecord,
+  type RequestWithReplyCount,
+} from './requests.repository';
 
 @Injectable()
 export class RequestsService {
@@ -30,7 +34,7 @@ export class RequestsService {
     return this.requestsRepository.create({ body: dto.body, guestId });
   }
 
-  findVisible(): Promise<RequestRecord[]> {
+  findVisible(): Promise<RequestWithReplyCount[]> {
     return this.requestsRepository.findVisible();
   }
 

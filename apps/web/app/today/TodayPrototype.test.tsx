@@ -106,6 +106,52 @@ describe("TodayPrototype", () => {
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
+  it("shows an error toast when the API rejects the submission", async () => {
+    // GET /requests (initial load) keeps succeeding; POST /requests (submit)
+    // is rejected with the guest-limit error code.
+    const fetchMock = vi.fn(
+      (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = typeof input === "string" ? input : input.toString();
+        if (url.includes("/requests") && init?.method === undefined) {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: () => Promise.resolve([]),
+          });
+        }
+        return Promise.resolve({
+          ok: false,
+          status: 409,
+          json: () =>
+            Promise.resolve({
+              statusCode: 409,
+              code: "REQUEST_GUEST_LIMIT_EXCEEDED",
+              message: "Guests may only post one request. Log in to post more.",
+            }),
+        });
+      },
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<TodayPrototype />);
+    await screen.findByText("오늘 0개의 이야기가 남겨졌고, 0개의 답장이 도착했어요.");
+
+    fireEvent.input(screen.getByLabelText("오늘 어떤 말을 듣고 싶나요?"), {
+      target: { value: "비회원 두 번째 시도" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "보내기" }));
+
+    expect(
+      await screen.findByText(
+        "비회원은 온설을 1개만 남길 수 있어요. 로그인하면 더 남길 수 있어요.",
+      ),
+    ).toBeInTheDocument();
+    // The draft must survive a failed submission — nothing was actually sent.
+    expect(
+      screen.getByLabelText("오늘 어떤 말을 듣고 싶나요?"),
+    ).toHaveValue("비회원 두 번째 시도");
+  });
+
   it("lets the success toast be dismissed immediately", async () => {
     vi.useFakeTimers();
 

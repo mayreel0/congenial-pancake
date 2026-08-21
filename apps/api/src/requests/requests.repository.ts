@@ -1,8 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, desc, eq, isNull } from 'drizzle-orm';
+import { and, count, desc, eq, isNull } from 'drizzle-orm';
 import { DRIZZLE } from '../database/database.constants';
 import type { Database } from '../database/database.types';
-import { requests } from '../database/schema';
+import { replies, requests } from '../database/schema';
 
 export type CreateRequestInput = {
   body: string;
@@ -11,6 +11,7 @@ export type CreateRequestInput = {
 };
 
 export type RequestRecord = typeof requests.$inferSelect;
+export type RequestWithReplyCount = RequestRecord & { replyCount: number };
 
 @Injectable()
 export class RequestsRepository {
@@ -31,11 +32,30 @@ export class RequestsRepository {
     });
   }
 
-  findVisible(): Promise<RequestRecord[]> {
-    return this.db.query.requests.findMany({
-      where: and(eq(requests.hidden, false), isNull(requests.deletedAt)),
-      orderBy: desc(requests.createdAt),
-    });
+  findVisible(): Promise<RequestWithReplyCount[]> {
+    return this.db
+      .select({
+        id: requests.id,
+        body: requests.body,
+        authorId: requests.authorId,
+        guestId: requests.guestId,
+        createdAt: requests.createdAt,
+        hidden: requests.hidden,
+        deletedAt: requests.deletedAt,
+        replyCount: count(replies.id),
+      })
+      .from(requests)
+      .leftJoin(
+        replies,
+        and(
+          eq(replies.requestId, requests.id),
+          eq(replies.hidden, false),
+          isNull(replies.deletedAt),
+        ),
+      )
+      .where(and(eq(requests.hidden, false), isNull(requests.deletedAt)))
+      .groupBy(requests.id)
+      .orderBy(desc(requests.createdAt));
   }
 
   findByGuestId(guestId: string): Promise<RequestRecord | undefined> {

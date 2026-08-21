@@ -1,16 +1,31 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { ApiError } from "../lib/api";
 import { ServiceNav } from "../components/navigation/ServiceNav";
 import { RequestComposer } from "./components/RequestComposer";
 import { RotatingOnseolLine } from "./components/RotatingOnseolLine";
-import { useTodayComposer } from "./prototype/useTodayComposer";
+import { useTodayComposer } from "./useTodayComposer";
 
 const TOAST_VISIBLE_MS = 2000;
 
+const ERROR_MESSAGES: Record<string, string> = {
+  REQUEST_GUEST_LIMIT_EXCEEDED: "비회원은 온설을 1개만 남길 수 있어요. 로그인하면 더 남길 수 있어요.",
+  GUEST_ID_REQUIRED: "요청을 남기지 못했어요. 잠시 후 다시 시도해주세요.",
+};
+
+function errorMessage(error: unknown): string {
+  if (error instanceof ApiError) {
+    return ERROR_MESSAGES[error.code] ?? "요청을 남기지 못했어요. 잠시 후 다시 시도해주세요.";
+  }
+  return "요청을 남기지 못했어요. 잠시 후 다시 시도해주세요.";
+}
+
 export function TodayPrototype() {
   const prototype = useTodayComposer();
-  const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [toast, setToast] = useState<{ kind: "success" | "error"; message: string } | null>(
+    null,
+  );
   const toastTimerRef = useRef<number | null>(null);
   const isTyping = prototype.requestDraft.trim().length > 0;
   const requestCount = prototype.requestCount;
@@ -24,22 +39,30 @@ export function TodayPrototype() {
     };
   }, []);
 
-  const submitRequest = async (body: string) => {
-    await prototype.submitRequest(body);
-    setShowSuccessToast(true);
+  function showToast(next: { kind: "success" | "error"; message: string }) {
+    setToast(next);
 
     if (toastTimerRef.current !== null) {
       window.clearTimeout(toastTimerRef.current);
     }
 
     toastTimerRef.current = window.setTimeout(() => {
-      setShowSuccessToast(false);
+      setToast(null);
       toastTimerRef.current = null;
     }, TOAST_VISIBLE_MS);
+  }
+
+  const submitRequest = async (body: string) => {
+    try {
+      await prototype.submitRequest(body);
+      showToast({ kind: "success", message: "온설을 남겼어요" });
+    } catch (error) {
+      showToast({ kind: "error", message: errorMessage(error) });
+    }
   };
 
-  const dismissSuccessToast = () => {
-    setShowSuccessToast(false);
+  const dismissToast = () => {
+    setToast(null);
 
     if (toastTimerRef.current !== null) {
       window.clearTimeout(toastTimerRef.current);
@@ -87,17 +110,19 @@ export function TodayPrototype() {
           </p>
         </section>
       </main>
-      {showSuccessToast ? (
+      {toast ? (
         <div
-          className="fixed bottom-5 left-1/2 z-10 flex w-[calc(100%-2.5rem)] max-w-sm -translate-x-1/2 items-center justify-between gap-3 rounded-lg border border-line bg-surface px-4 py-3 text-sm text-foreground shadow-sm sm:bottom-8 sm:w-auto sm:min-w-64"
+          className="fixed bottom-5 left-1/2 z-10 flex w-[calc(100%-2.5rem)] max-w-sm -translate-x-1/2 items-center justify-between gap-3 rounded-lg border border-line bg-surface px-4 py-3 text-sm shadow-sm sm:bottom-8 sm:w-auto sm:min-w-64"
           role="status"
         >
-          <span>온설을 남겼어요</span>
+          <span className={toast.kind === "error" ? "text-red-600" : "text-foreground"}>
+            {toast.message}
+          </span>
           <button
             aria-label="알림 닫기"
             className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-lg leading-none text-muted transition hover:bg-surface-muted hover:text-foreground"
             type="button"
-            onClick={dismissSuccessToast}
+            onClick={dismissToast}
           >
             ×
           </button>
