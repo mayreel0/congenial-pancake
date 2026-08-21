@@ -5,6 +5,7 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { OAuthIdentitiesRepository } from './oauth-identities.repository';
 import { GoogleOAuthProvider } from './oauth/google-oauth.provider';
+import { OptionalSessionGuard } from './optional-session.guard';
 import { PasswordHasherService } from './password/password-hasher.service';
 import { SessionGuard } from './session.guard';
 import { SessionService } from './session.service';
@@ -17,11 +18,17 @@ import { SessionsRepository } from './sessions.repository';
     SessionsRepository,
     SessionService,
     SessionGuard,
+    OptionalSessionGuard,
     PasswordHasherService,
     OAuthIdentitiesRepository,
     GoogleOAuthProvider,
     AuthService,
   ],
-  exports: [SessionService, SessionGuard, PasswordHasherService],
+  exports: [
+    SessionService,
+    SessionGuard,
+    OptionalSessionGuard,
+    PasswordHasherService,
+  ],
 })
 export class AuthModule {}

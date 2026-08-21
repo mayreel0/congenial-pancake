@@ -39,3 +39,65 @@ export class OAuthExchangeFailedException extends AppException {
     );
   }
 }
+
+export class GuestIdRequiredException extends AppException {
+  constructor() {
+    super(
+      'GUEST_ID_REQUIRED',
+      'A guest id is required to write without logging in.',
+      HttpStatus.BAD_REQUEST,
+    );
+  }
+}
+
+export class RequestNotFoundException extends AppException {
+  constructor() {
+    super('REQUEST_NOT_FOUND', 'Request not found.', HttpStatus.NOT_FOUND);
+  }
+}
+
+export class ReplyNotFoundException extends AppException {
+  constructor() {
+    super('REPLY_NOT_FOUND', 'Reply not found.', HttpStatus.NOT_FOUND);
+  }
+}
+
+export class RequestGuestLimitExceededException extends AppException {
+  constructor() {
+    super(
+      'REQUEST_GUEST_LIMIT_EXCEEDED',
+      'Guests may only post one request. Log in to post more.',
+      HttpStatus.CONFLICT,
+    );
+  }
+}
+
+export class ReplyAlreadySubmittedException extends AppException {
+  constructor() {
+    super(
+      'REPLY_ALREADY_SUBMITTED',
+      'You already replied to this request.',
+      HttpStatus.CONFLICT,
+    );
+  }
+}
+
+export class ReplyGuestLimitExceededException extends AppException {
+  constructor() {
+    super(
+      'REPLY_GUEST_LIMIT_EXCEEDED',
+      'Guests may only reply 5 times to the same request. Log in to reply more.',
+      HttpStatus.CONFLICT,
+    );
+  }
+}
+
+export class ReportAlreadySubmittedException extends AppException {
+  constructor() {
+    super(
+      'REPORT_ALREADY_SUBMITTED',
+      'You already reported this.',
+      HttpStatus.CONFLICT,
+    );
+  }
+}
