@@ -1,9 +1,9 @@
 import { truncatePreview } from "../../today/prototype/model";
-import type { OnseolRequest } from "../../today/prototype/types";
+import type { RequestDto } from "../../lib/requests/api";
 
 type HoldPanelProps = {
   open: boolean;
-  heldRequests: OnseolRequest[];
+  heldRequests: RequestDto[];
   onSelect(requestId: string): void;
   onClose(): void;
 };

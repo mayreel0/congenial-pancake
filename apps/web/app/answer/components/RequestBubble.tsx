@@ -1,12 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { OnseolRequest } from "../../today/prototype/types";
 import { formatTimestamp } from "../../lib/format";
 import { ArchiveIcon, FlagIcon, MoreIcon } from "../../components/shared/icons";
 
 type RequestBubbleProps = {
-  request: OnseolRequest;
+  request: { id: string; body: string; createdAt: string };
   authorLabel: string;
   showActions: boolean;
   leaving?: boolean;

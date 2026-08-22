@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import type { OnseolRequest, OnseolReply } from "../../today/prototype/types";
+import type { AnswerLogEntry } from "../useAnswerQueue";
+import type { RequestDto } from "../../lib/requests/api";
 import { formatDayLabel, isSameCalendarDay } from "../../lib/format";
 import { DateDivider } from "./DateDivider";
 import { RequestBubble } from "./RequestBubble";
@@ -8,12 +9,16 @@ import { SkipIcon } from "../../components/shared/icons";
 import { TypingBubble } from "./TypingBubble";
 
 type AnswerLogProps = {
-  entries: Array<{ request: OnseolRequest; reply: OnseolReply }>;
-  currentRequest: OnseolRequest | null;
+  entries: AnswerLogEntry[];
+  currentRequest: RequestDto | null;
   authorLabels: Map<string, string>;
   leavingRequestId: string | null;
   loadingNext: boolean;
   isTyping: boolean;
+  // Hold/report are login-only (see docs/decisions/2026-08-22-onseol-answer-
+  // queue-decisions.md) — the "더보기" menu is hidden entirely for guests
+  // rather than showing actions that would just 401.
+  canManageCurrentRequest: boolean;
   onReport(requestId: string): void;
   onSkip(requestId: string): void;
   onHold(requestId: string): void;
@@ -26,6 +31,7 @@ export function AnswerLog({
   leavingRequestId,
   loadingNext,
   isTyping,
+  canManageCurrentRequest,
   onReport,
   onSkip,
   onHold,
@@ -47,7 +53,7 @@ export function AnswerLog({
           <DateDivider label={formatDayLabel(reply.createdAt)} />
         ) : null}
         <RequestBubble
-          authorLabel={authorLabels.get(request.authorId) ?? "익명"}
+          authorLabel={authorLabels.get(request.id) ?? "익명"}
           request={request}
           showActions={false}
         />
@@ -73,10 +79,10 @@ export function AnswerLog({
       <div className="flex flex-col gap-2" key="live-current">
         {showLiveDivider ? <DateDivider label="오늘" /> : null}
         <RequestBubble
-          authorLabel={authorLabels.get(currentRequest.authorId) ?? "익명"}
+          authorLabel={authorLabels.get(currentRequest.id) ?? "익명"}
           leaving={currentRequest.id === leavingRequestId}
           request={currentRequest}
-          showActions
+          showActions={canManageCurrentRequest}
           onHold={() => onHold(currentRequest.id)}
           onReport={() => onReport(currentRequest.id)}
         />

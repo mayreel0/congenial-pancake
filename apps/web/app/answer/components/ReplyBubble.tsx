@@ -1,7 +1,7 @@
-import type { OnseolReply } from "../../today/prototype/types";
+import type { ReplyDto } from "../../lib/replies/api";
 
 type ReplyBubbleProps = {
-  reply: OnseolReply;
+  reply: ReplyDto;
 };
 
 export function ReplyBubble({ reply }: ReplyBubbleProps) {

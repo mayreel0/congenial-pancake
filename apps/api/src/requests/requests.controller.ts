@@ -70,24 +70,35 @@ export class RequestsController {
     return rows.map((row) => toRequestResponseDto(row.request));
   }
 
+  // Returns the next queue candidate directly so the client doesn't need a
+  // separate GET /requests/queue round-trip after every skip.
   @Post(':id/skip')
   @UseGuards(OptionalSessionGuard)
-  @HttpCode(HttpStatus.NO_CONTENT)
+  @HttpCode(HttpStatus.OK)
   async skip(
     @Param('id') id: string,
     @OptionalCurrentUser() userId: string | undefined,
     @GuestId() guestId: string | undefined,
-  ): Promise<void> {
+  ): Promise<RequestResponseDto | null> {
     await this.answerInteractionsService.skip(id, userId, guestId);
+    const next = await this.requestsService.findQueueCandidate(userId, guestId);
+    return next ? toRequestResponseDto(next) : null;
   }
 
+  // Same as skip — returns the next candidate so holding also only costs one
+  // round-trip.
   @Post(':id/hold')
   @UseGuards(SessionGuard)
-  @HttpCode(HttpStatus.NO_CONTENT)
+  @HttpCode(HttpStatus.OK)
   async hold(
     @Param('id') id: string,
     @CurrentUser() userId: string,
-  ): Promise<void> {
+  ): Promise<RequestResponseDto | null> {
     await this.answerInteractionsService.hold(id, userId);
+    const next = await this.requestsService.findQueueCandidate(
+      userId,
+      undefined,
+    );
+    return next ? toRequestResponseDto(next) : null;
   }
 }
