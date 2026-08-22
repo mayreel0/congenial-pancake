@@ -1,6 +1,5 @@
 import type { AnswerInteractionsService } from '../answer-interactions/answer-interactions.service';
 import {
-  GuestIdRequiredException,
   ReplyAlreadySubmittedException,
   ReplyGuestLimitExceededException,
   RequestNotFoundException,
@@ -76,7 +75,7 @@ describe('RepliesService', () => {
           'request-1',
           { body: '내용' },
           'user-1',
-          undefined,
+          'unused-guest-id',
         ),
       ).rejects.toBeInstanceOf(RequestNotFoundException);
     });
@@ -90,7 +89,7 @@ describe('RepliesService', () => {
           'request-1',
           { body: '내용' },
           'user-1',
-          undefined,
+          'unused-guest-id',
         ),
       ).rejects.toBeInstanceOf(ReplyAlreadySubmittedException);
     });
@@ -105,7 +104,7 @@ describe('RepliesService', () => {
         'request-1',
         { body: '내용' },
         'user-1',
-        undefined,
+        'unused-guest-id',
       );
 
       expect(repliesRepository.create).toHaveBeenCalledWith({
@@ -120,19 +119,6 @@ describe('RepliesService', () => {
         'user-1',
         undefined,
       );
-    });
-
-    it('throws when there is no session and no guestId', async () => {
-      requestsService.findVisibleById.mockResolvedValue(makeRequest());
-
-      await expect(
-        repliesService.create(
-          'request-1',
-          { body: '내용' },
-          undefined,
-          undefined,
-        ),
-      ).rejects.toBeInstanceOf(GuestIdRequiredException);
     });
 
     it('throws when the guest already replied 5 times to this request', async () => {
@@ -185,16 +171,10 @@ describe('RepliesService', () => {
   });
 
   describe('findMine', () => {
-    it('throws when there is no session and no guestId', async () => {
-      await expect(
-        repliesService.findMine(undefined, undefined),
-      ).rejects.toBeInstanceOf(GuestIdRequiredException);
-    });
-
     it('resolves the viewer identity for a logged-in user', async () => {
       repliesRepository.findMine.mockResolvedValue([]);
 
-      await repliesService.findMine('user-1', undefined);
+      await repliesService.findMine('user-1', 'unused-guest-id');
 
       expect(repliesRepository.findMine).toHaveBeenCalledWith({
         authorId: 'user-1',

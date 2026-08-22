@@ -1,7 +1,4 @@
-import {
-  GuestIdRequiredException,
-  RequestGuestLimitExceededException,
-} from '../common/exceptions/app.exception';
+import { RequestGuestLimitExceededException } from '../common/exceptions/app.exception';
 import type { RequestRecord } from './requests.repository';
 import type { RequestsRepository } from './requests.repository';
 import { RequestsService } from './requests.service';
@@ -44,7 +41,7 @@ describe('RequestsService', () => {
       const result = await requestsService.create(
         { body: '오늘 조금 힘들었어요.' },
         'user-1',
-        undefined,
+        'unused-guest-id',
       );
 
       expect(requestsRepository.findByGuestId).not.toHaveBeenCalled();
@@ -53,12 +50,6 @@ describe('RequestsService', () => {
         authorId: 'user-1',
       });
       expect(result).toEqual(created);
-    });
-
-    it('throws when there is no session and no guestId', async () => {
-      await expect(
-        requestsService.create({ body: '내용' }, undefined, undefined),
-      ).rejects.toBeInstanceOf(GuestIdRequiredException);
     });
 
     it('throws when the guest already posted a request', async () => {
@@ -91,13 +82,6 @@ describe('RequestsService', () => {
   });
 
   describe('findQueueCandidate', () => {
-    it('throws when there is no session and no guestId', async () => {
-      await expect(
-        requestsService.findQueueCandidate(undefined, undefined),
-      ).rejects.toBeInstanceOf(GuestIdRequiredException);
-      expect(requestsRepository.findQueueCandidate).not.toHaveBeenCalled();
-    });
-
     it('resolves the viewer identity for a logged-in user', async () => {
       const candidate = makeRequest({ id: 'request-2' });
       requestsRepository.findQueueCandidate.mockResolvedValue({
@@ -107,7 +91,7 @@ describe('RequestsService', () => {
 
       const result = await requestsService.findQueueCandidate(
         'user-1',
-        undefined,
+        'unused-guest-id',
       );
 
       expect(requestsRepository.findQueueCandidate).toHaveBeenCalledWith({

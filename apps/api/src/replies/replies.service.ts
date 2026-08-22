@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { AnswerInteractionsService } from '../answer-interactions/answer-interactions.service';
 import {
-  GuestIdRequiredException,
   ReplyAlreadySubmittedException,
   ReplyGuestLimitExceededException,
   RequestNotFoundException,
@@ -28,7 +27,7 @@ export class RepliesService {
     requestId: string,
     dto: CreateReplyDto,
     userId: string | undefined,
-    guestId: string | undefined,
+    guestId: string,
   ): Promise<ReplyRecord> {
     const request = await this.requestsService.findVisibleById(requestId);
     if (!request) throw new RequestNotFoundException();
@@ -54,8 +53,6 @@ export class RepliesService {
       );
       return reply;
     }
-
-    if (!guestId) throw new GuestIdRequiredException();
 
     const guestReplyCount = await this.repliesRepository.countByRequestAndGuest(
       requestId,
@@ -86,11 +83,10 @@ export class RepliesService {
     return this.repliesRepository.findVisibleById(id);
   }
 
-  async findMine(
+  findMine(
     userId: string | undefined,
-    guestId: string | undefined,
+    guestId: string,
   ): Promise<ReplyWithRequest[]> {
-    if (!userId && !guestId) throw new GuestIdRequiredException();
     return this.repliesRepository.findMine(
       userId ? { authorId: userId } : { guestId },
     );

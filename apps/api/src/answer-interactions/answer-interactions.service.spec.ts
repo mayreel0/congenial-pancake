@@ -1,4 +1,3 @@
-import { GuestIdRequiredException } from '../common/exceptions/app.exception';
 import type { AnswerInteractionsRepository } from './answer-interactions.repository';
 import { AnswerInteractionsService } from './answer-interactions.service';
 
@@ -20,7 +19,7 @@ describe('AnswerInteractionsService', () => {
 
   describe('skip', () => {
     it('upserts a member skip when logged in', async () => {
-      await service.skip('request-1', 'user-1', undefined);
+      await service.skip('request-1', 'user-1', 'unused-guest-id');
 
       expect(repository.upsertMemberSkip).toHaveBeenCalledWith(
         'request-1',
@@ -37,12 +36,6 @@ describe('AnswerInteractionsService', () => {
         'guest-1',
       );
       expect(repository.upsertMemberSkip).not.toHaveBeenCalled();
-    });
-
-    it('throws when there is no session and no guestId', async () => {
-      await expect(
-        service.skip('request-1', undefined, undefined),
-      ).rejects.toBeInstanceOf(GuestIdRequiredException);
     });
   });
 

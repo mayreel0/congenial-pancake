@@ -19,7 +19,7 @@ export class RepliesMineController {
   @UseGuards(OptionalSessionGuard)
   async mine(
     @OptionalCurrentUser() userId: string | undefined,
-    @GuestId() guestId: string | undefined,
+    @GuestId() guestId: string,
   ): Promise<MyAnswerLogEntryDto[]> {
     const entries = await this.repliesService.findMine(userId, guestId);
     return entries.map(toMyAnswerLogEntryDto);

@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { GuestIdRequiredException } from '../common/exceptions/app.exception';
 import { AnswerInteractionsRepository } from './answer-interactions.repository';
 
 @Injectable()
@@ -11,7 +10,7 @@ export class AnswerInteractionsService {
   async skip(
     requestId: string,
     userId: string | undefined,
-    guestId: string | undefined,
+    guestId: string,
   ): Promise<void> {
     if (userId) {
       await this.answerInteractionsRepository.upsertMemberSkip(
@@ -21,7 +20,6 @@ export class AnswerInteractionsService {
       return;
     }
 
-    if (!guestId) throw new GuestIdRequiredException();
     await this.answerInteractionsRepository.upsertGuestSkip(requestId, guestId);
   }
 

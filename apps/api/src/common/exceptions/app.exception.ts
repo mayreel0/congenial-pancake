@@ -40,16 +40,6 @@ export class OAuthExchangeFailedException extends AppException {
   }
 }
 
-export class GuestIdRequiredException extends AppException {
-  constructor() {
-    super(
-      'GUEST_ID_REQUIRED',
-      'A guest id is required to write without logging in.',
-      HttpStatus.BAD_REQUEST,
-    );
-  }
-}
-
 export class RequestNotFoundException extends AppException {
   constructor() {
     super('REQUEST_NOT_FOUND', 'Request not found.', HttpStatus.NOT_FOUND);
