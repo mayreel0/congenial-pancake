@@ -11,7 +11,6 @@ const TOAST_VISIBLE_MS = 2000;
 
 const ERROR_MESSAGES: Record<string, string> = {
   REQUEST_GUEST_LIMIT_EXCEEDED: "비회원은 온설을 1개만 남길 수 있어요. 로그인하면 더 남길 수 있어요.",
-  GUEST_ID_REQUIRED: "요청을 남기지 못했어요. 잠시 후 다시 시도해주세요.",
 };
 
 function errorMessage(error: unknown): string {

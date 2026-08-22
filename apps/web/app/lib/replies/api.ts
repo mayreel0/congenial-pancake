@@ -1,5 +1,4 @@
 import { apiFetch } from "../api";
-import { getOrCreateGuestId } from "../guest/guestId";
 
 export type ReplyDto = {
   id: string;
@@ -11,7 +10,6 @@ export type ReplyDto = {
 export function createReply(requestId: string, body: string): Promise<ReplyDto> {
   return apiFetch<ReplyDto>(`/requests/${requestId}/replies`, {
     method: "POST",
-    headers: { "X-Guest-Id": getOrCreateGuestId() },
     body: JSON.stringify({ body }),
   });
 }
@@ -26,9 +24,7 @@ export type MyAnswerLogEntryDto = {
 };
 
 export function fetchMyAnswerLog(): Promise<MyAnswerLogEntryDto[]> {
-  return apiFetch<MyAnswerLogEntryDto[]>("/replies/mine", {
-    headers: { "X-Guest-Id": getOrCreateGuestId() },
-  });
+  return apiFetch<MyAnswerLogEntryDto[]>("/replies/mine");
 }
 
 // Save ("마음에 남기기") requires a session — no guest id to send, matching

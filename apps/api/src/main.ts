@@ -4,6 +4,7 @@ import { ValidationPipe } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { AppExceptionFilter } from './common/filters/app-exception.filter';
+import { guestIdMiddleware } from './common/middleware/guest-id.middleware';
 import type { Env } from './config/env.schema';
 
 async function bootstrap() {
@@ -11,6 +12,7 @@ async function bootstrap() {
   const config = app.get(ConfigService<Env, true>);
 
   app.use(cookieParser());
+  app.use(guestIdMiddleware(config));
   app.enableCors({
     origin: config.get('CORS_ORIGIN', { infer: true }),
     credentials: true,

@@ -1,8 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import {
-  GuestIdRequiredException,
-  RequestGuestLimitExceededException,
-} from '../common/exceptions/app.exception';
+import { RequestGuestLimitExceededException } from '../common/exceptions/app.exception';
 import type { CreateRequestDto } from './dto/create-request.dto';
 import {
   RequestsRepository,
@@ -18,7 +15,7 @@ export class RequestsService {
   async create(
     dto: CreateRequestDto,
     userId: string | undefined,
-    guestId: string | undefined,
+    guestId: string,
   ): Promise<RequestRecord> {
     if (userId) {
       return this.requestsRepository.create({
@@ -26,8 +23,6 @@ export class RequestsService {
         authorId: userId,
       });
     }
-
-    if (!guestId) throw new GuestIdRequiredException();
 
     const existing = await this.requestsRepository.findByGuestId(guestId);
     if (existing) throw new RequestGuestLimitExceededException();
@@ -47,11 +42,10 @@ export class RequestsService {
     return this.requestsRepository.findFeed();
   }
 
-  async findQueueCandidate(
+  findQueueCandidate(
     userId: string | undefined,
-    guestId: string | undefined,
+    guestId: string,
   ): Promise<RequestWithReplyCount | undefined> {
-    if (!userId && !guestId) throw new GuestIdRequiredException();
     return this.requestsRepository.findQueueCandidate(
       userId ? { authorId: userId } : { guestId },
     );

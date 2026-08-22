@@ -29,7 +29,7 @@ export class RepliesController {
     @Param('requestId') requestId: string,
     @Body() dto: CreateReplyDto,
     @OptionalCurrentUser() userId: string | undefined,
-    @GuestId() guestId: string | undefined,
+    @GuestId() guestId: string,
   ): Promise<ReplyResponseDto> {
     const reply = await this.repliesService.create(
       requestId,

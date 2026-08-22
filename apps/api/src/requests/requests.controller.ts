@@ -35,7 +35,7 @@ export class RequestsController {
   async create(
     @Body() dto: CreateRequestDto,
     @OptionalCurrentUser() userId: string | undefined,
-    @GuestId() guestId: string | undefined,
+    @GuestId() guestId: string,
   ): Promise<RequestResponseDto> {
     const request = await this.requestsService.create(dto, userId, guestId);
     return toRequestResponseDto(request);
@@ -61,7 +61,7 @@ export class RequestsController {
   @UseGuards(OptionalSessionGuard)
   async queue(
     @OptionalCurrentUser() userId: string | undefined,
-    @GuestId() guestId: string | undefined,
+    @GuestId() guestId: string,
   ): Promise<RequestResponseDto | null> {
     const request = await this.requestsService.findQueueCandidate(
       userId,
@@ -87,7 +87,7 @@ export class RequestsController {
   async skip(
     @Param('id') id: string,
     @OptionalCurrentUser() userId: string | undefined,
-    @GuestId() guestId: string | undefined,
+    @GuestId() guestId: string,
   ): Promise<RequestResponseDto | null> {
     await this.answerInteractionsService.skip(id, userId, guestId);
     const next = await this.requestsService.findQueueCandidate(userId, guestId);
@@ -102,12 +102,10 @@ export class RequestsController {
   async hold(
     @Param('id') id: string,
     @CurrentUser() userId: string,
+    @GuestId() guestId: string,
   ): Promise<RequestResponseDto | null> {
     await this.answerInteractionsService.hold(id, userId);
-    const next = await this.requestsService.findQueueCandidate(
-      userId,
-      undefined,
-    );
+    const next = await this.requestsService.findQueueCandidate(userId, guestId);
     return next ? toRequestResponseDto(next) : null;
   }
 }
