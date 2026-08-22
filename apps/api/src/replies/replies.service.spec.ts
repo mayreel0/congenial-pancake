@@ -1,3 +1,4 @@
+import type { AnswerInteractionsService } from '../answer-interactions/answer-interactions.service';
 import {
   GuestIdRequiredException,
   ReplyAlreadySubmittedException,
@@ -39,6 +40,7 @@ function makeReply(overrides: Partial<ReplyRecord> = {}): ReplyRecord {
 describe('RepliesService', () => {
   let repliesRepository: jest.Mocked<RepliesRepository>;
   let requestsService: jest.Mocked<RequestsService>;
+  let answerInteractionsService: jest.Mocked<AnswerInteractionsService>;
   let repliesService: RepliesService;
 
   beforeEach(() => {
@@ -49,12 +51,20 @@ describe('RepliesService', () => {
       findByRequestAndAuthor: jest.fn(),
       countByRequestAndGuest: jest.fn(),
       setHidden: jest.fn(),
+      findMine: jest.fn(),
     } as unknown as jest.Mocked<RepliesRepository>;
     requestsService = {
       findVisibleById: jest.fn(),
     } as unknown as jest.Mocked<RequestsService>;
+    answerInteractionsService = {
+      clearForViewer: jest.fn(),
+    } as unknown as jest.Mocked<AnswerInteractionsService>;
 
-    repliesService = new RepliesService(repliesRepository, requestsService);
+    repliesService = new RepliesService(
+      repliesRepository,
+      requestsService,
+      answerInteractionsService,
+    );
   });
 
   describe('create', () => {
@@ -104,6 +114,12 @@ describe('RepliesService', () => {
         authorId: 'user-1',
       });
       expect(result).toEqual(created);
+      // Answering resolves any held/skipped state for this viewer+request.
+      expect(answerInteractionsService.clearForViewer).toHaveBeenCalledWith(
+        'request-1',
+        'user-1',
+        undefined,
+      );
     });
 
     it('throws when there is no session and no guestId', async () => {
@@ -152,6 +168,11 @@ describe('RepliesService', () => {
         guestId: 'guest-1',
       });
       expect(result).toEqual(created);
+      expect(answerInteractionsService.clearForViewer).toHaveBeenCalledWith(
+        'request-1',
+        undefined,
+        'guest-1',
+      );
     });
   });
 
@@ -160,6 +181,34 @@ describe('RepliesService', () => {
       await repliesService.hide('reply-1');
 
       expect(repliesRepository.setHidden).toHaveBeenCalledWith('reply-1', true);
+    });
+  });
+
+  describe('findMine', () => {
+    it('throws when there is no session and no guestId', async () => {
+      await expect(
+        repliesService.findMine(undefined, undefined),
+      ).rejects.toBeInstanceOf(GuestIdRequiredException);
+    });
+
+    it('resolves the viewer identity for a logged-in user', async () => {
+      repliesRepository.findMine.mockResolvedValue([]);
+
+      await repliesService.findMine('user-1', undefined);
+
+      expect(repliesRepository.findMine).toHaveBeenCalledWith({
+        authorId: 'user-1',
+      });
+    });
+
+    it('resolves the viewer identity for a guest', async () => {
+      repliesRepository.findMine.mockResolvedValue([]);
+
+      await repliesService.findMine(undefined, 'guest-1');
+
+      expect(repliesRepository.findMine).toHaveBeenCalledWith({
+        guestId: 'guest-1',
+      });
     });
   });
 });
