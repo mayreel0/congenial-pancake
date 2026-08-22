@@ -1,17 +1,15 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import type { ReadFeedItem } from "../../today/prototype/model";
+import type { FeedItemDto } from "../../lib/requests/api";
 import { ReadThread } from "./ReadThread";
 
-const item: ReadFeedItem = {
+const item: FeedItemDto = {
   request: {
     id: "req-1",
     body: "오늘 실수한 일이 계속 떠올라요.",
     createdAt: "2026-08-19T09:00:00.000Z",
-    authorId: "author-1",
-    replyIds: ["reply-1"],
-    reportCount: 0,
-    hidden: false,
+    replyCount: 1,
+    authorSlot: 0,
   },
   replies: [
     {
@@ -19,9 +17,7 @@ const item: ReadFeedItem = {
       requestId: "req-1",
       body: "괜히 커 보일 때가 있죠.",
       createdAt: "2026-08-19T09:30:00.000Z",
-      authorId: "author-2",
-      reportCount: 0,
-      hidden: false,
+      authorSlot: 1,
     },
   ],
 };
@@ -36,12 +32,13 @@ describe("ReadThread", () => {
       <ReadThread
         authorLabels={
           new Map([
-            ["author-1", "익명 1"],
-            ["author-2", "익명 2"],
+            [0, "익명 1"],
+            [1, "익명 2"],
           ])
         }
         item={item}
         savedReplyIds={new Set()}
+        showActions
         onReportReply={onReportReply}
         onReportRequest={onReportRequest}
         onToggleSaveReply={onToggleSaveReply}
@@ -84,6 +81,7 @@ describe("ReadThread", () => {
         authorLabels={new Map()}
         item={item}
         savedReplyIds={new Set(["reply-1"])}
+        showActions
         onReportReply={() => {}}
         onReportRequest={() => {}}
         onToggleSaveReply={() => {}}
@@ -93,5 +91,26 @@ describe("ReadThread", () => {
     expect(
       screen.getByRole("button", { name: /마음에 남긴 답변/ }),
     ).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("hides save/report actions when showActions is false", () => {
+    render(
+      <ReadThread
+        authorLabels={new Map()}
+        item={item}
+        savedReplyIds={new Set()}
+        showActions={false}
+        onReportReply={() => {}}
+        onReportRequest={() => {}}
+        onToggleSaveReply={() => {}}
+      />,
+    );
+
+    expect(
+      screen.queryByRole("button", { name: "마음에 남기기" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "더보기" }),
+    ).not.toBeInTheDocument();
   });
 });

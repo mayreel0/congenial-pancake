@@ -4,7 +4,6 @@ import {
   getHeldRequests,
   getMyAnswerLog,
   getPriorityRequests,
-  getReadFeed,
   getRecentNonViewerRequests,
   getTodayEntryMessages,
 } from "./model";
@@ -377,113 +376,6 @@ describe("getMyAnswerLog", () => {
     expect(log.map((entry) => entry.request.id)).toEqual([
       "request-a",
       "request-b",
-    ]);
-  });
-});
-
-describe("getReadFeed", () => {
-  const state: PrototypeState = {
-    viewer: { id: "viewer-local" },
-    requests: [
-      {
-        id: "no-replies",
-        body: "답변이 없는 요청",
-        createdAt: "2026-08-19T09:00:00.000Z",
-        authorId: "author-1",
-        replyIds: [],
-        reportCount: 0,
-        hidden: false,
-      },
-      {
-        id: "only-hidden-reply",
-        body: "답변이 숨겨진 요청",
-        createdAt: "2026-08-19T09:00:00.000Z",
-        authorId: "author-2",
-        replyIds: ["reply-hidden"],
-        reportCount: 0,
-        hidden: false,
-      },
-      {
-        id: "mine",
-        body: "내가 쓴 요청",
-        createdAt: "2026-08-18T09:00:00.000Z",
-        authorId: "viewer-local",
-        replyIds: ["reply-mine"],
-        reportCount: 0,
-        hidden: false,
-      },
-      {
-        id: "multi-reply",
-        body: "답변이 여러 개인 요청",
-        createdAt: "2026-08-19T12:00:00.000Z",
-        authorId: "author-3",
-        replyIds: ["reply-early", "reply-late"],
-        reportCount: 0,
-        hidden: false,
-      },
-    ],
-    replies: [
-      {
-        id: "reply-hidden",
-        requestId: "only-hidden-reply",
-        body: "숨겨진 답변",
-        createdAt: "2026-08-19T09:30:00.000Z",
-        authorId: "author-4",
-        reportCount: 1,
-        hidden: true,
-      },
-      {
-        id: "reply-mine",
-        requestId: "mine",
-        body: "내 요청에 달린 답변",
-        createdAt: "2026-08-18T10:00:00.000Z",
-        authorId: "author-5",
-        reportCount: 0,
-        hidden: false,
-      },
-      {
-        id: "reply-late",
-        requestId: "multi-reply",
-        body: "나중에 달린 답변",
-        createdAt: "2026-08-19T13:00:00.000Z",
-        authorId: "author-6",
-        reportCount: 0,
-        hidden: false,
-      },
-      {
-        id: "reply-early",
-        requestId: "multi-reply",
-        body: "먼저 달린 답변",
-        createdAt: "2026-08-19T12:30:00.000Z",
-        authorId: "author-7",
-        reportCount: 0,
-        hidden: false,
-      },
-    ],
-    requestDraft: "",
-    replyDrafts: {},
-    selectedRequestId: null,
-    skippedRequestIds: [],
-    heldRequestIds: [],
-    savedReplyIds: [],
-  };
-
-  it("includes the viewer's own requests and excludes ones with no visible reply, sorted newest-request-first", () => {
-    const feed = getReadFeed(state);
-
-    expect(feed.map((item) => item.request.id)).toEqual([
-      "multi-reply",
-      "mine",
-    ]);
-  });
-
-  it("orders replies within an item oldest-first", () => {
-    const feed = getReadFeed(state);
-    const multiReply = feed.find((item) => item.request.id === "multi-reply");
-
-    expect(multiReply?.replies.map((reply) => reply.id)).toEqual([
-      "reply-early",
-      "reply-late",
     ]);
   });
 });
