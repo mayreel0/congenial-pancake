@@ -50,3 +50,23 @@ export function holdRequest(requestId: string): Promise<RequestDto | null> {
 export function fetchHeldRequests(): Promise<RequestDto[]> {
   return apiFetch<RequestDto[]>("/requests/held");
 }
+
+// authorSlot identifies a repeat author only within this one thread — see
+// apps/api/src/requests/feed-author-slots.ts. It carries no identity beyond
+// that; the frontend maps it to a randomly-picked display nickname.
+export type FeedReplyDto = {
+  id: string;
+  requestId: string;
+  body: string;
+  createdAt: string;
+  authorSlot: number;
+};
+
+export type FeedItemDto = {
+  request: RequestDto & { authorSlot: number };
+  replies: FeedReplyDto[];
+};
+
+export function fetchFeed(): Promise<FeedItemDto[]> {
+  return apiFetch<FeedItemDto[]>("/requests/feed");
+}

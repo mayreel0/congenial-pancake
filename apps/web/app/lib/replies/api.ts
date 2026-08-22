@@ -30,3 +30,17 @@ export function fetchMyAnswerLog(): Promise<MyAnswerLogEntryDto[]> {
     headers: { "X-Guest-Id": getOrCreateGuestId() },
   });
 }
+
+// Save ("마음에 남기기") requires a session — no guest id to send, matching
+// hold/report.
+export function saveReply(replyId: string): Promise<void> {
+  return apiFetch<void>(`/replies/${replyId}/save`, { method: "POST" });
+}
+
+export function unsaveReply(replyId: string): Promise<void> {
+  return apiFetch<void>(`/replies/${replyId}/save`, { method: "DELETE" });
+}
+
+export function fetchSavedReplyIds(): Promise<string[]> {
+  return apiFetch<string[]>("/replies/saved");
+}
