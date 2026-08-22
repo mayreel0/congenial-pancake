@@ -1,30 +1,26 @@
 import { render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { OnseolReply, OnseolRequest } from "../../today/prototype/types";
+import type { AnswerLogEntry } from "../useAnswerQueue";
+import type { RequestDto } from "../../lib/requests/api";
+import type { ReplyDto } from "../../lib/replies/api";
 import { AnswerLog } from "./AnswerLog";
 
-function makeRequest(overrides: Partial<OnseolRequest>): OnseolRequest {
+function makeRequest(overrides: Partial<RequestDto>): RequestDto {
   return {
     id: "request",
     body: "요청 본문",
     createdAt: "2026-08-15T09:00:00.000Z",
-    authorId: "author-1",
-    replyIds: [],
-    reportCount: 0,
-    hidden: false,
+    replyCount: 1,
     ...overrides,
   };
 }
 
-function makeReply(overrides: Partial<OnseolReply>): OnseolReply {
+function makeReply(overrides: Partial<ReplyDto>): ReplyDto {
   return {
     id: "reply",
     requestId: "request",
     body: "답변 본문",
     createdAt: "2026-08-15T09:00:00.000Z",
-    authorId: "viewer-local",
-    reportCount: 0,
-    hidden: false,
     ...overrides,
   };
 }
@@ -46,60 +42,59 @@ describe("AnswerLog date dividers", () => {
       id: "request-a",
       body: "8월 15일 요청",
       createdAt: "2026-08-15T09:00:00.000Z",
-      authorId: "author-a",
     });
     const requestB = makeRequest({
       id: "request-b",
       body: "8월 15일 두번째 요청",
       createdAt: "2026-08-15T11:00:00.000Z",
-      authorId: "author-b",
     });
     const requestC = makeRequest({
       id: "request-c",
       body: "8월 17일 요청",
       createdAt: "2026-08-17T09:00:00.000Z",
-      authorId: "author-c",
     });
     const liveRequest = makeRequest({
       id: "request-live",
       body: "오늘 답할 요청",
       createdAt: "2026-08-19T09:00:00.000Z",
-      authorId: "author-live",
     });
+
+    const entries: AnswerLogEntry[] = [
+      {
+        request: requestA,
+        reply: makeReply({
+          id: "reply-a",
+          requestId: "request-a",
+          body: "8월 15일 답변 1",
+          createdAt: "2026-08-15T09:30:00.000Z",
+        }),
+      },
+      {
+        request: requestB,
+        reply: makeReply({
+          id: "reply-b",
+          requestId: "request-b",
+          body: "8월 15일 답변 2",
+          createdAt: "2026-08-15T12:00:00.000Z",
+        }),
+      },
+      {
+        request: requestC,
+        reply: makeReply({
+          id: "reply-c",
+          requestId: "request-c",
+          body: "8월 17일 답변",
+          createdAt: "2026-08-17T09:30:00.000Z",
+        }),
+      },
+    ];
 
     render(
       <AnswerLog
         authorLabels={new Map()}
+        canManageCurrentRequest
         currentRequest={liveRequest}
-        entries={[
-          {
-            request: requestA,
-            reply: makeReply({
-              id: "reply-a",
-              requestId: "request-a",
-              body: "8월 15일 답변 1",
-              createdAt: "2026-08-15T09:30:00.000Z",
-            }),
-          },
-          {
-            request: requestB,
-            reply: makeReply({
-              id: "reply-b",
-              requestId: "request-b",
-              body: "8월 15일 답변 2",
-              createdAt: "2026-08-15T12:00:00.000Z",
-            }),
-          },
-          {
-            request: requestC,
-            reply: makeReply({
-              id: "reply-c",
-              requestId: "request-c",
-              body: "8월 17일 답변",
-              createdAt: "2026-08-17T09:30:00.000Z",
-            }),
-          },
-        ]}
+        entries={entries}
         isTyping={false}
         leavingRequestId={null}
         loadingNext={false}
@@ -127,30 +122,31 @@ describe("AnswerLog date dividers", () => {
       id: "request-today",
       body: "오늘 답한 요청",
       createdAt: "2026-08-19T08:00:00.000Z",
-      authorId: "author-today",
     });
     const liveRequest = makeRequest({
       id: "request-live",
       body: "오늘 답할 다음 요청",
       createdAt: "2026-08-19T09:00:00.000Z",
-      authorId: "author-live",
     });
+
+    const entries: AnswerLogEntry[] = [
+      {
+        request: requestToday,
+        reply: makeReply({
+          id: "reply-today",
+          requestId: "request-today",
+          body: "오늘 답변",
+          createdAt: "2026-08-19T08:30:00.000Z",
+        }),
+      },
+    ];
 
     render(
       <AnswerLog
         authorLabels={new Map()}
+        canManageCurrentRequest
         currentRequest={liveRequest}
-        entries={[
-          {
-            request: requestToday,
-            reply: makeReply({
-              id: "reply-today",
-              requestId: "request-today",
-              body: "오늘 답변",
-              createdAt: "2026-08-19T08:30:00.000Z",
-            }),
-          },
-        ]}
+        entries={entries}
         isTyping={false}
         leavingRequestId={null}
         loadingNext={false}
@@ -162,5 +158,30 @@ describe("AnswerLog date dividers", () => {
 
     const dividers = screen.getAllByRole("separator");
     expect(dividers.map((divider) => divider.textContent)).toEqual(["오늘"]);
+  });
+
+  it("hides the more-menu trigger when the viewer cannot manage the current request", () => {
+    const liveRequest = makeRequest({ id: "request-live", body: "요청" });
+
+    render(
+      <AnswerLog
+        authorLabels={new Map()}
+        canManageCurrentRequest={false}
+        currentRequest={liveRequest}
+        entries={[]}
+        isTyping={false}
+        leavingRequestId={null}
+        loadingNext={false}
+        onHold={noop}
+        onReport={noop}
+        onSkip={noop}
+      />,
+    );
+
+    expect(
+      screen.queryByRole("button", { name: "더보기" }),
+    ).not.toBeInTheDocument();
+    // Skip stays available regardless — it's the one action guests can take.
+    expect(screen.getByRole("button", { name: "다음 글" })).toBeInTheDocument();
   });
 });

@@ -2,16 +2,14 @@
 
 import { useMemo, useState } from "react";
 import { ServiceNav } from "../components/navigation/ServiceNav";
-import { useAnswerQueue } from "../today/prototype/useAnswerQueue";
+import { useAnswerQueue } from "./useAnswerQueue";
 import { ActionConfirmDialog } from "../components/shared/ActionConfirmDialog";
 import { AnswerComposer } from "./components/AnswerComposer";
 import { AnswerLog } from "./components/AnswerLog";
 import { HoldPanel } from "./components/HoldPanel";
-import { buildAnonymousLabels } from "./prototype/labels";
+import { buildAnonymousLabels } from "./labels";
 
 const BUBBLE_LEAVE_MS = 180;
-const NEXT_REQUEST_LOAD_MS = 400;
-const ANSWER_SUBMIT_PENDING_MS = 450;
 
 type PendingActionType = "report" | "skip" | "hold";
 
@@ -71,17 +69,18 @@ export function AnswerSession() {
     return buildAnonymousLabels(orderedRequests);
   }, [prototype.answerLog, currentTarget]);
 
-  function runWithLeaveAnimation(requestId: string, action: () => void) {
+  function runWithLeaveAnimation(requestId: string, action: () => Promise<void>) {
     setLeavingRequestId(requestId);
-    window.setTimeout(() => {
+    window.setTimeout(async () => {
       setLeavingRequestId((current) =>
         current === requestId ? null : current,
       );
       setLoadingNext(true);
-      window.setTimeout(() => {
-        action();
+      try {
+        await action();
+      } finally {
         setLoadingNext(false);
-      }, NEXT_REQUEST_LOAD_MS);
+      }
     }, BUBBLE_LEAVE_MS);
   }
 
@@ -94,10 +93,10 @@ export function AnswerSession() {
     const { type, requestId } = pendingAction;
     setPendingAction(null);
 
-    runWithLeaveAnimation(requestId, () => {
-      if (type === "report") prototype.reportRequest(requestId);
-      if (type === "skip") prototype.skipRequest(requestId);
-      if (type === "hold") prototype.holdRequest(requestId);
+    runWithLeaveAnimation(requestId, async () => {
+      if (type === "report") await prototype.reportRequest(requestId);
+      if (type === "skip") await prototype.skipRequest(requestId);
+      if (type === "hold") await prototype.holdRequest(requestId);
     });
   }
 
@@ -105,17 +104,11 @@ export function AnswerSession() {
     if (!currentTarget || answerSubmitStatus === "pending") return;
 
     setAnswerSubmitStatus("pending");
-    await new Promise((resolve) =>
-      window.setTimeout(resolve, ANSWER_SUBMIT_PENDING_MS),
-    );
-    prototype.submitReply(currentTarget.id);
-    setAnswerSubmitStatus("idle");
-
-    setLoadingNext(true);
-    await new Promise((resolve) =>
-      window.setTimeout(resolve, NEXT_REQUEST_LOAD_MS),
-    );
-    setLoadingNext(false);
+    try {
+      await prototype.submitReply(currentTarget.id);
+    } finally {
+      setAnswerSubmitStatus("idle");
+    }
   }
 
   return (
@@ -124,6 +117,7 @@ export function AnswerSession() {
       <div className="flex min-h-0 flex-1 flex-col">
         <AnswerLog
           authorLabels={authorLabels}
+          canManageCurrentRequest={prototype.canManageCurrentRequest}
           currentRequest={currentTarget}
           entries={prototype.answerLog}
           isTyping={isTyping}
@@ -143,15 +137,17 @@ export function AnswerSession() {
               setHoldPanelOpen(false);
             }}
           />
-          <div className="mx-auto flex w-full max-w-6xl items-center justify-between">
-            <button
-              className="text-xs font-medium text-muted transition hover:text-foreground"
-              type="button"
-              onClick={() => setHoldPanelOpen((open) => !open)}
-            >
-              보류 중 ({prototype.heldRequests.length})
-            </button>
-          </div>
+          {prototype.canManageCurrentRequest ? (
+            <div className="mx-auto flex w-full max-w-6xl items-center justify-between">
+              <button
+                className="text-xs font-medium text-muted transition hover:text-foreground"
+                type="button"
+                onClick={() => setHoldPanelOpen((open) => !open)}
+              >
+                보류 중 ({prototype.heldRequests.length})
+              </button>
+            </div>
+          ) : null}
         </div>
         <AnswerComposer
           disabled={!currentTarget || loadingNext}

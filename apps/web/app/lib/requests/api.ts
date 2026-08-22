@@ -22,3 +22,31 @@ export function createRequest(body: string): Promise<RequestDto> {
     body: JSON.stringify({ body }),
   });
 }
+
+// Also needs the guest id on GET — the queue excludes the viewer's own/
+// already-replied/skipped/held requests, which requires knowing who's asking
+// even for a read.
+export function fetchQueueCandidate(): Promise<RequestDto | null> {
+  return apiFetch<RequestDto | null>("/requests/queue", {
+    headers: { "X-Guest-Id": getOrCreateGuestId() },
+  });
+}
+
+export function skipRequest(requestId: string): Promise<RequestDto | null> {
+  return apiFetch<RequestDto | null>(`/requests/${requestId}/skip`, {
+    method: "POST",
+    headers: { "X-Guest-Id": getOrCreateGuestId() },
+  });
+}
+
+// Holding requires a session (see docs/decisions/2026-08-22-onseol-answer-
+// queue-decisions.md) — no guest id to send here.
+export function holdRequest(requestId: string): Promise<RequestDto | null> {
+  return apiFetch<RequestDto | null>(`/requests/${requestId}/hold`, {
+    method: "POST",
+  });
+}
+
+export function fetchHeldRequests(): Promise<RequestDto[]> {
+  return apiFetch<RequestDto[]>("/requests/held");
+}
