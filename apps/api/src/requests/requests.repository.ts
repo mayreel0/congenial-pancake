@@ -1,12 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
   and,
-  asc,
   count,
   desc,
   eq,
   gt,
-  inArray,
   isNull,
   lt,
   not,
@@ -25,8 +23,6 @@ export type CreateRequestInput = {
 export type RequestRecord = typeof requests.$inferSelect;
 export type RequestWithReplyCount = RequestRecord & { replyCount: number };
 export type ViewerIdentity = { authorId?: string; guestId?: string };
-export type ReplyRecord = typeof replies.$inferSelect;
-export type FeedItem = { request: RequestRecord; replies: ReplyRecord[] };
 
 // See docs/decisions/2026-08-22-onseol-answer-queue-decisions.md.
 const QUEUE_FRESHNESS_HOURS = 60;
@@ -75,59 +71,6 @@ export class RequestsRepository {
       .where(and(eq(requests.hidden, false), isNull(requests.deletedAt)))
       .groupBy(requests.id)
       .orderBy(desc(requests.createdAt));
-  }
-
-  // /read shows only requests that have at least one visible reply, newest
-  // request first, each with its full (visible) reply list oldest-first.
-  // Two queries rather than one join-and-group-into-JSON query — same
-  // clarity-over-cleverness call as findQueueCandidate below.
-  async findFeed(): Promise<FeedItem[]> {
-    const requestRows = await this.db
-      .select({
-        id: requests.id,
-        body: requests.body,
-        authorId: requests.authorId,
-        guestId: requests.guestId,
-        createdAt: requests.createdAt,
-        hidden: requests.hidden,
-        deletedAt: requests.deletedAt,
-      })
-      .from(requests)
-      .innerJoin(
-        replies,
-        and(
-          eq(replies.requestId, requests.id),
-          eq(replies.hidden, false),
-          isNull(replies.deletedAt),
-        ),
-      )
-      .where(and(eq(requests.hidden, false), isNull(requests.deletedAt)))
-      .groupBy(requests.id)
-      .orderBy(desc(requests.createdAt));
-
-    if (requestRows.length === 0) return [];
-
-    const requestIds = requestRows.map((row) => row.id);
-    const replyRows = await this.db.query.replies.findMany({
-      where: and(
-        inArray(replies.requestId, requestIds),
-        eq(replies.hidden, false),
-        isNull(replies.deletedAt),
-      ),
-      orderBy: asc(replies.createdAt),
-    });
-
-    const repliesByRequestId = new Map<string, ReplyRecord[]>();
-    for (const reply of replyRows) {
-      const list = repliesByRequestId.get(reply.requestId) ?? [];
-      list.push(reply);
-      repliesByRequestId.set(reply.requestId, list);
-    }
-
-    return requestRows.map((request) => ({
-      request,
-      replies: repliesByRequestId.get(request.id) ?? [],
-    }));
   }
 
   findByGuestId(guestId: string): Promise<RequestRecord | undefined> {

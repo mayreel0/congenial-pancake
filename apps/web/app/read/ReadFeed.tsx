@@ -1,108 +1,58 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { ApiError } from "../lib/api";
+import { useMemo, useState } from "react";
 import { ServiceNav } from "../components/navigation/ServiceNav";
+import { useReadFeed } from "../today/prototype/useReadFeed";
 import { ActionConfirmDialog } from "../components/shared/ActionConfirmDialog";
 import { ReadThread } from "./components/ReadThread";
-import { buildFeedItemLabels } from "./labels";
-import { useReadFeed } from "./useReadFeed";
+import { buildReadAuthorLabels } from "./prototype/labels";
 
 type PendingReport =
   | { kind: "request"; requestId: string }
   | { kind: "reply"; requestId: string; replyId: string };
 
-const TOAST_VISIBLE_MS = 2000;
-
-const ERROR_MESSAGES: Record<string, string> = {
-  REPORT_ALREADY_SUBMITTED: "이미 신고한 항목이에요.",
-};
-
-function errorMessage(error: unknown): string {
-  if (error instanceof ApiError) {
-    return ERROR_MESSAGES[error.code] ?? "요청을 처리하지 못했어요. 잠시 후 다시 시도해주세요.";
-  }
-  return "요청을 처리하지 못했어요. 잠시 후 다시 시도해주세요.";
-}
-
 export function ReadFeed() {
-  const feed = useReadFeed();
+  const prototype = useReadFeed();
   const [pendingReport, setPendingReport] = useState<PendingReport | null>(
     null,
   );
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const toastTimerRef = useRef<number | null>(null);
 
-  const savedSet = new Set(feed.savedReplyIds);
+  const savedSet = useMemo(
+    () => new Set(prototype.savedReplyIds),
+    [prototype.savedReplyIds],
+  );
+  const authorLabels = useMemo(
+    () => buildReadAuthorLabels(prototype.readFeed),
+    [prototype.readFeed],
+  );
 
-  useEffect(() => {
-    return () => {
-      if (toastTimerRef.current !== null) {
-        window.clearTimeout(toastTimerRef.current);
-      }
-    };
-  }, []);
-
-  function showErrorToast(error: unknown) {
-    setToastMessage(errorMessage(error));
-
-    if (toastTimerRef.current !== null) {
-      window.clearTimeout(toastTimerRef.current);
-    }
-    toastTimerRef.current = window.setTimeout(() => {
-      setToastMessage(null);
-      toastTimerRef.current = null;
-    }, TOAST_VISIBLE_MS);
-  }
-
-  function dismissToast() {
-    setToastMessage(null);
-    if (toastTimerRef.current !== null) {
-      window.clearTimeout(toastTimerRef.current);
-      toastTimerRef.current = null;
-    }
-  }
-
-  async function confirmPendingReport() {
+  function confirmPendingReport() {
     if (!pendingReport) return;
-    const report = pendingReport;
+
+    if (pendingReport.kind === "request") {
+      prototype.reportRequest(pendingReport.requestId);
+    } else {
+      prototype.reportReply(pendingReport.replyId);
+    }
+
     setPendingReport(null);
-
-    try {
-      if (report.kind === "request") {
-        await feed.reportRequest(report.requestId);
-      } else {
-        await feed.reportReply(report.replyId);
-      }
-    } catch (error) {
-      showErrorToast(error);
-    }
-  }
-
-  async function toggleSavedReply(replyId: string) {
-    try {
-      await feed.toggleSavedReply(replyId);
-    } catch (error) {
-      showErrorToast(error);
-    }
   }
 
   return (
     <div className="min-h-dvh bg-background text-foreground">
       <ServiceNav activePath="/read" />
       <main className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-5 py-10 sm:px-8">
-        {feed.readFeed.length === 0 ? (
+        {prototype.readFeed.length === 0 ? (
           <p className="py-16 text-center text-sm text-muted">
             아직 읽을 수 있는 온설이 없어요.
           </p>
         ) : (
-          feed.readFeed.map((item) => (
+          prototype.readFeed.map((item) => (
             <ReadThread
-              authorLabels={buildFeedItemLabels(item)}
+              authorLabels={authorLabels}
               item={item}
               key={item.request.id}
               savedReplyIds={savedSet}
-              showActions={feed.canManage}
               onReportReply={(replyId) =>
                 setPendingReport({
                   kind: "reply",
@@ -113,7 +63,9 @@ export function ReadFeed() {
               onReportRequest={() =>
                 setPendingReport({ kind: "request", requestId: item.request.id })
               }
-              onToggleSaveReply={(replyId) => void toggleSavedReply(replyId)}
+              onToggleSaveReply={(replyId) =>
+                prototype.toggleSavedReply(replyId)
+              }
             />
           ))
         )}
@@ -127,24 +79,8 @@ export function ReadFeed() {
         }
         open={pendingReport !== null}
         onCancel={() => setPendingReport(null)}
-        onConfirm={() => void confirmPendingReport()}
+        onConfirm={confirmPendingReport}
       />
-      {toastMessage ? (
-        <div
-          className="fixed bottom-5 left-1/2 z-10 flex w-[calc(100%-2.5rem)] max-w-sm -translate-x-1/2 items-center justify-between gap-3 rounded-lg border border-line bg-surface px-4 py-3 text-sm shadow-sm sm:bottom-8 sm:w-auto sm:min-w-64"
-          role="status"
-        >
-          <span className="text-red-600">{toastMessage}</span>
-          <button
-            aria-label="알림 닫기"
-            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-lg leading-none text-muted transition hover:bg-surface-muted hover:text-foreground"
-            type="button"
-            onClick={dismissToast}
-          >
-            ×
-          </button>
-        </div>
-      ) : null}
     </div>
   );
 }

@@ -15,7 +15,6 @@ import { OptionalCurrentUser } from '../auth/optional-current-user.decorator';
 import { OptionalSessionGuard } from '../auth/optional-session.guard';
 import { SessionGuard } from '../auth/session.guard';
 import { CreateRequestDto } from './dto/create-request.dto';
-import { toFeedItemDto, type FeedItemResponseDto } from './dto/feed-item.dto';
 import {
   toRequestResponseDto,
   type RequestResponseDto,
@@ -45,14 +44,6 @@ export class RequestsController {
   async findAll(): Promise<RequestResponseDto[]> {
     const requests = await this.requestsService.findVisible();
     return requests.map(toRequestResponseDto);
-  }
-
-  // /read's feed: every visible request that has at least one visible reply,
-  // newest first, with its replies nested (oldest first).
-  @Get('feed')
-  async feed(): Promise<FeedItemResponseDto[]> {
-    const items = await this.requestsService.findFeed();
-    return items.map(toFeedItemDto);
   }
 
   // The single next request this viewer should answer — see

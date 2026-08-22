@@ -6,7 +6,6 @@ import {
 import type { CreateRequestDto } from './dto/create-request.dto';
 import {
   RequestsRepository,
-  type FeedItem,
   type RequestRecord,
   type RequestWithReplyCount,
 } from './requests.repository';
@@ -41,10 +40,6 @@ export class RequestsService {
 
   findVisibleById(id: string): Promise<RequestRecord | undefined> {
     return this.requestsRepository.findVisibleById(id);
-  }
-
-  findFeed(): Promise<FeedItem[]> {
-    return this.requestsRepository.findFeed();
   }
 
   async findQueueCandidate(

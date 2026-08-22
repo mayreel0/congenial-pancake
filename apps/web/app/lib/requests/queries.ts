@@ -3,7 +3,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createRequest,
-  fetchFeed,
   fetchHeldRequests,
   fetchQueueCandidate,
   holdRequest,
@@ -15,7 +14,6 @@ export const requestKeys = {
   list: ["requests", "list"] as const,
   queue: ["requests", "queue"] as const,
   held: ["requests", "held"] as const,
-  feed: ["requests", "feed"] as const,
 };
 
 export function useRequestsQuery() {
@@ -63,13 +61,6 @@ export function useSkipMutation() {
     onSuccess: (next) => {
       queryClient.setQueryData(requestKeys.queue, next);
     },
-  });
-}
-
-export function useFeedQuery() {
-  return useQuery({
-    queryKey: requestKeys.feed,
-    queryFn: fetchFeed,
   });
 }
 

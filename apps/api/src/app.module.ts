@@ -8,7 +8,6 @@ import { ModerationModule } from './moderation/moderation.module';
 import { RepliesModule } from './replies/replies.module';
 import { ReportsModule } from './reports/reports.module';
 import { RequestsModule } from './requests/requests.module';
-import { SavedRepliesModule } from './saved-replies/saved-replies.module';
 import { UsersModule } from './users/users.module';
 
 @Module({
@@ -21,7 +20,6 @@ import { UsersModule } from './users/users.module';
     RequestsModule,
     RepliesModule,
     ReportsModule,
-    SavedRepliesModule,
     ModerationModule,
     AdminModule,
   ],

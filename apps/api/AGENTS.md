@@ -57,10 +57,4 @@ Only `admin` currently has just a folder and an empty `@Module({})` — it gets 
 
 ## Frontend wiring status
 
-Auth, `/today`, `/answer`, and `/read` all call this API for real now (`apps/web/app/lib/`, `today/useTodayComposer.ts`, `answer/useAnswerQueue.ts`, `read/useReadFeed.ts`). Only `today/prototype/useMyRecords.ts` (for a future `/me`) is still localStorage-backed, per its own header comment — not wired to anything yet.
-
-## Read feed (`GET /requests/feed`) and saved replies
-
-`/read` needs a whole thread on screen at once (a request plus every reply), which creates a problem the single-item `/answer` screen never had: `authorId`/`guestId` never cross the HTTP boundary, so the frontend can't tell whether two replies in the same thread came from the same person. `RequestsRepository.findFeed()` + `assignAuthorSlots()` (`src/requests/feed-author-slots.ts`) solve this server-side — each distinct identity in a thread gets an incrementing `authorSlot` (0, 1, 2, ...) that the frontend maps to a randomly-picked nickname (`apps/web/app/read/labels.ts`). The slot carries no identity outside that one thread; see docs/decisions/2026-08-23-onseol-read-feed-decisions.md for why per-thread (not cross-feed, not sequential "익명 N") was chosen.
-
-Saving a reply ("마음에 남기기") is member-only, matching hold — `src/saved-replies/` (`SavedRepliesController`, routes on `/replies`: `POST`/`DELETE /replies/:id/save`, `GET /replies/saved`) follows the same shape as `answer-interactions` but as its own module/table (`saved_replies`) since it's a many-to-many bookmark, not a per-viewer queue exclusion.
+Auth and `/today` (`apps/web/app/lib/auth/`, `apps/web/app/lib/requests/` + `today/useTodayComposer.ts`) call this API for real. `/answer` and `/read` (`apps/web/app/today/prototype/useAnswerQueue.ts`, `useReadFeed.ts`, `useMyRecords.ts`) are still 100% localStorage — the queue/skip/hold routes above exist but aren't consumed by the frontend yet; that's the next round. Routes without a frontend consumer yet are verified via unit tests and manual `curl` against a local Postgres.
