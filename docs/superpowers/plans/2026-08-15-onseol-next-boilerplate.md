@@ -1,6 +1,6 @@
 # Onseol Next Boilerplate Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Create the minimal Next.js, React, TypeScript, and Tailwind CSS boilerplate needed before the 온설 landing page implementation starts.
 
@@ -50,7 +50,7 @@ This structure intentionally avoids feature folders and domain modules. Those be
 - Consumes: current `v1` branch with the approved docs merged.
 - Produces: a new worktree on a branch named `codex/onseol-next-boilerplate`.
 
-- [ ] **Step 1: Confirm clean source checkout**
+- [x] **Step 1: Confirm clean source checkout**
 
 Run:
 
@@ -60,7 +60,7 @@ git status --short --branch
 
 Expected: current branch is `v1` and there are no uncommitted changes.
 
-- [ ] **Step 2: Create a project-local worktree directory if needed**
+- [x] **Step 2: Create a project-local worktree directory if needed**
 
 Run:
 
@@ -70,7 +70,7 @@ mkdir -p .worktrees
 
 Expected: `.worktrees` exists.
 
-- [ ] **Step 3: Ensure `.worktrees` is ignored**
+- [x] **Step 3: Ensure `.worktrees` is ignored**
 
 Run:
 
@@ -93,7 +93,7 @@ git add .gitignore
 git commit -m "chore: ignore local worktrees"
 ```
 
-- [ ] **Step 4: Create the worktree**
+- [x] **Step 4: Create the worktree**
 
 Run:
 
@@ -103,7 +103,7 @@ git worktree add .worktrees/onseol-next-boilerplate -b codex/onseol-next-boilerp
 
 Expected: worktree created at `.worktrees/onseol-next-boilerplate`.
 
-- [ ] **Step 5: Enter the worktree**
+- [x] **Step 5: Enter the worktree**
 
 Run:
 
@@ -134,7 +134,7 @@ Expected: branch is `codex/onseol-next-boilerplate` and the working tree is clea
 - Consumes: empty app worktree from Task 1.
 - Produces: a root Next.js app with scripts `dev`, `build`, `start`, `lint`, and `typecheck`.
 
-- [ ] **Step 1: Generate the app files**
+- [x] **Step 1: Generate the app files**
 
 Run this command from the worktree root:
 
@@ -146,7 +146,7 @@ When prompted about proceeding in a non-empty directory, accept only if the dire
 
 Expected: Next.js app files are created at the repository root with `pnpm-lock.yaml`.
 
-- [ ] **Step 2: Pin pnpm with Corepack**
+- [x] **Step 2: Pin pnpm with Corepack**
 
 Run:
 
@@ -156,7 +156,7 @@ corepack use pnpm@latest-11
 
 Expected: `package.json` includes a `packageManager` field for pnpm.
 
-- [ ] **Step 3: Check the generated scripts**
+- [x] **Step 3: Check the generated scripts**
 
 Run:
 
@@ -166,7 +166,7 @@ node -e "const pkg=require('./package.json'); for (const s of ['dev','build','st
 
 Expected: command exits `0`.
 
-- [ ] **Step 4: Add verification scripts**
+- [x] **Step 4: Add verification scripts**
 
 Modify `package.json` so `scripts` includes these entries:
 
@@ -191,7 +191,7 @@ Expected script block shape when no `lint` script was generated:
 }
 ```
 
-- [ ] **Step 5: Replace default page content with a neutral placeholder**
+- [x] **Step 5: Replace default page content with a neutral placeholder**
 
 Replace `app/page.tsx` with:
 
@@ -217,7 +217,7 @@ export default function Home() {
 
 Expected: the root route is a neutral boilerplate placeholder, not the final landing.
 
-- [ ] **Step 6: Set basic metadata**
+- [x] **Step 6: Set basic metadata**
 
 In `app/layout.tsx`, set metadata to:
 
@@ -230,7 +230,7 @@ export const metadata: Metadata = {
 
 Expected: metadata names the service without claiming completed product behavior.
 
-- [ ] **Step 7: Confirm `.gitignore` protects generated artifacts**
+- [x] **Step 7: Confirm `.gitignore` protects generated artifacts**
 
 Ensure `.gitignore` contains at least these patterns:
 
@@ -243,7 +243,7 @@ out
 
 Expected: generated dependencies, build output, and local env files are ignored.
 
-- [ ] **Step 8: Inspect changed files**
+- [x] **Step 8: Inspect changed files**
 
 Run:
 
@@ -264,7 +264,7 @@ Expected: app boilerplate files are uncommitted; `node_modules` and `.next` are 
 - Consumes: Next.js boilerplate from Task 2.
 - Produces: verified app baseline ready for the later landing PR.
 
-- [ ] **Step 1: Install dependencies**
+- [x] **Step 1: Install dependencies**
 
 Run:
 
@@ -274,7 +274,7 @@ pnpm install
 
 Expected: dependencies install and `pnpm-lock.yaml` is present.
 
-- [ ] **Step 2: Run lint**
+- [x] **Step 2: Run lint**
 
 Run:
 
@@ -284,7 +284,7 @@ pnpm lint
 
 Expected: lint exits `0`.
 
-- [ ] **Step 3: Run typecheck**
+- [x] **Step 3: Run typecheck**
 
 Run:
 
@@ -294,7 +294,7 @@ pnpm typecheck
 
 Expected: TypeScript exits `0`.
 
-- [ ] **Step 4: Run production build**
+- [x] **Step 4: Run production build**
 
 Run:
 
@@ -304,7 +304,7 @@ pnpm build
 
 Expected: Next.js production build exits `0`.
 
-- [ ] **Step 5: Smoke-test local render**
+- [x] **Step 5: Smoke-test local render**
 
 Run:
 
@@ -316,7 +316,7 @@ Open `http://localhost:3000`.
 
 Expected: the page renders the placeholder heading `온설 보일러플레이트`.
 
-- [ ] **Step 6: Stop the dev server**
+- [x] **Step 6: Stop the dev server**
 
 Stop the running dev server with `Ctrl-C`.
 
@@ -334,7 +334,7 @@ Expected: no needed dev server process remains running.
 - Consumes: verified boilerplate baseline from Task 3.
 - Produces: one commit ready to push and open as a PR to `v1`.
 
-- [ ] **Step 1: Update README local commands**
+- [x] **Step 1: Update README local commands**
 
 Modify `README.md` to include:
 
@@ -358,7 +358,7 @@ pnpm build
 
 Expected: README shows how to run and verify the boilerplate.
 
-- [ ] **Step 2: Review final diff**
+- [x] **Step 2: Review final diff**
 
 Run:
 
@@ -369,7 +369,7 @@ git status --short
 
 Expected: only boilerplate, lockfile, config, app placeholder, and README changes are present.
 
-- [ ] **Step 3: Commit the boilerplate**
+- [x] **Step 3: Commit the boilerplate**
 
 Run:
 
@@ -380,7 +380,7 @@ git commit -m "chore: scaffold next app boilerplate"
 
 Expected: one commit is created on `codex/onseol-next-boilerplate`.
 
-- [ ] **Step 4: Push the branch**
+- [x] **Step 4: Push the branch**
 
 Run:
 
@@ -390,7 +390,7 @@ git push -u origin HEAD
 
 Expected: remote branch is created.
 
-- [ ] **Step 5: Open the PR**
+- [x] **Step 5: Open the PR**
 
 Create a temporary PR body file:
 

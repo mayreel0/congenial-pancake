@@ -1,6 +1,6 @@
 # Onseol Today Redesign Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Replace the current all-in-one `/today` prototype screen with a focused first-entry experience: basic prompt, rotating Onseol line, composer, and visible submit lifecycle.
 
@@ -69,7 +69,7 @@ Do not modify `app/today/page.tsx` unless the component export name changes. Pre
   - Sort order: newest first by `createdAt`
   - Filters: `hidden === false`, `authorId !== state.viewer.id`
 
-- [ ] **Step 1: Add failing tests for non-viewer recent requests**
+- [x] **Step 1: Add failing tests for non-viewer recent requests**
 
 Update the existing `./model` import in `app/today/prototype/model.test.ts` so it includes the new helpers, then add these tests:
 
@@ -189,13 +189,13 @@ describe("getRecentNonViewerRequests", () => {
 });
 ```
 
-- [ ] **Step 2: Run tests and verify RED**
+- [x] **Step 2: Run tests and verify RED**
 
 Run: `pnpm test app/today/prototype/model.test.ts`
 
 Expected: FAIL because `getRecentNonViewerRequests` and `getTodayEntryMessages` are not exported.
 
-- [ ] **Step 3: Implement the helper**
+- [x] **Step 3: Implement the helper**
 
 Add to `app/today/prototype/model.ts`:
 
@@ -223,13 +223,13 @@ export function getTodayEntryMessages(
 }
 ```
 
-- [ ] **Step 4: Run tests and verify GREEN**
+- [x] **Step 4: Run tests and verify GREEN**
 
 Run: `pnpm test app/today/prototype/model.test.ts`
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/today/prototype/model.ts app/today/prototype/model.test.ts
@@ -254,7 +254,7 @@ git commit -m "test: cover today recent request selection"
   - `requestSubmitStatus` returns to `idle` when the user edits the draft after success.
   - Pending duration constant: `REQUEST_SUBMIT_PENDING_MS = 450`
 
-- [ ] **Step 1: Add failing lifecycle tests**
+- [x] **Step 1: Add failing lifecycle tests**
 
 Create `app/today/prototype/useOnseolPrototype.test.tsx`:
 
@@ -335,13 +335,13 @@ describe("useOnseolPrototype request submission", () => {
 });
 ```
 
-- [ ] **Step 2: Run tests and verify RED**
+- [x] **Step 2: Run tests and verify RED**
 
 Run: `pnpm test app/today/prototype/useOnseolPrototype.test.tsx`
 
 Expected: FAIL because `requestSubmitStatus` does not exist and `submitRequest` is synchronous.
 
-- [ ] **Step 3: Implement lifecycle state**
+- [x] **Step 3: Implement lifecycle state** — 이후 `/read`, `/answer` 연동 과정에서 `useOnseolPrototype.ts` 자체가 사라지고, 이 lifecycle은 실제 API를 호출하는 `useTodayComposer.ts`(`requestSubmitStatus`, `submitRequest`)로 이관됨. 동작은 존재하지만 원래 계획한 파일에는 없음.
 
 In `app/today/prototype/useOnseolPrototype.ts`:
 
@@ -413,7 +413,7 @@ async function submitRequest(): Promise<void> {
 
 Return `requestSubmitStatus`.
 
-- [ ] **Step 4: Run hook tests and fix async edge cases**
+- [x] **Step 4: Run hook tests and fix async edge cases**
 
 Run: `pnpm test app/today/prototype/useOnseolPrototype.test.tsx`
 
@@ -427,13 +427,13 @@ const requestSubmittingRef = useRef(false);
 
 Set `requestSubmittingRef.current = true` before the delay and `false` after success.
 
-- [ ] **Step 5: Run all tests**
+- [x] **Step 5: Run all tests**
 
 Run: `pnpm test`
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add app/today/prototype/useOnseolPrototype.ts app/today/prototype/useOnseolPrototype.test.tsx
@@ -462,7 +462,7 @@ git commit -m "test: cover today submit lifecycle"
   - Success message: `남겨졌어요`
   - Disabled submit when empty or pending
 
-- [ ] **Step 1: Replace composer tests with compact behavior tests**
+- [x] **Step 1: Replace composer tests with compact behavior tests**
 
 Update `app/today/components/RequestComposer.test.tsx`:
 
@@ -530,13 +530,13 @@ describe("RequestComposer", () => {
 });
 ```
 
-- [ ] **Step 2: Run tests and verify RED**
+- [x] **Step 2: Run tests and verify RED**
 
 Run: `pnpm test app/today/components/RequestComposer.test.tsx`
 
 Expected: FAIL because `status` prop and `보내기` copy do not exist.
 
-- [ ] **Step 3: Implement compact composer**
+- [x] **Step 3: Implement compact composer** — 현재 구현은 성공 시 컴포저 내부에 `남겨졌어요` 문구를 넣지 않음. 대신 `TodayPrototype.tsx`가 하단 토스트로 `온설을 남겼어요`(성공)/에러 메시지를 보여주는 방식으로 바뀜.
 
 Update `RequestComposerProps`:
 
@@ -594,13 +594,13 @@ return (
 
 Use CSS `max-h-32` to cap at about 3-4 lines. Do not add an image button.
 
-- [ ] **Step 4: Run composer tests**
+- [x] **Step 4: Run composer tests**
 
 Run: `pnpm test app/today/components/RequestComposer.test.tsx`
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/today/components/RequestComposer.tsx app/today/components/RequestComposer.test.tsx
@@ -627,7 +627,7 @@ git commit -m "test: cover compact today composer"
   - Uses soft vertical wipe CSS classes for default motion.
   - Uses CSS media query `@media (prefers-reduced-motion: reduce)` to suppress wipe.
 
-- [ ] **Step 1: Add failing rotation tests**
+- [x] **Step 1: Add failing rotation tests**
 
 Create `app/today/components/RotatingOnseolLine.test.tsx`:
 
@@ -690,13 +690,13 @@ describe("RotatingOnseolLine", () => {
 });
 ```
 
-- [ ] **Step 2: Run tests and verify RED**
+- [x] **Step 2: Run tests and verify RED**
 
 Run: `pnpm test app/today/components/RotatingOnseolLine.test.tsx`
 
 Expected: FAIL because `RotatingOnseolLine` does not exist.
 
-- [ ] **Step 3: Implement component**
+- [x] **Step 3: Implement component**
 
 Create `app/today/components/RotatingOnseolLine.tsx`:
 
@@ -775,13 +775,13 @@ Add CSS to `app/globals.css`:
 }
 ```
 
-- [ ] **Step 4: Run rotation tests**
+- [x] **Step 4: Run rotation tests**
 
 Run: `pnpm test app/today/components/RotatingOnseolLine.test.tsx`
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/today/components/RotatingOnseolLine.tsx app/today/components/RotatingOnseolLine.test.tsx app/globals.css
@@ -810,7 +810,7 @@ git commit -m "test: cover rotating onseol line"
   - Does not render current dashboard section headings: `답변을 기다리는 말`, `선택한 요청`, `최근 온설`, `내 활동`.
   - Shows activity sentence using local state counts.
 
-- [ ] **Step 1: Add failing screen tests**
+- [x] **Step 1: Add failing screen tests**
 
 Create `app/today/TodayPrototype.test.tsx`:
 
@@ -838,13 +838,13 @@ describe("TodayPrototype", () => {
 });
 ```
 
-- [ ] **Step 2: Run screen tests and verify RED**
+- [x] **Step 2: Run screen tests and verify RED**
 
 Run: `pnpm test app/today/TodayPrototype.test.tsx`
 
 Expected: FAIL because old dashboard sections still render and heading may not match.
 
-- [ ] **Step 3: Expose rotating message data from the hook**
+- [x] **Step 3: Expose rotating message data from the hook**
 
 In `app/today/prototype/useOnseolPrototype.ts`, import `getTodayEntryMessages` and add fallback copy near the top of the file:
 
@@ -874,7 +874,7 @@ const todayEntryMessages = getTodayEntryMessages(
 
 Return `todayEntryMessages`.
 
-- [ ] **Step 4: Assemble focused `/today` screen**
+- [x] **Step 4: Assemble focused `/today` screen**
 
 Replace `TodayPrototype` render with a focused layout:
 
@@ -925,7 +925,7 @@ export function TodayPrototype() {
 
 Keep wording if exact copy changes are needed for layout. Do not add answer helper link. Do not add image button.
 
-- [ ] **Step 5: Add implementation work log**
+- [x] **Step 5: Add implementation work log**
 
 Create `docs/work-logs/2026-08-17-today-redesign-implementation.md`:
 
@@ -951,13 +951,13 @@ Create `docs/work-logs/2026-08-17-today-redesign-implementation.md`:
 - `pnpm build`
 ```
 
-- [ ] **Step 6: Run focused screen tests**
+- [x] **Step 6: Run focused screen tests**
 
 Run: `pnpm test app/today/TodayPrototype.test.tsx`
 
 Expected: PASS.
 
-- [ ] **Step 7: Run full verification**
+- [x] **Step 7: Run full verification**
 
 Run:
 
@@ -975,7 +975,7 @@ Expected:
 - `pnpm typecheck`: no TypeScript errors.
 - `pnpm build`: build succeeds. If it fails only on Google Fonts network access, rerun with network allowed and record that detail in the PR.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add app/today/TodayPrototype.tsx app/today/TodayPrototype.test.tsx app/today/prototype/useOnseolPrototype.ts docs/work-logs/2026-08-17-today-redesign-implementation.md
@@ -986,17 +986,17 @@ git commit -m "feat: redesign today entry screen"
 
 ## Final PR Checklist
 
-- [ ] `/today` no longer shows the old all-in-one dashboard sections.
-- [ ] `/today` first viewport stays focused on basic prompt, rotating Onseol, composer, status, and small activity sentence.
-- [ ] Rotating Onseol uses non-viewer recent cached requests before fallback samples.
-- [ ] Viewer-authored submitted request does not appear immediately in rotating Onseol.
-- [ ] Submit pending state disables duplicate submit.
-- [ ] Submit success shows `남겨졌어요`, clears input, and does not navigate.
-- [ ] Composer uses textarea and stays visually compact.
-- [ ] No `누군가에게 답하기` helper link is added near composer.
-- [ ] No image upload button is shown.
-- [ ] Soft vertical wipe has reduced-motion fallback.
-- [ ] Work log records decisions and verification.
+- [x] `/today` no longer shows the old all-in-one dashboard sections.
+- [x] `/today` first viewport stays focused on basic prompt, rotating Onseol, composer, status, and small activity sentence.
+- [x] Rotating Onseol uses non-viewer recent cached requests before fallback samples.
+- [x] Viewer-authored submitted request does not appear immediately in rotating Onseol.
+- [x] Submit pending state disables duplicate submit.
+- [x] Submit success shows `남겨졌어요`, clears input, and does not navigate. — 실제로는 하단 토스트 `온설을 남겼어요`로 문구가 바뀜(의도는 동일). input은 비워짐, `/today`에 머무름.
+- [x] Composer uses textarea and stays visually compact.
+- [x] No `누군가에게 답하기` helper link is added near composer.
+- [x] No image upload button is shown.
+- [x] Soft vertical wipe has reduced-motion fallback.
+- [x] Work log records decisions and verification.
 
 ## Verification Commands
 

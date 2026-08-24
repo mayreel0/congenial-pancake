@@ -1,6 +1,6 @@
 # Onseol Answer Session Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Replace the `/answer` placeholder with a chat-room style answer session: a scrollable request/reply log, a bottom-fixed composer, skip/hold/report actions on the live request, and a hold panel for parking requests to answer later.
 
@@ -65,7 +65,7 @@
 **Interfaces:**
 - Produces: `PrototypeState.skippedRequestIds: string[]`, `PrototypeState.heldRequestIds: string[]`.
 
-- [ ] **Step 1: Add the new fields to `PrototypeState`**
+- [x] **Step 1: Add the new fields to `PrototypeState`**
 
 In `app/today/prototype/types.ts`, add to `PrototypeState`:
 
@@ -82,7 +82,7 @@ export type PrototypeState = {
 };
 ```
 
-- [ ] **Step 2: Add storage keys**
+- [x] **Step 2: Add storage keys**
 
 In `app/today/prototype/storage-keys.ts`:
 
@@ -99,7 +99,7 @@ export const PROTOTYPE_STORAGE_KEYS = {
 } as const;
 ```
 
-- [ ] **Step 3: Read/write the new fields**
+- [x] **Step 3: Read/write the new fields**
 
 In `app/today/prototype/storage.ts`, update `readPrototypeState` to read the two new keys with `[]` fallback, and `writePrototypeState` to persist them:
 
@@ -155,7 +155,7 @@ export function writePrototypeState(state: PrototypeState): void {
 
 This keeps existing localStorage data from before this change readable (missing keys just fall back to `[]`).
 
-- [ ] **Step 4: Initialize the fields in seed data**
+- [x] **Step 4: Initialize the fields in seed data**
 
 In `app/today/prototype/seed-data.ts`, add to the returned object:
 
@@ -172,17 +172,17 @@ return {
 };
 ```
 
-- [ ] **Step 5: Fix existing fixtures**
+- [x] **Step 5: Fix existing fixtures**
 
 `app/today/prototype/model.test.ts` builds `PrototypeState` object literals by hand. Add `skippedRequestIds: []` and `heldRequestIds: []` to every fixture in that file so it still type-checks.
 
-- [ ] **Step 6: Run typecheck**
+- [x] **Step 6: Run typecheck**
 
 Run: `pnpm typecheck`
 
 Expected: PASS (no other file constructs a full `PrototypeState` literal besides `model.test.ts` and `seed-data.ts`).
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add app/today/prototype/types.ts app/today/prototype/storage-keys.ts app/today/prototype/storage.ts app/today/prototype/seed-data.ts app/today/prototype/model.test.ts
@@ -200,7 +200,7 @@ git commit -m "feat: add skip and hold state to the onseol prototype store"
 **Interfaces:**
 - Produces: `getAnswerQueue(state, now)`, `getHeldRequests(state)`, `getMyAnswerLog(state)`.
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Add to `app/today/prototype/model.test.ts`:
 
@@ -398,13 +398,13 @@ describe("getMyAnswerLog", () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify RED**
+- [x] **Step 2: Run tests to verify RED**
 
 Run: `pnpm test app/today/prototype/model.test.ts`
 
 Expected: FAIL because `getAnswerQueue`, `getHeldRequests`, `getMyAnswerLog` do not exist.
 
-- [ ] **Step 3: Implement the selectors**
+- [x] **Step 3: Implement the selectors**
 
 Add to `app/today/prototype/model.ts`:
 
@@ -448,13 +448,13 @@ export function getMyAnswerLog(
 }
 ```
 
-- [ ] **Step 4: Run tests to verify GREEN**
+- [x] **Step 4: Run tests to verify GREEN**
 
 Run: `pnpm test app/today/prototype/model.test.ts`
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/today/prototype/model.ts app/today/prototype/model.test.ts
@@ -473,7 +473,7 @@ git commit -m "feat: add answer queue, hold list, and answer log selectors"
 - Produces: `skipRequest(requestId)`, `holdRequest(requestId)`, `openHeldRequest(requestId)`, `closeHeldRequest()`, `answerQueue`, `heldRequests`, `answerLog`, `currentAnswerTarget`, `isAnsweringHeldRequest`.
 - Consumes: `getAnswerQueue`, `getHeldRequests`, `getMyAnswerLog` from `./model`.
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Add to `app/today/prototype/useOnseolPrototype.test.tsx` a second harness and describe block:
 
@@ -567,13 +567,13 @@ describe("useOnseolPrototype answer session", () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify RED**
+- [x] **Step 2: Run tests to verify RED**
 
 Run: `pnpm test app/today/prototype/useOnseolPrototype.test.tsx`
 
 Expected: FAIL because the new hook fields/actions do not exist.
 
-- [ ] **Step 3: Implement the hook additions**
+- [x] **Step 3: Implement the hook additions**
 
 In `app/today/prototype/useOnseolPrototype.ts`:
 
@@ -741,19 +741,19 @@ return {
 };
 ```
 
-- [ ] **Step 4: Run tests to verify GREEN**
+- [x] **Step 4: Run tests to verify GREEN**
 
 Run: `pnpm test app/today/prototype/useOnseolPrototype.test.tsx`
 
 Expected: PASS.
 
-- [ ] **Step 5: Run today regression tests**
+- [x] **Step 5: Run today regression tests**
 
 Run: `pnpm test app/today`
 
 Expected: PASS — `/today` behavior is unaffected since it never reads the new fields.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add app/today/prototype/useOnseolPrototype.ts app/today/prototype/useOnseolPrototype.test.tsx
@@ -778,7 +778,7 @@ git commit -m "feat: add skip, hold, and answer target actions to the prototype 
 - Produces: `formatTimestamp(iso)`, `buildAnonymousLabels(requests)`, and the presentational components below.
 - Consumes: `OnseolRequest`, `OnseolReply` from `../../today/prototype/types`; `truncatePreview` from `../../today/prototype/model`; `ReportButton` from `../../today/components/ReportButton`.
 
-- [ ] **Step 1: Timestamp and label helpers**
+- [x] **Step 1: Timestamp and label helpers** — 이후 리팩터링으로 `formatTimestamp`는 `app/lib/format.ts`(공용)로, `buildAnonymousLabels`는 `app/answer/prototype/labels.ts`가 아니라 `app/answer/labels.ts`로 이동함. `app/answer/prototype/` 폴더 자체는 더 이상 없음.
 
 Create `app/answer/prototype/format.ts`:
 
@@ -816,7 +816,7 @@ export function buildAnonymousLabels(
 }
 ```
 
-- [ ] **Step 2: Request and reply bubbles**
+- [x] **Step 2: Request and reply bubbles**
 
 Create `app/answer/components/RequestBubble.tsx`:
 
@@ -893,7 +893,7 @@ export function ReplyBubble({ reply }: ReplyBubbleProps) {
 }
 ```
 
-- [ ] **Step 3: Log, composer, hold panel, report dialog**
+- [x] **Step 3: Log, composer, hold panel, report dialog**
 
 Create `app/answer/components/AnswerLog.tsx`:
 
@@ -1080,7 +1080,7 @@ export function HoldPanel({
 }
 ```
 
-Create `app/answer/components/ReportConfirmDialog.tsx`:
+Create `app/answer/components/ReportConfirmDialog.tsx`: — 이후 `app/components/shared/ActionConfirmDialog.tsx`로 일반화되어 report뿐 아니라 skip/hold 확인에도 재사용됨(스킵/보류도 확인 다이얼로그를 거치도록 동작이 바뀜 — 원래 계획엔 없던 확장). `ReportConfirmDialog.tsx` 파일 자체는 더 이상 없음.
 
 ```tsx
 type ReportConfirmDialogProps = {
@@ -1128,13 +1128,13 @@ export function ReportConfirmDialog({
 }
 ```
 
-- [ ] **Step 4: Typecheck**
+- [x] **Step 4: Typecheck**
 
 Run: `pnpm typecheck`
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/answer/prototype/format.ts app/answer/prototype/labels.ts app/answer/components/RequestBubble.tsx app/answer/components/ReplyBubble.tsx app/answer/components/AnswerLog.tsx app/answer/components/AnswerComposer.tsx app/answer/components/HoldPanel.tsx app/answer/components/ReportConfirmDialog.tsx
@@ -1154,7 +1154,7 @@ git commit -m "feat: add answer session presentational components"
 - Consumes: `useOnseolPrototype` and every component/helper from Tasks 3–4.
 - Produces: the real `/answer` screen.
 
-- [ ] **Step 1: Write failing integration tests**
+- [x] **Step 1: Write failing integration tests**
 
 Create `app/answer/AnswerSession.test.tsx`:
 
@@ -1290,13 +1290,13 @@ describe("AnswerSession", () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify RED**
+- [x] **Step 2: Run tests to verify RED**
 
 Run: `pnpm test app/answer/AnswerSession.test.tsx`
 
 Expected: FAIL because `AnswerSession` does not exist.
 
-- [ ] **Step 3: Implement `AnswerSession`**
+- [x] **Step 3: Implement `AnswerSession`** — 이후 백엔드 연동(PR #67 answer-interactions) 과정에서 localStorage 기반 `useOnseolPrototype` 대신 실제 API를 호출하는 `useAnswerQueue.ts`로 완전히 교체됨. 기능(스킵/보류/신고/답변 큐)은 실제 서버 데이터로 동작하며 살아있음.
 
 Create `app/answer/AnswerSession.tsx`:
 
@@ -1386,7 +1386,7 @@ export function AnswerSession() {
 }
 ```
 
-- [ ] **Step 4: Wire the route**
+- [x] **Step 4: Wire the route**
 
 Modify `app/answer/page.tsx`:
 
@@ -1400,13 +1400,13 @@ export default function AnswerPage() {
 
 Delete the old placeholder markup entirely — `AnswerSession` already renders `ServiceNav`.
 
-- [ ] **Step 5: Run tests to verify GREEN**
+- [x] **Step 5: Run tests to verify GREEN**
 
 Run: `pnpm test app/answer`
 
 Expected: PASS.
 
-- [ ] **Step 6: Full verification**
+- [x] **Step 6: Full verification**
 
 Run:
 
@@ -1419,7 +1419,7 @@ pnpm build
 
 Expected: all commands pass.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add app/answer/AnswerSession.tsx app/answer/AnswerSession.test.tsx app/answer/page.tsx
@@ -1433,18 +1433,18 @@ git commit -m "feat: implement the answer session screen"
 **Files:**
 - Modify: a new or existing file under `docs/work-logs/` for 2026-08-19.
 
-- [ ] **Step 1: Record verification**
+- [x] **Step 1: Record verification**
 
 Create `docs/work-logs/2026-08-19-answer-session-implementation.md` with what changed, verification commands run, and known follow-ups pulled from the spec's "후속 결정 필요" list that were intentionally not built here (report confirmation copy iteration, `/me` surfacing of skip/hold state, guest hold access once real auth exists).
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add docs/work-logs/2026-08-19-answer-session-implementation.md
 git commit -m "docs: record answer session implementation notes"
 ```
 
-- [ ] **Step 3: Open PR**
+- [x] **Step 3: Open PR**
 
 Use the project PR workflow, base branch `v1`. PR body must mention:
 
