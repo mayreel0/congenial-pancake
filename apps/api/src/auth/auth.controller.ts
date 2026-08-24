@@ -12,6 +12,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import type { Env } from '../config/env.schema';
 import { OAuthExchangeFailedException } from '../common/exceptions/app.exception';
@@ -43,6 +44,10 @@ export class AuthController {
     private readonly config: ConfigService<Env, true>,
   ) {}
 
+  // Tighter than the app-wide default — signup/login are the classic
+  // brute-force/spam targets, so this budget is IP-per-route, not shared
+  // with the rest of the app's 100/60s.
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
   @Post('signup')
   @HttpCode(HttpStatus.CREATED)
   async signup(
@@ -58,6 +63,7 @@ export class AuthController {
     return toUserResponseDto(user);
   }
 
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(
