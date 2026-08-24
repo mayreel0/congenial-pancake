@@ -9,8 +9,9 @@ import {
   inArray,
   isNull,
   lt,
-  not,
+  ne,
   notInArray,
+  or,
 } from 'drizzle-orm';
 import { DRIZZLE } from '../database/database.constants';
 import type { Database } from '../database/database.types';
@@ -151,9 +152,14 @@ export class RequestsRepository {
     viewer: ViewerIdentity,
   ): Promise<RequestWithReplyCount | undefined> {
     const excludedRequestIds = await this.findExcludedRequestIds(viewer);
-    const selfAuthoredCondition = viewer.authorId
-      ? eq(requests.authorId, viewer.authorId)
-      : eq(requests.guestId, viewer.guestId!);
+    // NULL-safe "not self-authored": a member's requests have guestId NULL
+    // and a guest's requests have authorId NULL, and SQL's `NOT (col = x)`
+    // evaluates to NULL (excluded) rather than true for a NULL column — so
+    // the naive `not(eq(...))` form was silently hiding every request
+    // authored by the other identity type, not just the viewer's own.
+    const notSelfAuthoredCondition = viewer.authorId
+      ? or(isNull(requests.authorId), ne(requests.authorId, viewer.authorId))
+      : or(isNull(requests.guestId), ne(requests.guestId, viewer.guestId!));
     const freshnessCutoff = new Date(
       Date.now() - QUEUE_FRESHNESS_HOURS * 60 * 60 * 1000,
     );
@@ -162,7 +168,7 @@ export class RequestsRepository {
       eq(requests.hidden, false),
       isNull(requests.deletedAt),
       gt(requests.createdAt, freshnessCutoff),
-      not(selfAuthoredCondition),
+      notSelfAuthoredCondition,
       excludedRequestIds.length > 0
         ? notInArray(requests.id, excludedRequestIds)
         : undefined,
