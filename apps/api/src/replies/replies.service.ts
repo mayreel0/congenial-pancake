@@ -13,7 +13,9 @@ import {
   type ReplyWithRequest,
 } from './replies.repository';
 
-const GUEST_REPLY_LIMIT_PER_REQUEST = 5;
+// See docs/decisions/2026-08-21-onseol-anonymous-posting-decisions.md — a
+// global budget per guestId across every request, not per-request.
+const GUEST_REPLY_LIMIT = 5;
 
 @Injectable()
 export class RepliesService {
@@ -54,11 +56,8 @@ export class RepliesService {
       return reply;
     }
 
-    const guestReplyCount = await this.repliesRepository.countByRequestAndGuest(
-      requestId,
-      guestId,
-    );
-    if (guestReplyCount >= GUEST_REPLY_LIMIT_PER_REQUEST) {
+    const guestReplyCount = await this.repliesRepository.countByGuest(guestId);
+    if (guestReplyCount >= GUEST_REPLY_LIMIT) {
       throw new ReplyGuestLimitExceededException();
     }
 

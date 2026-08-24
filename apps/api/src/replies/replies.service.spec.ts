@@ -48,7 +48,7 @@ describe('RepliesService', () => {
       findVisibleById: jest.fn(),
       findVisibleByRequestId: jest.fn(),
       findByRequestAndAuthor: jest.fn(),
-      countByRequestAndGuest: jest.fn(),
+      countByGuest: jest.fn(),
       setHidden: jest.fn(),
       findMine: jest.fn(),
     } as unknown as jest.Mocked<RepliesRepository>;
@@ -121,9 +121,9 @@ describe('RepliesService', () => {
       );
     });
 
-    it('throws when the guest already replied 5 times to this request', async () => {
+    it('throws when the guest already replied 5 times total, across any requests', async () => {
       requestsService.findVisibleById.mockResolvedValue(makeRequest());
-      repliesRepository.countByRequestAndGuest.mockResolvedValue(5);
+      repliesRepository.countByGuest.mockResolvedValue(5);
 
       await expect(
         repliesService.create(
@@ -137,7 +137,7 @@ describe('RepliesService', () => {
 
     it('creates a reply for a guest under the limit', async () => {
       requestsService.findVisibleById.mockResolvedValue(makeRequest());
-      repliesRepository.countByRequestAndGuest.mockResolvedValue(4);
+      repliesRepository.countByGuest.mockResolvedValue(4);
       const created = makeReply({ guestId: 'guest-1' });
       repliesRepository.create.mockResolvedValue(created);
 
