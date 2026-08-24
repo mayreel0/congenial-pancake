@@ -76,7 +76,7 @@ export class ReplyGuestLimitExceededException extends AppException {
   constructor() {
     super(
       'REPLY_GUEST_LIMIT_EXCEEDED',
-      'Guests may only reply 5 times to the same request. Log in to reply more.',
+      'Guests may only reply 5 times in total. Log in to reply more.',
       HttpStatus.CONFLICT,
     );
   }

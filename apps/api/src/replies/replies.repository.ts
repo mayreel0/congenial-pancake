@@ -58,16 +58,14 @@ export class RepliesRepository {
     });
   }
 
-  async countByRequestAndGuest(
-    requestId: string,
-    guestId: string,
-  ): Promise<number> {
+  // Counted across all requests, not just one — the guest reply cap is a
+  // global-per-guestId budget (mirrors the guest request cap being global,
+  // not per-anything), not a per-request allowance.
+  async countByGuest(guestId: string): Promise<number> {
     const [row] = await this.db
       .select({ value: count() })
       .from(replies)
-      .where(
-        and(eq(replies.requestId, requestId), eq(replies.guestId, guestId)),
-      );
+      .where(eq(replies.guestId, guestId));
     return row?.value ?? 0;
   }
 
