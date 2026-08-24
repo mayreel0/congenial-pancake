@@ -1,6 +1,6 @@
 # Onseol Navigation Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Add the first navigation layer that separates landing entry from service navigation and prepares `/answer`, `/read`, `/me`, and login entry routes.
 
@@ -62,7 +62,7 @@
   - `serviceNavItems: Array<{ label: string; href: string }>`
   - `landingEntryLinks: { start: string; login: string }`
 
-- [ ] **Step 1: Add route constants**
+- [x] **Step 1: Add route constants**
 
 Create `app/components/navigation/routes.ts`:
 
@@ -80,7 +80,7 @@ export const landingEntryLinks = {
 } as const;
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add app/components/navigation/routes.ts
@@ -100,7 +100,7 @@ git commit -m "feat: add navigation route constants"
 - Consumes: `landingEntryLinks` from `routes.ts`
 - Produces: Landing header with brand, login link, and web-start CTA.
 
-- [ ] **Step 1: Write failing landing tests**
+- [x] **Step 1: Write failing landing tests**
 
 Create `app/components/landing/LandingPage.test.tsx`:
 
@@ -141,13 +141,13 @@ describe("LandingPage", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify RED**
+- [x] **Step 2: Run test to verify RED**
 
 Run: `pnpm test app/components/landing/LandingPage.test.tsx`
 
 Expected: FAIL because `banner` and `/login` landing header do not exist.
 
-- [ ] **Step 3: Implement landing header**
+- [x] **Step 3: Implement landing header**
 
 Create `app/components/navigation/LandingHeader.tsx`:
 
@@ -185,13 +185,13 @@ export function LandingHeader() {
 
 Modify `app/components/landing/LandingPage.tsx` to render `<LandingHeader />` before the existing content.
 
-- [ ] **Step 4: Run landing tests**
+- [x] **Step 4: Run landing tests**
 
 Run: `pnpm test app/components/landing/LandingPage.test.tsx`
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/components/navigation/LandingHeader.tsx app/components/navigation/routes.ts app/components/landing/LandingPage.tsx app/components/landing/LandingPage.test.tsx
@@ -211,7 +211,7 @@ git commit -m "feat: add landing entry header"
 - Produces:
   - `ServiceNav({ activePath }: { activePath: string })`
 
-- [ ] **Step 1: Write failing service nav tests**
+- [x] **Step 1: Write failing service nav tests**
 
 Create `app/components/navigation/ServiceNav.test.tsx`:
 
@@ -276,13 +276,13 @@ describe("ServiceNav", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify RED**
+- [x] **Step 2: Run test to verify RED**
 
 Run: `pnpm test app/components/navigation/ServiceNav.test.tsx`
 
 Expected: FAIL because `ServiceNav` does not exist.
 
-- [ ] **Step 3: Implement service navigation**
+- [x] **Step 3: Implement service navigation**
 
 Create `app/components/navigation/ServiceNav.tsx`:
 
@@ -388,13 +388,13 @@ export function ServiceNav({ activePath }: ServiceNavProps) {
 }
 ```
 
-- [ ] **Step 4: Run service nav tests**
+- [x] **Step 4: Run service nav tests**
 
 Run: `pnpm test app/components/navigation/ServiceNav.test.tsx`
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/components/navigation/ServiceNav.tsx app/components/navigation/ServiceNav.test.tsx
@@ -417,7 +417,7 @@ git commit -m "feat: add service navigation"
 - Consumes: `ServiceNav({ activePath })`
 - Produces: service routes with navigation and focused placeholder content.
 
-- [ ] **Step 1: Update `/today` test for service nav**
+- [x] **Step 1: Update `/today` test for service nav**
 
 Add to `app/today/TodayPrototype.test.tsx`:
 
@@ -440,13 +440,13 @@ it("renders service navigation on today", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify RED**
+- [x] **Step 2: Run test to verify RED**
 
 Run: `pnpm test app/today/TodayPrototype.test.tsx`
 
 Expected: FAIL because `/today` does not render `ServiceNav`.
 
-- [ ] **Step 3: Wrap `/today` with `ServiceNav`**
+- [x] **Step 3: Wrap `/today` with `ServiceNav`**
 
 Modify `app/today/TodayPrototype.tsx` to import `ServiceNav` and render:
 
@@ -464,7 +464,7 @@ return (
 
 Keep the existing entry layout, toast, composer, and activity sentence behavior.
 
-- [ ] **Step 4: Add placeholder routes**
+- [x] **Step 4: Add placeholder routes**
 
 Create `app/answer/page.tsx`:
 
@@ -507,7 +507,7 @@ Create equivalent placeholder pages:
   - body `로그인 방식은 인증 스펙에서 확정합니다.`
   - link back to `/today` with label `비회원으로 계속하기`
 
-- [ ] **Step 5: Run targeted tests**
+- [x] **Step 5: Run targeted tests**
 
 Run:
 
@@ -517,7 +517,7 @@ pnpm test app/today/TodayPrototype.test.tsx app/components/navigation/ServiceNav
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add app/today/TodayPrototype.tsx app/today/TodayPrototype.test.tsx app/answer/page.tsx app/read/page.tsx app/me/page.tsx app/login/page.tsx
@@ -535,7 +535,7 @@ git commit -m "feat: wire service navigation routes"
 - Consumes: implemented navigation behavior.
 - Produces: verification record for PR and future wiki promotion.
 
-- [ ] **Step 1: Run full verification**
+- [x] **Step 1: Run full verification**
 
 Run:
 
@@ -548,7 +548,7 @@ pnpm build
 
 Expected: all commands pass.
 
-- [ ] **Step 2: Record verification**
+- [x] **Step 2: Record verification**
 
 Append a short note to the relevant work log:
 
@@ -561,14 +561,14 @@ Append a short note to the relevant work log:
 - 실제 인증, 내 기록 데이터, 읽기/답하기 본문 구현은 후속 PR로 남긴다.
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add docs/work-logs/2026-08-17-today-redesign-implementation.md
 git commit -m "docs: record navigation implementation notes"
 ```
 
-- [ ] **Step 4: Open PR**
+- [x] **Step 4: Open PR**
 
 Use the project PR workflow. PR body must mention:
 

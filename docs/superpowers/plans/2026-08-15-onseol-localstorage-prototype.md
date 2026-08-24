@@ -1,6 +1,6 @@
 # Onseol LocalStorage Prototype Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Build a `/today` localStorage prototype where a user can write a short comfort request, reply to other requests, see reply-light requests first, report/hide items, and review their own activity.
 
@@ -73,7 +73,7 @@
   - `PROTOTYPE_STORAGE_KEYS`
   - `createInitialPrototypeState(now: Date): PrototypeState`
 
-- [ ] **Step 1: Create `types.ts`**
+- [x] **Step 1: Create `types.ts`**
 
 ```ts
 export type OnseolRequest = {
@@ -112,7 +112,7 @@ export type PrototypeState = {
 };
 ```
 
-- [ ] **Step 2: Create `storage-keys.ts`**
+- [x] **Step 2: Create `storage-keys.ts`**
 
 ```ts
 export const PROTOTYPE_STORAGE_KEYS = {
@@ -125,7 +125,7 @@ export const PROTOTYPE_STORAGE_KEYS = {
 } as const;
 ```
 
-- [ ] **Step 3: Create `seed-data.ts`**
+- [x] **Step 3: Create `seed-data.ts`**
 
 Use two requests and two replies. Keep copy realistic and brief:
 
@@ -186,7 +186,7 @@ export function createInitialPrototypeState(now: Date): PrototypeState {
 }
 ```
 
-- [ ] **Step 4: Run typecheck**
+- [x] **Step 4: Run typecheck**
 
 Run:
 
@@ -216,7 +216,7 @@ Expected: PASS.
   - `hasViewerReplied(state: PrototypeState, requestId: string): boolean`
   - `truncatePreview(text: string, maxLength: number): string`
 
-- [ ] **Step 1: Create date and visibility helpers**
+- [x] **Step 1: Create date and visibility helpers**
 
 ```ts
 import type { OnseolReply, OnseolRequest, PrototypeState } from "./types";
@@ -244,7 +244,7 @@ export function getVisibleRepliesForRequest(
 }
 ```
 
-- [ ] **Step 2: Add priority sorting**
+- [x] **Step 2: Add priority sorting**
 
 ```ts
 export function getPriorityRequests(
@@ -267,7 +267,7 @@ export function getPriorityRequests(
 }
 ```
 
-- [ ] **Step 3: Add derived lists**
+- [x] **Step 3: Add derived lists**
 
 ```ts
 export function getRecentExchanges(
@@ -296,7 +296,7 @@ export function getMyReplies(state: PrototypeState): OnseolReply[] {
 }
 ```
 
-- [ ] **Step 4: Add reply guard and preview helper**
+- [x] **Step 4: Add reply guard and preview helper**
 
 ```ts
 export function hasViewerReplied(
@@ -317,7 +317,7 @@ export function truncatePreview(text: string, maxLength: number): string {
 }
 ```
 
-- [ ] **Step 5: Verify**
+- [x] **Step 5: Verify**
 
 Run:
 
@@ -344,7 +344,7 @@ Expected: PASS.
   - `resetPrototypeState(): PrototypeState`
   - `useOnseolPrototype()` returning state, derived lists, and actions.
 
-- [ ] **Step 1: Create storage helpers**
+- [x] **Step 1: Create storage helpers**
 
 `storage.ts` must never run localStorage access on the server. Use a browser guard:
 
@@ -356,7 +356,7 @@ function canUseStorage(): boolean {
 
 Read each key with JSON parsing fallback. If no stored requests exist, return `createInitialPrototypeState(new Date())`.
 
-- [ ] **Step 2: Add write and reset helpers**
+- [x] **Step 2: Add write and reset helpers**
 
 Write all state parts to their separate localStorage keys:
 
@@ -371,7 +371,7 @@ localStorage.setItem(PROTOTYPE_STORAGE_KEYS.selectedRequestId, JSON.stringify(st
 
 `resetPrototypeState()` must create fresh seed data and write it immediately.
 
-- [ ] **Step 3: Create `useOnseolPrototype.ts`**
+- [x] **Step 3: Create `useOnseolPrototype.ts`** — 나중에 `usePrototypeStorage.ts`(hydration/persist)와 `useTodayComposer.ts`(실제 제출 액션, 이후 실 API로 대체)로 분리됨. `useOnseolPrototype.ts` 파일 자체는 존재하지 않지만 책임은 두 파일로 나뉘어 구현되어 있어 완료 처리함.
 
 Make it a client-only hook:
 
@@ -402,7 +402,7 @@ type UseOnseolPrototypeResult = {
 };
 ```
 
-- [ ] **Step 4: Implement request actions**
+- [x] **Step 4: Implement request actions**
 
 `submitRequest()` must:
 
@@ -415,7 +415,7 @@ type UseOnseolPrototypeResult = {
 - clear `requestDraft`
 - persist state
 
-- [ ] **Step 5: Implement reply actions**
+- [x] **Step 5: Implement reply actions**
 
 `submitReply(requestId)` must:
 
@@ -428,13 +428,13 @@ type UseOnseolPrototypeResult = {
 - clear that request's reply draft
 - persist state
 
-- [ ] **Step 6: Implement reporting actions**
+- [x] **Step 6: Implement reporting actions**
 
 `reportRequest(requestId)` and `reportReply(replyId)` must increment `reportCount` and set `hidden: true`.
 
 If the selected request becomes hidden, select the first visible priority request or `null`.
 
-- [ ] **Step 7: Verify**
+- [x] **Step 7: Verify**
 
 Run:
 
@@ -456,7 +456,7 @@ Expected: PASS.
 - Consumes `OnseolRequest`, `OnseolReply`, and hook actions.
 - Produces reusable component candidates for later Storybook extraction.
 
-- [ ] **Step 1: Create `ReportButton.tsx`**
+- [x] **Step 1: Create `ReportButton.tsx`**
 
 Props:
 
@@ -469,7 +469,7 @@ type ReportButtonProps = {
 
 Render a quiet text button. Visible text should be `신고`.
 
-- [ ] **Step 2: Create `RequestComposer.tsx`**
+- [x] **Step 2: Create `RequestComposer.tsx`**
 
 Props:
 
@@ -488,7 +488,7 @@ Render:
 - helper text: `작성 중인 내용은 이 브라우저에 임시 저장됩니다.`
 - submit button: `남기기`
 
-- [ ] **Step 3: Create `NoteCard.tsx`**
+- [x] **Step 3: Create `NoteCard.tsx`**
 
 Props:
 
@@ -505,7 +505,7 @@ type NoteCardProps = {
 
 Render request body first. Secondary text may include `답장 {replyCount}개` and `내가 남긴 글`.
 
-- [ ] **Step 4: Create `ReplyCard.tsx`**
+- [x] **Step 4: Create `ReplyCard.tsx`**
 
 Props:
 
@@ -519,7 +519,7 @@ type ReplyCardProps = {
 
 Render reply body first. Secondary text may include `내 답장`.
 
-- [ ] **Step 5: Create `ReplyComposer.tsx`**
+- [x] **Step 5: Create `ReplyComposer.tsx`**
 
 Props:
 
@@ -534,7 +534,7 @@ type ReplyComposerProps = {
 
 When disabled, show `이미 이 글에 답장을 남겼습니다.` and disable submit.
 
-- [ ] **Step 6: Create `ActivitySummary.tsx`**
+- [x] **Step 6: Create `ActivitySummary.tsx`**
 
 Props:
 
@@ -550,7 +550,7 @@ Prefer a sentence-style display over three large KPI cards:
 
 `오늘 {requestCount}개의 이야기가 남겨졌고, {replyCount}개의 답장이 도착했습니다. 아직 {waitingCount}개의 글이 답장을 기다립니다.`
 
-- [ ] **Step 7: Create `RecentExchangeList.tsx` and `MyActivityList.tsx`**
+- [x] **Step 7: Create `RecentExchangeList.tsx` and `MyActivityList.tsx`**
 
 Use previews with `truncatePreview(text, 80)`.
 
@@ -559,7 +559,7 @@ Use previews with `truncatePreview(text, 80)`.
 - `내가 남긴 글`
 - `내가 남긴 답장`
 
-- [ ] **Step 8: Verify**
+- [x] **Step 8: Verify**
 
 Run:
 
@@ -582,7 +582,7 @@ Expected: PASS.
 - Consumes all hook and UI components.
 - Produces usable `/today` prototype.
 
-- [ ] **Step 1: Create `page.tsx`**
+- [x] **Step 1: Create `page.tsx`**
 
 ```tsx
 import { TodayPrototype } from "./TodayPrototype";
@@ -592,7 +592,7 @@ export default function TodayPage() {
 }
 ```
 
-- [ ] **Step 2: Create `TodayPrototype.tsx`**
+- [x] **Step 2: Create `TodayPrototype.tsx`**
 
 Make it a client component. Compose in this order:
 
@@ -605,7 +605,7 @@ Make it a client component. Compose in this order:
 7. `MyActivityList`
 8. quiet reset button
 
-- [ ] **Step 3: Apply responsive layout**
+- [x] **Step 3: Apply responsive layout**
 
 Use a single-flow layout for all widths in this PR.
 
@@ -613,7 +613,7 @@ Use max width no larger than `max-w-5xl`, with `px-5`, `py-6` on mobile and slig
 
 Do not add a 2-pane desktop layout in this PR.
 
-- [ ] **Step 4: Handle empty states**
+- [x] **Step 4: Handle empty states**
 
 If no visible requests exist, show:
 
@@ -621,7 +621,7 @@ If no visible requests exist, show:
 
 If selected request is null, do not show reply composer.
 
-- [ ] **Step 5: Verify**
+- [x] **Step 5: Verify**
 
 Run:
 
@@ -644,13 +644,13 @@ Expected: PASS.
 - Consumes `/today` route from Task 5.
 - Produces landing CTA that opens the prototype.
 
-- [ ] **Step 1: Import `Link`**
+- [x] **Step 1: Import `Link`**
 
 ```tsx
 import Link from "next/link";
 ```
 
-- [ ] **Step 2: Replace primary button with link**
+- [x] **Step 2: Replace primary button with link**
 
 Use:
 
@@ -665,7 +665,7 @@ Use:
 
 Keep `앱으로 이용하기 · 준비 중` disabled.
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 Run:
 
@@ -688,7 +688,7 @@ Expected: PASS.
 - Consumes completed app.
 - Produces verification evidence for PR.
 
-- [ ] **Step 1: Start dev server**
+- [x] **Step 1: Start dev server**
 
 Run:
 
@@ -698,13 +698,13 @@ pnpm dev --hostname 127.0.0.1 --port 3000
 
 Expected: server starts.
 
-- [ ] **Step 2: Verify landing link**
+- [x] **Step 2: Verify landing link**
 
 Open `/` and click `웹에서 시작하기`.
 
 Expected: browser navigates to `/today`.
 
-- [ ] **Step 3: Verify request draft persistence**
+- [x] **Step 3: Verify request draft persistence**
 
 1. Type a request.
 2. Reload.
@@ -712,7 +712,7 @@ Expected: browser navigates to `/today`.
 4. Submit.
 5. Confirm request appears and draft clears.
 
-- [ ] **Step 4: Verify reply flow**
+- [x] **Step 4: Verify reply flow**
 
 1. Select a sample request.
 2. Type a reply.
@@ -722,14 +722,14 @@ Expected: browser navigates to `/today`.
 6. Confirm reply appears.
 7. Confirm second reply to same request is disabled.
 
-- [ ] **Step 5: Verify reporting**
+- [x] **Step 5: Verify reporting**
 
 1. Report a request.
 2. Confirm it disappears from priority and recent lists.
 3. Report a reply.
 4. Confirm it disappears from the selected request replies.
 
-- [ ] **Step 6: Verify responsive and theme**
+- [x] **Step 6: Verify responsive and theme**
 
 Check:
 
@@ -740,7 +740,7 @@ Check:
 
 For each, confirm no horizontal scroll, no button text wrap, readable long Korean text, and readable dark mode.
 
-- [ ] **Step 7: Stop dev server**
+- [x] **Step 7: Stop dev server**
 
 Stop with `Ctrl-C`.
 
@@ -757,7 +757,7 @@ Expected: no required dev server remains running.
 - Consumes implementation and verification evidence.
 - Produces wiki-transfer-ready notes.
 
-- [ ] **Step 1: Write Korean work log**
+- [x] **Step 1: Write Korean work log**
 
 Include:
 
@@ -771,7 +771,7 @@ Include:
 - Storybook component candidates found
 - implementation mistakes or lessons
 
-- [ ] **Step 2: Final verification**
+- [x] **Step 2: Final verification**
 
 Run:
 
@@ -783,7 +783,7 @@ pnpm build
 
 Expected: PASS.
 
-- [ ] **Step 3: Review final status**
+- [x] **Step 3: Review final status**
 
 Run:
 
@@ -794,7 +794,7 @@ git diff --stat
 
 Expected: only prototype implementation and work log files changed.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 Use a feature commit:
 
@@ -803,7 +803,7 @@ git add app/components/landing/EntryActions.tsx app/today docs/work-logs/2026-08
 git commit -m "feat: add localstorage prototype"
 ```
 
-- [ ] **Step 5: Open PR**
+- [x] **Step 5: Open PR**
 
 Push branch and open a PR targeting `v1`.
 

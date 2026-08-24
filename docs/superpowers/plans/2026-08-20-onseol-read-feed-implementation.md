@@ -52,7 +52,9 @@
 **Files:**
 - Modify: `app/today/prototype/types.ts`, `storage-keys.ts`, `storage.ts`, `seed-data.ts`, `model.test.ts`
 
-- [ ] **Step 1: Add the field to `PrototypeState`**
+> 이후 PR #69(`/read` 실제 API 연동)에서 `/read`가 localStorage 프로토타입 스토어를 완전히 떠나 실제 백엔드(`GET /requests/feed`, `saved_replies` 모듈)로 옮겨가면서, 이 Task의 `savedRequestIds`/`getReadFeed` 관련 코드는 현재 코드베이스에 남아있지 않음(삭제됨). 저장 대상도 "요청 저장"에서 "답변 저장"(`saved_replies`, 응답별 저장)으로 바뀜. 아래 Task 1~3 항목은 당시엔 실제로 구현·머지되었던 것이 맞아 완료 처리함 — 이후 백엔드 연동 과정에서 대체되어 지워진 것뿐, 계획 미이행이 아님.
+
+- [x] **Step 1: Add the field to `PrototypeState`**
 
 In `types.ts`:
 
@@ -70,11 +72,11 @@ export type PrototypeState = {
 };
 ```
 
-- [ ] **Step 2: Storage key**
+- [x] **Step 2: Storage key**
 
 In `storage-keys.ts`, add: `savedRequestIds: "onseol.prototype.savedRequestIds",`.
 
-- [ ] **Step 3: Read/write**
+- [x] **Step 3: Read/write**
 
 In `storage.ts`, in `readPrototypeState`:
 
@@ -90,19 +92,19 @@ and add `savedRequestIds: savedRequestIds ?? []` to the returned object. In `wri
 writeJson(PROTOTYPE_STORAGE_KEYS.savedRequestIds, state.savedRequestIds);
 ```
 
-- [ ] **Step 4: Seed data**
+- [x] **Step 4: Seed data**
 
 In `seed-data.ts`, add `savedRequestIds: []` to the object returned by `createInitialPrototypeState`.
 
-- [ ] **Step 5: Fix existing fixtures**
+- [x] **Step 5: Fix existing fixtures**
 
 `model.test.ts` builds several inline `PrototypeState` literals. Add `savedRequestIds: []` to every one of them so the file still type-checks.
 
-- [ ] **Step 6: Verify**
+- [x] **Step 6: Verify**
 
 Run `pnpm typecheck`. Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add app/today/prototype/types.ts app/today/prototype/storage-keys.ts app/today/prototype/storage.ts app/today/prototype/seed-data.ts app/today/prototype/model.test.ts
@@ -116,7 +118,7 @@ git commit -m "feat: add savedRequestIds to the onseol prototype store"
 **Files:**
 - Modify: `app/today/prototype/model.ts`, `model.test.ts`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Add to `model.test.ts`:
 
@@ -245,11 +247,11 @@ describe("getReadFeed", () => {
 
 (Simplify the first assertion if the interleaved ternary reads awkwardly — the intent is: only `multi-reply` and `mine` appear, `multi-reply` first since it's newer, `no-replies` and `only-hidden-reply` are absent.)
 
-- [ ] **Step 2: Run tests to verify RED**
+- [x] **Step 2: Run tests to verify RED**
 
 Run: `pnpm test app/today/prototype/model.test.ts`. Expected: FAIL (`getReadFeed` does not exist).
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Add to `model.ts`:
 
@@ -274,7 +276,7 @@ export function getReadFeed(state: PrototypeState): ReadFeedItem[] {
 
 `getVisibleRepliesForRequest` already sorts newest-first; `.reverse()` gives the oldest-first conversational order this feed wants.
 
-- [ ] **Step 4: Run tests to verify GREEN, then commit**
+- [x] **Step 4: Run tests to verify GREEN, then commit**
 
 ```bash
 pnpm test app/today/prototype/model.test.ts
@@ -289,7 +291,7 @@ git commit -m "feat: add getReadFeed selector"
 **Files:**
 - Modify: `app/today/prototype/useOnseolPrototype.ts`, `useOnseolPrototype.test.tsx`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Add to `useOnseolPrototype.test.tsx`:
 
@@ -335,11 +337,11 @@ describe("useOnseolPrototype read feed", () => {
 
 (Seed data already gives two sample requests each with one reply, so `readFeed` is non-empty by default — no localStorage seeding needed for this test.)
 
-- [ ] **Step 2: Run tests to verify RED**
+- [x] **Step 2: Run tests to verify RED**
 
 Run: `pnpm test app/today/prototype/useOnseolPrototype.test.tsx`. Expected: FAIL.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `useOnseolPrototype.ts`, import `getReadFeed` (and `ReadFeedItem` type) from `./model`. Add near the other memoized derivations:
 
@@ -365,7 +367,7 @@ function toggleSavedRequest(requestId: string): void {
 
 Extend `UseOnseolPrototypeResult` with `readFeed: ReadFeedItem[];` and `toggleSavedRequest(requestId: string): void;`, and add both to the returned object.
 
-- [ ] **Step 4: Run tests, then today/answer regression, then commit**
+- [x] **Step 4: Run tests, then today/answer regression, then commit**
 
 ```bash
 pnpm test app/today/prototype/useOnseolPrototype.test.tsx
@@ -381,7 +383,7 @@ git commit -m "feat: add read feed and save-toggle to the prototype hook"
 **Files:**
 - Create: `app/read/components/icons.tsx`, `app/read/components/SaveToggleButton.tsx` + test
 
-- [ ] **Step 1: Icons**
+- [x] **Step 1: Icons** — `app/read/components/icons.tsx`(기능별 복제본)는 없음. `FlagIcon`/`BookmarkIcon`은 `/answer`가 먼저 만든 패턴을 이어받아 `app/components/shared/icons.tsx`로 공유됨(계획의 "기능별로 독립 복제" 방침과 반대 방향으로 나중에 통합됨).
 
 Create `app/read/components/icons.tsx`:
 
@@ -435,7 +437,7 @@ export function BookmarkIcon({
 
 (`FlagIcon` is a verbatim copy of `app/answer/components/icons.tsx`'s version — keep them independently duplicated per this feature's file-ownership convention, don't import across features.)
 
-- [ ] **Step 2: Write failing test for `SaveToggleButton`**
+- [x] **Step 2: Write failing test for `SaveToggleButton`**
 
 Create `app/read/components/SaveToggleButton.test.tsx`:
 
@@ -466,9 +468,9 @@ describe("SaveToggleButton", () => {
 });
 ```
 
-- [ ] **Step 3: Run to verify RED, then implement**
+- [x] **Step 3: Run to verify RED, then implement**
 
-Create `app/read/components/SaveToggleButton.tsx`:
+Create `app/read/components/SaveToggleButton.tsx`: — 별도 컴포넌트 파일로는 존재하지 않고 `ReadReplyBubble.tsx` 내부에 인라인으로 통합됨. 더 중요한 차이: 저장 대상이 "요청 전체"(`savedRequestIds`)가 아니라 "개별 답변"(`saved_replies` 테이블, `GET/POST/DELETE /replies/:id/save`)으로 바뀜 — 계획의 저장 단위 자체가 변경됨.
 
 ```tsx
 import { BookmarkIcon } from "./icons";
@@ -494,7 +496,7 @@ export function SaveToggleButton({ saved, onToggle }: SaveToggleButtonProps) {
 }
 ```
 
-- [ ] **Step 4: Verify and commit**
+- [x] **Step 4: Verify and commit**
 
 ```bash
 pnpm test app/read
@@ -510,7 +512,7 @@ git commit -m "feat: add read feed icons and save toggle button"
 **Files:**
 - Create: `app/read/prototype/format.ts`, `app/read/prototype/labels.ts` + test
 
-- [ ] **Step 1: `format.ts`** (duplicate of `/answer`'s)
+- [x] **Step 1: `format.ts`** (duplicate of `/answer`'s) — 이후 `app/lib/format.ts`로 공용화됨(중복 제거).
 
 ```ts
 export function formatTimestamp(iso: string): string {
@@ -524,7 +526,7 @@ export function formatTimestamp(iso: string): string {
 }
 ```
 
-- [ ] **Step 2: Write failing test for `buildReadAuthorLabels`**
+- [x] **Step 2: Write failing test for `buildReadAuthorLabels`**
 
 Create `app/read/prototype/labels.test.ts`:
 
@@ -590,9 +592,9 @@ describe("buildReadAuthorLabels", () => {
 });
 ```
 
-- [ ] **Step 3: Run to verify RED, then implement**
+- [x] **Step 3: Run to verify RED, then implement**
 
-Create `app/read/prototype/labels.ts`:
+Create `app/read/prototype/labels.ts`: — 실제 구현은 `buildReadAuthorLabels`(순차 "익명 N")가 아니라 `app/read/labels.ts`의 `buildFeedItemLabels`로 바뀜: 백엔드가 authorId/guestId를 절대 노출하지 않고 스레드별 `authorSlot`만 내려주므로(`apps/api/src/requests/feed-author-slots.ts`), 요청 id 해시로 오프셋을 준 닉네임 풀에서 라벨을 뽑는 방식으로 재설계됨. `docs/decisions/2026-08-23-onseol-read-feed-decisions.md` 참고.
 
 ```ts
 import type { ReadFeedItem } from "../../today/prototype/model";
@@ -620,7 +622,7 @@ export function buildReadAuthorLabels(
 }
 ```
 
-- [ ] **Step 4: Verify and commit**
+- [x] **Step 4: Verify and commit**
 
 ```bash
 pnpm test app/read
@@ -635,7 +637,7 @@ git commit -m "feat: add read feed timestamp and author label helpers"
 **Files:**
 - Create both components (no dedicated test files — covered at the `ReadThread`/`ReadFeed` integration level, matching how `/answer`'s `ReplyBubble` has no standalone test).
 
-- [ ] **Step 1: `ReadRequestBubble.tsx`**
+- [x] **Step 1: `ReadRequestBubble.tsx`**
 
 ```tsx
 import type { OnseolRequest } from "../../today/prototype/types";
@@ -679,7 +681,7 @@ export function ReadRequestBubble({
 }
 ```
 
-- [ ] **Step 2: `ReadReplyBubble.tsx`**
+- [x] **Step 2: `ReadReplyBubble.tsx`**
 
 ```tsx
 import type { OnseolReply } from "../../today/prototype/types";
@@ -723,7 +725,7 @@ export function ReadReplyBubble({
 }
 ```
 
-- [ ] **Step 3: Verify and commit**
+- [x] **Step 3: Verify and commit**
 
 ```bash
 pnpm typecheck
@@ -739,11 +741,11 @@ git commit -m "feat: add read feed request and reply bubbles"
 **Files:**
 - Create: `app/read/components/ActionConfirmDialog.tsx` (duplicate), `app/read/components/ReadThread.tsx` + test
 
-- [ ] **Step 1: Duplicate the confirm dialog**
+- [x] **Step 1: Duplicate the confirm dialog** — `/read` 전용 복제본은 없고 `app/components/shared/ActionConfirmDialog.tsx`를 그대로 가져다 씀(공유화).
 
 Create `app/read/components/ActionConfirmDialog.tsx` with the exact same content as `app/answer/components/ActionConfirmDialog.tsx` (props: `open`, `message`, `confirmLabel`, `onCancel()`, `onConfirm()`).
 
-- [ ] **Step 2: Write failing test for `ReadThread`**
+- [x] **Step 2: Write failing test for `ReadThread`**
 
 Create `app/read/components/ReadThread.test.tsx`:
 
@@ -813,7 +815,7 @@ describe("ReadThread", () => {
 });
 ```
 
-- [ ] **Step 3: Run to verify RED, then implement**
+- [x] **Step 3: Run to verify RED, then implement**
 
 Create `app/read/components/ReadThread.tsx`:
 
@@ -863,7 +865,7 @@ export function ReadThread({
 }
 ```
 
-- [ ] **Step 4: Verify and commit**
+- [x] **Step 4: Verify and commit**
 
 ```bash
 pnpm test app/read
@@ -880,7 +882,7 @@ git commit -m "feat: add read thread card"
 - Create: `app/read/ReadFeed.tsx`, `app/read/ReadFeed.test.tsx`
 - Modify: `app/read/page.tsx`
 
-- [ ] **Step 1: Write failing integration tests**
+- [x] **Step 1: Write failing integration tests**
 
 Create `app/read/ReadFeed.test.tsx`:
 
@@ -1053,11 +1055,11 @@ describe("ReadFeed", () => {
 });
 ```
 
-- [ ] **Step 2: Run to verify RED**
+- [x] **Step 2: Run to verify RED**
 
 Run: `pnpm test app/read/ReadFeed.test.tsx`. Expected: FAIL (`ReadFeed` does not exist).
 
-- [ ] **Step 3: Implement `ReadFeed.tsx`**
+- [x] **Step 3: Implement `ReadFeed.tsx`**
 
 ```tsx
 "use client";
@@ -1146,7 +1148,7 @@ export function ReadFeed() {
 }
 ```
 
-- [ ] **Step 4: Rewrite `page.tsx`**
+- [x] **Step 4: Rewrite `page.tsx`**
 
 ```tsx
 import { ReadFeed } from "./ReadFeed";
@@ -1156,11 +1158,11 @@ export default function ReadPage() {
 }
 ```
 
-- [ ] **Step 5: Run tests to verify GREEN**
+- [x] **Step 5: Run tests to verify GREEN**
 
 Run: `pnpm test app/read`. Expected: PASS.
 
-- [ ] **Step 6: Full verification**
+- [x] **Step 6: Full verification**
 
 ```bash
 pnpm test
@@ -1169,7 +1171,7 @@ pnpm typecheck
 pnpm build
 ```
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add app/read/ReadFeed.tsx app/read/ReadFeed.test.tsx app/read/page.tsx
@@ -1180,7 +1182,7 @@ git commit -m "feat: implement the read feed screen"
 
 ### Task 9: Manual Verification In Chrome, Then Work Log
 
-- [ ] **Step 1: Seed varied data and check layout**
+- [x] **Step 1: Seed varied data and check layout**
 
 Run `pnpm dev`, open `/read` in Chrome, seed `localStorage` (via the `PROTOTYPE_STORAGE_KEYS`, same technique used to verify `/answer`) with: a request with 3+ replies from different authors, a request with exactly 1 reply, the viewer's own request with a reply, and confirm:
 - Single column at both mobile and desktop widths.
@@ -1189,11 +1191,11 @@ Run `pnpm dev`, open `/read` in Chrome, seed `localStorage` (via the `PROTOTYPE_
 - Reporting a reply removes just that bubble; reporting a request's only reply removes the whole card.
 - No console hydration warnings on the timestamps.
 
-- [ ] **Step 2: Work log**
+- [x] **Step 2: Work log**
 
 Add `docs/work-logs/2026-08-20-read-feed-implementation.md` recording what changed, how it was verified (automated + manual), and any judgment calls made during implementation.
 
-- [ ] **Step 3: Commit and open PR**
+- [x] **Step 3: Commit and open PR**
 
 ```bash
 git add docs/work-logs/2026-08-20-read-feed-implementation.md
