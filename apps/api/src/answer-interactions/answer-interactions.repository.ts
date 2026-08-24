@@ -1,8 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, gt } from 'drizzle-orm';
 import { DRIZZLE } from '../database/database.constants';
 import type { Database } from '../database/database.types';
 import { answerInteractions, requests } from '../database/schema';
+import { QUEUE_FRESHNESS_HOURS } from '../requests/queue-freshness.constant';
 
 export type AnswerInteraction = typeof answerInteractions.$inferSelect;
 
@@ -42,7 +43,15 @@ export class AnswerInteractionsRepository {
       });
   }
 
+  // A held request silently drops out of the holder's held list once it ages
+  // past the same freshness window that excludes it from everyone else's
+  // queue — otherwise it could sit here indefinitely, long after it's gone
+  // stale for everyone else.
   findHeldForAuthor(authorId: string) {
+    const freshnessCutoff = new Date(
+      Date.now() - QUEUE_FRESHNESS_HOURS * 60 * 60 * 1000,
+    );
+
     return this.db
       .select({ request: requests })
       .from(answerInteractions)
@@ -51,6 +60,7 @@ export class AnswerInteractionsRepository {
         and(
           eq(answerInteractions.authorId, authorId),
           eq(answerInteractions.status, 'held'),
+          gt(requests.createdAt, freshnessCutoff),
         ),
       );
   }

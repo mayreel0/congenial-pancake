@@ -15,6 +15,7 @@ import {
 import { DRIZZLE } from '../database/database.constants';
 import type { Database } from '../database/database.types';
 import { answerInteractions, replies, requests } from '../database/schema';
+import { QUEUE_FRESHNESS_HOURS } from './queue-freshness.constant';
 
 export type CreateRequestInput = {
   body: string;
@@ -29,7 +30,6 @@ export type ReplyRecord = typeof replies.$inferSelect;
 export type FeedItem = { request: RequestRecord; replies: ReplyRecord[] };
 
 // See docs/decisions/2026-08-22-onseol-answer-queue-decisions.md.
-const QUEUE_FRESHNESS_HOURS = 60;
 const QUEUE_REPLY_CAP = 5;
 
 @Injectable()
