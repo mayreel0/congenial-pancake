@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ApiError } from "../lib/api";
 import { ServiceNav } from "../components/navigation/ServiceNav";
-import { ActionConfirmDialog } from "../components/shared/ActionConfirmDialog";
+import { ActionConfirmDialog } from "ui/ActionConfirmDialog";
 import { ReadThread } from "./components/ReadThread";
 import { buildFeedItemLabels } from "./labels";
 import { useReadFeed } from "./useReadFeed";

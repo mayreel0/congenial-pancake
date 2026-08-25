@@ -32,6 +32,8 @@ There is **no signup and no Google OAuth here** — `app/lib/api.ts` only expose
 
 `AdminReview.tsx`'s outer shell (title + logout button) renders **unconditionally**, regardless of `useAdminReview()`'s `status`. Only the `<main>` content branches on loading/signed-out/forbidden/ready. Gating the whole shell's mount on the same auth query's own loading state caused a real infinite mount→refetch→unmount loop when this page briefly lived inside `apps/web` (confirmed empirically: 100+ calls to `/auth/me` in 500ms in a test, before the fix) — see `docs/decisions/2026-08-25-onseol-admin-moderation-decisions.md` for the root cause. Don't reintroduce a component that conditionally mounts based on the loading state of a query something inside it also subscribes to.
 
-## No shared package with apps/web
+## Shared code with apps/web
 
-`app/lib/api.ts`, `app/lib/format.ts`, `app/components/shared/ActionConfirmDialog.tsx`, etc. are deliberately small standalone copies, not imports from `apps/web` or a shared `packages/*` package. At this size (one page, a handful of generic helpers) extracting a shared package would be more infrastructure than the duplication it avoids — revisit only if apps/admin grows enough sections that the duplication actually starts hurting.
+`apiFetch`, `ActionConfirmDialog`, `QueryProvider`, and `formatTimestamp` live in `packages/ui` (imported as `"ui/..."`) once `apps/admin` became a second real consumer of code that was byte-identical to `apps/web`'s copy. See `docs/decisions/2026-08-25-onseol-shared-ui-package-decisions.md`. `app/lib/api.ts` is a thin re-export shim over `ui/api` (this app has no signup/OAuth additions of its own, unlike `apps/web`'s copy of that file). Before adding a new generic component/util here, check whether `apps/web` would plausibly want the exact same thing — if yes, add it to `packages/ui` directly instead of duplicating.
+
+Tailwind v4's class-scanning is directory-scoped, so `app/globals.css`'s `@source "../../../packages/ui/src";` line is required for `packages/ui` components' Tailwind classes to actually generate in this app's CSS too — don't remove it.
