@@ -14,7 +14,7 @@ Project-wide rules live in the root `AGENTS.md`. This app used to be `/admin` in
 
 ## Running
 
-- `pnpm --filter admin dev` — runs on **port 3002** (not 3000, which `apps/web` owns). Needs `.env.local` (see `.env.example`) pointing `NEXT_PUBLIC_API_BASE_URL` at the same `apps/api` instance `apps/web` uses.
+- `pnpm --filter admin dev` — runs on **port 3002** (not 3000, which `apps/web` owns). Needs `.env.local` (see `.env.example`) pointing `NEXT_PUBLIC_API_BASE_URL` at the same `apps/api-server` instance `apps/web` uses.
 - `pnpm --filter admin lint` / `typecheck` / `test` / `build` — all four must pass before a PR, same as the other apps.
 - `pnpm --filter admin build` outputs a **static export** to `out/` (`next.config.ts`'s `output: "export"`) — this app is entirely client components with no `cookies()`/Server Actions/route handlers/image-optimization usage, so no Node server is needed to serve it. `pnpm --filter admin start` (`serve out -l 3002`) previews that static build locally; `next start` does not work here and errors on purpose (that's Next.js telling you the app is static-exported, not a bug). Deploy `out/` to any static host.
 
@@ -24,9 +24,9 @@ Single route (`app/page.tsx` → `AdminReview.tsx`). Only one section — "신�
 
 ## Auth: same session cookie as apps/web, no JWT
 
-This app is **not** a separate identity system. It calls the exact same `apps/api` (`POST /auth/login`, `GET /auth/me`, `POST /auth/logout`) and gets the same httpOnly session cookie apps/web gets. That cookie is set by the API's own domain, not by whichever frontend asked for it — so it's already sent on requests from any same-site origin (`apps/web`'s origin and this app's origin are same-site: same registrable domain in production, both literally `localhost` in dev), independent of port/subdomain. The only thing that had to change for this to work across two separate frontend origins was `apps/api`'s CORS config (`CORS_ORIGIN` is now a comma-separated list, not a single URL — see `apps/api/src/config/env.schema.ts`). No token duplication, no separate auth backend.
+This app is **not** a separate identity system. It calls the exact same `apps/api-server` (`POST /auth/login`, `GET /auth/me`, `POST /auth/logout`) and gets the same httpOnly session cookie apps/web gets. That cookie is set by the API's own domain, not by whichever frontend asked for it — so it's already sent on requests from any same-site origin (`apps/web`'s origin and this app's origin are same-site: same registrable domain in production, both literally `localhost` in dev), independent of port/subdomain. The only thing that had to change for this to work across two separate frontend origins was `apps/api-server`'s CORS config (`CORS_ORIGIN` is now a comma-separated list, not a single URL — see `apps/api-server/src/config/env.schema.ts`). No token duplication, no separate auth backend.
 
-There is **no signup and no Google OAuth here** — `app/lib/api.ts` only exposes `login`/`logout`/`fetchCurrentUser`. Admin accounts already exist (created via the public site or directly in the DB); getting onto the `ADMIN_USER_IDS` whitelist (`apps/api`'s `AdminGuard`) is a separate, server-side-only step.
+There is **no signup and no Google OAuth here** — `app/lib/api.ts` only exposes `login`/`logout`/`fetchCurrentUser`. Admin accounts already exist (created via the public site or directly in the DB); getting onto the `ADMIN_USER_IDS` whitelist (`apps/api-server`'s `AdminGuard`) is a separate, server-side-only step.
 
 ## Don't repeat the ServiceNav mount-loop bug
 
@@ -34,6 +34,6 @@ There is **no signup and no Google OAuth here** — `app/lib/api.ts` only expose
 
 ## Shared code with apps/web
 
-`ActionConfirmDialog`/`QueryProvider` live in `packages/ui` (imported as `"ui/..."`), `apiFetch`/`ApiError`/`login`/`logout`/`fetchCurrentUser`/`CurrentUser` live in `packages/api-client` (imported as `"api-client"`), `formatTimestamp` lives in `packages/utils` (imported as `"utils"`) — split by kind (React components vs. fetch client vs. plain helpers) rather than one grab-bag package, ever since `apps/admin` became a second real consumer of code that was byte-identical to `apps/web`'s copy. See `docs/decisions/2026-08-25-onseol-shared-ui-package-decisions.md`. `app/lib/api.ts` is a thin re-export shim over `api-client` (this app has no signup/OAuth additions of its own, unlike `apps/web`'s copy of that file). Before adding a new generic component/util here, check whether `apps/web` would plausibly want the exact same thing — if yes, add it directly to the relevant shared package instead of duplicating.
+`ActionConfirmDialog`/`QueryProvider` live in `packages/ui` (imported as `"ui/..."`), `apiFetch`/`ApiError`/`login`/`logout`/`fetchCurrentUser`/`CurrentUser` live in `packages/api` (imported as `"api"`), `formatTimestamp` lives in `packages/utils` (imported as `"utils"`) — split by kind (React components vs. fetch client vs. plain helpers) rather than one grab-bag package, ever since `apps/admin` became a second real consumer of code that was byte-identical to `apps/web`'s copy. See `docs/decisions/2026-08-25-onseol-shared-ui-package-decisions.md`. `app/lib/api.ts` is a thin re-export shim over `api` (this app has no signup/OAuth additions of its own, unlike `apps/web`'s copy of that file). Before adding a new generic component/util here, check whether `apps/web` would plausibly want the exact same thing — if yes, add it directly to the relevant shared package instead of duplicating.
 
 Tailwind v4's class-scanning is directory-scoped, so `app/globals.css`'s `@source "../../../packages/ui/src";` line is required for `packages/ui` components' Tailwind classes to actually generate in this app's CSS too — don't remove it.

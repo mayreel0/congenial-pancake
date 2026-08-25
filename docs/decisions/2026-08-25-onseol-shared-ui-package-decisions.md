@@ -43,6 +43,22 @@ Tailwind v4의 자동 컨텐츠 탐지는 CSS 파일이 있는 디렉터리 트�
 
 두 앱 다 `package.json`에 `api-client`/`utils` 의존성 추가, `next.config.ts`의 `transpilePackages`에 두 이름 추가, import 경로를 `"ui/api"``"ui/format"` → `"api-client"``"utils"`로 변경. 소비처가 각 앱 1개(`app/lib/api.ts`, `app/lib/format.ts`/`AdminReview.tsx`)뿐이라 재수출 shim 구조는 그대로 유지했다.
 
+## 추가 결정 (2026-08-26, 후속): `api-client` → `api`로 재명명, 대신 백엔드를 `apps/api-server`로 개명
+
+사용자가 `packages/api-client`라는 이름 자체가 어색하다며 — "그냥 `packages/api`로 두고 `apps/api`(NestJS 백엔드) 쪽을 `server`나 `api-server`로 바꾸는 게 낫지 않겠냐"고 제안했다. 타당한 지적: 프런트엔드 입장에서 "api"라는 짧은 이름을 쓸 자격은 실제 백엔드보다 오히려 "그 백엔드를 호출하는 클라이언트 패키지" 쪽이 아니라 원래 이름이 겹친 게 문제였을 뿐 — 백엔드를 더 구체적인 이름(`api-server`)으로 부르는 게 자연스럽다.
+
+- `apps/api` → `apps/api-server`(디렉터리+`package.json` name 모두 변경). CI/Docker/배포 설정에 `apps/api` 경로를 참조하는 곳이 이 저장소엔 전혀 없어(grep으로 확인) 리스크가 낮다고 판단.
+- `packages/api-client` → `packages/api`(디렉터리+name 모두 변경).
+- 겸사겸사 사용자가 "storybook도 일관되게 맞추자"고 해서 `apps/storybook` → `apps/storybook-app`으로도 디렉터리를 바꿨다 — 반대 방향(`package.json`의 `"storybook-app"`을 `"storybook"`으로 바꾸는 쪽)은 하지 않았다: `apps/web`/`apps/admin`/`packages/ui`/이 앱 자신이 전부 실제 npm `storybook` 패키지를 devDependency로 갖고 있어서, 워크스페이스 패키지 이름을 `storybook`으로 지으면 pnpm이 그 이름의 devDependency를 실제 npm 레지스트리 대신 로컬 워크스페이스 패키지(버전 `0.0.0`)로 잘못 링크할 잠재적 위험이 있다고 판단해 더 안전한 방향(디렉터리를 패키지 이름에 맞춤)을 택했다.
+
+## 산출물 (후속)
+
+- `apps/api-server/`(rename from `apps/api/`): `package.json`(`"name": "api-server"`), `AGENTS.md`/`README.md`의 `pnpm --filter api` → `pnpm --filter api-server`.
+- `packages/api/`(rename from `packages/api-client/`): `package.json`(`"name": "api"`), `AGENTS.md` 갱신.
+- `apps/storybook-app/`(rename from `apps/storybook/`): 디렉터리만 변경, `package.json` name(`"storybook-app"`)은 그대로.
+- `apps/web`, `apps/admin`: `package.json`(`api-client` → `api` 의존성), `next.config.ts`(`transpilePackages`), `app/lib/api.ts` import 경로, 각 `AGENTS.md`의 관련 서술 갱신.
+- 루트 `AGENTS.md` 워크스페이스 레이아웃 섹션 갱신.
+
 ## 산출물
 
 - `packages/ui/`(신규): `package.json`, `tsconfig.json`, `src/{api.ts, ActionConfirmDialog.tsx, QueryProvider.tsx, format.ts}`.

@@ -1,13 +1,13 @@
-# apps/api — Nest.js backend
+# apps/api-server — Nest.js backend
 
 App-specific rules only. Project-wide rules (branching policy, decision-confirmation process, etc.) live in the root `AGENTS.md`.
 
 ## Running
 
-- `pnpm --filter api start:dev` — local run. Requires `.env` (see `.env.example`; `DATABASE_URL` must point at a local Postgres).
-- `pnpm --filter api lint` / `typecheck` (`tsc --noEmit`) / `test` / `build` — all four must pass before a PR.
-- `pnpm --filter api db:generate` — generate migration SQL from schema (`src/database/schema/*.schema.ts`) changes.
-- `pnpm --filter api db:migrate` — apply generated migrations to the DB at `DATABASE_URL`.
+- `pnpm --filter api-server start:dev` — local run. Requires `.env` (see `.env.example`; `DATABASE_URL` must point at a local Postgres).
+- `pnpm --filter api-server lint` / `typecheck` (`tsc --noEmit`) / `test` / `build` — all four must pass before a PR.
+- `pnpm --filter api-server db:generate` — generate migration SQL from schema (`src/database/schema/*.schema.ts`) changes.
+- `pnpm --filter api-server db:migrate` — apply generated migrations to the DB at `DATABASE_URL`.
 
 ## Architecture boundary
 

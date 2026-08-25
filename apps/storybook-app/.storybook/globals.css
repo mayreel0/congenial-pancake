@@ -4,7 +4,7 @@
    being compiled by a second, unrelated app's Tailwind instance).
 
    Tailwind v4's automatic content detection did NOT turn out to cover
-   apps/web/app when this CSS is compiled via apps/storybook's own
+   apps/web/app when this CSS is compiled via apps/storybook-app's own
    Tailwind/PostCSS instance, even though that's the literal directory the
    imported globals.css physically lives in — confirmed by grepping the
    built CSS for `.text-accent` (used only in apps/web/app/components/
