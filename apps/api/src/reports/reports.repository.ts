@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, count, eq } from 'drizzle-orm';
+import { and, count, eq, gt } from 'drizzle-orm';
 import { DRIZZLE } from '../database/database.constants';
 import type { Database } from '../database/database.types';
 import { reports } from '../database/schema';
@@ -38,15 +38,24 @@ export class ReportsRepository {
 
   // A plain row count is safe here because reports_target_reporter_unique
   // guarantees at most one row per (targetType, targetId, reporterId).
+  // `since` (a target's reviewedAt, if it's been admin-restored before)
+  // excludes reports that pre-date the last review, so an old report that
+  // already contributed to a past auto-hide doesn't count again toward the
+  // next one — see requests.schema.ts's reviewedAt comment.
   async countDistinctReporters(
     targetType: ReportTargetType,
     targetId: string,
+    since?: Date,
   ): Promise<number> {
     const [row] = await this.db
       .select({ value: count() })
       .from(reports)
       .where(
-        and(eq(reports.targetType, targetType), eq(reports.targetId, targetId)),
+        and(
+          eq(reports.targetType, targetType),
+          eq(reports.targetId, targetId),
+          since ? gt(reports.createdAt, since) : undefined,
+        ),
       );
     return row?.value ?? 0;
   }

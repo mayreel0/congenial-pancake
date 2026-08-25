@@ -20,6 +20,7 @@ function makeRequest(overrides: Partial<RequestRecord> = {}): RequestRecord {
     createdAt: new Date('2026-08-21T00:00:00.000Z'),
     hidden: false,
     deletedAt: null,
+    reviewedAt: null,
     ...overrides,
   };
 }
@@ -34,6 +35,7 @@ function makeReply(overrides: Partial<ReplyRecord> = {}): ReplyRecord {
     createdAt: new Date('2026-08-21T00:00:00.000Z'),
     hidden: false,
     deletedAt: null,
+    reviewedAt: null,
     ...overrides,
   };
 }
@@ -130,6 +132,11 @@ describe('ReportsService', () => {
         targetId: 'request-1',
         reporterId: 'reporter-1',
       });
+      expect(reportsRepository.countDistinctReporters).toHaveBeenCalledWith(
+        'request',
+        'request-1',
+        undefined,
+      );
       expect(moderationService.evaluateAutoHide).toHaveBeenCalledWith(
         'request',
         'request-1',
@@ -156,6 +163,26 @@ describe('ReportsService', () => {
         'reply',
         'reply-1',
         1,
+      );
+    });
+
+    it('only counts reports created after the target was last reviewed', async () => {
+      const reviewedAt = new Date('2026-08-24T00:00:00.000Z');
+      requestsService.findVisibleById.mockResolvedValue(
+        makeRequest({ reviewedAt }),
+      );
+      reportsRepository.findByTargetAndReporter.mockResolvedValue(undefined);
+      reportsRepository.countDistinctReporters.mockResolvedValue(1);
+
+      await reportsService.create(
+        { targetType: 'request', targetId: 'request-1' },
+        'reporter-1',
+      );
+
+      expect(reportsRepository.countDistinctReporters).toHaveBeenCalledWith(
+        'request',
+        'request-1',
+        reviewedAt,
       );
     });
   });

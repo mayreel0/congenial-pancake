@@ -62,6 +62,7 @@ export class RequestsRepository {
         createdAt: requests.createdAt,
         hidden: requests.hidden,
         deletedAt: requests.deletedAt,
+        reviewedAt: requests.reviewedAt,
         replyCount: count(replies.id),
       })
       .from(requests)
@@ -92,6 +93,7 @@ export class RequestsRepository {
         createdAt: requests.createdAt,
         hidden: requests.hidden,
         deletedAt: requests.deletedAt,
+        reviewedAt: requests.reviewedAt,
       })
       .from(requests)
       .innerJoin(
@@ -139,6 +141,33 @@ export class RequestsRepository {
 
   async setHidden(id: string, hidden: boolean): Promise<void> {
     await this.db.update(requests).set({ hidden }).where(eq(requests.id, id));
+  }
+
+  // Admin's "신고 검토" queue: auto-hidden and not (soft-)deleted, oldest
+  // hidden first so the longest-standing reports get reviewed first.
+  findHidden(): Promise<RequestRecord[]> {
+    return this.db.query.requests.findMany({
+      where: and(eq(requests.hidden, true), isNull(requests.deletedAt)),
+      orderBy: asc(requests.createdAt),
+    });
+  }
+
+  // Admin "복구" — unhides and stamps reviewedAt so a stale report from
+  // before this review doesn't immediately re-trigger auto-hide.
+  async restore(id: string): Promise<void> {
+    await this.db
+      .update(requests)
+      .set({ hidden: false, reviewedAt: new Date() })
+      .where(eq(requests.id, id));
+  }
+
+  // Admin "영구 삭제" — soft delete only, never a real row delete (see
+  // requests.schema.ts's deletedAt comment).
+  async softDelete(id: string): Promise<void> {
+    await this.db
+      .update(requests)
+      .set({ deletedAt: new Date() })
+      .where(eq(requests.id, id));
   }
 
   // The next request this viewer should be offered to answer: fresh
@@ -222,6 +251,7 @@ export class RequestsRepository {
         createdAt: requests.createdAt,
         hidden: requests.hidden,
         deletedAt: requests.deletedAt,
+        reviewedAt: requests.reviewedAt,
         replyCount,
       })
       .from(requests)

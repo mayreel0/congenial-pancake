@@ -57,9 +57,13 @@ Every error response is `{ statusCode, code, message }`, produced by the global 
 
 Schema, the report threshold, and admin identification are all grounded in `docs/decisions/2026-08-21-onseol-db-and-moderation-decisions.md` — in particular, the `reports` table's `(target_type, target_id, reporter_id)` unique constraint and the "3 distinct reporters" auto-hide rule must be preserved across schema changes. `ReportsService` inserts the report row, counts distinct reporters, then hands that count to `ModerationService.evaluateAutoHide()` (`src/moderation/`), which sets `hidden` on the target via `RequestsService.hide()`/`RepliesService.hide()` — `ModerationService` never touches the `reports` table itself.
 
+## Admin ("신고 검토")
+
+`src/admin/` is a whitelist-gated moderation review surface, scoped to exactly the one section the original decision doc calls for — nothing else (no stats, no other tabs) — see `docs/decisions/2026-08-25-onseol-admin-moderation-decisions.md`. `AdminController` (`GET /admin/moderation/hidden`, `POST /admin/{requests,replies}/:id/{restore,delete}`) sits behind `@UseGuards(SessionGuard, AdminGuard)` — `SessionGuard` resolves `request.userId` first, then `AdminGuard` (`src/admin/admin.guard.ts`) checks that id against the `ADMIN_USER_IDS` env var (comma-separated user ids, no role table — matches the "관리자 식별" decision). "복구" (`restore`) unhides *and* stamps `reviewedAt`; "영구 삭제" (`delete`) soft-deletes via `deletedAt`, same as everywhere else — a real row delete never happens. `requests`/`replies` both gained a `reviewedAt` column: once set, `ReportsService.create()`'s auto-hide count only considers reports created after it, so an old report that already contributed to a past auto-hide can't immediately re-trigger the next one the moment one more person reports again — `ReportsRepository.countDistinctReporters()`'s optional `since` param implements this. The admin list view's own `reportCount` is the unscoped all-time total (for context on severity), which is intentionally a different number from what actually drives the auto-hide re-trigger.
+
 ## Still-empty modules
 
-Only `admin` currently has just a folder and an empty `@Module({})` — it gets filled in by its own feature PR (whitelist guard + "신고 검토" review controller, per `docs/decisions/2026-08-21-onseol-db-and-moderation-decisions.md`). `users`, `auth`, `requests`, `replies`, `reports`, and `moderation` are all implemented now.
+`users`, `auth`, `requests`, `replies`, `reports`, `moderation`, and `admin` are all implemented now. Nothing left empty at the module level.
 
 ## Frontend wiring status
 

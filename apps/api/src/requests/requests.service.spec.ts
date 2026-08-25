@@ -12,6 +12,7 @@ function makeRequest(overrides: Partial<RequestRecord> = {}): RequestRecord {
     createdAt: new Date('2026-08-21T00:00:00.000Z'),
     hidden: false,
     deletedAt: null,
+    reviewedAt: null,
     ...overrides,
   };
 }

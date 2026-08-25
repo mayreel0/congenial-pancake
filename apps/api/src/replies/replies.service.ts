@@ -94,4 +94,16 @@ export class RepliesService {
   hide(id: string): Promise<void> {
     return this.repliesRepository.setHidden(id, true);
   }
+
+  findHidden(): Promise<ReplyWithRequest[]> {
+    return this.repliesRepository.findHidden();
+  }
+
+  restore(id: string): Promise<void> {
+    return this.repliesRepository.restore(id);
+  }
+
+  softDelete(id: string): Promise<void> {
+    return this.repliesRepository.softDelete(id);
+  }
 }
