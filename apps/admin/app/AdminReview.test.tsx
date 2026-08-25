@@ -1,6 +1,6 @@
-import { fireEvent, render, screen, waitFor, within } from "../lib/test-utils";
+import { fireEvent, render, screen, waitFor, within } from "./lib/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { HiddenModerationQueueDto } from "../lib/admin/api";
+import type { HiddenModerationQueueDto } from "./lib/admin/api";
 import { AdminReview } from "./AdminReview";
 
 type MockResponse = { ok: boolean; status: number; json: () => Promise<unknown> };
@@ -35,22 +35,48 @@ function makeQueue(
   };
 }
 
-// loggedIn=false / isAdmin=false let each test drive AdminReview through
-// its three access states (signed out, forbidden, ready) with the real
-// component + hook, same fake-backend pattern as read/ReadFeed.test.tsx.
+// loggedIn starts as a mutable flag rather than a fixed option so the login
+// test can flip it mid-test (log in, then have subsequent /auth/me calls
+// reflect that) — same fake-backend pattern as
+// apps/web's old admin test / read/ReadFeed.test.tsx.
 function installFakeBackend(
   queue: HiddenModerationQueueDto,
-  { loggedIn = true, isAdmin = true } = {},
+  {
+    loggedIn = true,
+    isAdmin = true,
+    loginSucceeds = true,
+  }: { loggedIn?: boolean; isAdmin?: boolean; loginSucceeds?: boolean } = {},
 ) {
+  let currentlyLoggedIn = loggedIn;
+
   const fetchMock = vi.fn(
     (input: RequestInfo | URL, init?: RequestInit): Promise<MockResponse> => {
       const url = typeof input === "string" ? input : input.toString();
       const method = init?.method ?? "GET";
 
       if (url.endsWith("/auth/me")) {
-        if (!loggedIn) {
+        if (!currentlyLoggedIn) {
           return Promise.resolve(jsonResponse(401, { code: "UNAUTHORIZED" }));
         }
+        return Promise.resolve(
+          jsonResponse(200, {
+            id: "user-1",
+            email: "admin@example.com",
+            createdAt: "2026-08-22T00:00:00.000Z",
+          }),
+        );
+      }
+
+      if (url.endsWith("/auth/login") && method === "POST") {
+        if (!loginSucceeds) {
+          return Promise.resolve(
+            jsonResponse(401, {
+              code: "AUTH_INVALID_CREDENTIALS",
+              message: "이메일 또는 비밀번호가 올바르지 않습니다.",
+            }),
+          );
+        }
+        currentlyLoggedIn = true;
         return Promise.resolve(
           jsonResponse(200, {
             id: "user-1",
@@ -102,13 +128,45 @@ describe("AdminReview", () => {
     vi.unstubAllGlobals();
   });
 
-  it("prompts login when signed out", async () => {
+  it("shows an inline login form when signed out", async () => {
     installFakeBackend(makeQueue(), { loggedIn: false });
     render(<AdminReview />);
 
+    expect(await screen.findByLabelText("이메일")).toBeInTheDocument();
+    expect(screen.getByLabelText("비밀번호")).toBeInTheDocument();
+  });
+
+  it("logs in from the inline form and shows the review list on success", async () => {
+    installFakeBackend(makeQueue(), { loggedIn: false });
+    render(<AdminReview />);
+
+    fireEvent.change(await screen.findByLabelText("이메일"), {
+      target: { value: "admin@example.com" },
+    });
+    fireEvent.change(screen.getByLabelText("비밀번호"), {
+      target: { value: "password123" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "로그인" }));
+
+    expect(await screen.findByText("숨겨진 요청")).toBeInTheDocument();
+  });
+
+  it("shows an error and stays on the form when login fails", async () => {
+    installFakeBackend(makeQueue(), { loggedIn: false, loginSucceeds: false });
+    render(<AdminReview />);
+
+    fireEvent.change(await screen.findByLabelText("이메일"), {
+      target: { value: "admin@example.com" },
+    });
+    fireEvent.change(screen.getByLabelText("비밀번호"), {
+      target: { value: "wrong" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "로그인" }));
+
     expect(
-      await screen.findByText("로그인이 필요한 페이지예요."),
+      await screen.findByText("이메일 또는 비밀번호가 올바르지 않습니다."),
     ).toBeInTheDocument();
+    expect(screen.getByLabelText("이메일")).toBeInTheDocument();
   });
 
   it("shows a forbidden message for a logged-in non-admin", async () => {
@@ -173,5 +231,15 @@ describe("AdminReview", () => {
     expect(
       await screen.findByText("검토할 항목이 없어요."),
     ).toBeInTheDocument();
+  });
+
+  it("shows a logout button when authenticated, not when signed out", async () => {
+    installFakeBackend(makeQueue(), { loggedIn: false });
+    render(<AdminReview />);
+    await screen.findByLabelText("이메일");
+
+    expect(
+      screen.queryByRole("button", { name: "로그아웃" }),
+    ).not.toBeInTheDocument();
   });
 });

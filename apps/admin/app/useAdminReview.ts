@@ -1,15 +1,15 @@
 "use client";
 
-import { ApiError } from "../lib/api";
-import { useAuth } from "../lib/auth/useAuth";
-import type { AdminReplyDto, AdminRequestDto } from "../lib/admin/api";
+import { ApiError } from "./lib/api";
+import { useAuth } from "./lib/auth/useAuth";
+import type { AdminReplyDto, AdminRequestDto } from "./lib/admin/api";
 import {
   useDeleteReplyMutation,
   useDeleteRequestMutation,
   useHiddenModerationQueueQuery,
   useRestoreReplyMutation,
   useRestoreRequestMutation,
-} from "../lib/admin/queries";
+} from "./lib/admin/queries";
 
 type UseAdminReviewResult = {
   status: "loading" | "signedOut" | "forbidden" | "ready";
