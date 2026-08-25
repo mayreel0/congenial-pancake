@@ -1,0 +1,18 @@
+/* Wraps apps/web's globals.css instead of importing it directly from
+   preview.tsx, so this app's OWN extra @source roots live here rather than
+   inside apps/web/app/globals.css (which shouldn't need to know it's also
+   being compiled by a second, unrelated app's Tailwind instance).
+
+   Tailwind v4's automatic content detection did NOT turn out to cover
+   apps/web/app when this CSS is compiled via apps/storybook's own
+   Tailwind/PostCSS instance, even though that's the literal directory the
+   imported globals.css physically lives in — confirmed by grepping the
+   built CSS for `.text-accent` (used only in apps/web/app/components/
+   landing/*, never in packages/ui) and finding it silently absent, while
+   `.bg-primary` (used in both) came through fine via packages/ui's own
+   @source below. Don't assume "the CSS file's own directory" is
+   auto-scanned just because it worked for one class — verify by grepping
+   for a class exclusive to the directory you're trying to cover. See
+   docs/decisions/2026-08-26-onseol-storybook-app-decisions.md. */
+@import "../../web/app/globals.css";
+@source "../../web/app";

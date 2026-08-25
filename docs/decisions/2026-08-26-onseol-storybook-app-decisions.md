@@ -33,6 +33,14 @@ Storybook을 옮긴 뒤 사용자가 "CSS가 제대로 안 먹히는 것 같다"
 
 `ActivitySummary`, `NoteCard`, `ReplyCard`(전부 `apps/web/app/today/components/`)는 자기 자신과 자기 스토리 파일 말고는 아무 데서도 import되지 않는 죽은 코드였다 — 초기 프로토타입/리디자인 라운드(`docs/superpowers/plans/2026-08-17-onseol-today-redesign.md`)의 유물로, `/today`가 실제 API 연동 버전으로 교체되면서 컴포넌트 자체는 안 쓰이게 됐는데 스토리만 정리가 안 돼 남아있었다. "Storybook에서 실제 UI랑 너무 다르다"는 지적의 상당 부분이 사실 이것 때문이었다 — 애초에 지금 렌더링되는 실제 화면이 아니었다. 컴포넌트 3개 + 스토리 3개, 총 6개 파일을 통째로 삭제했다(다른 어디서도 참조 안 됨을 grep으로 확인 후).
 
+## 부수 발견 및 수정: `apps/web/app` 자기 자신의 디렉터리도 자동으로 스캔되지 않음
+
+`LandingHero`를 실제 `web` 화면과 나란히 비교해달라는 요청에 응하다가, 사용자가 직접 `.text-accent`가 Storybook에서 안 먹힌다고 지적했다. `text-accent`는 `apps/web/app/components/landing/*`에서만 쓰이고 `packages/ui`에는 없는 클래스 — 빌드된 CSS를 grep해보니 정말 없었다. 원인: `apps/storybook`는 `apps/web/app/globals.css`를 그대로 import하고 있었는데, Tailwind v4의 자동 콘텐츠 감지는 그 CSS 파일이 물리적으로 위치한 디렉터리(`apps/web/app`)조차 자동으로 스캔해주지 않는다 — **다른 앱의 별도 Tailwind/PostCSS 인스턴스로 컴파일되는 순간**, 그 CSS 파일 자신의 디렉터리도 명시적 `@source` 없이는 커버되지 않는다. `packages/ui/src`는 이미 명시적으로 `@source` 해뒀기 때문에 `.bg-primary`(양쪽에서 다 쓰임)가 "잘 되는 것처럼" 보였던 것뿐 — 이게 이전 검증에서 놓친 거짓 음성(false negative)이었다.
+
+`apps/storybook/.storybook/globals.css`(신규)를 만들어 `apps/web/app/globals.css`를 import하면서 `@source "../../web/app";`를 추가하고, `preview.tsx`의 import를 이 파일로 바꿔 해결. 수정 후 재빌드해 `.text-accent{color:var(--accent)}`가 실제로 생성됨을 grep으로 확인했고, `apps/web/app/components/landing/*`에서 쓰이는 클래스명 64개 전수 조사로도 전부 존재함을 재확인했다. 브라우저에서 실측 비교(`getComputedStyle`)로도 `--accent`/`--background` 값이 라이트·다크 테마 양쪽에서 `apps/web` 실제 페이지와 `apps/storybook`이 완전히 동일함(`#7d5f4f`/`#d29a78`)을 확인했다.
+
+부수적으로 확인한 것: `LandingHero`가 실제 화면과 "다르게 보인다"고 느껴졌던 부분 중 상당수는 CSS 버그가 아니라, Storybook은 `LandingHero` 컴포넌트 하나만 격리해서 보여주는 반면 실제 `/`(랜딩) 페이지는 `LandingHero`를 감싼 `LandingPage`가 헤더 네비게이션·통계 카드 3개·최근 활동 카드까지 같이 렌더링하기 때문 — 이건 Storybook이 컴포넌트를 격리해서 보여준다는 원래 목적상 당연한 차이이므로 버그가 아니다. 또한 Storybook 툴바의 테마 기본값이 `light`인데 사용자 브라우저는 OS가 다크 모드라 실제 사이트가 기본적으로 다크로 뜨는 것도 "달라 보임"의 일부였다 — 툴바에서 테마를 전환하면 두 쪽 다 동일한 색을 낸다.
+
 ## 산출물
 
 - `apps/storybook/`(신규): `package.json`, `tsconfig.json`, `eslint.config.mjs`, `postcss.config.mjs`, `.storybook/{main.ts, preview.tsx}`.

@@ -7,7 +7,10 @@ import { useEffect } from "react";
 // apps/web's and apps/admin's copies are identical today, but if they ever
 // diverge, whichever one Storybook should visually match needs to be
 // picked deliberately here, not left as an accident of import order.
-import "../../web/app/globals.css";
+// (Goes through ./globals.css, not apps/web's file directly, so this
+// app's own extra Tailwind @source roots don't have to live inside
+// apps/web's globals.css — see that file's comment.)
+import "./globals.css";
 
 // apps/web/app/layout.tsx loads these the same way — Storybook never
 // renders that layout (it only renders one component in isolation), so

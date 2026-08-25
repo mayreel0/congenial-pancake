@@ -28,3 +28,9 @@ Three things `apps/web/app/layout.tsx` does that Storybook never runs through (i
 - Without `h-full`/`min-h-full` on the real `<html>`/`<body>`, an isolated story's body box is only as tall as that one component's own content — the background color computes correctly (verify with `getComputedStyle`) but only *paints* that short area, and the rest of the visible canvas shows the browser's own default background instead of the app's, making stories look "unstyled" even though every token resolved correctly.
 
 If a story's background or font ever looks wrong again, check `document.documentElement.className` inside the preview iframe before assuming Tailwind or the design tokens are broken — it's more often this.
+
+## `@source` coverage doesn't include a CSS file's own directory for free
+
+`.storybook/globals.css` imports `apps/web/app/globals.css` and *also* declares `@source "../../web/app";`. That second line looks redundant — `globals.css` already physically lives inside `apps/web/app`, so it seems like Tailwind's automatic content detection should scan that same directory tree — but it doesn't when the CSS is compiled through a *different* app's own separate Tailwind/PostCSS instance (`apps/storybook`'s, not `apps/web`'s). Automatic detection only walks from each `@import`ing CSS file's own project root as that build tool understands it; crossing into another app's source tree always needs an explicit `@source`, even for the literal directory the imported file sits in.
+
+Found via `.text-accent` (used only in `apps/web/app/components/landing/*`, never in `packages/ui`) silently missing from the built CSS — `.bg-primary` had looked fine earlier, but that was a false-negative: it happens to also be used inside `packages/ui`, which *was* already covered by its own `@source`. Verify future CSS-parity checks with a class exclusive to the directory you're trying to confirm, not one that could be covered by an already-working `@source` elsewhere.
