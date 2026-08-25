@@ -36,15 +36,28 @@ PR #76(`docs/decisions/2026-08-25-onseol-admin-moderation-decisions.md`)에서 `
 
 `CORS_ORIGIN`이 다중 오리진 목록이 되면서, 기존에 Google OAuth 콜백의 로그인 후 리다이렉트 대상(`${CORS_ORIGIN}/today`)으로 그 값을 재사용하던 코드가 깨졌다(배열을 문자열에 꽂으면 `http://localhost:3000,http://localhost:3002/today` 같은 값이 나옴). Google OAuth는 `apps/web` 전용 기능(관리자 앱엔 없음)이라, 리다이렉트 대상은 `CORS_ORIGIN`에서 유도할 수 없는 독립적인 값이어야 해서 `WEB_PUBLIC_URL` 환경변수를 새로 추가했다.
 
+## 결정 6: `apps/admin`을 정적 export(`output: "export"`)로 빌드한다
+
+사용자가 "Next.js를 쓴 게 통일성은 좋지만 굳이 필요했을까"라는 의문을 제기했고, 대안(Vite SPA)과의 트레이드오프를 논의했다. Next.js의 정적 export 모드가 걱정의 절반(배포 인프라 단순함)을 코드 변경 없이 해결해준다는 걸 확인해 적용했다.
+
+### 근거
+
+`apps/admin`은 전부 클라이언트 컴포넌트이고 `cookies()`(next/headers), Server Actions, Route Handler, 기본 이미지 최적화 로더 중 어느 것도 쓰지 않는다 — 정적 export의 미지원 기능 목록에 걸리는 게 하나도 없어 `output: "export"`를 켜는 데 코드 변경이 필요 없었다. 이 모드에서 `next build`는 순수 정적 HTML/CSS/JS(`out/`)를 만들어, 배포 시 Node 서버(`next start`)가 필요 없어진다 — 아무 정적 호스트에나 올릴 수 있음. 다만 이건 걱정의 절반만 해소한다: **배포 단순함**은 개선되지만, `next dev`의 기동 속도나 devDependencies 무게(Vite 대비)는 그대로다 — 그 부분은 Next.js를 쓰는 한 못 줄인다는 걸 명확히 하고 진행했다.
+
+부수 변경: `output: "export"`에서는 `next start`가 의도적으로 에러를 낸다(Next.js 자체 안내: "Use npx serve@latest out instead") — `package.json`의 `start` 스크립트를 `serve out -l 3002`로 바꿈(`serve`를 devDependency로 추가).
+
+`trailingSlash: true`(정적 호스트에서 다중 라우트일 때 rewrite 규칙 없이 서빙되게 해주는 옵션)는 지금은 라우트가 `/` 하나뿐이라 효과가 없어 넣지 않았다 — 실제로 두 번째 섹션/라우트가 생길 때 같이 켜기로 함.
+
 ## 산출물
 
 - `apps/admin/` — 신규 Next.js 앱(로컬 3002 포트). `package.json`, `tsconfig.json`, `next.config.ts`, `eslint.config.mjs`(Storybook 없음), `postcss.config.mjs`, `vitest.config.mts`/`vitest.setup.ts`, `.env.example`/`.env.local`. `app/AdminReview.tsx`(자체 헤더 + 인라인 로그인 폼 + 신고 검토 목록), `app/useAdminReview.ts`, `app/lib/{api.ts, format.ts, auth/, admin/, query/, test-utils.tsx}`, `app/components/shared/ActionConfirmDialog.tsx`, 테스트.
 - `apps/web/app/admin/`, `apps/web/app/lib/admin/` — 삭제. 공개 사이트에 관리자 코드가 전혀 남지 않음.
 - `apps/api/src/config/env.schema.ts` — `CORS_ORIGIN` 배열화, `WEB_PUBLIC_URL` 추가. `apps/api/src/auth/auth.controller.ts` — Google OAuth 콜백 리다이렉트를 `WEB_PUBLIC_URL` 기준으로 수정.
 - `apps/api/AGENTS.md`(CORS/멀티 오리진 섹션 추가), `apps/admin/AGENTS.md`(신규), 루트 `AGENTS.md`(워크스페이스 레이아웃에 `apps/admin` 추가).
+- `apps/admin/next.config.ts`(`output: "export"`), `apps/admin/package.json`(`start` 스크립트를 `serve out -l 3002`로, `serve` devDependency 추가) — 결정 6.
 
 ## 검증
 
-- `pnpm --filter api lint/typecheck/test(53)/build`, `pnpm --filter web lint/typecheck/test(64)/build`, `pnpm --filter admin lint/typecheck/test(13)/build` 모두 통과. `apps/web`의 빌드 라우트 목록에서 `/admin`이 사라졌고, `apps/admin`의 빌드 라우트는 `/` 하나뿐임을 확인.
+- `pnpm --filter api lint/typecheck/test(53)/build`, `pnpm --filter web lint/typecheck/test(64)/build`, `pnpm --filter admin lint/typecheck/test(13)/build` 모두 통과. `apps/web`의 빌드 라우트 목록에서 `/admin`이 사라졌고, `apps/admin`의 빌드 라우트는 `/` 하나뿐임을 확인. `pnpm --filter admin build`가 `out/`에 정적 파일을 생성하고, `pnpm --filter admin start`(`serve out -l 3002`)로 그걸 실제로 서빙해 `curl`로 200 확인.
 - 세 서버(`apps/api:8080`, `apps/web:3000`, `apps/admin:3002`)를 동시에 로컬에서 띄우고 실제 Chrome으로 검증: (1) `apps/web`에서 이미 로그인된 세션으로 `apps/admin`(:3002)에 접속하니 별도 로그인 없이 즉시 관리자 화면이 인식됨 — 같은 사이트 쿠키 공유가 실제로 작동함을 확인. (2) `apps/admin`에서 로그아웃 → 인라인 로그인 폼 표시 확인. (3) 테스트 계정으로 `apps/admin`의 로그인 폼에 직접 이메일/비밀번호를 입력해 크로스 오리진 `POST /auth/login`을 실제로 실행 → 성공 → 신고 검토 화면 전환까지 확인(CORS가 실제로 두 오리진을 다 허용하는지는 curl로는 검증 불가능하므로 반드시 브라우저로 확인해야 했던 부분). 콘솔에 CORS 관련 에러 없음.
 - 테스트 계정/화이트리스트 항목은 확인 후 정리함.

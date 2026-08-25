@@ -16,6 +16,7 @@ Project-wide rules live in the root `AGENTS.md`. This app used to be `/admin` in
 
 - `pnpm --filter admin dev` — runs on **port 3002** (not 3000, which `apps/web` owns). Needs `.env.local` (see `.env.example`) pointing `NEXT_PUBLIC_API_BASE_URL` at the same `apps/api` instance `apps/web` uses.
 - `pnpm --filter admin lint` / `typecheck` / `test` / `build` — all four must pass before a PR, same as the other apps.
+- `pnpm --filter admin build` outputs a **static export** to `out/` (`next.config.ts`'s `output: "export"`) — this app is entirely client components with no `cookies()`/Server Actions/route handlers/image-optimization usage, so no Node server is needed to serve it. `pnpm --filter admin start` (`serve out -l 3002`) previews that static build locally; `next start` does not work here and errors on purpose (that's Next.js telling you the app is static-exported, not a bug). Deploy `out/` to any static host.
 
 ## Scope
 
