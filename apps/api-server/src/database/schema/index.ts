@@ -6,3 +6,4 @@ export * from './reports.schema';
 export * from './oauth-identities.schema';
 export * from './answer-interactions.schema';
 export * from './saved-replies.schema';
+export * from './settings.schema';

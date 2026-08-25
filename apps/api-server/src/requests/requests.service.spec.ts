@@ -1,4 +1,6 @@
 import { RequestGuestLimitExceededException } from '../common/exceptions/app.exception';
+import type { SettingsService } from '../settings/settings.service';
+import type { SettingsRecord } from '../settings/settings.repository';
 import type { RequestRecord } from './requests.repository';
 import type { RequestsRepository } from './requests.repository';
 import { RequestsService } from './requests.service';
@@ -17,8 +19,20 @@ function makeRequest(overrides: Partial<RequestRecord> = {}): RequestRecord {
   };
 }
 
+function makeSettings(overrides: Partial<SettingsRecord> = {}): SettingsRecord {
+  return {
+    id: 1,
+    queueFreshnessHours: 60,
+    queueReplyCap: 5,
+    guestReplyLimit: 5,
+    updatedAt: new Date('2026-08-21T00:00:00.000Z'),
+    ...overrides,
+  };
+}
+
 describe('RequestsService', () => {
   let requestsRepository: jest.Mocked<RequestsRepository>;
+  let settingsService: jest.Mocked<SettingsService>;
   let requestsService: RequestsService;
 
   beforeEach(() => {
@@ -30,8 +44,11 @@ describe('RequestsService', () => {
       setHidden: jest.fn(),
       findQueueCandidate: jest.fn(),
     } as unknown as jest.Mocked<RequestsRepository>;
+    settingsService = {
+      get: jest.fn().mockResolvedValue(makeSettings()),
+    } as unknown as jest.Mocked<SettingsService>;
 
-    requestsService = new RequestsService(requestsRepository);
+    requestsService = new RequestsService(requestsRepository, settingsService);
   });
 
   describe('create', () => {
@@ -95,9 +112,10 @@ describe('RequestsService', () => {
         'unused-guest-id',
       );
 
-      expect(requestsRepository.findQueueCandidate).toHaveBeenCalledWith({
-        authorId: 'user-1',
-      });
+      expect(requestsRepository.findQueueCandidate).toHaveBeenCalledWith(
+        { authorId: 'user-1' },
+        { freshnessHours: 60, replyCap: 5 },
+      );
       expect(result?.id).toBe('request-2');
     });
 
@@ -106,9 +124,24 @@ describe('RequestsService', () => {
 
       await requestsService.findQueueCandidate(undefined, 'guest-1');
 
-      expect(requestsRepository.findQueueCandidate).toHaveBeenCalledWith({
-        guestId: 'guest-1',
-      });
+      expect(requestsRepository.findQueueCandidate).toHaveBeenCalledWith(
+        { guestId: 'guest-1' },
+        { freshnessHours: 60, replyCap: 5 },
+      );
+    });
+
+    it('reads freshness/cap from settings, not hardcoded values', async () => {
+      settingsService.get.mockResolvedValue(
+        makeSettings({ queueFreshnessHours: 24, queueReplyCap: 3 }),
+      );
+      requestsRepository.findQueueCandidate.mockResolvedValue(undefined);
+
+      await requestsService.findQueueCandidate(undefined, 'guest-1');
+
+      expect(requestsRepository.findQueueCandidate).toHaveBeenCalledWith(
+        { guestId: 'guest-1' },
+        { freshnessHours: 24, replyCap: 3 },
+      );
     });
   });
 

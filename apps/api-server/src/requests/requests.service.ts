@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { RequestGuestLimitExceededException } from '../common/exceptions/app.exception';
+import { SettingsService } from '../settings/settings.service';
 import type { CreateRequestDto } from './dto/create-request.dto';
 import {
   RequestsRepository,
@@ -10,7 +11,10 @@ import {
 
 @Injectable()
 export class RequestsService {
-  constructor(private readonly requestsRepository: RequestsRepository) {}
+  constructor(
+    private readonly requestsRepository: RequestsRepository,
+    private readonly settingsService: SettingsService,
+  ) {}
 
   async create(
     dto: CreateRequestDto,
@@ -42,12 +46,17 @@ export class RequestsService {
     return this.requestsRepository.findFeed();
   }
 
-  findQueueCandidate(
+  async findQueueCandidate(
     userId: string | undefined,
     guestId: string,
   ): Promise<RequestWithReplyCount | undefined> {
+    const settings = await this.settingsService.get();
     return this.requestsRepository.findQueueCandidate(
       userId ? { authorId: userId } : { guestId },
+      {
+        freshnessHours: settings.queueFreshnessHours,
+        replyCap: settings.queueReplyCap,
+      },
     );
   }
 

@@ -16,7 +16,6 @@ import {
 import { DRIZZLE } from '../database/database.constants';
 import type { Database } from '../database/database.types';
 import { answerInteractions, replies, requests } from '../database/schema';
-import { QUEUE_FRESHNESS_HOURS } from './queue-freshness.constant';
 
 export type CreateRequestInput = {
   body: string;
@@ -29,9 +28,10 @@ export type RequestWithReplyCount = RequestRecord & { replyCount: number };
 export type ViewerIdentity = { authorId?: string; guestId?: string };
 export type ReplyRecord = typeof replies.$inferSelect;
 export type FeedItem = { request: RequestRecord; replies: ReplyRecord[] };
-
-// See docs/decisions/2026-08-22-onseol-answer-queue-decisions.md.
-const QUEUE_REPLY_CAP = 5;
+export type QueueCandidateLimits = {
+  freshnessHours: number;
+  replyCap: number;
+};
 
 @Injectable()
 export class RequestsRepository {
@@ -171,14 +171,17 @@ export class RequestsRepository {
   }
 
   // The next request this viewer should be offered to answer: fresh
-  // (within QUEUE_FRESHNESS_HOURS), not theirs, not already replied to or
+  // (within limits.freshnessHours), not theirs, not already replied to or
   // skipped/held by them, fewest visible replies first (capped at
-  // QUEUE_REPLY_CAP so replies spread out) with newest-first as the
+  // limits.replyCap so replies spread out) with newest-first as the
   // tiebreak. Falls back to ignoring the cap only when every eligible
   // request has already hit it — see docs/decisions/2026-08-22-onseol-
-  // answer-queue-decisions.md.
+  // answer-queue-decisions.md. limits comes from SettingsService via
+  // RequestsService, not hardcoded here anymore — see docs/decisions/
+  // 2026-08-26-onseol-db-backed-settings-decisions.md.
   async findQueueCandidate(
     viewer: ViewerIdentity,
+    limits: QueueCandidateLimits,
   ): Promise<RequestWithReplyCount | undefined> {
     const excludedRequestIds = await this.findExcludedRequestIds(viewer);
     // NULL-safe "not self-authored": a member's requests have guestId NULL
@@ -190,7 +193,7 @@ export class RequestsRepository {
       ? or(isNull(requests.authorId), ne(requests.authorId, viewer.authorId))
       : or(isNull(requests.guestId), ne(requests.guestId, viewer.guestId!));
     const freshnessCutoff = new Date(
-      Date.now() - QUEUE_FRESHNESS_HOURS * 60 * 60 * 1000,
+      Date.now() - limits.freshnessHours * 60 * 60 * 1000,
     );
 
     const baseWhere = and(
@@ -203,9 +206,9 @@ export class RequestsRepository {
         : undefined,
     );
 
-    const capped = await this.queueCandidateQuery(baseWhere, true);
+    const capped = await this.queueCandidateQuery(baseWhere, limits.replyCap);
     if (capped) return capped;
-    return this.queueCandidateQuery(baseWhere, false);
+    return this.queueCandidateQuery(baseWhere, undefined);
   }
 
   private async findExcludedRequestIds(
@@ -239,7 +242,7 @@ export class RequestsRepository {
 
   private async queueCandidateQuery(
     baseWhere: ReturnType<typeof and>,
-    applyCap: boolean,
+    replyCap: number | undefined,
   ): Promise<RequestWithReplyCount | undefined> {
     const replyCount = count(replies.id);
     const rows = await this.db
@@ -265,7 +268,7 @@ export class RequestsRepository {
       )
       .where(baseWhere)
       .groupBy(requests.id)
-      .having(applyCap ? lt(replyCount, QUEUE_REPLY_CAP) : undefined)
+      .having(replyCap !== undefined ? lt(replyCount, replyCap) : undefined)
       .orderBy(replyCount, desc(requests.createdAt))
       .limit(1);
 
