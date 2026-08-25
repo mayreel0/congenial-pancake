@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { ActionConfirmDialog } from "./components/shared/ActionConfirmDialog";
+import { ActionConfirmDialog } from "ui/ActionConfirmDialog";
 import { ApiError } from "./lib/api";
 import { useAuth } from "./lib/auth/useAuth";
-import { formatTimestamp } from "./lib/format";
+import { formatTimestamp } from "utils";
 import { useAdminReview } from "./useAdminReview";
 
 type PendingDelete =

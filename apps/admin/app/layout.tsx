@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { QueryProvider } from "./lib/query/QueryProvider";
+import { QueryProvider } from "ui/QueryProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {

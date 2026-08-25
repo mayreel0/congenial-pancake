@@ -1,4 +1,9 @@
 @import "tailwindcss";
+/* Tailwind v4's automatic content detection only scans within this file's
+   own directory tree — packages/ui lives outside it, so without this its
+   className usage (e.g. ActionConfirmDialog) would silently generate no
+   CSS. See docs/decisions/2026-08-25-onseol-shared-ui-package-decisions.md. */
+@source "../../../packages/ui/src";
 
 :root {
   --background: #f6f7f4;

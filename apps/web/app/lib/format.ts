@@ -1,12 +1,8 @@
-export function formatTimestamp(iso: string): string {
-  const date = new Date(iso);
-  const month = date.getMonth() + 1;
-  const day = date.getDate();
-  const hours = date.getHours().toString().padStart(2, "0");
-  const minutes = date.getMinutes().toString().padStart(2, "0");
-
-  return `${month}월 ${day}일 ${hours}:${minutes}`;
-}
+// Shared with apps/admin — see
+// docs/decisions/2026-08-25-onseol-shared-ui-package-decisions.md. The
+// other helpers below are apps/web-only (used by /today's day grouping and
+// /me's join date) and stay here.
+export { formatTimestamp } from "utils";
 
 export function isSameCalendarDay(isoA: string, isoB: string): boolean {
   const a = new Date(isoA);
