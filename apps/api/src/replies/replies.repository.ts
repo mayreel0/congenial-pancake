@@ -73,6 +73,31 @@ export class RepliesRepository {
     await this.db.update(replies).set({ hidden }).where(eq(replies.id, id));
   }
 
+  // Admin's "신고 검토" queue — joined with its request so the admin has
+  // context for what was replied to, oldest hidden first.
+  findHidden(): Promise<ReplyWithRequest[]> {
+    return this.db
+      .select({ reply: replies, request: requests })
+      .from(replies)
+      .innerJoin(requests, eq(requests.id, replies.requestId))
+      .where(and(eq(replies.hidden, true), isNull(replies.deletedAt)))
+      .orderBy(asc(replies.createdAt));
+  }
+
+  async restore(id: string): Promise<void> {
+    await this.db
+      .update(replies)
+      .set({ hidden: false, reviewedAt: new Date() })
+      .where(eq(replies.id, id));
+  }
+
+  async softDelete(id: string): Promise<void> {
+    await this.db
+      .update(replies)
+      .set({ deletedAt: new Date() })
+      .where(eq(replies.id, id));
+  }
+
   findMine(viewer: ViewerIdentity): Promise<ReplyWithRequest[]> {
     return this.db
       .select({ reply: replies, request: requests })

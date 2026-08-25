@@ -1,0 +1,95 @@
+import {
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
+import { SessionGuard } from '../auth/session.guard';
+import { ReportsService } from '../reports/reports.service';
+import { RepliesService } from '../replies/replies.service';
+import { RequestsService } from '../requests/requests.service';
+import { AdminGuard } from './admin.guard';
+import {
+  toAdminReplyResponseDto,
+  type AdminReplyResponseDto,
+} from './dto/admin-reply.dto';
+import {
+  toAdminRequestResponseDto,
+  type AdminRequestResponseDto,
+} from './dto/admin-request.dto';
+
+export type HiddenModerationQueueDto = {
+  requests: AdminRequestResponseDto[];
+  replies: AdminReplyResponseDto[];
+};
+
+// 신고 검토 — the only /admin section in this MVP scope, see
+// docs/decisions/2026-08-21-onseol-db-and-moderation-decisions.md.
+// SessionGuard first (so request.userId is set), then AdminGuard (checks
+// that userId against the whitelist) — order matters.
+@Controller('admin')
+@UseGuards(SessionGuard, AdminGuard)
+export class AdminController {
+  constructor(
+    private readonly requestsService: RequestsService,
+    private readonly repliesService: RepliesService,
+    private readonly reportsService: ReportsService,
+  ) {}
+
+  @Get('moderation/hidden')
+  async hidden(): Promise<HiddenModerationQueueDto> {
+    const [hiddenRequests, hiddenReplies] = await Promise.all([
+      this.requestsService.findHidden(),
+      this.repliesService.findHidden(),
+    ]);
+
+    const requests = await Promise.all(
+      hiddenRequests.map(async (request) => {
+        const reportCount = await this.reportsService.countDistinctReporters(
+          'request',
+          request.id,
+        );
+        return toAdminRequestResponseDto(request, reportCount);
+      }),
+    );
+
+    const replies = await Promise.all(
+      hiddenReplies.map(async (entry) => {
+        const reportCount = await this.reportsService.countDistinctReporters(
+          'reply',
+          entry.reply.id,
+        );
+        return toAdminReplyResponseDto(entry, reportCount);
+      }),
+    );
+
+    return { requests, replies };
+  }
+
+  @Post('requests/:id/restore')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async restoreRequest(@Param('id') id: string): Promise<void> {
+    await this.requestsService.restore(id);
+  }
+
+  @Post('requests/:id/delete')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteRequest(@Param('id') id: string): Promise<void> {
+    await this.requestsService.softDelete(id);
+  }
+
+  @Post('replies/:id/restore')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async restoreReply(@Param('id') id: string): Promise<void> {
+    await this.repliesService.restore(id);
+  }
+
+  @Post('replies/:id/delete')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteReply(@Param('id') id: string): Promise<void> {
+    await this.repliesService.softDelete(id);
+  }
+}

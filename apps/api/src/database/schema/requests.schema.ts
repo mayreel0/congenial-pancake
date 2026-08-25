@@ -28,6 +28,11 @@ export const requests = pgTable(
     hidden: boolean('hidden').notNull().default(false),
     // Soft delete for admin "영구 삭제" — never a real row delete.
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
+    // Set when an admin restores this from auto-hide. Once set, auto-hide
+    // only counts reports created after this timestamp — otherwise the
+    // pre-existing report rows that caused the original hide would
+    // immediately re-trigger it the moment one more person reports again.
+    reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
   },
   (table) => [
     check(

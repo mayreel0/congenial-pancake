@@ -54,4 +54,16 @@ export class RequestsService {
   hide(id: string): Promise<void> {
     return this.requestsRepository.setHidden(id, true);
   }
+
+  findHidden(): Promise<RequestRecord[]> {
+    return this.requestsRepository.findHidden();
+  }
+
+  restore(id: string): Promise<void> {
+    return this.requestsRepository.restore(id);
+  }
+
+  softDelete(id: string): Promise<void> {
+    return this.requestsRepository.softDelete(id);
+  }
 }

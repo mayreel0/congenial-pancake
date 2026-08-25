@@ -31,6 +31,8 @@ export const replies = pgTable(
       .defaultNow(),
     hidden: boolean('hidden').notNull().default(false),
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
+    // See requests.schema.ts's reviewedAt — same purpose.
+    reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
   },
   (table) => [
     check(
