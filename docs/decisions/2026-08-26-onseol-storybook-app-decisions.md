@@ -21,6 +21,18 @@
 
 PR #78(공유 패키지 추출) 때 빠뜨린 부분 — `packages/ui/package.json`에 `lint` 스크립트를 추가하고 `eslint.config.mjs`를 새로 만들었다. `eslint-config-next`를 재사용했는데(이 패키지는 Next 앱이 아닌데도), pages/app 라우터가 없다는 무해한 경고가 계속 떠서 `@next/next/no-html-link-for-pages` 규칙만 껐다(그 외 규칙은 일반적인 React/TS 위생 규칙이라 그대로 유용함). `apps/storybook`도 같은 이유로 같은 규칙을 껐다.
 
+## 실제 렌더링 확인 중 발견한 세 가지 추가 문제
+
+Storybook을 옮긴 뒤 사용자가 "CSS가 제대로 안 먹히는 것 같다"고 지적해 실제 브라우저로 다시 검증했다. 이번엔 Tailwind 자체가 아니라 세 가지 다른 문제였다:
+
+1. **Geist 폰트가 전혀 로드되지 않고 있었다 — 이번 라운드 이전부터, `v1`부터 있던 문제.** `apps/web/app/layout.tsx`는 `next/font/google`로 Geist를 로드해 `<html>`에 CSS 변수 클래스를 건다. Storybook은 그 `layout.tsx`를 애초에 렌더링한 적이 없어서(컴포넌트 하나만 격리해서 보여주는 도구이므로), `--font-geist-sans`가 한 번도 정의된 적이 없었고 모든 스토리가 시스템 폰트로 대체 렌더링되고 있었다. 오래 못 알아챈 이유: 한글 텍스트는 Geist가 라틴 문자 전용 폰트라 애초에 그 글리프를 안 가지고 있어서, Geist가 로드되든 안 되든 한글 렌더링에는 차이가 없었다(그래서 한글 텍스트뿐인 `ActionConfirmDialog`는 멀쩡해 보였다) — 영어/숫자가 섞인 `LandingHero` 같은 컴포넌트에서만 차이가 드러났다. `preview.tsx`에 `next/font/google` 로딩을 추가해 해결.
+2. **폰트를 wrapper `<div>`에 걸었더니 그래도 안 먹혔다.** `globals.css`의 `@theme inline`이 `--font-sans: var(--font-geist-sans)`를 `:root`에 선언하는데, 커스텀 프로퍼티 값 안의 `var()` 참조는 그게 나중에 소비되는 지점이 아니라 **그 커스텀 프로퍼티 자신이 선언된 지점(`:root`)의 캐스케이드**를 기준으로 해석된다. 즉 `--font-geist-sans`를 body 밑의 wrapper div에만 걸면 `:root`에서는 여전히 미정의라 `--font-sans`가 깨진 채로 남는다 — `layout.tsx`가 이 클래스를 `<div>`가 아니라 `<html>` 자체에 거는 이유가 바로 이것. `document.documentElement.classList.add(...)`로 실제 `<html>`에 걸도록 수정.
+3. **배경색이 계산은 맞는데 화면엔 흰 배경만 보였다.** `layout.tsx`는 `<html>`에 `h-full`, `<body>`에 `min-h-full flex flex-col`도 건다 — Storybook은 컴포넌트 하나만 격리해서 그리므로 body 높이가 그 컴포넌트의 자연스러운 컨텐츠 높이만큼만 생기고, 뷰포트의 나머지 영역은 우리 앱의 배경색이 아니라 브라우저/Storybook 기본 배경(흰색)으로 남는다 — `getComputedStyle`로는 색상 값 자체가 정확히 나와서(예: 다크 테마의 `#151816`) 착시를 일으켰다. `h-full`/`min-h-full`도 같은 데코레이터에서 `<html>`/`<body>`에 직접 걸도록 추가.
+
+## 부수 발견 및 정리: 실제로 안 쓰이는 컴포넌트 3개가 스토리로 남아있었음
+
+`ActivitySummary`, `NoteCard`, `ReplyCard`(전부 `apps/web/app/today/components/`)는 자기 자신과 자기 스토리 파일 말고는 아무 데서도 import되지 않는 죽은 코드였다 — 초기 프로토타입/리디자인 라운드(`docs/superpowers/plans/2026-08-17-onseol-today-redesign.md`)의 유물로, `/today`가 실제 API 연동 버전으로 교체되면서 컴포넌트 자체는 안 쓰이게 됐는데 스토리만 정리가 안 돼 남아있었다. "Storybook에서 실제 UI랑 너무 다르다"는 지적의 상당 부분이 사실 이것 때문이었다 — 애초에 지금 렌더링되는 실제 화면이 아니었다. 컴포넌트 3개 + 스토리 3개, 총 6개 파일을 통째로 삭제했다(다른 어디서도 참조 안 됨을 grep으로 확인 후).
+
 ## 산출물
 
 - `apps/storybook/`(신규): `package.json`, `tsconfig.json`, `eslint.config.mjs`, `postcss.config.mjs`, `.storybook/{main.ts, preview.tsx}`.
