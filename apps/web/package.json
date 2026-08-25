@@ -13,10 +13,12 @@
   },
   "dependencies": {
     "@tanstack/react-query": "^5.101.4",
+    "api-client": "workspace:*",
     "next": "16.3.1",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "ui": "workspace:*"
+    "ui": "workspace:*",
+    "utils": "workspace:*"
   },
   "devDependencies": {
     "@storybook/nextjs-vite": "10.5.9",

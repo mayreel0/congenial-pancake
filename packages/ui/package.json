@@ -7,10 +7,8 @@
     "typecheck": "tsc --noEmit"
   },
   "exports": {
-    "./api": "./src/api.ts",
     "./ActionConfirmDialog": "./src/ActionConfirmDialog.tsx",
-    "./QueryProvider": "./src/QueryProvider.tsx",
-    "./format": "./src/format.ts"
+    "./QueryProvider": "./src/QueryProvider.tsx"
   },
   "peerDependencies": {
     "@tanstack/react-query": "^5.101.4",

@@ -4,7 +4,7 @@ import { useState, type FormEvent } from "react";
 import { ActionConfirmDialog } from "ui/ActionConfirmDialog";
 import { ApiError } from "./lib/api";
 import { useAuth } from "./lib/auth/useAuth";
-import { formatTimestamp } from "ui/format";
+import { formatTimestamp } from "utils";
 import { useAdminReview } from "./useAdminReview";
 
 type PendingDelete =

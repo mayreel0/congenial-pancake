@@ -33,6 +33,16 @@ PR #77(`/admin` 분리)에서 "지금 규모에서 공유 패키지 인프라 �
 
 Tailwind v4의 자동 컨텐츠 탐지는 CSS 파일이 있는 디렉터리 트리 안쪽만 스캔한다. `packages/ui`는 `apps/web`/`apps/admin`의 디렉터리 바깥에 있어서, 아무 설정 없이는 `ActionConfirmDialog.tsx`가 쓰는 클래스(`bg-primary`, `z-30` 등)가 빌드된 CSS에 전혀 생성되지 않는다 — 빌드 자체는 에러 없이 성공하고 컴포넌트는 스타일 없이 깨진 채로 렌더링되는, 겉으로 티가 안 나는 실패 모드다. 각 앱의 `globals.css`에 `@source "../../../packages/ui/src";`를 추가해 명시적으로 스캔 대상에 포함시켰다.
 
+## 추가 결정 (2026-08-26): `packages/ui`에서 비-UI 코드를 `packages/api-client`/`packages/utils`로 재분리
+
+사용자가 `packages/ui`에 `api.ts`(fetch 래퍼, 로그인 함수들)가 들어있는 게 이상하다고 지적했다 — 맞는 지적이다: `ActionConfirmDialog`/`QueryProvider`만 실제 React 컴포넌트고, `api.ts`/`format.ts`는 React와 무관한 데이터 페칭/유틸 로직이다. 다음과 같이 재분리했다.
+
+- **`packages/api-client`(신규)**: `apiFetch`, `ApiError`, `API_BASE_URL`, `CurrentUser`, `login`/`logout`/`fetchCurrentUser` — 옛 `packages/ui/src/api.ts` 전체를 그대로 이동. 패키지 이름을 `api`가 아니라 `api-client`로 지은 이유: `apps/api`(NestJS 백엔드)가 이미 자기 `package.json`에서 `"name": "api"`를 쓰고 있어서 그대로 쓰면 pnpm 워크스페이스 이름이 충돌한다(실제로 `api`로 시도했다가 `pnpm --filter api`가 두 패키지에 다 매칭되고 `tsc`가 모듈을 못 찾는 것으로 발견).
+- **`packages/utils`(신규)**: `formatTimestamp`. 이름을 `util`이 아니라 `utils`(복수형)로 지은 이유: Node.js 내장 코어 모듈 이름이 `util`이라 그대로 쓰면 번들러/Node 모듈 해석 순서에 따라 내장 모듈에 가려질 수 있는 잠재적 충돌 지점이라 처음부터 피했다.
+- `packages/ui`엔 이제 `ActionConfirmDialog`/`QueryProvider`만 남는다 — 이름과 실제 내용이 다시 일치한다.
+
+두 앱 다 `package.json`에 `api-client`/`utils` 의존성 추가, `next.config.ts`의 `transpilePackages`에 두 이름 추가, import 경로를 `"ui/api"``"ui/format"` → `"api-client"``"utils"`로 변경. 소비처가 각 앱 1개(`app/lib/api.ts`, `app/lib/format.ts`/`AdminReview.tsx`)뿐이라 재수출 shim 구조는 그대로 유지했다.
+
 ## 산출물
 
 - `packages/ui/`(신규): `package.json`, `tsconfig.json`, `src/{api.ts, ActionConfirmDialog.tsx, QueryProvider.tsx, format.ts}`.
