@@ -1,0 +1,25 @@
+{
+  "name": "storybook-app",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@storybook/addon-a11y": "10.5.9",
+    "@tailwindcss/postcss": "^4",
+    "@storybook/addon-docs": "10.5.9",
+    "@storybook/addon-themes": "10.5.9",
+    "@storybook/nextjs-vite": "10.5.9",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.1",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "storybook": "10.5.9",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

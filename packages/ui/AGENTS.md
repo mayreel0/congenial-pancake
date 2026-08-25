@@ -16,4 +16,8 @@ Only code that is genuinely identical between `apps/web` and `apps/admin` today,
 
 ## Tailwind consumers must opt in
 
-Any React component here that uses Tailwind utility classes only generates real CSS in a consuming app if that app's `globals.css` has `@source "../../../packages/ui/src";` — Tailwind v4's automatic content-detection doesn't cross into directories outside the CSS file's own tree. Both `apps/web` and `apps/admin` already have this. If you add classes here that never show up styled in a consuming app, check that line exists and points at the right path before debugging anything else.
+Any React component here that uses Tailwind utility classes only generates real CSS in a consuming app if that app's `globals.css` has `@source "../../../packages/ui/src";` — Tailwind v4's automatic content-detection doesn't cross into directories outside the CSS file's own tree. Both `apps/web` and `apps/admin` already have this. If you add classes here that never show up styled in a consuming app, check that line exists and points at the right path before debugging anything else — and if the consumer is `apps/storybook`, also check it actually has a `postcss.config.mjs` + `tailwindcss`/`@tailwindcss/postcss` of its own (it doesn't inherit any app's config just by importing that app's CSS file — this bit us once, see `docs/decisions/2026-08-26-onseol-storybook-app-decisions.md`).
+
+## Story files live here too
+
+A component with a Storybook story keeps that story right next to it (e.g. `ActionConfirmDialog.tsx` + `ActionConfirmDialog.stories.tsx`), not inside `apps/web` or `apps/storybook` — `apps/storybook`'s config just discovers this directory via glob. `pnpm --filter ui lint` covers `.stories.tsx` files here (via `eslint-plugin-storybook`); `pnpm --filter ui typecheck` needs `@storybook/nextjs-vite`/`storybook` present as devDependencies purely for their types, even though this package never runs Storybook itself.

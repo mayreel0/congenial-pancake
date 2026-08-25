@@ -9,9 +9,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest",
-    "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.101.4",
@@ -21,9 +19,6 @@
     "ui": "workspace:*"
   },
   "devDependencies": {
-    "@storybook/addon-a11y": "10.5.9",
-    "@storybook/addon-docs": "10.5.9",
-    "@storybook/addon-themes": "10.5.9",
     "@storybook/nextjs-vite": "10.5.9",
     "@tailwindcss/postcss": "^4",
     "@testing-library/dom": "^10.4.1",

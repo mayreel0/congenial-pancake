@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { fn } from "storybook/test";
-import { ActionConfirmDialog } from "ui/ActionConfirmDialog";
+import { ActionConfirmDialog } from "./ActionConfirmDialog";
 
 const meta: Meta<typeof ActionConfirmDialog> = {
   title: "shared/ActionConfirmDialog",

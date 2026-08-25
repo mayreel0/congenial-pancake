@@ -1,6 +1,11 @@
 import type { Preview } from "@storybook/nextjs-vite";
 import { withThemeByDataAttribute } from "@storybook/addon-themes";
-import "../app/globals.css";
+// Design tokens (--background/--primary/etc.) aren't extracted to
+// packages/ui yet, so this imports apps/web's copy specifically — both
+// apps/web's and apps/admin's copies are identical today, but if they ever
+// diverge, whichever one Storybook should visually match needs to be
+// picked deliberately here, not left as an accident of import order.
+import "../../web/app/globals.css";
 
 const preview: Preview = {
   parameters: {
