@@ -1,10 +1,12 @@
 import { Injectable } from '@nestjs/common';
+import { SettingsService } from '../settings/settings.service';
 import { AnswerInteractionsRepository } from './answer-interactions.repository';
 
 @Injectable()
 export class AnswerInteractionsService {
   constructor(
     private readonly answerInteractionsRepository: AnswerInteractionsRepository,
+    private readonly settingsService: SettingsService,
   ) {}
 
   async skip(
@@ -32,8 +34,12 @@ export class AnswerInteractionsService {
     );
   }
 
-  findHeldForAuthor(userId: string) {
-    return this.answerInteractionsRepository.findHeldForAuthor(userId);
+  async findHeldForAuthor(userId: string) {
+    const settings = await this.settingsService.get();
+    return this.answerInteractionsRepository.findHeldForAuthor(
+      userId,
+      settings.queueFreshnessHours,
+    );
   }
 
   clearForViewer(

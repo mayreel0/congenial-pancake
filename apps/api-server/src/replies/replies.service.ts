@@ -6,6 +6,7 @@ import {
   RequestNotFoundException,
 } from '../common/exceptions/app.exception';
 import { RequestsService } from '../requests/requests.service';
+import { SettingsService } from '../settings/settings.service';
 import type { CreateReplyDto } from './dto/create-reply.dto';
 import {
   RepliesRepository,
@@ -13,16 +14,13 @@ import {
   type ReplyWithRequest,
 } from './replies.repository';
 
-// See docs/decisions/2026-08-21-onseol-anonymous-posting-decisions.md — a
-// global budget per guestId across every request, not per-request.
-const GUEST_REPLY_LIMIT = 5;
-
 @Injectable()
 export class RepliesService {
   constructor(
     private readonly repliesRepository: RepliesRepository,
     private readonly requestsService: RequestsService,
     private readonly answerInteractionsService: AnswerInteractionsService,
+    private readonly settingsService: SettingsService,
   ) {}
 
   async create(
@@ -56,8 +54,13 @@ export class RepliesService {
       return reply;
     }
 
-    const guestReplyCount = await this.repliesRepository.countByGuest(guestId);
-    if (guestReplyCount >= GUEST_REPLY_LIMIT) {
+    // See docs/decisions/2026-08-21-onseol-anonymous-posting-decisions.md —
+    // a global budget per guestId across every request, not per-request.
+    const [guestReplyCount, settings] = await Promise.all([
+      this.repliesRepository.countByGuest(guestId),
+      this.settingsService.get(),
+    ]);
+    if (guestReplyCount >= settings.guestReplyLimit) {
       throw new ReplyGuestLimitExceededException();
     }
 

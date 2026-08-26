@@ -3,7 +3,6 @@ import { and, eq, gt } from 'drizzle-orm';
 import { DRIZZLE } from '../database/database.constants';
 import type { Database } from '../database/database.types';
 import { answerInteractions, requests } from '../database/schema';
-import { QUEUE_FRESHNESS_HOURS } from '../requests/queue-freshness.constant';
 
 export type AnswerInteraction = typeof answerInteractions.$inferSelect;
 
@@ -47,9 +46,9 @@ export class AnswerInteractionsRepository {
   // past the same freshness window that excludes it from everyone else's
   // queue — otherwise it could sit here indefinitely, long after it's gone
   // stale for everyone else.
-  findHeldForAuthor(authorId: string) {
+  findHeldForAuthor(authorId: string, freshnessHours: number) {
     const freshnessCutoff = new Date(
-      Date.now() - QUEUE_FRESHNESS_HOURS * 60 * 60 * 1000,
+      Date.now() - freshnessHours * 60 * 60 * 1000,
     );
 
     return this.db

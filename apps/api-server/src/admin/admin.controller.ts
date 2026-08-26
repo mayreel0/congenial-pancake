@@ -1,9 +1,11 @@
 import {
+  Body,
   Controller,
   Get,
   HttpCode,
   HttpStatus,
   Param,
+  Patch,
   Post,
   UseGuards,
 } from '@nestjs/common';
@@ -11,6 +13,12 @@ import { SessionGuard } from '../auth/session.guard';
 import { ReportsService } from '../reports/reports.service';
 import { RepliesService } from '../replies/replies.service';
 import { RequestsService } from '../requests/requests.service';
+import { SettingsService } from '../settings/settings.service';
+import { UpdateSettingsDto } from '../settings/dto/update-settings.dto';
+import {
+  toSettingsResponseDto,
+  type SettingsResponseDto,
+} from '../settings/dto/settings.dto';
 import { AdminGuard } from './admin.guard';
 import {
   toAdminReplyResponseDto,
@@ -37,6 +45,7 @@ export class AdminController {
     private readonly requestsService: RequestsService,
     private readonly repliesService: RepliesService,
     private readonly reportsService: ReportsService,
+    private readonly settingsService: SettingsService,
   ) {}
 
   @Get('moderation/hidden')
@@ -91,5 +100,19 @@ export class AdminController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteReply(@Param('id') id: string): Promise<void> {
     await this.repliesService.softDelete(id);
+  }
+
+  @Get('settings')
+  async getSettings(): Promise<SettingsResponseDto> {
+    const settings = await this.settingsService.get();
+    return toSettingsResponseDto(settings);
+  }
+
+  @Patch('settings')
+  async updateSettings(
+    @Body() dto: UpdateSettingsDto,
+  ): Promise<SettingsResponseDto> {
+    const settings = await this.settingsService.update(dto);
+    return toSettingsResponseDto(settings);
   }
 }

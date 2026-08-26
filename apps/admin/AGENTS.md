@@ -20,7 +20,7 @@ Project-wide rules live in the root `AGENTS.md`. This app used to be `/admin` in
 
 ## Scope
 
-Single route (`app/page.tsx` → `AdminReview.tsx`). Only one section — "신고 검토" (hidden requests/replies, restore/soft-delete) — matching the original `/admin` decision's deliberately narrow scope. No nav, no other tabs; add a real nav shell only when a second section is actually being built, not preemptively.
+Two routes: `/` (`AdminReview.tsx` — "신고 검토": hidden requests/replies, restore/soft-delete) and `/settings` (`SettingsReview.tsx` — the DB-backed tunable limits, see `apps/api-server/AGENTS.md`'s "DB-backed settings" and `docs/decisions/2026-08-26-onseol-db-backed-settings-decisions.md`). `app/components/AdminNav.tsx` is the shared nav (신고 검토/설정 tabs + logout) — it was deliberately *not* added until this second section actually existed (see the original `/admin` decision's narrow-scope reasoning). Add a third tab only when a real third section is being built, not preemptively.
 
 ## Auth: same session cookie as apps/web, no JWT
 
@@ -30,7 +30,7 @@ There is **no signup and no Google OAuth here** — `app/lib/api.ts` only expose
 
 ## Don't repeat the ServiceNav mount-loop bug
 
-`AdminReview.tsx`'s outer shell (title + logout button) renders **unconditionally**, regardless of `useAdminReview()`'s `status`. Only the `<main>` content branches on loading/signed-out/forbidden/ready. Gating the whole shell's mount on the same auth query's own loading state caused a real infinite mount→refetch→unmount loop when this page briefly lived inside `apps/web` (confirmed empirically: 100+ calls to `/auth/me` in 500ms in a test, before the fix) — see `docs/decisions/2026-08-25-onseol-admin-moderation-decisions.md` for the root cause. Don't reintroduce a component that conditionally mounts based on the loading state of a query something inside it also subscribes to.
+`<AdminNav />` renders **unconditionally** at the top of every page (`AdminReview.tsx`, `SettingsReview.tsx`), regardless of that page's own status. Only the `<main>` content below it branches on loading/signed-out/forbidden/ready. Gating the whole shell's mount on the same auth query's own loading state caused a real infinite mount→refetch→unmount loop when this page briefly lived inside `apps/web` (confirmed empirically: 100+ calls to `/auth/me` in 500ms in a test, before the fix) — see `docs/decisions/2026-08-25-onseol-admin-moderation-decisions.md` for the root cause. Don't reintroduce a component that conditionally mounts based on the loading state of a query something inside it also subscribes to. `AdminNav` takes `activePath` as an explicit prop rather than calling `usePathname()` (matching `apps/web`'s `ServiceNav`) — each page already knows its own path, and this keeps `AdminNav` renderable in tests without an App Router context.
 
 ## Shared code with apps/web
 

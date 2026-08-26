@@ -3,6 +3,7 @@ import { AnswerInteractionsModule } from '../answer-interactions/answer-interact
 import { AuthModule } from '../auth/auth.module';
 import { DatabaseModule } from '../database/database.module';
 import { RequestsModule } from '../requests/requests.module';
+import { SettingsModule } from '../settings/settings.module';
 import { RepliesController } from './replies.controller';
 import { RepliesMineController } from './replies-mine.controller';
 import { RepliesRepository } from './replies.repository';
@@ -14,6 +15,7 @@ import { RepliesService } from './replies.service';
     AuthModule,
     RequestsModule,
     AnswerInteractionsModule,
+    SettingsModule,
   ],
   controllers: [RepliesController, RepliesMineController],
   providers: [RepliesRepository, RepliesService],

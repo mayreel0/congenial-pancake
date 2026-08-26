@@ -6,6 +6,8 @@ import {
 } from '../common/exceptions/app.exception';
 import type { RequestRecord } from '../requests/requests.repository';
 import type { RequestsService } from '../requests/requests.service';
+import type { SettingsService } from '../settings/settings.service';
+import type { SettingsRecord } from '../settings/settings.repository';
 import type { ReplyRecord, RepliesRepository } from './replies.repository';
 import { RepliesService } from './replies.service';
 
@@ -38,10 +40,22 @@ function makeReply(overrides: Partial<ReplyRecord> = {}): ReplyRecord {
   };
 }
 
+function makeSettings(overrides: Partial<SettingsRecord> = {}): SettingsRecord {
+  return {
+    id: 1,
+    queueFreshnessHours: 60,
+    queueReplyCap: 5,
+    guestReplyLimit: 5,
+    updatedAt: new Date('2026-08-21T00:00:00.000Z'),
+    ...overrides,
+  };
+}
+
 describe('RepliesService', () => {
   let repliesRepository: jest.Mocked<RepliesRepository>;
   let requestsService: jest.Mocked<RequestsService>;
   let answerInteractionsService: jest.Mocked<AnswerInteractionsService>;
+  let settingsService: jest.Mocked<SettingsService>;
   let repliesService: RepliesService;
 
   beforeEach(() => {
@@ -60,11 +74,15 @@ describe('RepliesService', () => {
     answerInteractionsService = {
       clearForViewer: jest.fn(),
     } as unknown as jest.Mocked<AnswerInteractionsService>;
+    settingsService = {
+      get: jest.fn().mockResolvedValue(makeSettings()),
+    } as unknown as jest.Mocked<SettingsService>;
 
     repliesService = new RepliesService(
       repliesRepository,
       requestsService,
       answerInteractionsService,
+      settingsService,
     );
   });
 
@@ -126,6 +144,23 @@ describe('RepliesService', () => {
     it('throws when the guest already replied 5 times total, across any requests', async () => {
       requestsService.findVisibleById.mockResolvedValue(makeRequest());
       repliesRepository.countByGuest.mockResolvedValue(5);
+
+      await expect(
+        repliesService.create(
+          'request-1',
+          { body: '내용' },
+          undefined,
+          'guest-1',
+        ),
+      ).rejects.toBeInstanceOf(ReplyGuestLimitExceededException);
+    });
+
+    it('reads the guest reply limit from settings, not a hardcoded value', async () => {
+      settingsService.get.mockResolvedValue(
+        makeSettings({ guestReplyLimit: 2 }),
+      );
+      requestsService.findVisibleById.mockResolvedValue(makeRequest());
+      repliesRepository.countByGuest.mockResolvedValue(2);
 
       await expect(
         repliesService.create(
