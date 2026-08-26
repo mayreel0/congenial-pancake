@@ -55,7 +55,24 @@ Storybook `data-theme` 토글로 라이트/다크 각각 스크린샷 재확인:
 
 Storybook에서 라이트/다크 토글 둘 다 재확인: Google 버튼이 테마와 무관하게 동일한 연회색으로 고정 렌더링됨, Naver 아이콘이 공식 SVG 마크로 정확히 표시됨. `apps/web` lint/typecheck/test(67/67)/build 재통과.
 
+## 참고: 콘솔 등록에 필요한 URL, 프로필 정보/권한 관련 운영 지식
+
+`#86` 머지 후 사용자가 "카카오나 네이버에서 받아와야할 제공 정보나 권한이 따로 있는지, 구글처럼 프로필 사진을 쓸 수 있는지"를 물어 정리한 내용.
+
+**프로필 사진**: 세 provider 모두 지금은 프로필 사진을 안 쓴다 — `OAuthProfile` 타입이 `providerAccountId`/`email`만 갖고 있고, Google도 scope가 `openid email`뿐이라 `picture`를 애초에 안 받아온다. `users` 스키마에도 avatar 컬럼이 없다. 나중에 쓰려면 (1) Kakao는 동의항목에서 `profile_nickname`/`profile_image` 활성화(이메일과 달리 비즈니스 인증 불필요), (2) Naver는 "제공정보 선택"에서 별명/프로필사진 체크(서비스 검수에 포함), (3) Google은 scope에 `profile` 추가 — 이후 `OAuthProfile` 타입 확장 + `users` 스키마 컬럼 추가 + UI 반영이 필요하다. 다만 온설은 익명 기반 설계([[anonymous_identity_design]])라 실제 프로필 사진 노출 여부는 기술보다 제품 결정에 가까움 — 필요해지면 그때 범위를 다시 논의.
+
+**실사용자 로그인이 되려면 (자격증명 발급보다 먼저 걸리는 것)**: 카카오는 앱이 "테스트 중" 상태면 콘솔에 등록한 팀원 계정만 로그인되고, `account_email` 동의항목은 비즈니스 앱 전환(카카오톡 채널 연결) + 카카오 로그인 심사를 통과해야 일반 사용자에게 이메일이 내려온다 — 안 되면 지금 코드의 `KakaoOAuthProvider`가 이메일 누락으로 `OAuthExchangeFailedException`을 던진다. 네이버는 기본 "개발중" 상태라 등록된 테스트 네이버 ID(최대 5명)만 로그인되고, 실서비스 URL 등록 + 검수 신청을 거쳐야 "서비스 중"으로 전환되어 전체 사용자가 쓸 수 있다.
+
+**콘솔에 등록할 URL** (로컬 개발 기준, `apps/api-server/.env`의 `API_PUBLIC_URL=http://localhost:8080`/`WEB_PUBLIC_URL=http://localhost:3000` 값 그대로):
+
+- 카카오(Kakao Developers → 내 애플리케이션 → 앱 설정): 플랫폼 → Web 플랫폼 → 사이트 도메인 `http://localhost:3000`, 카카오 로그인 → Redirect URI `http://localhost:8080/auth/kakao/callback`.
+- 네이버(Naver Developers → 애플리케이션 정보): 서비스 URL `http://localhost:3000`, Callback URL `http://localhost:8080/auth/naver/callback`.
+- (참고) 구글은 이미 등록되어 동작 중: `http://localhost:8080/auth/google/callback` — 동일 패턴 `{API_PUBLIC_URL}/auth/{provider}/callback`.
+
+실제 배포 도메인이 정해지면 이 URL들을 그 도메인으로 다시 등록해야 한다(로컬 서비스 심사/전환과 별개로 프로덕션 도메인 등록도 필요).
+
 ## 남은 일
 
 - 사용자가 Kakao Developers/Naver Developers에 실제 앱을 등록해 `KAKAO_CLIENT_ID`/`KAKAO_CLIENT_SECRET`/`NAVER_CLIENT_ID`/`NAVER_CLIENT_SECRET` 실값을 발급받아야 실제 계정으로 전체 로그인 플로우 테스트가 가능하다 — 계정 생성은 어시스턴트가 대행할 수 없는 영역.
+- 위 "실사용자 로그인이 되려면" 항목(카카오 비즈니스 앱 전환+심사, 네이버 서비스 URL 검수)도 사용자가 각 콘솔에서 직접 진행해야 하는 부분.
 - `apps/admin`의 OAuth 전용 계정 단독 로그인 문제(이전 라운드부터 반복적으로 보류된 백로그 항목)는 이번에도 범위 밖.
