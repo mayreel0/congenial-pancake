@@ -43,21 +43,19 @@ function KakaoIcon() {
   );
 }
 
-// Naver's button guideline (https://developers.naver.com/docs/login/bi/
-// bi.md) allows an abbreviated/label-only form — using the white "N"
-// glyph instead of the exact bordered mark, since that mark isn't
-// reproducible here without the official downloaded asset either. The
-// guideline sets minimum N-mark sizes of 18px (icon type) / 16px+
-// (label-combined type, which is what this button is) — 20px/18px here
-// clears both with margin instead of sitting right at the floor.
+// Official Naver "N" mark (https://developers.naver.com/docs/login/bi/
+// bi.md) — the exact provided path, at the guideline's 20px size rather
+// than a hand-drawn approximation.
 function NaverIcon() {
   return (
-    <span
-      aria-hidden="true"
-      className="flex h-5 w-5 items-center justify-center text-[18px] font-extrabold leading-none text-white"
-    >
-      N
-    </span>
+    <svg aria-hidden="true" fill="none" height="20" viewBox="0 0 20 20" width="20">
+      <path
+        clipRule="evenodd"
+        d="M13.5605 10.7061L6.14573 0H0V20H6.43946V9.29768L13.8543 20H20V0H13.5605V10.7061Z"
+        fill="white"
+        fillRule="evenodd"
+      />
+    </svg>
   );
 }
 
@@ -67,12 +65,11 @@ const VARIANTS: Record<
 > = {
   google: {
     label: "Google 계정으로 로그인",
-    // Google's "Light"/"Dark" themes (not the single "Neutral" theme) —
-    // swaps with the rest of the app's own light/dark palette via the
-    // --google-btn-* custom properties in globals.css, which already
-    // follow prefers-color-scheme (and the Storybook data-theme toggle).
-    className:
-      "border border-[var(--google-btn-border)] bg-[var(--google-btn-bg)] text-[var(--google-btn-fg)] hover:opacity-90",
+    // Google's "Neutral" theme (one of the three officially sanctioned
+    // variants) — a light/dark swap (tried once) looked jarring against
+    // this app's dark palette, so this stays one fixed theme regardless
+    // of prefers-color-scheme, same as Kakao/Naver's fixed brand colors.
+    className: "bg-[#F2F2F2] text-[#1F1F1F] hover:bg-[#E8E8E8]",
     Icon: GoogleIcon,
   },
   kakao: {

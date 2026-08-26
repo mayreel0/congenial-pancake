@@ -15,10 +15,6 @@
   --primary-foreground: #ffffff;
   --accent: #7d5f4f;
   --muted: #676d63;
-  /* Google's official "Light" theme button colors. */
-  --google-btn-bg: #ffffff;
-  --google-btn-fg: #1f1f1f;
-  --google-btn-border: #747775;
 }
 
 @theme inline {
@@ -46,10 +42,6 @@
     --primary-foreground: #101411;
     --accent: #d29a78;
     --muted: #b5beb2;
-    /* Google's official "Dark" theme button colors. */
-    --google-btn-bg: #131314;
-    --google-btn-fg: #e3e3e3;
-    --google-btn-border: #8e918f;
   }
 }
 
@@ -68,9 +60,6 @@
   --primary-foreground: #101411;
   --accent: #d29a78;
   --muted: #b5beb2;
-  --google-btn-bg: #131314;
-  --google-btn-fg: #e3e3e3;
-  --google-btn-border: #8e918f;
 }
 
 :root[data-theme="light"] {
@@ -83,9 +72,6 @@
   --primary-foreground: #ffffff;
   --accent: #7d5f4f;
   --muted: #676d63;
-  --google-btn-bg: #ffffff;
-  --google-btn-fg: #1f1f1f;
-  --google-btn-border: #747775;
 }
 
 body {

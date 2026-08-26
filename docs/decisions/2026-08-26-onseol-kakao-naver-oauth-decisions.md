@@ -46,6 +46,15 @@
 
 Storybook `data-theme` 토글로 라이트/다크 각각 스크린샷 재확인: 다크 전환 시 Google 버튼이 `#131314` 배경 + `#E3E3E3` 텍스트 + 옅은 회색 테두리로 정확히 바뀌는 것을 확인. `apps/web` lint/typecheck/test(67/67)/build 재통과.
 
+## 추가 결정 (후속 2): Naver 로그인은 공식 SVG로 교체, Google 라이트/다크 분리는 되돌림
+
+두 번째 스크린샷 검토 후 사용자 피드백: "네이버 로고는 span 으로 하면 안되고 제공해주는 svg 로 해야할것같아" (공식 흰색 N 마크 SVG 경로 직접 제공), "구글 로그인 버튼은 테마 어둡게하니까 어색하네 보통 테마로 하자."
+
+- `NaverIcon`을 텍스트 기반(`<span>N</span>`) 근사치에서 사용자가 제공한 공식 SVG(`viewBox 0 0 20 20`, 흰색 `fill-rule="evenodd"` 경로)로 완전히 교체 — 이제 폰트 렌더링에 의존하지 않는 정확한 벡터 마크.
+- Google 버튼의 Light/Dark 자동 전환은 되돌리고, 원래의 단일 "Neutral" 테마(`#F2F2F2`/`#1F1F1F`)로 복귀 — 실제로 다크 테마에서 렌더링해보니 이 앱의 어두운 팔레트와 어울리지 않는다는 사용자 판단에 따름. Kakao/Naver도 원래 테마와 무관하게 고정 브랜드 색상이므로, Google도 동일하게 고정 색상으로 맞추는 게 세 버튼 간 일관성 있다는 점도 근거. 이제 미사용이 된 `--google-btn-*` CSS 변수 3종은 `app/globals.css`(`:root`, 다크 미디어쿼리, `data-theme="dark"/"light"` 블록 4곳)에서 전부 제거.
+
+Storybook에서 라이트/다크 토글 둘 다 재확인: Google 버튼이 테마와 무관하게 동일한 연회색으로 고정 렌더링됨, Naver 아이콘이 공식 SVG 마크로 정확히 표시됨. `apps/web` lint/typecheck/test(67/67)/build 재통과.
+
 ## 남은 일
 
 - 사용자가 Kakao Developers/Naver Developers에 실제 앱을 등록해 `KAKAO_CLIENT_ID`/`KAKAO_CLIENT_SECRET`/`NAVER_CLIENT_ID`/`NAVER_CLIENT_SECRET` 실값을 발급받아야 실제 계정으로 전체 로그인 플로우 테스트가 가능하다 — 계정 생성은 어시스턴트가 대행할 수 없는 영역.
