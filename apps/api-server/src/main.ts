@@ -1,3 +1,4 @@
+import { Module } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { ValidationPipe } from '@nestjs/common';
@@ -8,6 +9,12 @@ import { AppModule } from './app.module';
 import { AppExceptionFilter } from './common/filters/app-exception.filter';
 import { guestIdMiddleware } from './common/middleware/guest-id.middleware';
 import type { Env } from './config/env.schema';
+
+// Empty on purpose — its only job is hosting the pre-generated OpenAPI
+// document on its own port (see bootstrap() below). No controllers, no
+// providers, no DB connection: this is not a second copy of the real app.
+@Module({})
+class SwaggerDocsModule {}
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -33,10 +40,13 @@ async function bootstrap() {
   );
   app.useGlobalFilters(new AppExceptionFilter());
 
-  // Mounted at a non-predictable path, not "/docs"/"/api-docs" — see
-  // SWAGGER_DOCS_PATH's comment in config/env.schema.ts. Kept on in
-  // production (unlike a typical internal-only setup) since this API has
-  // no other consumer-facing documentation yet.
+  // Served on its own port (SWAGGER_PORT), not a path on the main API —
+  // same reasoning as apps/admin getting its own port instead of a path
+  // inside apps/web: the separation itself is the point, so the path can
+  // just be "/" once that's true. Kept on in production (unlike a typical
+  // internal-only setup) since this API has no other consumer-facing
+  // documentation yet. See docs/decisions/2026-08-26-onseol-openapi-
+  // decisions.md.
   const openApiConfig = new DocumentBuilder()
     .setTitle('온설 API')
     .setDescription(
@@ -46,12 +56,17 @@ async function bootstrap() {
     .addCookieAuth(config.get('SESSION_COOKIE_NAME', { infer: true }))
     .addBearerAuth()
     .build();
+  // Generated from the real app (so it sees every real controller/DTO),
+  // then handed to a second, otherwise-empty Nest app that only exists to
+  // serve it — this avoids bootstrapping a whole redundant copy of
+  // AppModule (DB pool, guards, etc.) just to host static docs.
   const openApiDocument = SwaggerModule.createDocument(app, openApiConfig);
-  SwaggerModule.setup(
-    config.get('SWAGGER_DOCS_PATH', { infer: true }),
-    app,
-    openApiDocument,
+  const swaggerApp = await NestFactory.create<NestExpressApplication>(
+    SwaggerDocsModule,
+    { logger: false },
   );
+  SwaggerModule.setup('', swaggerApp, openApiDocument);
+  await swaggerApp.listen(config.get('SWAGGER_PORT', { infer: true }));
 
   await app.listen(config.get('PORT', { infer: true }));
 }
