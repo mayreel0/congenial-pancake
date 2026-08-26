@@ -20,4 +20,8 @@ export class UsersService {
   create(input: CreateUserInput): Promise<User> {
     return this.usersRepository.create(input);
   }
+
+  updatePasswordHash(id: string, passwordHash: string): Promise<void> {
+    return this.usersRepository.updatePasswordHash(id, passwordHash);
+  }
 }

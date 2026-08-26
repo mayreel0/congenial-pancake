@@ -7,3 +7,4 @@ export * from './oauth-identities.schema';
 export * from './answer-interactions.schema';
 export * from './saved-replies.schema';
 export * from './settings.schema';
+export * from './password-reset-tokens.schema';
