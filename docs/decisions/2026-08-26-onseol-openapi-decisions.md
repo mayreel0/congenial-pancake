@@ -32,9 +32,15 @@
 
 `pnpm --filter api-server start:swagger`(또는 `start:swagger:watch`)로 실행한다. `.env`는 여전히 필요하지만(`AppModule` 인스턴스화 자체엔 유효한 `DATABASE_URL` 형식이 필요) 실제로 DB 쿼리는 한 번도 안 나간다.
 
+## 추가 결정 (후속): 서버를 평소대로 켤 땐 Swagger가 아예 안 열리게 — "서버 열었을 때 스웨거는 안 열리게 할 수 없냐"는 질문에 대한 답
+
+바로 앞 결정까지도 `main.ts`(즉 평소 쓰는 `start`/`start:dev`)는 여전히 real API와 Swagger를 한 프로세스에서 같이 띄우고 있었다 — `start:swagger`는 어디까지나 "추가 옵션"이었지, 평소 서버 실행에서 Swagger를 빼는 방법은 아니었다. 사용자가 이 지점을 정확히 짚어서, `main.ts`에서 Swagger 관련 코드를 전부 제거했다 — 이제 `pnpm --filter api-server start:dev`를 실행하면 `SWAGGER_PORT`는 아예 열리지 않는다(연결 자체가 거부됨, 404가 아니라). Swagger가 필요하면 `start:swagger`를 **별도 프로세스로** 따로 켜야 한다 — 두 프로세스는 완전히 독립적이라 동시에 켜도(각자 다른 포트) 안 켜도 문제없다.
+
+이걸로 이번 라운드에서 세 번 연속 같은 방향(문서가 메인 API에서 점점 더 멀어지는 방향)으로 조정됐다: 메인 포트 위의 무작위 경로 → 메인 프로세스 안의 별도 포트 → 완전히 별도 프로세스. 매번 "이전 버전을 보고 나서 다음 단계를 요청"하는 패턴이었다 — 결과적으로 최종 상태가 처음부터 명확했던 게 아니라 반복적으로 좁혀졌다는 점을 기록해둔다.
+
 ## 산출물
 
-- `apps/api-server`: `@nestjs/swagger` 의존성 추가, `nest-cli.json`에 플러그인 등록, `src/config/env.schema.ts`에 `SWAGGER_PORT` 필드(`SWAGGER_DOCS_PATH`를 대체), `src/openapi.ts`(신규 — `buildOpenApiDocument()` 헬퍼 + 빈 `SwaggerDocsModule`), `src/main.ts`(공용 헬퍼 사용하도록 정리), `src/swagger-only.ts`(신규 — docs 전용 엔트리포인트), `package.json`에 `start:swagger`/`start:swagger:watch` 스크립트, 8개 컨트롤러 전부에 `@ApiTags(...)`.
+- `apps/api-server`: `@nestjs/swagger` 의존성 추가, `nest-cli.json`에 플러그인 등록, `src/config/env.schema.ts`에 `SWAGGER_PORT` 필드(`SWAGGER_DOCS_PATH`를 대체), `src/openapi.ts`(신규 — `buildOpenApiDocument()` 헬퍼 + 빈 `SwaggerDocsModule`), `src/main.ts`(최종적으로 Swagger 관련 코드 전부 제거 — real API만 부트스트랩), `src/swagger-only.ts`(신규 — docs 전용 엔트리포인트, 유일하게 Swagger를 띄우는 곳), `package.json`에 `start:swagger`/`start:swagger:watch` 스크립트, 8개 컨트롤러 전부에 `@ApiTags(...)`.
 - `pnpm-workspace.yaml`: `@nestjs/swagger`가 전이 의존성으로 끌고 온 `@scarf/scarf`(익명 텔레메트리 핑거) 빌드 스크립트를 명시적으로 차단(`allowBuilds: { '@scarf/scarf': false }`) — pnpm이 승인 안 된 빌드 스크립트를 만나면 placeholder를 자동 추가하고 비대화형 설치를 막는데, 그 placeholder를 실제 값으로 채운 것.
 
 ## 검증
@@ -44,3 +50,4 @@
 - `8081/-json`(OpenAPI 스펙)에서 24개 경로, `CreateRequestDto` 등 실제 스키마가 클래스 데코레이터 그대로 반영됨을 확인.
 - `start:swagger` 실행 후 curl로: 8080은 connection refused(포트 자체가 안 열림), 8081만 200 — 진짜 "스웨거만" 켜졌음을 확인. Chrome에서도 8081 Swagger UI 정상 렌더링 확인.
 - Chrome에서 8081 포트의 Swagger UI 실제 렌더링 확인 — 태그별 그룹핑(auth/health/...) 그대로 유지.
+- **최종 상태 재확인**: `start:dev`만 실행했을 때 8080은 정상 응답, 8081은 connection refused(리스닝 자체를 안 함, 404가 아님)를 curl로 확인. 이어서 `start:swagger`를 별도로 같이 켜서 8080/8081 둘 다 동시에 정상 응답하는 것도 확인 — 두 프로세스가 서로 완전히 독립적임을 실증.
