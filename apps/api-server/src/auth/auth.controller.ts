@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Throttle } from '@nestjs/throttler';
+import { ApiTags } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import type { Env } from '../config/env.schema';
 import { OAuthExchangeFailedException } from '../common/exceptions/app.exception';
@@ -34,6 +35,7 @@ import { UsersService } from '../users/users.service';
 const OAUTH_STATE_COOKIE = 'oauth_state';
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
 
+@ApiTags('auth')
 @Controller('auth')
 export class AuthController {
   constructor(

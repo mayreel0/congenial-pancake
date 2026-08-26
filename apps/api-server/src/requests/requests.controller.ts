@@ -8,6 +8,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { AnswerInteractionsService } from '../answer-interactions/answer-interactions.service';
 import { GuestId } from '../common/decorators/guest-id.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
@@ -22,6 +23,7 @@ import {
 } from './dto/request-response.dto';
 import { RequestsService } from './requests.service';
 
+@ApiTags('requests')
 @Controller('requests')
 export class RequestsController {
   constructor(

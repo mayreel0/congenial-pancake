@@ -11,6 +11,10 @@ overrides:
 publicHoistPattern:
   - next
 allowBuilds:
+  # Anonymous telemetry pinger pulled in transitively by @nestjs/swagger —
+  # no functional effect on the app, so its postinstall script stays
+  # blocked.
+  '@scarf/scarf': false
   bcrypt: true
   esbuild: true
   unrs-resolver: true

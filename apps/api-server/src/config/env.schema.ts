@@ -38,6 +38,13 @@ export const envSchema = z.object({
         .map((id) => id.trim())
         .filter((id) => id.length > 0),
     ),
+  // Swagger/OpenAPI UI mount path — deliberately not a predictable path
+  // like "/docs" or "/api-docs" (same reasoning as apps/admin's split: not
+  // a secret, but no reason to make it the first thing a scanner tries).
+  // See docs/decisions/2026-08-26-onseol-openapi-decisions.md. Meant to be
+  // replaced by real host-based subdomain separation once this project has
+  // actual deploy infra — this is the interim measure.
+  SWAGGER_DOCS_PATH: z.string().default('api-reference-x7k2m9'),
 });
 
 export type Env = z.infer<typeof envSchema>;
