@@ -55,27 +55,38 @@ export class AdminController {
       this.repliesService.findHidden(),
     ]);
 
-    const requests = await Promise.all(
-      hiddenRequests.map(async (request) => {
-        const reportCount = await this.reportsService.countDistinctReporters(
-          'request',
-          request.id,
-        );
-        return toAdminRequestResponseDto(request, reportCount);
-      }),
+    const requests = await this.enrichWithReportCount(
+      hiddenRequests,
+      'request',
+      (request) => request.id,
+      toAdminRequestResponseDto,
     );
 
-    const replies = await Promise.all(
-      hiddenReplies.map(async (entry) => {
-        const reportCount = await this.reportsService.countDistinctReporters(
-          'reply',
-          entry.reply.id,
-        );
-        return toAdminReplyResponseDto(entry, reportCount);
-      }),
+    const replies = await this.enrichWithReportCount(
+      hiddenReplies,
+      'reply',
+      (entry) => entry.reply.id,
+      toAdminReplyResponseDto,
     );
 
     return { requests, replies };
+  }
+
+  private enrichWithReportCount<T, D>(
+    items: T[],
+    targetType: 'request' | 'reply',
+    idOf: (item: T) => string,
+    toDto: (item: T, reportCount: number) => D,
+  ): Promise<D[]> {
+    return Promise.all(
+      items.map(async (item) => {
+        const reportCount = await this.reportsService.countDistinctReporters(
+          targetType,
+          idOf(item),
+        );
+        return toDto(item, reportCount);
+      }),
+    );
   }
 
   @Post('requests/:id/restore')
