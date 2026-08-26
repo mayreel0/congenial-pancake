@@ -44,14 +44,14 @@ function KakaoIcon() {
 }
 
 // Official Naver "N" mark (https://developers.naver.com/docs/login/bi/
-// bi.md) — the exact provided path, at the guideline's 20px size rather
+// bi.md) — the exact provided path, at the guideline's 18px size rather
 // than a hand-drawn approximation.
 function NaverIcon() {
   return (
-    <svg aria-hidden="true" fill="none" height="20" viewBox="0 0 20 20" width="20">
+    <svg aria-hidden="true" fill="none" height="18" viewBox="0 0 18 18" width="18">
       <path
         clipRule="evenodd"
-        d="M13.5605 10.7061L6.14573 0H0V20H6.43946V9.29768L13.8543 20H20V0H13.5605V10.7061Z"
+        d="M12.2045 9.63547L5.53116 0H0V18H5.79552V8.36792L12.4688 18H18V0H12.2045V9.63547Z"
         fill="white"
         fillRule="evenodd"
       />
