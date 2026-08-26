@@ -14,6 +14,8 @@ export function signup(email: string, password: string): Promise<CurrentUser> {
   });
 }
 
-export function googleLoginUrl(): string {
-  return `${API_BASE_URL}/auth/google`;
+export type OAuthProviderName = "google" | "kakao" | "naver";
+
+export function oauthLoginUrl(provider: OAuthProviderName): string {
+  return `${API_BASE_URL}/auth/${provider}`;
 }

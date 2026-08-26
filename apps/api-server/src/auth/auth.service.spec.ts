@@ -153,7 +153,7 @@ describe('AuthService', () => {
     });
   });
 
-  describe('loginWithGoogle', () => {
+  describe('loginWithOAuth', () => {
     it('reuses the linked user when the identity already exists', async () => {
       const identity = { userId: 'user-1' } as OAuthIdentity;
       oauthIdentitiesRepository.findByProviderAccount.mockResolvedValue(
@@ -164,7 +164,7 @@ describe('AuthService', () => {
       const session = makeSession();
       sessionService.createSession.mockResolvedValue(session);
 
-      const result = await authService.loginWithGoogle({
+      const result = await authService.loginWithOAuth('google', {
         providerAccountId: 'google-1',
         email: 'test@example.com',
       });
@@ -180,7 +180,7 @@ describe('AuthService', () => {
       usersService.findById.mockResolvedValue(undefined);
 
       await expect(
-        authService.loginWithGoogle({
+        authService.loginWithOAuth('google', {
           providerAccountId: 'google-1',
           email: 'test@example.com',
         }),
@@ -196,7 +196,7 @@ describe('AuthService', () => {
       const session = makeSession();
       sessionService.createSession.mockResolvedValue(session);
 
-      const result = await authService.loginWithGoogle({
+      const result = await authService.loginWithOAuth('google', {
         providerAccountId: 'google-1',
         email: 'test@example.com',
       });
@@ -220,7 +220,7 @@ describe('AuthService', () => {
       const session = makeSession();
       sessionService.createSession.mockResolvedValue(session);
 
-      const result = await authService.loginWithGoogle({
+      const result = await authService.loginWithOAuth('google', {
         providerAccountId: 'google-2',
         email: 'new@example.com',
       });
@@ -234,6 +234,28 @@ describe('AuthService', () => {
         'google-2',
       );
       expect(result.user).toEqual(newUser);
+    });
+
+    it('links by provider when the same email already used a different provider', async () => {
+      oauthIdentitiesRepository.findByProviderAccount.mockResolvedValue(
+        undefined,
+      );
+      const existingUser = makeUser({ passwordHash: null });
+      usersService.findByEmail.mockResolvedValue(existingUser);
+      const session = makeSession();
+      sessionService.createSession.mockResolvedValue(session);
+
+      const result = await authService.loginWithOAuth('kakao', {
+        providerAccountId: 'kakao-1',
+        email: 'test@example.com',
+      });
+
+      expect(oauthIdentitiesRepository.create).toHaveBeenCalledWith(
+        existingUser.id,
+        'kakao',
+        'kakao-1',
+      );
+      expect(result.user).toEqual(existingUser);
     });
   });
 });

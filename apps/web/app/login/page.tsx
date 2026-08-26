@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "ui/Button";
 import { TextField } from "ui/TextField";
-import { ApiError, googleLoginUrl } from "../lib/api";
+import { ApiError, oauthLoginUrl } from "../lib/api";
 import { useAuth } from "../lib/auth/useAuth";
+import { OAuthButton } from "./components/OAuthButton";
 
 type Mode = "login" | "signup";
 type SubmitStatus = "idle" | "pending";
@@ -116,12 +117,11 @@ export default function LoginPage() {
           <span className="h-px flex-1 bg-line" />
         </div>
 
-        <a
-          className="inline-flex h-11 w-full items-center justify-center rounded-lg border border-line bg-surface px-4 text-sm font-semibold text-foreground transition hover:bg-surface-muted"
-          href={googleLoginUrl()}
-        >
-          Google로 계속하기
-        </a>
+        <div className="space-y-2">
+          <OAuthButton href={oauthLoginUrl("google")} provider="google" />
+          <OAuthButton href={oauthLoginUrl("kakao")} provider="kakao" />
+          <OAuthButton href={oauthLoginUrl("naver")} provider="naver" />
+        </div>
 
         <Link
           className="block text-center text-sm text-muted underline-offset-2 hover:underline"
