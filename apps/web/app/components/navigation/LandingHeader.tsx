@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Button } from "ui/Button";
 import { useAuth } from "../../lib/auth/useAuth";
 import { landingEntryLinks } from "./routes";
 
@@ -25,12 +26,9 @@ export function LandingHeader() {
             >
               로그아웃
             </button>
-            <Link
-              className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition hover:opacity-90"
-              href={landingEntryLinks.start}
-            >
+            <Button href={landingEntryLinks.start} size="sm">
               웹에서 계속하기
-            </Link>
+            </Button>
           </>
         ) : status === "anonymous" ? (
           <>
@@ -40,12 +38,9 @@ export function LandingHeader() {
             >
               로그인
             </Link>
-            <Link
-              className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition hover:opacity-90"
-              href={landingEntryLinks.start}
-            >
+            <Button href={landingEntryLinks.start} size="sm">
               웹에서 시작하기
-            </Link>
+            </Button>
           </>
         ) : null}
       </nav>

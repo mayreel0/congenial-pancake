@@ -373,6 +373,9 @@ importers:
       eslint-plugin-storybook:
         specifier: 10.5.9
         version: 10.5.9(eslint@9.39.5(jiti@2.7.0)(supports-color@8.1.1))(storybook@10.5.9(@types/react@19.2.18)(prettier@3.9.6)(react@19.2.8)(vitest@4.1.11(@types/node@20.19.43)(jsdom@30.0.1(@noble/hashes@1.8.0))(vite@8.2.1(@types/node@20.19.43)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.50.0)(tsx@4.23.12))))(supports-color@8.1.1)(typescript@5.9.3)
+      next:
+        specifier: 16.3.1
+        version: 16.3.1(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@20.19.43)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       react:
         specifier: 19.2.8
         version: 19.2.8

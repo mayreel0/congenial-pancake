@@ -8,10 +8,13 @@
   },
   "exports": {
     "./ActionConfirmDialog": "./src/ActionConfirmDialog.tsx",
-    "./QueryProvider": "./src/QueryProvider.tsx"
+    "./QueryProvider": "./src/QueryProvider.tsx",
+    "./Button": "./src/Button.tsx",
+    "./TextField": "./src/TextField.tsx"
   },
   "peerDependencies": {
     "@tanstack/react-query": "^5.101.4",
+    "next": "^16.3.1",
     "react": "^19"
   },
   "devDependencies": {
@@ -22,6 +25,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.1",
     "eslint-plugin-storybook": "10.5.9",
+    "next": "16.3.1",
     "react": "19.2.8",
     "storybook": "10.5.9",
     "typescript": "^5"

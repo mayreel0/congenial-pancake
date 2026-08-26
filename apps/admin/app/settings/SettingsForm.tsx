@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { Button } from "ui/Button";
+import { TextField } from "ui/TextField";
 import type { AdminSettingsDto } from "../lib/admin/settings-api";
 import type { useAdminSettings } from "./useAdminSettings";
 
@@ -92,28 +94,22 @@ export function SettingsForm({
         onSubmit={(event) => void handleSubmit(event)}
       >
         {FIELDS.map((field) => (
-          <div className="space-y-1" key={field.key}>
-            <label
-              className="text-sm font-semibold text-foreground"
-              htmlFor={field.key}
-            >
-              {field.label}
-            </label>
-            <p className="text-xs text-muted">{field.hint}</p>
-            <input
-              className="w-40 rounded-lg border border-line bg-surface px-3 py-2 text-base text-foreground outline-none focus:border-primary"
-              id={field.key}
-              max={field.max}
-              min={field.min}
-              required
-              type="number"
-              value={form[field.key]}
-              onChange={(event) => {
-                setSaved(false);
-                setForm({ ...form, [field.key]: event.currentTarget.value });
-              }}
-            />
-          </div>
+          <TextField
+            hint={field.hint}
+            id={field.key}
+            key={field.key}
+            label={field.label}
+            max={field.max}
+            min={field.min}
+            required
+            type="number"
+            value={form[field.key]}
+            width="compact"
+            onChange={(event) => {
+              setSaved(false);
+              setForm({ ...form, [field.key]: event.currentTarget.value });
+            }}
+          />
         ))}
 
         {updateError ? (
@@ -122,13 +118,9 @@ export function SettingsForm({
           <p className="text-sm text-primary">저장했어요.</p>
         ) : null}
 
-        <button
-          className="inline-flex h-11 items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={updating}
-          type="submit"
-        >
+        <Button disabled={updating} type="submit">
           {updating ? "저장 중" : "저장"}
-        </button>
+        </Button>
       </form>
     </>
   );

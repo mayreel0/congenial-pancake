@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { Button } from "ui/Button";
+import { TextField } from "ui/TextField";
 import { ApiError } from "../lib/api";
 
 const LOGIN_ERROR_MESSAGES: Record<string, string> = {
@@ -44,44 +46,30 @@ export function LoginForm({ login }: LoginFormProps) {
       className="mx-auto w-full max-w-sm space-y-3 py-16"
       onSubmit={(event) => void handleSubmit(event)}
     >
-      <div className="space-y-1">
-        <label className="text-sm text-muted" htmlFor="email">
-          이메일
-        </label>
-        <input
-          autoComplete="email"
-          className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-base text-foreground outline-none focus:border-primary"
-          id="email"
-          required
-          type="email"
-          value={email}
-          onChange={(event) => setEmail(event.currentTarget.value)}
-        />
-      </div>
-      <div className="space-y-1">
-        <label className="text-sm text-muted" htmlFor="password">
-          비밀번호
-        </label>
-        <input
-          autoComplete="current-password"
-          className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-base text-foreground outline-none focus:border-primary"
-          id="password"
-          required
-          type="password"
-          value={password}
-          onChange={(event) => setPassword(event.currentTarget.value)}
-        />
-      </div>
+      <TextField
+        autoComplete="email"
+        id="email"
+        label="이메일"
+        required
+        type="email"
+        value={email}
+        onChange={(event) => setEmail(event.currentTarget.value)}
+      />
+      <TextField
+        autoComplete="current-password"
+        id="password"
+        label="비밀번호"
+        required
+        type="password"
+        value={password}
+        onChange={(event) => setPassword(event.currentTarget.value)}
+      />
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
-      <button
-        className="inline-flex h-11 w-full items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-        disabled={pending}
-        type="submit"
-      >
+      <Button disabled={pending} fullWidth type="submit">
         {pending ? "로그인 중" : "로그인"}
-      </button>
+      </Button>
     </form>
   );
 }

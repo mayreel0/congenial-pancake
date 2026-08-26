@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { Button } from "ui/Button";
 import { ServiceNav } from "../components/navigation/ServiceNav";
 import { formatJoinedDate } from "../lib/format";
 import { useAuth } from "../lib/auth/useAuth";
@@ -36,12 +36,7 @@ export default function MePage() {
             <p className="max-w-xl leading-7 text-muted">
               로그인하면 내 기록을 볼 수 있습니다.
             </p>
-            <Link
-              className="inline-flex h-11 items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition hover:opacity-90"
-              href="/login"
-            >
-              로그인
-            </Link>
+            <Button href="/login">로그인</Button>
           </section>
         ) : null}
       </main>

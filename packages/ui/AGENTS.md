@@ -6,16 +6,22 @@ Project-wide rules live in the root `AGENTS.md`. See `docs/decisions/2026-08-25-
 
 Only genuinely React-specific code (components, providers) that is identical between `apps/web` and `apps/admin` today, with no reason to expect it to diverge — not "similar," not "could plausibly be shared with effort." If sharing something here would require adding options/flags to accommodate one app's extra needs (the way `apps/web`'s auth flow needs signup/Google OAuth and `apps/admin`'s doesn't), it belongs in that app instead, not here.
 
-Plain TS/data-fetching logic does **not** belong here even if it's shared and React-adjacent — that's what `packages/api-client` (fetch wrapper, auth calls) and `packages/utils` (formatting helpers) are for. This package used to hold `api.ts`/`format.ts` too; they were split out once someone pointed out that a package named "ui" containing a non-React fetch client was misleading. Before adding a new file here, ask: does it render anything / use React? If not, it probably belongs in `packages/api-client` or `packages/utils` instead.
+Plain TS/data-fetching logic does **not** belong here even if it's shared and React-adjacent — that's what `packages/api` (fetch wrapper, auth calls) and `packages/utils` (formatting helpers) are for. This package used to hold `api.ts`/`format.ts` too; they were split out once someone pointed out that a package named "ui" containing a non-React fetch client was misleading. Before adding a new file here, ask: does it render anything / use React? If not, it probably belongs in `packages/api` or `packages/utils` instead.
 
 ## No build step
 
-`package.json`'s `exports` field maps each subpath (`"./ActionConfirmDialog"`, `"./QueryProvider"`) directly to a `.tsx` file under `src/` — there's no `tsc` build producing `dist/`. Consuming apps compile this package's source as part of their own build via Next's `transpilePackages: ["ui"]` config. This means:
+`package.json`'s `exports` field maps each subpath (`"./ActionConfirmDialog"`, `"./QueryProvider"`, `"./Button"`, `"./TextField"`) directly to a `.tsx` file under `src/` — there's no `tsc` build producing `dist/`. Consuming apps compile this package's source as part of their own build via Next's `transpilePackages: ["ui", "api", "utils"]` config. This means:
 
 - Adding a new file here requires adding its subpath to `package.json`'s `exports` map, or it won't be importable from either app.
 - `pnpm --filter ui typecheck` type-checks this package standalone; each consuming app's own `typecheck` also transitively checks whatever it actually imports from here.
 
-`packages/api-client` and `packages/utils` follow the exact same source-only/`transpilePackages` pattern — see their own `AGENTS.md` files for what's specific to each (`api-client`'s `NEXT_PUBLIC_API_BASE_URL` per-app inlining, in particular).
+`packages/api` and `packages/utils` follow the exact same source-only/`transpilePackages` pattern — see their own `AGENTS.md` files for what's specific to each (`api`'s `NEXT_PUBLIC_API_BASE_URL` per-app inlining, in particular).
+
+## `Button` is the one component here that needs `next`
+
+`Button` (`src/Button.tsx`) renders a Next `<Link>` when given an `href` prop, `<button>` otherwise — both need the exact same visual style at several call sites (a CTA that happens to navigate vs. one that submits a form). This is the only file in this package that imports `next/*`, so `next` is now a peerDependency/devDependency here too. Don't add more variants (`outline`/`ghost`/etc.) speculatively — only the "primary" style has actually been duplicated across apps so far; see `docs/decisions/2026-08-26-onseol-refactoring-pass-decisions.md`.
+
+`TextField` (`src/TextField.tsx`) ties its label weight to whether a `hint` is passed (bold+foreground with a hint, muted without) rather than a separate prop, and takes `width: "full" | "compact"` instead of a free-form `className` override — this repo has no `tailwind-merge`/`clsx`, so two conflicting width utility classes on the same element would have undefined precedence. Same decision doc has the full reasoning.
 
 ## Tailwind consumers must opt in
 
