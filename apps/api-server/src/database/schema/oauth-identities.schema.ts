@@ -8,7 +8,11 @@ import {
 } from 'drizzle-orm/pg-core';
 import { users } from './users.schema';
 
-export const oauthProvider = pgEnum('oauth_provider', ['google']);
+export const oauthProvider = pgEnum('oauth_provider', [
+  'google',
+  'kakao',
+  'naver',
+]);
 
 export const oauthIdentities = pgTable(
   'oauth_identities',

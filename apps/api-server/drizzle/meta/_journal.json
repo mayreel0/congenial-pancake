@@ -50,6 +50,13 @@
       "when": 1787686136669,
       "tag": "0006_melodic_khan",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1787750336461,
+      "tag": "0007_wakeful_warbird",
+      "breakpoints": true
     }
   ]
 }

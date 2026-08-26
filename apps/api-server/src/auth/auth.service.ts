@@ -8,6 +8,7 @@ import type { User } from '../users/users.repository';
 import type { LoginDto } from './dto/login.dto';
 import type { SignupDto } from './dto/signup.dto';
 import { OAuthIdentitiesRepository } from './oauth-identities.repository';
+import type { OAuthProviderName } from './oauth/oauth-provider-registry';
 import type { OAuthProfile } from './oauth/oauth-provider.interface';
 import { PasswordHasherService } from './password/password-hasher.service';
 import { SessionService } from './session.service';
@@ -51,13 +52,14 @@ export class AuthService {
     return { user, session };
   }
 
-  async loginWithGoogle(
+  async loginWithOAuth(
+    provider: OAuthProviderName,
     profile: OAuthProfile,
     userAgent?: string,
   ): Promise<AuthResult> {
     const existingIdentity =
       await this.oauthIdentitiesRepository.findByProviderAccount(
-        'google',
+        provider,
         profile.providerAccountId,
       );
 
@@ -71,13 +73,15 @@ export class AuthService {
       }
       user = found;
     } else {
-      // Link by verified email if this person already has a password account.
+      // Link by verified email if this person already has a password
+      // account, or an account via a *different* OAuth provider that used
+      // the same email — either way, one 온설 account per email.
       user =
         (await this.usersService.findByEmail(profile.email)) ??
         (await this.usersService.create({ email: profile.email }));
       await this.oauthIdentitiesRepository.create(
         user.id,
-        'google',
+        provider,
         profile.providerAccountId,
       );
     }

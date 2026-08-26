@@ -19,16 +19,27 @@ export const envSchema = z.object({
         .filter((origin) => origin.length > 0),
     )
     .pipe(z.array(z.string().url()).min(1)),
-  // Where this API is publicly reachable — used to build the Google OAuth
-  // redirect_uri, which must exactly match what's registered in the Google
-  // Cloud Console.
+  // Where this API is publicly reachable — used to build each OAuth
+  // provider's redirect_uri (${API_PUBLIC_URL}/auth/{provider}/callback),
+  // which must exactly match what's registered in that provider's own
+  // developer console.
   API_PUBLIC_URL: z.string().url(),
-  // apps/web specifically — Google OAuth is a public-site-only feature (the
-  // admin app has no Google login), so its post-login redirect target can't
-  // be derived from CORS_ORIGIN's now-multi-origin list.
+  // apps/web specifically — OAuth login is a public-site-only feature (the
+  // admin app has none), so its post-login redirect target can't be
+  // derived from CORS_ORIGIN's now-multi-origin list.
   WEB_PUBLIC_URL: z.string().url(),
   GOOGLE_CLIENT_ID: z.string().min(1),
   GOOGLE_CLIENT_SECRET: z.string().min(1),
+  // Kakao/Naver are optional (default '') so the app still boots without
+  // them configured — hitting /auth/kakao or /auth/naver with an empty
+  // client id just fails on that provider's side (invalid_client) rather
+  // than the whole app refusing to start. Set these once you've registered
+  // an app in each provider's developer console (developers.kakao.com,
+  // developers.naver.com — Claude can't create those accounts for you).
+  KAKAO_CLIENT_ID: z.string().default(''),
+  KAKAO_CLIENT_SECRET: z.string().default(''),
+  NAVER_CLIENT_ID: z.string().default(''),
+  NAVER_CLIENT_SECRET: z.string().default(''),
   ADMIN_USER_IDS: z
     .string()
     .default('')

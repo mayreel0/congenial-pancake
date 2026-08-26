@@ -6,6 +6,8 @@ import {
   HttpCode,
   HttpStatus,
   InternalServerErrorException,
+  NotFoundException,
+  Param,
   Post,
   Req,
   Res,
@@ -26,7 +28,7 @@ import {
   toUserResponseDto,
   type UserResponseDto,
 } from './dto/user-response.dto';
-import { GoogleOAuthProvider } from './oauth/google-oauth.provider';
+import { OAuthProviderRegistry } from './oauth/oauth-provider-registry';
 import { clearSessionCookie, setSessionCookie } from './session-cookie';
 import { SessionGuard } from './session.guard';
 import { SessionService } from './session.service';
@@ -42,7 +44,7 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly sessionService: SessionService,
     private readonly usersService: UsersService,
-    private readonly googleOAuthProvider: GoogleOAuthProvider,
+    private readonly oauthProviders: OAuthProviderRegistry,
     private readonly config: ConfigService<Env, true>,
   ) {}
 
@@ -107,22 +109,37 @@ export class AuthController {
     return toUserResponseDto(user);
   }
 
-  @Get('google')
-  google(@Res() res: Response): void {
+  // One pair of routes for every provider (google/kakao/naver) instead of
+  // one pair each — see docs/decisions/2026-08-26-onseol-kakao-naver-oauth-
+  // decisions.md. Declared after the static routes above (me, etc.) so
+  // Express's route-registration-order matching can't let :provider shadow
+  // them.
+  @Get(':provider')
+  oauthRedirect(
+    @Param('provider') provider: string,
+    @Res() res: Response,
+  ): void {
+    if (!this.oauthProviders.isKnown(provider)) throw new NotFoundException();
+    const oauthProvider = this.oauthProviders.get(provider);
+
     const state = randomBytes(16).toString('hex');
     res.cookie(OAUTH_STATE_COOKIE, state, {
       httpOnly: true,
       maxAge: OAUTH_STATE_TTL_MS,
       sameSite: 'lax',
     });
-    res.redirect(this.googleOAuthProvider.getAuthorizeUrl(state));
+    res.redirect(oauthProvider.getAuthorizeUrl(state));
   }
 
-  @Get('google/callback')
-  async googleCallback(
+  @Get(':provider/callback')
+  async oauthCallback(
+    @Param('provider') provider: string,
     @Req() req: Request,
     @Res() res: Response,
   ): Promise<void> {
+    if (!this.oauthProviders.isKnown(provider)) throw new NotFoundException();
+    const oauthProvider = this.oauthProviders.get(provider);
+
     const code = req.query.code;
     const state = req.query.state;
     const cookieState = req.cookies?.[OAUTH_STATE_COOKIE] as string | undefined;
@@ -133,11 +150,12 @@ export class AuthController {
       typeof state !== 'string' ||
       state !== cookieState
     ) {
-      throw new OAuthExchangeFailedException('google');
+      throw new OAuthExchangeFailedException(provider);
     }
 
-    const profile = await this.googleOAuthProvider.exchangeCode(code);
-    const { session } = await this.authService.loginWithGoogle(
+    const profile = await oauthProvider.exchangeCode(code, state);
+    const { session } = await this.authService.loginWithOAuth(
+      provider,
       profile,
       req.headers['user-agent'],
     );
