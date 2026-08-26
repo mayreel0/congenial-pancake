@@ -33,3 +33,7 @@ export const AllThree: Story = {
     </div>
   ),
 };
+
+export const KakaoLastUsed: Story = {
+  args: { provider: "kakao", lastUsed: true },
+};

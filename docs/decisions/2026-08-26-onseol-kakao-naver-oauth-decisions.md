@@ -71,6 +71,18 @@ Storybook에서 라이트/다크 토글 둘 다 재확인: Google 버튼이 테�
 
 실제 배포 도메인이 정해지면 이 URL들을 그 도메인으로 다시 등록해야 한다(로컬 서비스 심사/전환과 별개로 프로덕션 도메인 등록도 필요).
 
+## 추가 결정 (후속 3): 카카오/네이버 계정 전환이 안 되던 문제 — 항상 재인증 강제
+
+`#86` 머지 후 사용자가 카카오/네이버로 한 번 로그인하면 이후 계속 그 계정으로만 로그인되고 다른 계정으로 바꿀 방법이 없다고 지적했다. 원인은 구글과 달리 카카오/네이버의 `/oauth/authorize` 엔드포인트가 kakao.com/naver.com에 활성 세션이 있으면 계정 선택 화면 없이 그 세션으로 바로 로그인을 완료시키기 때문 — 구글처럼 매번 계정 선택 화면을 보여주는 동작이 아니다.
+
+해결책은 authorize URL에 재인증을 강제하는 파라미터를 추가하는 것(카카오: `prompt=login`, 네이버: `auth_type=reprompt`) — 다만 이렇게 하면 이미 로그인된 상태에서도 매번 카카오/네이버 비밀번호를 다시 입력해야 해서 실사용자에게도 SSO의 원클릭 편의성이 사라지는 트레이드오프가 있다는 점을 먼저 안내했다. 사용자는 "서비스를 꾸준히 사용하면 어차피 로그아웃되는 일이 없으니, 구글처럼 계정 선택 화면을 띄우는 게 불가능하다면 차라리 항상 재인증을 강제하는 게 낫다"고 판단해 이 방향으로 확정 — 카카오는 사용자가 직접 `prompt: 'login'`을 코드에 추가했고, 동일한 이유로 네이버에도 `auth_type: 'reprompt'`를 추가해 짝을 맞췄다.
+
+추가로 사용자가 "지난번 로그인은 어디서 했는지 정도는 알려주면 좋겠다"고 요청 — 이 서비스는 서버 로그인 화면(`/login`)을 완전히 벗어났다가 provider 콜백 후 `/today`로 리다이렉트되는 풀 리다이렉트 플로우라, 로그인 완료 후 `/login`으로 돌아와 상태를 갱신할 시점이 없다. 대신 각 `OAuthButton` 클릭 시점에 `localStorage`에 어떤 provider를 선택했는지 낙관적으로 기록(`apps/web/app/login/lib/lastOAuthProvider.ts`)하고, `/login` 페이지가 다음에 열릴 때 그 값을 읽어 해당 버튼에 "최근 로그인" 배지를 표시한다. 서버에는 전혀 저장하지 않는 순수 브라우저 로컬 힌트라 세션/계정과 무관하고, 실패한 로그인 시도도 "마지막으로 시도한 provider"로 기록될 수 있지만(실사용자 재시도가 압도적으로 흔하므로) 편의 힌트로는 충분하다고 판단했다.
+
+구현상 `localStorage`를 마운트 후 `useEffect`에서 읽어 `setState`하는 방식은 ESLint `react-hooks/set-state-in-effect` 규칙에 걸렸다 — 서버/클라이언트 스냅샷이 다를 수 있는 브라우저 전용 값을 읽는 정석 패턴인 `useSyncExternalStore`(`getServerSnapshot`을 `null`로 고정)로 바꿔 해결했다. 같은 탭에서 쓰기만 하고 다른 탭의 변경을 구독할 필요가 없어 `subscribe`는 빈 구독 함수를 반환한다.
+
+실제 `http://localhost:3000/login`에서 `localStorage.setItem('onseol:lastOAuthProvider', 'kakao')`로 시뮬레이션 후 새로고침해 카카오 버튼에 배지가 뜨는 것, 콘솔에 hydration mismatch 등 에러가 없는 것을 확인. `apps/api-server`/`apps/web` 양쪽 lint/typecheck/test/build 재통과. curl로 `/auth/kakao`, `/auth/naver` 리다이렉트에 각각 `prompt=login`, `auth_type=reprompt`가 실제로 붙는 것도 확인(이때 실제 발급받은 카카오/네이버 client_id도 처음으로 채워져 있는 것을 확인 — 사용자가 이미 두 콘솔에 앱을 등록한 상태).
+
 ## 남은 일
 
 - 사용자가 Kakao Developers/Naver Developers에 실제 앱을 등록해 `KAKAO_CLIENT_ID`/`KAKAO_CLIENT_SECRET`/`NAVER_CLIENT_ID`/`NAVER_CLIENT_SECRET` 실값을 발급받아야 실제 계정으로 전체 로그인 플로우 테스트가 가능하다 — 계정 생성은 어시스턴트가 대행할 수 없는 영역.
