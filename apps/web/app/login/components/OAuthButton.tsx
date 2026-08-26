@@ -31,15 +31,18 @@ function GoogleIcon() {
 // symbol stay recognizable and unmodified in color (#000000), but doesn't
 // ship a licensable path here, so this is a close approximation rather
 // than the exact downloaded asset from developers.kakao.com/tool/resource.
-// Kept at 18x18 to match Google/Naver's icon box exactly — a previous 20px
-// render (to compensate for this path's own internal padding looking
-// small) just added visible whitespace around it instead.
+// The path's own bounding box (measured via getBBox: x:1.5 y:2 w:16
+// h:14.92) doesn't touch the 18x18 viewBox's edges and isn't even
+// centered in it, unlike Google/Naver's artwork — the transform below
+// scales+translates it to fill the box edge-to-edge on all four sides so
+// all three icons read at the same visual density.
 function KakaoIcon() {
   return (
     <svg aria-hidden="true" height="18" viewBox="0 0 18 18" width="18">
       <path
         d="M9 2C4.86 2 1.5 4.71 1.5 8.06c0 2.14 1.37 4.02 3.45 5.11-.15.54-.94 3.28-.97 3.5 0 0-.02.16.08.22.1.06.22.01.22.01.3-.04 3.48-2.3 4.03-2.69.55.08 1.12.12 1.69.12 4.14 0 7.5-2.71 7.5-6.06C17.5 4.71 14.14 2 9 2z"
         fill="#000000"
+        transform="scale(1.125 1.175) translate(-1.5 -2)"
       />
     </svg>
   );
