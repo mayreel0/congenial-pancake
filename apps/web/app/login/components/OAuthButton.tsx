@@ -96,14 +96,14 @@ export function OAuthButton({ provider, href, lastUsed = false }: OAuthButtonPro
 
   return (
     <a
-      className={`inline-flex h-11 w-full items-center justify-center gap-3 rounded-lg text-[16px] font-semibold transition ${className}`}
+      className={`relative inline-flex h-11 w-full items-center justify-center gap-3 rounded-lg text-[16px] font-semibold transition ${className}`}
       href={href}
       onClick={() => setLastOAuthProvider(provider)}
     >
       <Icon />
       {label}
       {lastUsed ? (
-        <span className="rounded-full bg-current/15 px-2 py-0.5 text-[11px] font-semibold">
+        <span className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-current/15 px-2 py-0.5 text-[11px] font-semibold">
           최근 로그인
         </span>
       ) : null}
