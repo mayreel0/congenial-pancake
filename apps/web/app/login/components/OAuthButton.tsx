@@ -94,7 +94,7 @@ export function OAuthButton({ provider, href }: OAuthButtonProps) {
 
   return (
     <a
-      className={`inline-flex h-11 w-full items-center justify-center gap-3 rounded-lg text-[15px] font-semibold transition ${className}`}
+      className={`inline-flex h-11 w-full items-center justify-center gap-3 rounded-lg text-[16px] font-semibold transition ${className}`}
       href={href}
     >
       <Icon />
