@@ -27,6 +27,11 @@ export class NaverOAuthProvider implements OAuthProvider {
       client_id: this.config.get('NAVER_CLIENT_ID', { infer: true }),
       redirect_uri: this.redirectUri,
       response_type: 'code',
+      // Without this, Naver silently reuses an existing nid.naver.com
+      // session and there's no way for the user to switch accounts —
+      // this forces the login screen every time, same as Kakao's `prompt:
+      // 'login'`.
+      auth_type: 'reprompt',
       state,
     });
     return `${AUTHORIZE_URL}?${params.toString()}`;

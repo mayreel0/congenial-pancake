@@ -1,4 +1,5 @@
 import type { OAuthProviderName } from "../../lib/api";
+import { setLastOAuthProvider } from "../lib/lastOAuthProvider";
 
 // Official Google "G" mark — colors/shape are non-negotiable per Google's
 // branding guidelines (https://developers.google.com/identity/branding-
@@ -87,18 +88,25 @@ const VARIANTS: Record<
 type OAuthButtonProps = {
   provider: OAuthProviderName;
   href: string;
+  lastUsed?: boolean;
 };
 
-export function OAuthButton({ provider, href }: OAuthButtonProps) {
+export function OAuthButton({ provider, href, lastUsed = false }: OAuthButtonProps) {
   const { label, className, Icon } = VARIANTS[provider];
 
   return (
     <a
       className={`inline-flex h-11 w-full items-center justify-center gap-3 rounded-lg text-[16px] font-semibold transition ${className}`}
       href={href}
+      onClick={() => setLastOAuthProvider(provider)}
     >
       <Icon />
       {label}
+      {lastUsed ? (
+        <span className="rounded-full bg-current/15 px-2 py-0.5 text-[11px] font-semibold">
+          최근 로그인
+        </span>
+      ) : null}
     </a>
   );
 }

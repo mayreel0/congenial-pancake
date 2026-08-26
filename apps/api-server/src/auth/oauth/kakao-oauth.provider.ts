@@ -27,6 +27,10 @@ export class KakaoOAuthProvider implements OAuthProvider {
       client_id: this.config.get('KAKAO_CLIENT_ID', { infer: true }),
       redirect_uri: this.redirectUri,
       response_type: 'code',
+      // Without this, Kakao silently reuses an existing kakao.com session
+      // and there's no way for the user to switch accounts — this forces
+      // the login screen every time.
+      prompt: 'login',
       // Without this, Kakao never prompts for (or returns) email consent —
       // see the email-scope note on exchangeCode() below.
       scope: 'account_email',

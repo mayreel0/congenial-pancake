@@ -8,6 +8,7 @@ import { TextField } from "ui/TextField";
 import { ApiError, oauthLoginUrl } from "../lib/api";
 import { useAuth } from "../lib/auth/useAuth";
 import { OAuthButton } from "./components/OAuthButton";
+import { useLastOAuthProvider } from "./lib/lastOAuthProvider";
 
 type Mode = "login" | "signup";
 type SubmitStatus = "idle" | "pending";
@@ -32,6 +33,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>("idle");
   const [error, setError] = useState<string | null>(null);
+  const lastProvider = useLastOAuthProvider();
 
   useEffect(() => {
     if (status === "authenticated") router.replace("/today");
@@ -118,9 +120,21 @@ export default function LoginPage() {
         </div>
 
         <div className="space-y-2">
-          <OAuthButton href={oauthLoginUrl("google")} provider="google" />
-          <OAuthButton href={oauthLoginUrl("kakao")} provider="kakao" />
-          <OAuthButton href={oauthLoginUrl("naver")} provider="naver" />
+          <OAuthButton
+            href={oauthLoginUrl("google")}
+            lastUsed={lastProvider === "google"}
+            provider="google"
+          />
+          <OAuthButton
+            href={oauthLoginUrl("kakao")}
+            lastUsed={lastProvider === "kakao"}
+            provider="kakao"
+          />
+          <OAuthButton
+            href={oauthLoginUrl("naver")}
+            lastUsed={lastProvider === "naver"}
+            provider="naver"
+          />
         </div>
 
         <Link
