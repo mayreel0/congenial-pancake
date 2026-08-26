@@ -30,9 +30,11 @@ function GoogleIcon() {
 // symbol stay recognizable and unmodified in color (#000000), but doesn't
 // ship a licensable path here, so this is a close approximation rather
 // than the exact downloaded asset from developers.kakao.com/tool/resource.
+// Rendered at 20px (vs. the 18x18 viewBox) so it reads at the same visual
+// weight as Google's icon instead of looking undersized next to it.
 function KakaoIcon() {
   return (
-    <svg aria-hidden="true" height="18" viewBox="0 0 18 18" width="18">
+    <svg aria-hidden="true" height="20" viewBox="0 0 18 18" width="20">
       <path
         d="M9 2C4.86 2 1.5 4.71 1.5 8.06c0 2.14 1.37 4.02 3.45 5.11-.15.54-.94 3.28-.97 3.5 0 0-.02.16.08.22.1.06.22.01.22.01.3-.04 3.48-2.3 4.03-2.69.55.08 1.12.12 1.69.12 4.14 0 7.5-2.71 7.5-6.06C17.5 4.71 14.14 2 9 2z"
         fill="#000000"
@@ -44,12 +46,15 @@ function KakaoIcon() {
 // Naver's button guideline (https://developers.naver.com/docs/login/bi/
 // bi.md) allows an abbreviated/label-only form — using the white "N"
 // glyph instead of the exact bordered mark, since that mark isn't
-// reproducible here without the official downloaded asset either.
+// reproducible here without the official downloaded asset either. The
+// guideline sets minimum N-mark sizes of 18px (icon type) / 16px+
+// (label-combined type, which is what this button is) — 20px/18px here
+// clears both with margin instead of sitting right at the floor.
 function NaverIcon() {
   return (
     <span
       aria-hidden="true"
-      className="flex h-[18px] w-[18px] items-center justify-center text-[13px] font-bold leading-none text-white"
+      className="flex h-5 w-5 items-center justify-center text-[18px] font-extrabold leading-none text-white"
     >
       N
     </span>
@@ -62,11 +67,12 @@ const VARIANTS: Record<
 > = {
   google: {
     label: "Google 계정으로 로그인",
-    // Google's "Neutral" theme (one of the three officially sanctioned
-    // variants) — sidesteps needing a separate dark-mode swap, since this
-    // app only switches theme via prefers-color-scheme, not a togglable
-    // attribute the button could read.
-    className: "bg-[#F2F2F2] text-[#1F1F1F] hover:bg-[#E8E8E8]",
+    // Google's "Light"/"Dark" themes (not the single "Neutral" theme) —
+    // swaps with the rest of the app's own light/dark palette via the
+    // --google-btn-* custom properties in globals.css, which already
+    // follow prefers-color-scheme (and the Storybook data-theme toggle).
+    className:
+      "border border-[var(--google-btn-border)] bg-[var(--google-btn-bg)] text-[var(--google-btn-fg)] hover:opacity-90",
     Icon: GoogleIcon,
   },
   kakao: {
@@ -91,7 +97,7 @@ export function OAuthButton({ provider, href }: OAuthButtonProps) {
 
   return (
     <a
-      className={`inline-flex h-11 w-full items-center justify-center gap-3 rounded-lg text-sm font-medium transition ${className}`}
+      className={`inline-flex h-11 w-full items-center justify-center gap-3 rounded-lg text-[15px] font-semibold transition ${className}`}
       href={href}
     >
       <Icon />

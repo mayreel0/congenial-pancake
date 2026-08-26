@@ -35,6 +35,17 @@
 - `apps/web`: `lint`/`typecheck`/`test`(67/67)/`build` 통과.
 - Storybook(`http://localhost:6006`, `login/OAuthButton` → `All Three`)에서 세 버튼 실제 렌더링 확인: Google(연회색 배경 + 4색 G), Kakao(노란 배경 + 검정 말풍선 + 검정 텍스트), Naver(초록 배경 + 흰색 N + 흰색 텍스트) — 가이드라인 색상과 스크린샷 대조 완료.
 
+## 추가 결정 (후속): 아이콘 크기/폰트 굵기 조정, Google 라이트/다크 테마 분리
+
+첫 스크린샷 검토 후 사용자 피드백: "카카오랑 네이버 로고가 구글 로고에 비해 너무 작음", "네이버는 N 로고 크기는 아이콘형 18px, 완성형 16px 이상을 사용하고, 기준보다 작지 않도록 주의", "폰트가 얇아서 잘 안보임", "구글 버튼은 light 일때랑 dark 일때 나눠서."
+
+- Kakao 아이콘: 18px → 20px로 확대(viewBox는 그대로, 렌더 크기만 확대해 벡터 화질 유지).
+- Naver "N" 글자: 13px → 18px, `font-bold` → `font-extrabold`로 확대 — 네이버가 명시한 완성형(텍스트 결합형) 최소 16px, 아이콘형 최소 18px를 둘 다 여유 있게 충족하도록 함(기존 13px는 완성형 최소 기준에도 못 미쳤음).
+- 버튼 라벨 전체: `text-sm font-medium`(14px/500) → `text-[15px] font-semibold`(15px/600)로 상향 — 세 버튼 공통으로 적용되는 가독성 개선.
+- Google 버튼: 앱 전체에 이미 있던 라이트/다크 팔레트 스위칭 패턴(`app/globals.css`의 `prefers-color-scheme` 미디어쿼리 + Storybook 테마 토글용 `data-theme` 속성)에 맞춰 `--google-btn-bg`/`--google-btn-fg`/`--google-btn-border` CSS 변수 3개를 추가하고, 기존 "Neutral" 단일 테마 대신 Google 공식 "Light"(`#FFFFFF`/`#1F1F1F`/테두리 `#747775`) · "Dark"(`#131314`/`#E3E3E3`/테두리 `#8E918F`) 테마로 자동 전환되게 함. G 로고 자체는 색이 이미 밝은/어두운 배경 둘 다에서 통용되는 풀컬러 마크라 테마별 변경 없음.
+
+Storybook `data-theme` 토글로 라이트/다크 각각 스크린샷 재확인: 다크 전환 시 Google 버튼이 `#131314` 배경 + `#E3E3E3` 텍스트 + 옅은 회색 테두리로 정확히 바뀌는 것을 확인. `apps/web` lint/typecheck/test(67/67)/build 재통과.
+
 ## 남은 일
 
 - 사용자가 Kakao Developers/Naver Developers에 실제 앱을 등록해 `KAKAO_CLIENT_ID`/`KAKAO_CLIENT_SECRET`/`NAVER_CLIENT_ID`/`NAVER_CLIENT_SECRET` 실값을 발급받아야 실제 계정으로 전체 로그인 플로우 테스트가 가능하다 — 계정 생성은 어시스턴트가 대행할 수 없는 영역.
