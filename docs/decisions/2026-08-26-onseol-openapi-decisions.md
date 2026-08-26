@@ -26,9 +26,15 @@
 
 호스트-헤더 기반 게이팅(같은 포트, DNS만 다르게)이나 진짜 서브도메인 분리는 여전히 실제 배포 인프라가 정해진 뒤의 이야기 — 지금은 "같은 프로세스, 다른 포트"가 인프라 없이 당장 달성 가능한 가장 가까운 형태다.
 
+## 추가 결정 (후속): docs 전용 엔트리포인트 — "스웨거만 켜는 명령어는 없냐"는 질문에 대한 답
+
+`main.ts`는 여전히 real API(`PORT`)와 Swagger(`SWAGGER_PORT`)를 한 프로세스에서 같이 띄운다. 사용자가 "스웨거만 켤 수 있는 명령어"를 물어서, 별도 엔트리포인트 `src/swagger-only.ts`를 추가했다 — `AppModule`은 (실제 컨트롤러/DTO를 스캔해 문서를 만들어야 하니) 여전히 인스턴스화하지만, `app.listen(PORT)`를 호출하지 않아 그 프로세스에서는 실제 API가 아예 리스닝되지 않는다. `DocumentBuilder` 설정과 빈 `SwaggerDocsModule`은 `src/openapi.ts`로 뽑아서 `main.ts`/`swagger-only.ts` 둘 다 재사용한다(정의가 두 곳에 중복되지 않도록).
+
+`pnpm --filter api-server start:swagger`(또는 `start:swagger:watch`)로 실행한다. `.env`는 여전히 필요하지만(`AppModule` 인스턴스화 자체엔 유효한 `DATABASE_URL` 형식이 필요) 실제로 DB 쿼리는 한 번도 안 나간다.
+
 ## 산출물
 
-- `apps/api-server`: `@nestjs/swagger` 의존성 추가, `nest-cli.json`에 플러그인 등록, `src/config/env.schema.ts`에 `SWAGGER_PORT` 필드(`SWAGGER_DOCS_PATH`를 대체), `src/main.ts`에 `DocumentBuilder` + 별도 포트로 뜨는 빈 `SwaggerDocsModule`, 8개 컨트롤러 전부에 `@ApiTags(...)`.
+- `apps/api-server`: `@nestjs/swagger` 의존성 추가, `nest-cli.json`에 플러그인 등록, `src/config/env.schema.ts`에 `SWAGGER_PORT` 필드(`SWAGGER_DOCS_PATH`를 대체), `src/openapi.ts`(신규 — `buildOpenApiDocument()` 헬퍼 + 빈 `SwaggerDocsModule`), `src/main.ts`(공용 헬퍼 사용하도록 정리), `src/swagger-only.ts`(신규 — docs 전용 엔트리포인트), `package.json`에 `start:swagger`/`start:swagger:watch` 스크립트, 8개 컨트롤러 전부에 `@ApiTags(...)`.
 - `pnpm-workspace.yaml`: `@nestjs/swagger`가 전이 의존성으로 끌고 온 `@scarf/scarf`(익명 텔레메트리 핑거) 빌드 스크립트를 명시적으로 차단(`allowBuilds: { '@scarf/scarf': false }`) — pnpm이 승인 안 된 빌드 스크립트를 만나면 placeholder를 자동 추가하고 비대화형 설치를 막는데, 그 placeholder를 실제 값으로 채운 것.
 
 ## 검증
@@ -36,4 +42,5 @@
 - `pnpm --filter api-server lint/typecheck/test(56)/build` 모두 통과.
 - 실제 서버 기동 후 curl로: 메인 API 포트(8080)에선 `/`, `/api-reference-x7k2m9`, `/docs` 전부 404 — 문서가 전혀 안 남아있음을 확인. 별도 포트(8081)의 `/`는 200.
 - `8081/-json`(OpenAPI 스펙)에서 24개 경로, `CreateRequestDto` 등 실제 스키마가 클래스 데코레이터 그대로 반영됨을 확인.
+- `start:swagger` 실행 후 curl로: 8080은 connection refused(포트 자체가 안 열림), 8081만 200 — 진짜 "스웨거만" 켜졌음을 확인. Chrome에서도 8081 Swagger UI 정상 렌더링 확인.
 - Chrome에서 8081 포트의 Swagger UI 실제 렌더링 확인 — 태그별 그룹핑(auth/health/...) 그대로 유지.

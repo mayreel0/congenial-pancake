@@ -1,20 +1,14 @@
-import { Module } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { ValidationPipe } from '@nestjs/common';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { SwaggerModule } from '@nestjs/swagger';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { AppExceptionFilter } from './common/filters/app-exception.filter';
 import { guestIdMiddleware } from './common/middleware/guest-id.middleware';
+import { buildOpenApiDocument, SwaggerDocsModule } from './openapi';
 import type { Env } from './config/env.schema';
-
-// Empty on purpose — its only job is hosting the pre-generated OpenAPI
-// document on its own port (see bootstrap() below). No controllers, no
-// providers, no DB connection: this is not a second copy of the real app.
-@Module({})
-class SwaggerDocsModule {}
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -46,21 +40,10 @@ async function bootstrap() {
   // just be "/" once that's true. Kept on in production (unlike a typical
   // internal-only setup) since this API has no other consumer-facing
   // documentation yet. See docs/decisions/2026-08-26-onseol-openapi-
-  // decisions.md.
-  const openApiConfig = new DocumentBuilder()
-    .setTitle('온설 API')
-    .setDescription(
-      '온설 백엔드 API 문서. 세션 인증은 httpOnly 쿠키(SESSION_COOKIE_NAME) 또는 Authorization: Bearer 헤더 중 하나로 가능합니다.',
-    )
-    .setVersion('1.0')
-    .addCookieAuth(config.get('SESSION_COOKIE_NAME', { infer: true }))
-    .addBearerAuth()
-    .build();
-  // Generated from the real app (so it sees every real controller/DTO),
-  // then handed to a second, otherwise-empty Nest app that only exists to
-  // serve it — this avoids bootstrapping a whole redundant copy of
-  // AppModule (DB pool, guards, etc.) just to host static docs.
-  const openApiDocument = SwaggerModule.createDocument(app, openApiConfig);
+  // decisions.md. `pnpm --filter api-server start:swagger` runs docs-only
+  // (src/swagger-only.ts), for when you want the docs without the real
+  // API also being reachable.
+  const openApiDocument = buildOpenApiDocument(app, config);
   const swaggerApp = await NestFactory.create<NestExpressApplication>(
     SwaggerDocsModule,
     { logger: false },
