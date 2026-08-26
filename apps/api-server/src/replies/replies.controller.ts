@@ -8,6 +8,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { GuestId } from '../common/decorators/guest-id.decorator';
 import { OptionalCurrentUser } from '../auth/optional-current-user.decorator';
 import { OptionalSessionGuard } from '../auth/optional-session.guard';
@@ -18,6 +19,7 @@ import {
 } from './dto/reply-response.dto';
 import { RepliesService } from './replies.service';
 
+@ApiTags('replies')
 @Controller('requests/:requestId/replies')
 export class RepliesController {
   constructor(private readonly repliesService: RepliesService) {}

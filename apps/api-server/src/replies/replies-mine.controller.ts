@@ -1,4 +1,5 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { GuestId } from '../common/decorators/guest-id.decorator';
 import { OptionalCurrentUser } from '../auth/optional-current-user.decorator';
 import { OptionalSessionGuard } from '../auth/optional-session.guard';
@@ -11,6 +12,7 @@ import { RepliesService } from './replies.service';
 // Separate from RepliesController because that one is nested under
 // requests/:requestId/replies — this route is top-level (/replies/mine),
 // not scoped to one request.
+@ApiTags('replies')
 @Controller('replies')
 export class RepliesMineController {
   constructor(private readonly repliesService: RepliesService) {}

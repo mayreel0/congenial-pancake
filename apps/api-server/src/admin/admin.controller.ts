@@ -9,6 +9,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { SessionGuard } from '../auth/session.guard';
 import { ReportsService } from '../reports/reports.service';
 import { RepliesService } from '../replies/replies.service';
@@ -38,6 +39,7 @@ export type HiddenModerationQueueDto = {
 // docs/decisions/2026-08-21-onseol-db-and-moderation-decisions.md.
 // SessionGuard first (so request.userId is set), then AdminGuard (checks
 // that userId against the whitelist) — order matters.
+@ApiTags('admin')
 @Controller('admin')
 @UseGuards(SessionGuard, AdminGuard)
 export class AdminController {

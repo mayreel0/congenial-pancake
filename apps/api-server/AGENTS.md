@@ -5,6 +5,7 @@ App-specific rules only. Project-wide rules (branching policy, decision-confirma
 ## Running
 
 - `pnpm --filter api-server start:dev` — local run. Requires `.env` (see `.env.example`; `DATABASE_URL` must point at a local Postgres).
+- `pnpm --filter api-server start:swagger:watch` — Swagger docs only, no real API traffic reachable — see "OpenAPI / Swagger docs" below.
 - `pnpm --filter api-server lint` / `typecheck` (`tsc --noEmit`) / `test` / `build` — all four must pass before a PR.
 - `pnpm --filter api-server db:generate` — generate migration SQL from schema (`src/database/schema/*.schema.ts`) changes.
 - `pnpm --filter api-server db:migrate` — apply generated migrations to the DB at `DATABASE_URL`.
@@ -88,3 +89,13 @@ Auth, `/today`, `/answer`, and `/read` all call this API for real now (`apps/web
 `/read` needs a whole thread on screen at once (a request plus every reply), which creates a problem the single-item `/answer` screen never had: `authorId`/`guestId` never cross the HTTP boundary, so the frontend can't tell whether two replies in the same thread came from the same person. `RequestsRepository.findFeed()` + `assignAuthorSlots()` (`src/requests/feed-author-slots.ts`) solve this server-side — each distinct identity in a thread gets an incrementing `authorSlot` (0, 1, 2, ...) that the frontend maps to a randomly-picked nickname (`apps/web/app/read/labels.ts`). The slot carries no identity outside that one thread; see docs/decisions/2026-08-23-onseol-read-feed-decisions.md for why per-thread (not cross-feed, not sequential "익명 N") was chosen.
 
 Saving a reply ("마음에 남기기") is member-only, matching hold — `src/saved-replies/` (`SavedRepliesController`, routes on `/replies`: `POST`/`DELETE /replies/:id/save`, `GET /replies/saved`) follows the same shape as `answer-interactions` but as its own module/table (`saved_replies`) since it's a many-to-many bookmark, not a per-viewer queue exclusion.
+
+## OpenAPI / Swagger docs
+
+**`src/main.ts` (the normal `start`/`start:dev`) never starts Swagger at all.** Docs are entirely opt-in, via a separate entry point: `pnpm --filter api-server start:swagger` (or `start:swagger:watch`) runs `src/swagger-only.ts`, which builds the real OpenAPI document from `AppModule`'s actual controllers (via the shared `buildOpenApiDocument()` helper in `src/openapi.ts`) and serves it on its **own port** (`SWAGGER_PORT`, default 8081) through a second, otherwise-empty Nest app (`SwaggerDocsModule`, also in `src/openapi.ts`) — but never calls `app.listen(PORT)`, so no real API route is reachable from that process either. The two processes are fully independent: run just `start:dev` and 8081 never opens at all; run `start:swagger` alongside it and both are up, each on its own port. Same reasoning as `apps/admin` getting its own port instead of a path inside `apps/web` — see `docs/decisions/2026-08-26-onseol-openapi-decisions.md` for the full history (shipped first as a hard-to-guess path on the main port, then a second port bootstrapped alongside the main one in `main.ts`, then split into this fully separate opt-in process — each change came from the user asking "can it be X instead" after seeing the previous version).
+
+Still needs a valid `.env` to start (`AppModule` gets instantiated either way, to discover the real routes) but `swagger-only.ts` never queries the DB.
+
+Schemas are auto-inferred from DTO classes at build time via the `@nestjs/swagger` NestJS CLI plugin (`nest-cli.json`'s `compilerOptions.plugins`) — this reads both TS types and `class-validator` decorators (`@MinLength()` etc. show up as OpenAPI constraints), so DTOs don't need manual `@ApiProperty()` decoration. This only runs through `nest build`/`nest start` (the CLI), not plain `tsc --noEmit` — don't expect `pnpm --filter api-server typecheck` to exercise it. Only `@ApiTags('...')` on each controller is manual (grouping needs a human-chosen name, not inferable) — add it to any new controller, or its routes land ungrouped in the UI.
+
+`@nestjs/swagger` v11 bundles `swagger-ui-dist` (static assets) internally, not the older `swagger-ui-express` package — don't add `swagger-ui-express` as a dependency expecting to wire it up directly; `SwaggerModule.setup()` already handles serving the UI on whatever Nest app instance you give it.

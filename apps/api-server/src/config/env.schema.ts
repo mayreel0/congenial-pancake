@@ -38,6 +38,10 @@ export const envSchema = z.object({
         .map((id) => id.trim())
         .filter((id) => id.length > 0),
     ),
+  // Swagger/OpenAPI UI runs on its own port, separate from PORT — same
+  // reasoning as apps/admin getting its own port instead of a path inside
+  // apps/web. See docs/decisions/2026-08-26-onseol-openapi-decisions.md.
+  SWAGGER_PORT: z.coerce.number().int().positive().default(8081),
 });
 
 export type Env = z.infer<typeof envSchema>;

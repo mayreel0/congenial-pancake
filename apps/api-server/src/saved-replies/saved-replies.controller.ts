@@ -8,12 +8,14 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { SessionGuard } from '../auth/session.guard';
 import { SavedRepliesService } from './saved-replies.service';
 
 // Save ("마음에 남기기") is member-only, unlike requests/replies/skip — see
 // docs/decisions/2026-08-22-onseol-answer-queue-decisions.md.
+@ApiTags('replies')
 @Controller('replies')
 @UseGuards(SessionGuard)
 export class SavedRepliesController {
