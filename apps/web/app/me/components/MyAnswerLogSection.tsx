@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Button } from "ui/Button";
 import { useMyAnswerLogQuery } from "../../lib/replies/queries";
 import { AnswerLogCard } from "./AnswerLogCard";
 
@@ -26,12 +26,9 @@ export function MyAnswerLogSection() {
       ) : entries.length === 0 ? (
         <div className="space-y-3 rounded-lg border border-line bg-surface px-4 py-5 shadow-sm">
           <p className="text-sm text-muted">아직 남긴 답변이 없습니다.</p>
-          <Link
-            className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition hover:opacity-90"
-            href="/answer"
-          >
+          <Button href="/answer" size="sm">
             답변 남기러 가기
-          </Link>
+          </Button>
         </div>
       ) : (
         <ol className="space-y-4">

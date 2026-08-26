@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Button } from "ui/Button";
+import { TextField } from "ui/TextField";
 import { ApiError, googleLoginUrl } from "../lib/api";
 import { useAuth } from "../lib/auth/useAuth";
 
@@ -62,41 +64,31 @@ export default function LoginPage() {
         </div>
 
         <form className="space-y-3" onSubmit={handleSubmit}>
-          <div className="space-y-1">
-            <label className="text-sm text-muted" htmlFor="email">
-              이메일
-            </label>
-            <input
-              autoComplete="email"
-              className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-base text-foreground outline-none focus:border-primary"
-              id="email"
-              required
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.currentTarget.value)}
-            />
-          </div>
-          <div className="space-y-1">
-            <label className="text-sm text-muted" htmlFor="password">
-              비밀번호
-            </label>
-            <input
-              autoComplete={mode === "login" ? "current-password" : "new-password"}
-              className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-base text-foreground outline-none focus:border-primary"
-              id="password"
-              minLength={8}
-              required
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.currentTarget.value)}
-            />
-          </div>
+          <TextField
+            autoComplete="email"
+            id="email"
+            label="이메일"
+            required
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.currentTarget.value)}
+          />
+          <TextField
+            autoComplete={mode === "login" ? "current-password" : "new-password"}
+            id="password"
+            label="비밀번호"
+            minLength={8}
+            required
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.currentTarget.value)}
+          />
 
           {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
-          <button
-            className="inline-flex h-11 w-full items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+          <Button
             disabled={submitStatus === "pending"}
+            fullWidth
             type="submit"
           >
             {submitStatus === "pending"
@@ -104,7 +96,7 @@ export default function LoginPage() {
               : mode === "login"
                 ? "로그인"
                 : "회원가입"}
-          </button>
+          </Button>
         </form>
 
         <button
