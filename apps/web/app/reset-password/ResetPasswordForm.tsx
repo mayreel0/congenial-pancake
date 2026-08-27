@@ -1,13 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { Button } from "ui/Button";
-import { TextField } from "ui/TextField";
 import { ApiError, resetPassword } from "../lib/api";
-
-type SubmitStatus = "idle" | "pending" | "done";
+import { ResetPasswordBody, type ResetPasswordStatus } from "./ResetPasswordBody";
 
 function errorMessage(error: unknown): string {
   if (error instanceof ApiError) return error.message;
@@ -18,7 +14,7 @@ export function ResetPasswordForm() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
   const [password, setPassword] = useState("");
-  const [status, setStatus] = useState<SubmitStatus>("idle");
+  const [status, setStatus] = useState<ResetPasswordStatus>("idle");
   const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(event: React.FormEvent): Promise<void> {
@@ -45,41 +41,14 @@ export function ResetPasswordForm() {
           </h1>
         </div>
 
-        {!token ? (
-          <p className="text-sm text-red-600">유효하지 않은 링크입니다.</p>
-        ) : status === "done" ? (
-          <div className="space-y-4">
-            <p className="text-sm text-primary">비밀번호를 설정했습니다.</p>
-            <Link
-              className="block text-center text-sm text-muted underline-offset-2 hover:underline"
-              href="/login"
-            >
-              로그인하러 가기
-            </Link>
-          </div>
-        ) : (
-          <form
-            className="space-y-3"
-            onSubmit={(event) => void handleSubmit(event)}
-          >
-            <TextField
-              autoComplete="new-password"
-              id="password"
-              label="새 비밀번호"
-              minLength={8}
-              required
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.currentTarget.value)}
-            />
-
-            {error ? <p className="text-sm text-red-600">{error}</p> : null}
-
-            <Button disabled={status === "pending"} fullWidth type="submit">
-              {status === "pending" ? "처리 중" : "비밀번호 설정"}
-            </Button>
-          </form>
-        )}
+        <ResetPasswordBody
+          error={error}
+          password={password}
+          status={status}
+          token={token}
+          onPasswordChange={setPassword}
+          onSubmit={(event) => void handleSubmit(event)}
+        />
       </section>
     </main>
   );
