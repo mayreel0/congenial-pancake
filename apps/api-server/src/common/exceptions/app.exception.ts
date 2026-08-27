@@ -112,6 +112,20 @@ export class EmailVerificationTokenInvalidException extends AppException {
   }
 }
 
+// Only used for a deliberate resend request — signup swallows the same
+// underlying EmailService failure instead (see AuthService.signup), since
+// a flaky provider shouldn't block account creation. A resend the user
+// explicitly asked for deserves real feedback, not a silent no-op.
+export class EmailSendFailedException extends AppException {
+  constructor() {
+    super(
+      'AUTH_EMAIL_SEND_FAILED',
+      'Failed to send the verification email. Please try again later.',
+      HttpStatus.BAD_GATEWAY,
+    );
+  }
+}
+
 export class ReplyUnverifiedLimitExceededException extends AppException {
   constructor(limit: number) {
     super(

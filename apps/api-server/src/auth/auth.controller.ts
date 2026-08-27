@@ -18,7 +18,10 @@ import { Throttle } from '@nestjs/throttler';
 import { ApiTags } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import type { Env } from '../config/env.schema';
-import { OAuthExchangeFailedException } from '../common/exceptions/app.exception';
+import {
+  EmailSendFailedException,
+  OAuthExchangeFailedException,
+} from '../common/exceptions/app.exception';
 import { AuthService } from './auth.service';
 import type { AuthenticatedRequest } from './authenticated-request';
 import { CurrentUser } from './current-user.decorator';
@@ -122,10 +125,18 @@ export class AuthController {
       );
     }
     if (user.emailVerifiedAt) return;
-    await this.emailVerificationService.sendVerificationEmail(
-      user.id,
-      user.email,
-    );
+    // Unlike signup (which swallows the same underlying failure so a flaky
+    // provider never blocks account creation), a resend is a deliberate
+    // request the user is waiting on — they deserve real feedback if it
+    // didn't go out, not a silent no-op or a generic 500.
+    try {
+      await this.emailVerificationService.sendVerificationEmail(
+        user.id,
+        user.email,
+      );
+    } catch {
+      throw new EmailSendFailedException();
+    }
   }
 
   @Post('logout')
