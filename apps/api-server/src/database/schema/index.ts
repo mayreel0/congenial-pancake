@@ -8,3 +8,4 @@ export * from './answer-interactions.schema';
 export * from './saved-replies.schema';
 export * from './settings.schema';
 export * from './password-reset-tokens.schema';
+export * from './email-verification-tokens.schema';

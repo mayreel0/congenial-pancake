@@ -3,10 +3,12 @@ import { AnswerInteractionsService } from '../answer-interactions/answer-interac
 import {
   ReplyAlreadySubmittedException,
   ReplyGuestLimitExceededException,
+  ReplyUnverifiedLimitExceededException,
   RequestNotFoundException,
 } from '../common/exceptions/app.exception';
 import { RequestsService } from '../requests/requests.service';
 import { SettingsService } from '../settings/settings.service';
+import { UsersService } from '../users/users.service';
 import type { CreateReplyDto } from './dto/create-reply.dto';
 import {
   RepliesRepository,
@@ -21,6 +23,7 @@ export class RepliesService {
     private readonly requestsService: RequestsService,
     private readonly answerInteractionsService: AnswerInteractionsService,
     private readonly settingsService: SettingsService,
+    private readonly usersService: UsersService,
   ) {}
 
   async create(
@@ -38,6 +41,22 @@ export class RepliesService {
         userId,
       );
       if (existing) throw new ReplyAlreadySubmittedException();
+
+      // An unverified member is capped the same as a guest — otherwise
+      // hitting the guest cap is trivially bypassed by signing up with any
+      // unverified email. Verified members stay uncapped.
+      const user = await this.usersService.findById(userId);
+      if (!user?.emailVerifiedAt) {
+        const [authorReplyCount, settings] = await Promise.all([
+          this.repliesRepository.countByAuthor(userId),
+          this.settingsService.get(),
+        ]);
+        if (authorReplyCount >= settings.guestReplyLimit) {
+          throw new ReplyUnverifiedLimitExceededException(
+            settings.guestReplyLimit,
+          );
+        }
+      }
 
       const reply = await this.repliesRepository.create({
         requestId,
@@ -61,7 +80,7 @@ export class RepliesService {
       this.settingsService.get(),
     ]);
     if (guestReplyCount >= settings.guestReplyLimit) {
-      throw new ReplyGuestLimitExceededException();
+      throw new ReplyGuestLimitExceededException(settings.guestReplyLimit);
     }
 
     const reply = await this.repliesRepository.create({

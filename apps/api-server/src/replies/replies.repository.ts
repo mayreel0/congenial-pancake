@@ -69,6 +69,16 @@ export class RepliesRepository {
     return row?.value ?? 0;
   }
 
+  // Same global-not-per-request shape as countByGuest — used to cap an
+  // unverified member the same way a guest is capped, see RepliesService.
+  async countByAuthor(authorId: string): Promise<number> {
+    const [row] = await this.db
+      .select({ value: count() })
+      .from(replies)
+      .where(eq(replies.authorId, authorId));
+    return row?.value ?? 0;
+  }
+
   async setHidden(id: string, hidden: boolean): Promise<void> {
     await this.db.update(replies).set({ hidden }).where(eq(replies.id, id));
   }

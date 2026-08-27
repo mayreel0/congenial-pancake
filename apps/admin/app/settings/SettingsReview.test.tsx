@@ -99,7 +99,7 @@ describe("SettingsReview", () => {
 
     expect(await screen.findByLabelText("답변 큐 신선도 (시간)")).toHaveValue(24);
     expect(screen.getByLabelText("답변 큐 답장 캡")).toHaveValue(3);
-    expect(screen.getByLabelText("비회원 답장 총량 제한")).toHaveValue(2);
+    expect(screen.getByLabelText("비회원·미인증 회원 답장 총량 제한")).toHaveValue(2);
   });
 
   it("saves edited values and shows a confirmation", async () => {

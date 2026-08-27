@@ -40,6 +40,21 @@ export const envSchema = z.object({
   KAKAO_CLIENT_SECRET: z.string().default(''),
   NAVER_CLIENT_ID: z.string().default(''),
   NAVER_CLIENT_SECRET: z.string().default(''),
+  // Email verification — EmailService tries providers in this order
+  // (Resend first, Naver Cloud Mailer as fallback), so both sets of
+  // credentials are optional the same way Kakao/Naver's are: the app boots
+  // without them, a provider whose credentials are empty just fails its
+  // send attempt (falling through to the next provider, or throwing if
+  // it's the last one) rather than the whole app refusing to start.
+  RESEND_API_KEY: z.string().default(''),
+  // Must be a verified sending domain in Resend for anything beyond their
+  // own onboarding@resend.dev test address — see resend.com/domains.
+  RESEND_FROM_EMAIL: z.string().default(''),
+  NAVER_CLOUD_MAILER_ACCESS_KEY: z.string().default(''),
+  NAVER_CLOUD_MAILER_SECRET_KEY: z.string().default(''),
+  // Must be a sender address pre-verified in the NCP Cloud Outbound Mailer
+  // console — the API rejects sends from an unverified address.
+  NAVER_CLOUD_MAILER_FROM_EMAIL: z.string().default(''),
   ADMIN_USER_IDS: z
     .string()
     .default('')

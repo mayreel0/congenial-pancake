@@ -6,6 +6,7 @@ import {
 import type { User } from '../users/users.repository';
 import type { UsersService } from '../users/users.service';
 import { AuthService } from './auth.service';
+import type { EmailVerificationService } from './email-verification/email-verification.service';
 import type {
   OAuthIdentitiesRepository,
   OAuthIdentity,
@@ -14,12 +15,17 @@ import type { PasswordHasherService } from './password/password-hasher.service';
 import type { SessionService } from './session.service';
 import type { Session } from './sessions.repository';
 
+// emailVerifiedAt defaults to already-verified so the many tests below that
+// don't care about verification aren't affected by loginWithOAuth's
+// "mark verified on login" side effect — tests that specifically exercise
+// that behavior pass emailVerifiedAt: null explicitly.
 function makeUser(overrides: Partial<User> = {}): User {
   return {
     id: 'user-1',
     email: 'test@example.com',
     passwordHash: 'hashed',
     nickname: null,
+    emailVerifiedAt: new Date('2026-08-20T00:00:00.000Z'),
     createdAt: new Date('2026-08-20T00:00:00.000Z'),
     ...overrides,
   };
@@ -42,6 +48,7 @@ describe('AuthService', () => {
   let oauthIdentitiesRepository: jest.Mocked<OAuthIdentitiesRepository>;
   let passwordHasher: jest.Mocked<PasswordHasherService>;
   let sessionService: jest.Mocked<SessionService>;
+  let emailVerificationService: jest.Mocked<EmailVerificationService>;
   let authService: AuthService;
 
   beforeEach(() => {
@@ -49,6 +56,7 @@ describe('AuthService', () => {
       findByEmail: jest.fn(),
       findById: jest.fn(),
       create: jest.fn(),
+      markEmailVerified: jest.fn(),
     } as unknown as jest.Mocked<UsersService>;
     oauthIdentitiesRepository = {
       findByProviderAccount: jest.fn(),
@@ -61,12 +69,17 @@ describe('AuthService', () => {
     sessionService = {
       createSession: jest.fn(),
     } as unknown as jest.Mocked<SessionService>;
+    emailVerificationService = {
+      sendVerificationEmail: jest.fn(),
+      verifyEmail: jest.fn(),
+    } as unknown as jest.Mocked<EmailVerificationService>;
 
     authService = new AuthService(
       usersService,
       oauthIdentitiesRepository,
       passwordHasher,
       sessionService,
+      emailVerificationService,
     );
   });
 
@@ -226,9 +239,9 @@ describe('AuthService', () => {
         email: 'new@example.com',
       });
 
-      expect(usersService.create).toHaveBeenCalledWith({
-        email: 'new@example.com',
-      });
+      const createCall = usersService.create.mock.calls[0]?.[0];
+      expect(createCall?.email).toBe('new@example.com');
+      expect(createCall?.emailVerifiedAt).toBeInstanceOf(Date);
       expect(oauthIdentitiesRepository.create).toHaveBeenCalledWith(
         newUser.id,
         'google',
@@ -257,6 +270,25 @@ describe('AuthService', () => {
         'kakao-1',
       );
       expect(result.user).toEqual(existingUser);
+    });
+
+    it('marks an already-linked but still-unverified user as verified on login', async () => {
+      const identity = { userId: 'user-1' } as OAuthIdentity;
+      oauthIdentitiesRepository.findByProviderAccount.mockResolvedValue(
+        identity,
+      );
+      const unverifiedUser = makeUser({ emailVerifiedAt: null });
+      usersService.findById.mockResolvedValue(unverifiedUser);
+      const session = makeSession();
+      sessionService.createSession.mockResolvedValue(session);
+
+      const result = await authService.loginWithOAuth('google', {
+        providerAccountId: 'google-1',
+        email: 'test@example.com',
+      });
+
+      expect(usersService.markEmailVerified).toHaveBeenCalledWith('user-1');
+      expect(result.user.emailVerifiedAt).not.toBeNull();
     });
   });
 });

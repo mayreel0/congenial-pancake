@@ -10,6 +10,7 @@ export type UserResponseDto = {
   // compute, harmless unused, and the frontend needs it the moment a
   // nickname exists without a second round trip.
   nicknameDiscriminator: string;
+  emailVerified: boolean;
 };
 
 export function toUserResponseDto(user: User): UserResponseDto {
@@ -19,5 +20,6 @@ export function toUserResponseDto(user: User): UserResponseDto {
     createdAt: user.createdAt,
     nickname: user.nickname,
     nicknameDiscriminator: nicknameDiscriminator(user.id),
+    emailVerified: user.emailVerifiedAt !== null,
   };
 }

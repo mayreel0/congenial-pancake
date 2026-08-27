@@ -1,8 +1,11 @@
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from '../database/database.module';
+import { EmailModule } from '../email/email.module';
 import { UsersModule } from '../users/users.module';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { EmailVerificationTokensRepository } from './email-verification/email-verification-tokens.repository';
+import { EmailVerificationService } from './email-verification/email-verification.service';
 import { OAuthIdentitiesRepository } from './oauth-identities.repository';
 import { GoogleOAuthProvider } from './oauth/google-oauth.provider';
 import { KakaoOAuthProvider } from './oauth/kakao-oauth.provider';
@@ -17,7 +20,7 @@ import { SessionService } from './session.service';
 import { SessionsRepository } from './sessions.repository';
 
 @Module({
-  imports: [DatabaseModule, UsersModule],
+  imports: [DatabaseModule, UsersModule, EmailModule],
   controllers: [AuthController],
   providers: [
     SessionsRepository,
@@ -32,6 +35,8 @@ import { SessionsRepository } from './sessions.repository';
     OAuthProviderRegistry,
     PasswordResetTokensRepository,
     PasswordResetService,
+    EmailVerificationTokensRepository,
+    EmailVerificationService,
     AuthService,
   ],
   exports: [

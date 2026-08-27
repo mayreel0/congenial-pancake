@@ -28,10 +28,12 @@ import {
   toUserResponseDto,
   type UserResponseDto,
 } from './dto/user-response.dto';
+import { EmailVerificationService } from './email-verification/email-verification.service';
 import { OAuthProviderRegistry } from './oauth/oauth-provider-registry';
 import { PasswordResetService } from './password-reset/password-reset.service';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { UpdateNicknameDto } from './dto/update-nickname.dto';
+import { VerifyEmailDto } from './dto/verify-email.dto';
 import { clearSessionCookie, setSessionCookie } from './session-cookie';
 import { SessionGuard } from './session.guard';
 import { SessionService } from './session.service';
@@ -49,6 +51,7 @@ export class AuthController {
     private readonly usersService: UsersService,
     private readonly oauthProviders: OAuthProviderRegistry,
     private readonly passwordResetService: PasswordResetService,
+    private readonly emailVerificationService: EmailVerificationService,
     private readonly config: ConfigService<Env, true>,
   ) {}
 
@@ -95,6 +98,34 @@ export class AuthController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async resetPassword(@Body() dto: ResetPasswordDto): Promise<void> {
     await this.passwordResetService.resetPassword(dto.token, dto.password);
+  }
+
+  // Public — the token itself is the proof of authorization, same as
+  // reset-password. Issued automatically on signup (AuthService.signup)
+  // and re-issuable via resend-verification below.
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
+  @Post('verify-email')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async verifyEmail(@Body() dto: VerifyEmailDto): Promise<void> {
+    await this.emailVerificationService.verifyEmail(dto.token);
+  }
+
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
+  @Post('resend-verification')
+  @UseGuards(SessionGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async resendVerification(@CurrentUser() userId: string): Promise<void> {
+    const user = await this.usersService.findById(userId);
+    if (!user) {
+      throw new InternalServerErrorException(
+        'Session references a missing user.',
+      );
+    }
+    if (user.emailVerifiedAt) return;
+    await this.emailVerificationService.sendVerificationEmail(
+      user.id,
+      user.email,
+    );
   }
 
   @Post('logout')

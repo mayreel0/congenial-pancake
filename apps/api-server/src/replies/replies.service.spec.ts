@@ -2,12 +2,15 @@ import type { AnswerInteractionsService } from '../answer-interactions/answer-in
 import {
   ReplyAlreadySubmittedException,
   ReplyGuestLimitExceededException,
+  ReplyUnverifiedLimitExceededException,
   RequestNotFoundException,
 } from '../common/exceptions/app.exception';
 import type { RequestRecord } from '../requests/requests.repository';
 import type { RequestsService } from '../requests/requests.service';
 import type { SettingsService } from '../settings/settings.service';
 import type { SettingsRecord } from '../settings/settings.repository';
+import type { User } from '../users/users.repository';
+import type { UsersService } from '../users/users.service';
 import type { ReplyRecord, RepliesRepository } from './replies.repository';
 import { RepliesService } from './replies.service';
 
@@ -51,11 +54,25 @@ function makeSettings(overrides: Partial<SettingsRecord> = {}): SettingsRecord {
   };
 }
 
+// Verified by default — most tests here aren't about the unverified reply
+// cap, so they shouldn't need to think about it.
+function makeUser(overrides: Partial<User> = {}): User {
+  return {
+    id: 'user-1',
+    email: 'test@example.com',
+    passwordHash: 'hashed',
+    emailVerifiedAt: new Date('2026-08-21T00:00:00.000Z'),
+    createdAt: new Date('2026-08-21T00:00:00.000Z'),
+    ...overrides,
+  };
+}
+
 describe('RepliesService', () => {
   let repliesRepository: jest.Mocked<RepliesRepository>;
   let requestsService: jest.Mocked<RequestsService>;
   let answerInteractionsService: jest.Mocked<AnswerInteractionsService>;
   let settingsService: jest.Mocked<SettingsService>;
+  let usersService: jest.Mocked<UsersService>;
   let repliesService: RepliesService;
 
   beforeEach(() => {
@@ -65,6 +82,7 @@ describe('RepliesService', () => {
       findVisibleByRequestId: jest.fn(),
       findByRequestAndAuthor: jest.fn(),
       countByGuest: jest.fn(),
+      countByAuthor: jest.fn(),
       setHidden: jest.fn(),
       findMine: jest.fn(),
     } as unknown as jest.Mocked<RepliesRepository>;
@@ -77,12 +95,16 @@ describe('RepliesService', () => {
     settingsService = {
       get: jest.fn().mockResolvedValue(makeSettings()),
     } as unknown as jest.Mocked<SettingsService>;
+    usersService = {
+      findById: jest.fn().mockResolvedValue(makeUser()),
+    } as unknown as jest.Mocked<UsersService>;
 
     repliesService = new RepliesService(
       repliesRepository,
       requestsService,
       answerInteractionsService,
       settingsService,
+      usersService,
     );
   });
 
@@ -139,6 +161,41 @@ describe('RepliesService', () => {
         'user-1',
         undefined,
       );
+    });
+
+    it('throws when an unverified member already replied 5 times total, across any requests', async () => {
+      requestsService.findVisibleById.mockResolvedValue(makeRequest());
+      usersService.findById.mockResolvedValue(
+        makeUser({ emailVerifiedAt: null }),
+      );
+      repliesRepository.countByAuthor.mockResolvedValue(5);
+
+      await expect(
+        repliesService.create(
+          'request-1',
+          { body: '내용' },
+          'user-1',
+          'unused-guest-id',
+        ),
+      ).rejects.toBeInstanceOf(ReplyUnverifiedLimitExceededException);
+    });
+
+    it('does not cap a verified member even past the guest/unverified limit', async () => {
+      requestsService.findVisibleById.mockResolvedValue(makeRequest());
+      repliesRepository.findByRequestAndAuthor.mockResolvedValue(undefined);
+      usersService.findById.mockResolvedValue(makeUser());
+      const created = makeReply({ authorId: 'user-1' });
+      repliesRepository.create.mockResolvedValue(created);
+
+      const result = await repliesService.create(
+        'request-1',
+        { body: '내용' },
+        'user-1',
+        'unused-guest-id',
+      );
+
+      expect(repliesRepository.countByAuthor).not.toHaveBeenCalled();
+      expect(result).toEqual(created);
     });
 
     it('throws when the guest already replied 5 times total, across any requests', async () => {
