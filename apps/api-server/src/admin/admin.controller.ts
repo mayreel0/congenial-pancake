@@ -4,13 +4,16 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  NotFoundException,
   Param,
   Patch,
   Post,
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { PasswordResetService } from '../auth/password-reset/password-reset.service';
 import { SessionGuard } from '../auth/session.guard';
+import { UsersService } from '../users/users.service';
 import { ReportsService } from '../reports/reports.service';
 import { RepliesService } from '../replies/replies.service';
 import { RequestsService } from '../requests/requests.service';
@@ -29,6 +32,7 @@ import {
   toAdminRequestResponseDto,
   type AdminRequestResponseDto,
 } from './dto/admin-request.dto';
+import { IssuePasswordResetLinkDto } from './dto/issue-password-reset-link.dto';
 
 export type HiddenModerationQueueDto = {
   requests: AdminRequestResponseDto[];
@@ -48,6 +52,8 @@ export class AdminController {
     private readonly repliesService: RepliesService,
     private readonly reportsService: ReportsService,
     private readonly settingsService: SettingsService,
+    private readonly usersService: UsersService,
+    private readonly passwordResetService: PasswordResetService,
   ) {}
 
   @Get('moderation/hidden')
@@ -127,5 +133,20 @@ export class AdminController {
   ): Promise<SettingsResponseDto> {
     const settings = await this.settingsService.update(dto);
     return toSettingsResponseDto(settings);
+  }
+
+  // One-off way to give an OAuth-only account (no password_hash) a password
+  // — e.g. so it can log into apps/admin standalone, which has no OAuth
+  // login of its own. Returns the link directly instead of emailing it:
+  // there's no email-sending infra in this project, and the admin using
+  // this is the same person who'd be receiving the email anyway.
+  @Post('users/password-reset-link')
+  async issuePasswordResetLink(
+    @Body() dto: IssuePasswordResetLinkDto,
+  ): Promise<{ url: string }> {
+    const user = await this.usersService.findByEmail(dto.email);
+    if (!user) throw new NotFoundException();
+    const url = await this.passwordResetService.issueLink(user.id);
+    return { url };
   }
 }

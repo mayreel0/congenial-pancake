@@ -91,3 +91,13 @@ export class ReportAlreadySubmittedException extends AppException {
     );
   }
 }
+
+export class PasswordResetTokenInvalidException extends AppException {
+  constructor() {
+    super(
+      'AUTH_PASSWORD_RESET_TOKEN_INVALID',
+      'This password reset link is invalid or expired.',
+      HttpStatus.BAD_REQUEST,
+    );
+  }
+}

@@ -14,6 +14,15 @@ export function signup(email: string, password: string): Promise<CurrentUser> {
   });
 }
 
+// Consumes a one-off token issued from apps/admin (never self-service) —
+// see docs/decisions/2026-08-27-onseol-oauth-password-reset-decisions.md.
+export function resetPassword(token: string, password: string): Promise<void> {
+  return apiFetch<void>("/auth/reset-password", {
+    method: "POST",
+    body: JSON.stringify({ token, password }),
+  });
+}
+
 export type OAuthProviderName = "google" | "kakao" | "naver";
 
 export function oauthLoginUrl(provider: OAuthProviderName): string {

@@ -6,6 +6,7 @@ import { useAuth } from "../lib/auth/useAuth";
 const NAV_ITEMS = [
   { href: "/", label: "신고 검토" },
   { href: "/settings", label: "설정" },
+  { href: "/accounts", label: "계정" },
 ];
 
 type AdminNavProps = {

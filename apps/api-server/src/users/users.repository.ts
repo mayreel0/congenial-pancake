@@ -31,4 +31,8 @@ export class UsersRepository {
     const [user] = await this.db.insert(users).values(input).returning();
     return user;
   }
+
+  async updatePasswordHash(id: string, passwordHash: string): Promise<void> {
+    await this.db.update(users).set({ passwordHash }).where(eq(users.id, id));
+  }
 }

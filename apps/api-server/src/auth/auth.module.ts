@@ -10,6 +10,8 @@ import { NaverOAuthProvider } from './oauth/naver-oauth.provider';
 import { OAuthProviderRegistry } from './oauth/oauth-provider-registry';
 import { OptionalSessionGuard } from './optional-session.guard';
 import { PasswordHasherService } from './password/password-hasher.service';
+import { PasswordResetTokensRepository } from './password-reset/password-reset-tokens.repository';
+import { PasswordResetService } from './password-reset/password-reset.service';
 import { SessionGuard } from './session.guard';
 import { SessionService } from './session.service';
 import { SessionsRepository } from './sessions.repository';
@@ -28,6 +30,8 @@ import { SessionsRepository } from './sessions.repository';
     KakaoOAuthProvider,
     NaverOAuthProvider,
     OAuthProviderRegistry,
+    PasswordResetTokensRepository,
+    PasswordResetService,
     AuthService,
   ],
   exports: [
@@ -35,6 +39,7 @@ import { SessionsRepository } from './sessions.repository';
     SessionGuard,
     OptionalSessionGuard,
     PasswordHasherService,
+    PasswordResetService,
   ],
 })
 export class AuthModule {}

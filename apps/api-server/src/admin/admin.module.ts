@@ -4,6 +4,7 @@ import { RepliesModule } from '../replies/replies.module';
 import { ReportsModule } from '../reports/reports.module';
 import { RequestsModule } from '../requests/requests.module';
 import { SettingsModule } from '../settings/settings.module';
+import { UsersModule } from '../users/users.module';
 import { AdminController } from './admin.controller';
 import { AdminGuard } from './admin.guard';
 
@@ -14,6 +15,7 @@ import { AdminGuard } from './admin.guard';
     RepliesModule,
     ReportsModule,
     SettingsModule,
+    UsersModule,
   ],
   controllers: [AdminController],
   providers: [AdminGuard],

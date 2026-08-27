@@ -29,6 +29,8 @@ import {
   type UserResponseDto,
 } from './dto/user-response.dto';
 import { OAuthProviderRegistry } from './oauth/oauth-provider-registry';
+import { PasswordResetService } from './password-reset/password-reset.service';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { clearSessionCookie, setSessionCookie } from './session-cookie';
 import { SessionGuard } from './session.guard';
 import { SessionService } from './session.service';
@@ -45,6 +47,7 @@ export class AuthController {
     private readonly sessionService: SessionService,
     private readonly usersService: UsersService,
     private readonly oauthProviders: OAuthProviderRegistry,
+    private readonly passwordResetService: PasswordResetService,
     private readonly config: ConfigService<Env, true>,
   ) {}
 
@@ -81,6 +84,16 @@ export class AuthController {
     );
     setSessionCookie(res, this.config, session.token, session.expiresAt);
     return toUserResponseDto(user);
+  }
+
+  // Public — the token itself (not a session) is the proof of authorization,
+  // same as any password-reset-link flow. Only ever issued from /admin
+  // (AdminController.issuePasswordResetLink) for now, not self-service.
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
+  @Post('reset-password')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async resetPassword(@Body() dto: ResetPasswordDto): Promise<void> {
+    await this.passwordResetService.resetPassword(dto.token, dto.password);
   }
 
   @Post('logout')
