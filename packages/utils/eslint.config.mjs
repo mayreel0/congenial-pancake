@@ -9,7 +9,10 @@ const eslintConfig = defineConfig([
   {
     // This package has no pages/app router — it's plain TS utilities
     // consumed by two separate Next.js apps, not a Next app itself.
-    rules: { "@next/next/no-html-link-for-pages": "off" },
+    rules: {
+      "@next/next/no-html-link-for-pages": "off",
+      "no-nested-ternary": "error",
+    },
   },
 ]);
 

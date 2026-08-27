@@ -11,7 +11,12 @@ const eslintConfig = defineConfig([
   globalIgnores(["storybook-static/**", "node_modules/**"]),
   // No pages/app router here — see packages/ui/eslint.config.mjs's identical
   // override for why.
-  { rules: { "@next/next/no-html-link-for-pages": "off" } },
+  {
+    rules: {
+      "@next/next/no-html-link-for-pages": "off",
+      "no-nested-ternary": "error",
+    },
+  },
 ]);
 
 export default eslintConfig;

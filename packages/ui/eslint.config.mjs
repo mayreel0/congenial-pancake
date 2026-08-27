@@ -13,7 +13,10 @@ const eslintConfig = defineConfig([
     // consumed by two separate Next.js apps, not a Next app itself. The
     // rest of eslint-config-next's rules are still generically useful
     // (React/TS hygiene), just this one Next-routing-specific rule isn't.
-    rules: { "@next/next/no-html-link-for-pages": "off" },
+    rules: {
+      "@next/next/no-html-link-for-pages": "off",
+      "no-nested-ternary": "error",
+    },
   },
 ]);
 
