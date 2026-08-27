@@ -21,6 +21,16 @@ type UseAdminReviewResult = {
   deleteReply(id: string): Promise<void>;
 };
 
+function toStatus(
+  authStatus: ReturnType<typeof useAuth>["status"],
+  forbidden: boolean,
+): UseAdminReviewResult["status"] {
+  if (authStatus === "loading") return "loading";
+  if (authStatus === "anonymous") return "signedOut";
+  if (forbidden) return "forbidden";
+  return "ready";
+}
+
 // 화이트리스트(ADMIN_USER_IDS) 여부는 서버만 알고 있어 클라이언트가 미리
 // 판단할 수 없다 — 로그인 상태에서 쿼리를 실행해보고 403이면 권한 없음으로
 // 처리한다. See docs/decisions/2026-08-25-onseol-admin-moderation-decisions.md.
@@ -39,14 +49,7 @@ export function useAdminReview(): UseAdminReviewResult {
     (hiddenQuery.error.statusCode === 403 ||
       hiddenQuery.error.statusCode === 401);
 
-  const status: UseAdminReviewResult["status"] =
-    authStatus === "loading"
-      ? "loading"
-      : authStatus === "anonymous"
-        ? "signedOut"
-        : forbidden
-          ? "forbidden"
-          : "ready";
+  const status = toStatus(authStatus, forbidden);
 
   return {
     status,

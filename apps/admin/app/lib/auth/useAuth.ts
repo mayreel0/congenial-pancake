@@ -16,6 +16,12 @@ type UseAuthResult = {
   logout(): Promise<void>;
 };
 
+function toAuthStatus(isPending: boolean, hasUser: boolean): AuthStatus {
+  if (isPending) return "loading";
+  if (hasUser) return "authenticated";
+  return "anonymous";
+}
+
 // No signup here — see lib/api.ts. This is a single-route app (no /today to
 // redirect to on logout like apps/web has), so logout just clears the
 // session; the page re-renders its own signed-out state.
@@ -24,11 +30,7 @@ export function useAuth(): UseAuthResult {
   const loginMutation = useLoginMutation();
   const logoutMutation = useLogoutMutation();
 
-  const status: AuthStatus = meQuery.isPending
-    ? "loading"
-    : meQuery.data
-      ? "authenticated"
-      : "anonymous";
+  const status = toAuthStatus(meQuery.isPending, Boolean(meQuery.data));
 
   async function login(email: string, password: string): Promise<void> {
     await loginMutation.mutateAsync({ email, password });

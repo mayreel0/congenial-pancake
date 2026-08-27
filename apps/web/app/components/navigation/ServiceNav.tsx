@@ -13,6 +13,87 @@ function isActive(activePath: string, href: string) {
   return activePath === href || activePath.startsWith(`${href}/`);
 }
 
+type ProfileAreaProps = {
+  activePath: string;
+  status: ReturnType<typeof useAuth>["status"];
+  user: ReturnType<typeof useAuth>["user"];
+  profileMenuOpen: boolean;
+  profileMenuRef: React.RefObject<HTMLDivElement | null>;
+  onToggleProfileMenu(): void;
+  onCloseProfileMenu(): void;
+  logout(): Promise<void>;
+};
+
+// Early return instead of a nested ternary — matches
+// apps/admin/app/components/AdminStatusGate.tsx's pattern.
+function ProfileArea({
+  activePath,
+  status,
+  user,
+  profileMenuOpen,
+  profileMenuRef,
+  onToggleProfileMenu,
+  onCloseProfileMenu,
+  logout,
+}: ProfileAreaProps) {
+  if (status === "authenticated" && user) {
+    return (
+      <div className="relative" ref={profileMenuRef}>
+        <button
+          aria-expanded={profileMenuOpen}
+          aria-label="프로필 메뉴"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground transition hover:opacity-90"
+          type="button"
+          onClick={onToggleProfileMenu}
+        >
+          {user.email.charAt(0).toUpperCase()}
+        </button>
+        {profileMenuOpen ? (
+          <div
+            aria-label="프로필"
+            className="absolute right-0 top-full z-20 mt-1 w-44 overflow-hidden rounded-lg border border-line bg-surface shadow-sm"
+          >
+            <p className="truncate border-b border-line px-3 py-2 text-xs text-muted">
+              {user.email}
+            </p>
+            <Link
+              aria-current={isActive(activePath, "/me") ? "page" : undefined}
+              className="block px-3 py-2 text-sm text-foreground transition hover:bg-surface-muted aria-[current=page]:bg-surface-muted"
+              href="/me"
+              onClick={onCloseProfileMenu}
+            >
+              내 기록
+            </Link>
+            <button
+              className="block w-full px-3 py-2 text-left text-sm text-foreground transition hover:bg-surface-muted"
+              type="button"
+              onClick={() => {
+                onCloseProfileMenu();
+                void logout();
+              }}
+            >
+              로그아웃
+            </button>
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
+  if (status === "anonymous") {
+    return (
+      <Link
+        className="inline-flex h-9 items-center justify-center rounded-lg px-3 text-sm font-semibold text-muted transition hover:bg-surface-muted hover:text-foreground"
+        href={landingEntryLinks.login}
+      >
+        로그인
+      </Link>
+    );
+  }
+
+  return null;
+}
+
 export function ServiceNav({ activePath }: ServiceNavProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
@@ -99,54 +180,16 @@ export function ServiceNav({ activePath }: ServiceNavProps) {
           </nav>
         </div>
         <nav aria-label="개인 영역" className="flex items-center gap-1">
-          {status === "authenticated" && user ? (
-            <div className="relative" ref={profileMenuRef}>
-              <button
-                aria-expanded={profileMenuOpen}
-                aria-label="프로필 메뉴"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground transition hover:opacity-90"
-                type="button"
-                onClick={() => setProfileMenuOpen((open) => !open)}
-              >
-                {user.email.charAt(0).toUpperCase()}
-              </button>
-              {profileMenuOpen ? (
-                <div
-                  aria-label="프로필"
-                  className="absolute right-0 top-full z-20 mt-1 w-44 overflow-hidden rounded-lg border border-line bg-surface shadow-sm"
-                >
-                  <p className="truncate border-b border-line px-3 py-2 text-xs text-muted">
-                    {user.email}
-                  </p>
-                  <Link
-                    aria-current={isActive(activePath, "/me") ? "page" : undefined}
-                    className="block px-3 py-2 text-sm text-foreground transition hover:bg-surface-muted aria-[current=page]:bg-surface-muted"
-                    href="/me"
-                    onClick={() => setProfileMenuOpen(false)}
-                  >
-                    내 기록
-                  </Link>
-                  <button
-                    className="block w-full px-3 py-2 text-left text-sm text-foreground transition hover:bg-surface-muted"
-                    type="button"
-                    onClick={() => {
-                      setProfileMenuOpen(false);
-                      void logout();
-                    }}
-                  >
-                    로그아웃
-                  </button>
-                </div>
-              ) : null}
-            </div>
-          ) : status === "anonymous" ? (
-            <Link
-              className="inline-flex h-9 items-center justify-center rounded-lg px-3 text-sm font-semibold text-muted transition hover:bg-surface-muted hover:text-foreground"
-              href={landingEntryLinks.login}
-            >
-              로그인
-            </Link>
-          ) : null}
+          <ProfileArea
+            activePath={activePath}
+            logout={logout}
+            profileMenuOpen={profileMenuOpen}
+            profileMenuRef={profileMenuRef}
+            status={status}
+            user={user}
+            onCloseProfileMenu={() => setProfileMenuOpen(false)}
+            onToggleProfileMenu={() => setProfileMenuOpen((open) => !open)}
+          />
         </nav>
       </div>
       {menuOpen ? (

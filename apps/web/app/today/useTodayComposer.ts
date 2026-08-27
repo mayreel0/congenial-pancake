@@ -17,6 +17,15 @@ export const FALLBACK_ONSEOL_MESSAGES = [
 
 const TODAY_ENTRY_MESSAGE_LIMIT = 5;
 
+function toRequestSubmitStatus(
+  isPending: boolean,
+  justSubmitted: boolean,
+): RequestSubmitStatus {
+  if (isPending) return "pending";
+  if (justSubmitted) return "success";
+  return "idle";
+}
+
 type UseTodayComposerResult = {
   requestDraft: string;
   requestSubmitStatus: RequestSubmitStatus;
@@ -61,11 +70,10 @@ export function useTodayComposer(): UseTodayComposerResult {
     }
   }
 
-  const requestSubmitStatus: RequestSubmitStatus = createRequestMutation.isPending
-    ? "pending"
-    : justSubmitted
-      ? "success"
-      : "idle";
+  const requestSubmitStatus = toRequestSubmitStatus(
+    createRequestMutation.isPending,
+    justSubmitted,
+  );
 
   return {
     requestDraft,

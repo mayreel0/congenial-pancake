@@ -19,7 +19,8 @@ const eslintConfig = defineConfig([
     ".pnpm-store/**",
     ".superpowers/**",
   ]),
-  ...storybook.configs["flat/recommended"]
+  ...storybook.configs["flat/recommended"],
+  { rules: { "no-nested-ternary": "error" } },
 ]);
 
 export default eslintConfig;

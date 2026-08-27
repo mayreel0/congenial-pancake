@@ -114,7 +114,8 @@ export function SettingsForm({
 
         {updateError ? (
           <p className="text-sm text-red-600">{updateError}</p>
-        ) : saved ? (
+        ) : null}
+        {!updateError && saved ? (
           <p className="text-sm text-primary">저장했어요.</p>
         ) : null}
 

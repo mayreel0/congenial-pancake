@@ -20,6 +20,12 @@ type UseAuthResult = {
   refresh(): Promise<void>;
 };
 
+function toAuthStatus(isPending: boolean, hasUser: boolean): AuthStatus {
+  if (isPending) return "loading";
+  if (hasUser) return "authenticated";
+  return "anonymous";
+}
+
 export function useAuth(): UseAuthResult {
   const router = useRouter();
   const meQuery = useCurrentUserQuery();
@@ -27,11 +33,7 @@ export function useAuth(): UseAuthResult {
   const signupMutation = useSignupMutation();
   const logoutMutation = useLogoutMutation();
 
-  const status: AuthStatus = meQuery.isPending
-    ? "loading"
-    : meQuery.data
-      ? "authenticated"
-      : "anonymous";
+  const status = toAuthStatus(meQuery.isPending, Boolean(meQuery.data));
 
   async function login(email: string, password: string): Promise<void> {
     await loginMutation.mutateAsync({ email, password });

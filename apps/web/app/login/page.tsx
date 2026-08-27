@@ -25,6 +25,12 @@ function errorMessage(error: unknown): string {
   return "요청을 처리하지 못했습니다. 잠시 후 다시 시도해주세요.";
 }
 
+function submitButtonLabel(submitStatus: SubmitStatus, mode: Mode): string {
+  if (submitStatus === "pending") return "처리 중";
+  if (mode === "login") return "로그인";
+  return "회원가입";
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const { status, login, signup } = useAuth();
@@ -94,11 +100,7 @@ export default function LoginPage() {
             fullWidth
             type="submit"
           >
-            {submitStatus === "pending"
-              ? "처리 중"
-              : mode === "login"
-                ? "로그인"
-                : "회원가입"}
+            {submitButtonLabel(submitStatus, mode)}
           </Button>
         </form>
 
