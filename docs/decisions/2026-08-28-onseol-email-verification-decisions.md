@@ -33,6 +33,14 @@ Naver Cloud Mailer의 HMAC 서명 구현은 NCP API Gateway의 공통 서명 규
   - 토큰 수동 발급(psql) → `/auth/verify-email` 소비 → `emailVerified: true` 확인 → 이후 8번째 답장 정상 성공 확인(상한 해제) → 같은 토큰 재사용 시 400 확인 → 이미 인증된 계정에서 `/auth/resend-verification` 호출 시 조용히 204(재발송 안 함) 확인.
 - `apps/admin`: "비회원 답장 총량 제한" 설정 라벨/힌트를 "비회원·미인증 회원 답장 총량 제한"으로 수정(실제 의미가 넓어졌으므로) — lint/typecheck/test 통과.
 
+## 추가 확인 (후속): 실제 Resend 계정으로 발송 시도 — 도메인 미인증 상태에선 계정 소유자 본인에게도 발송 불가
+
+사용자가 실제 Resend API 키를 `.env`에 넣은 뒤(`RESEND_FROM_EMAIL=onboarding@resend.dev`), 실제 관리자 계정(`kim015jh@gmail.com`)을 대상으로 `/auth/resend-verification`을 실제로 호출해 검증했다. Resend가 `403 "The gmail.com domain is not verified. Please, add and verify your domain on https://resend.com/domains"`로 명확히 거부 — Resend 대시보드에서 그 이메일이 정확히 계정 등록 이메일임을 재확인했으므로, "계정 소유자 본인에게는 도메인 인증 없이도 발송 가능"이라는 기존 가정이 틀렸다는 뜻이다. 현재 Resend 정책은 도메인 인증 없이는 **누구에게도**(계정 소유자 포함) 발송이 안 되는 것으로 보인다.
+
+이 과정에서 별도 버그도 발견: `/auth/resend-verification`이 전송 실패 시 원인 없는 500을 그대로 흘려보내고 있었음(회원가입은 의도적으로 실패를 삼키지만, 사용자가 직접 요청한 재발송은 실패 원인을 알려줘야 함) — `EmailSendFailedException`(502, `AUTH_EMAIL_SEND_FAILED`)을 추가해 수정, 실제로 502가 정확히 뜨는 것 재확인.
+
+**결론**: 코드/구현은 문제 없음(실제 Resend API에 정확한 형식으로 요청이 나가고, 정확히 응답을 처리함) — 다만 실제 이메일 발송 자체는 도메인을 소유하고 Resend에서 DNS로 인증하기 전까지는 테스트 불가능하다. 온설은 아직 배포 도메인이 없어(이전 라운드부터 반복적으로 보류된 결정) 지금 당장은 이 부분을 더 진행할 수 없음 — 사용자가 도메인을 마련하면 그때 재검증하기로 함.
+
 ## 남은 일
 
 - 프론트엔드는 이번 라운드 범위 밖(백엔드 우선 원칙) — `/verify-email?token=...` 소비 페이지, 가입 직후 "메일함을 확인하세요" 안내, `/me`에 미인증 배지/재발송 버튼 등은 다음 라운드.
