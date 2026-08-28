@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../../lib/auth/useAuth";
-import { landingEntryLinks, serviceNavItems } from "./routes";
+import { accountNavItems, landingEntryLinks, serviceNavItems } from "./routes";
 
 type ServiceNavProps = {
   activePath: string;
@@ -56,14 +56,17 @@ function ProfileArea({
             <p className="truncate border-b border-line px-3 py-2 text-xs text-muted">
               {user.email}
             </p>
-            <Link
-              aria-current={isActive(activePath, "/me") ? "page" : undefined}
-              className="block px-3 py-2 text-sm text-foreground transition hover:bg-surface-muted aria-[current=page]:bg-surface-muted"
-              href="/me"
-              onClick={onCloseProfileMenu}
-            >
-              내 기록
-            </Link>
+            {accountNavItems.map((item) => (
+              <Link
+                aria-current={isActive(activePath, item.href) ? "page" : undefined}
+                className="block px-3 py-2 text-sm text-foreground transition hover:bg-surface-muted aria-[current=page]:bg-surface-muted"
+                href={item.href}
+                key={item.href}
+                onClick={onCloseProfileMenu}
+              >
+                {item.label}
+              </Link>
+            ))}
             <button
               className="block w-full px-3 py-2 text-left text-sm text-foreground transition hover:bg-surface-muted"
               type="button"
@@ -156,27 +159,25 @@ export function ServiceNav({ activePath }: ServiceNavProps) {
             aria-label="서비스 주요 이동"
             className="hidden items-center gap-1 md:flex"
           >
-            {serviceNavItems
-              .filter((item) => item.href !== "/me")
-              .map((item) => {
-                const active = isActive(activePath, item.href);
+            {serviceNavItems.map((item) => {
+              const active = isActive(activePath, item.href);
 
-                return (
-                  <Link
-                    aria-current={active ? "page" : undefined}
-                    className={[
-                      "inline-flex h-9 items-center rounded-lg px-3 text-sm font-semibold transition",
-                      active
-                        ? "bg-surface-muted text-foreground"
-                        : "text-muted hover:bg-surface-muted hover:text-foreground",
-                    ].join(" ")}
-                    href={item.href}
-                    key={item.href}
-                  >
-                    {item.label}
-                  </Link>
-                );
-              })}
+              return (
+                <Link
+                  aria-current={active ? "page" : undefined}
+                  className={[
+                    "inline-flex h-9 items-center rounded-lg px-3 text-sm font-semibold transition",
+                    active
+                      ? "bg-surface-muted text-foreground"
+                      : "text-muted hover:bg-surface-muted hover:text-foreground",
+                  ].join(" ")}
+                  href={item.href}
+                  key={item.href}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
           </nav>
         </div>
         <nav aria-label="개인 영역" className="flex items-center gap-1">
@@ -198,9 +199,10 @@ export function ServiceNav({ activePath }: ServiceNavProps) {
           className="absolute left-0 right-0 top-full border-b border-line bg-background px-5 py-3 shadow-sm md:hidden"
         >
           <div className="mx-auto grid w-full max-w-6xl gap-1">
-            {serviceNavItems
-              .filter((item) => item.href !== "/me" || status === "authenticated")
-              .map((item) => {
+            {[
+              ...serviceNavItems,
+              ...(status === "authenticated" ? accountNavItems : []),
+            ].map((item) => {
               const active = isActive(activePath, item.href);
 
               return (

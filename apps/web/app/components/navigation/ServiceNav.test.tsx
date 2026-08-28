@@ -35,6 +35,12 @@ describe("ServiceNav", () => {
     expect(
       within(personalNav).queryByRole("link", { name: "내 기록" }),
     ).not.toBeInTheDocument();
+    expect(
+      within(personalNav).queryByRole("link", { name: "내 정보" }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(personalNav).queryByRole("link", { name: "설정" }),
+    ).not.toBeInTheDocument();
   });
 
   it("marks the active route", () => {
@@ -48,7 +54,7 @@ describe("ServiceNav", () => {
 
   it("marks my records active inside the profile menu", async () => {
     mockAuthenticated();
-    render(<ServiceNav activePath="/me" />);
+    render(<ServiceNav activePath="/records" />);
 
     fireEvent.click(await screen.findByRole("button", { name: "프로필 메뉴" }));
 
@@ -58,7 +64,7 @@ describe("ServiceNav", () => {
     ).toHaveAttribute("aria-current", "page");
   });
 
-  it("opens mobile menu with service links including my records when authenticated", async () => {
+  it("opens mobile menu with service links plus account links when authenticated", async () => {
     mockAuthenticated();
     render(<ServiceNav activePath="/today" />);
     await screen.findByRole("button", { name: "프로필 메뉴" });
@@ -70,12 +76,18 @@ describe("ServiceNav", () => {
       within(mobileMenu).getByRole("link", { name: "남기기" }),
     ).toHaveAttribute("href", "/today");
     expect(
-      within(mobileMenu).getByRole("link", { name: "내 기록" }),
+      within(mobileMenu).getByRole("link", { name: "내 정보" }),
     ).toHaveAttribute("href", "/me");
+    expect(
+      within(mobileMenu).getByRole("link", { name: "내 기록" }),
+    ).toHaveAttribute("href", "/records");
+    expect(
+      within(mobileMenu).getByRole("link", { name: "설정" }),
+    ).toHaveAttribute("href", "/settings");
     expect(screen.getByRole("button", { name: "메뉴 닫기" })).toBeInTheDocument();
   });
 
-  it("hides my records from the mobile menu when anonymous", async () => {
+  it("hides account links from the mobile menu when anonymous", async () => {
     render(<ServiceNav activePath="/today" />);
     await screen.findByRole("link", { name: "로그인" });
 
@@ -84,6 +96,12 @@ describe("ServiceNav", () => {
     const mobileMenu = screen.getByLabelText("모바일 서비스 이동");
     expect(
       within(mobileMenu).queryByRole("link", { name: "내 기록" }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(mobileMenu).queryByRole("link", { name: "내 정보" }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(mobileMenu).queryByRole("link", { name: "설정" }),
     ).not.toBeInTheDocument();
   });
 
@@ -110,7 +128,7 @@ describe("ServiceNav", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("opens the profile menu with the full email, my-records, and logout", async () => {
+  it("opens the profile menu with the full email, account links, and logout", async () => {
     mockAuthenticated();
     render(<ServiceNav activePath="/today" />);
 
@@ -119,8 +137,14 @@ describe("ServiceNav", () => {
     const profileMenu = screen.getByLabelText("프로필");
     expect(within(profileMenu).getByText("test@example.com")).toBeInTheDocument();
     expect(
-      within(profileMenu).getByRole("link", { name: "내 기록" }),
+      within(profileMenu).getByRole("link", { name: "내 정보" }),
     ).toHaveAttribute("href", "/me");
+    expect(
+      within(profileMenu).getByRole("link", { name: "내 기록" }),
+    ).toHaveAttribute("href", "/records");
+    expect(
+      within(profileMenu).getByRole("link", { name: "설정" }),
+    ).toHaveAttribute("href", "/settings");
     expect(
       within(profileMenu).getByRole("button", { name: "로그아웃" }),
     ).toBeInTheDocument();
