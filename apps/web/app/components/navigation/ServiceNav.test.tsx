@@ -38,9 +38,6 @@ describe("ServiceNav", () => {
     expect(
       within(personalNav).queryByRole("link", { name: "내 정보" }),
     ).not.toBeInTheDocument();
-    expect(
-      within(personalNav).queryByRole("link", { name: "설정" }),
-    ).not.toBeInTheDocument();
   });
 
   it("marks the active route", () => {
@@ -81,9 +78,6 @@ describe("ServiceNav", () => {
     expect(
       within(mobileMenu).getByRole("link", { name: "내 기록" }),
     ).toHaveAttribute("href", "/records");
-    expect(
-      within(mobileMenu).getByRole("link", { name: "설정" }),
-    ).toHaveAttribute("href", "/settings");
     expect(screen.getByRole("button", { name: "메뉴 닫기" })).toBeInTheDocument();
   });
 
@@ -99,9 +93,6 @@ describe("ServiceNav", () => {
     ).not.toBeInTheDocument();
     expect(
       within(mobileMenu).queryByRole("link", { name: "내 정보" }),
-    ).not.toBeInTheDocument();
-    expect(
-      within(mobileMenu).queryByRole("link", { name: "설정" }),
     ).not.toBeInTheDocument();
   });
 
@@ -142,9 +133,6 @@ describe("ServiceNav", () => {
     expect(
       within(profileMenu).getByRole("link", { name: "내 기록" }),
     ).toHaveAttribute("href", "/records");
-    expect(
-      within(profileMenu).getByRole("link", { name: "설정" }),
-    ).toHaveAttribute("href", "/settings");
     expect(
       within(profileMenu).getByRole("button", { name: "로그아웃" }),
     ).toBeInTheDocument();

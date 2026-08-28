@@ -4,6 +4,7 @@ import { Button } from "ui/Button";
 import { ServiceNav } from "../components/navigation/ServiceNav";
 import { formatJoinedDate } from "../lib/format";
 import { useAuth } from "../lib/auth/useAuth";
+import { NicknameSection } from "./components/NicknameSection";
 
 type MeContentProps = {
   status: ReturnType<typeof useAuth>["status"];
@@ -15,16 +16,19 @@ type MeContentProps = {
 function MeContent({ status, user }: MeContentProps) {
   if (status === "authenticated" && user) {
     return (
-      <section className="space-y-3">
-        <p className="text-sm text-muted">온설</p>
-        <h1 className="text-2xl font-semibold tracking-normal sm:text-4xl">
-          내 정보
-        </h1>
-        <div className="space-y-1 text-muted">
-          <p>{user.email}</p>
-          <p className="text-sm">{formatJoinedDate(user.createdAt)} 가입</p>
-        </div>
-      </section>
+      <>
+        <section className="space-y-3">
+          <p className="text-sm text-muted">온설</p>
+          <h1 className="text-2xl font-semibold tracking-normal sm:text-4xl">
+            내 정보
+          </h1>
+          <div className="space-y-1 text-muted">
+            <p>{user.email}</p>
+            <p className="text-sm">{formatJoinedDate(user.createdAt)} 가입</p>
+          </div>
+        </section>
+        <NicknameSection />
+      </>
     );
   }
 

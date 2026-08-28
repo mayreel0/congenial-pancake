@@ -11,7 +11,6 @@ export const serviceNavItems = [
 export const accountNavItems = [
   { label: "내 정보", href: "/me" },
   { label: "내 기록", href: "/records" },
-  { label: "설정", href: "/settings" },
 ] as const;
 
 export const landingEntryLinks = {

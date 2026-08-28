@@ -8,7 +8,13 @@ function jsonResponse(status: number, body: unknown): MockResponse {
   return { ok: status < 400, status, json: () => Promise.resolve(body) };
 }
 
-function installFakeBackend({ loggedIn }: { loggedIn: boolean }) {
+function installFakeBackend({
+  loggedIn,
+  nickname = null,
+}: {
+  loggedIn: boolean;
+  nickname?: string | null;
+}) {
   const fetchMock = vi.fn(
     (input: RequestInfo | URL): Promise<MockResponse> => {
       const url = typeof input === "string" ? input : input.toString();
@@ -22,6 +28,9 @@ function installFakeBackend({ loggedIn }: { loggedIn: boolean }) {
             id: "user-1",
             email: "member@example.com",
             createdAt: "2026-08-22T00:00:00.000Z",
+            nickname,
+            nicknameDiscriminator: "ABCD",
+            nicknameChangeAvailableAt: null,
           }),
         );
       }
@@ -61,5 +70,25 @@ describe("MePage", () => {
 
     expect(await screen.findByText("member@example.com")).toBeInTheDocument();
     expect(screen.getByText("2026년 8월 22일 가입")).toBeInTheDocument();
+  });
+
+  it("shows the nickname section for a logged-in member without a nickname yet", async () => {
+    installFakeBackend({ loggedIn: true, nickname: null });
+
+    render(<MePage />);
+
+    expect(
+      await screen.findByText("아직 설정한 닉네임이 없어요."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "설정하기" })).toBeInTheDocument();
+  });
+
+  it("shows the current nickname when already set", async () => {
+    installFakeBackend({ loggedIn: true, nickname: "민들레" });
+
+    render(<MePage />);
+
+    expect(await screen.findByText("민들레")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "수정" })).toBeInTheDocument();
   });
 });
