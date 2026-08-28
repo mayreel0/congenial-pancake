@@ -1,6 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState } from "react";
+import { Toggle } from "ui/Toggle";
 
 const MIN_TEXTAREA_HEIGHT = 44;
 const MAX_TEXTAREA_HEIGHT = 128;
@@ -62,15 +63,13 @@ export function RequestComposer({
       }}
     >
       {nickname ? (
-        <label className="mb-1.5 flex items-center gap-1.5 text-xs text-muted">
-          <input
+        <div className="mb-1.5">
+          <Toggle
             checked={!anonymous}
-            className="h-3.5 w-3.5 accent-primary"
-            type="checkbox"
-            onChange={onToggleAnonymous}
+            label={`닉네임(${nickname})으로 남기기`}
+            onChange={() => onToggleAnonymous()}
           />
-          닉네임({nickname})으로 남기기
-        </label>
+        </div>
       ) : null}
       <label className="sr-only" htmlFor="request-body">
         오늘 어떤 말을 듣고 싶나요?

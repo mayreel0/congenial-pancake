@@ -89,14 +89,15 @@ export function NicknameSection() {
             <Button disabled={pending || !draft.trim()} size="sm" type="submit">
               {pending ? "저장하는 중" : "저장"}
             </Button>
-            <button
-              className="text-xs font-medium text-muted transition hover:text-foreground"
+            <Button
               disabled={pending}
+              size="sm"
               type="button"
+              variant="secondary"
               onClick={cancelEditing}
             >
               취소
-            </button>
+            </Button>
           </div>
         </form>
       ) : (

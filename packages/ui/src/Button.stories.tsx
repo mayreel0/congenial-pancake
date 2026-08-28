@@ -39,6 +39,14 @@ export const Small: Story = {
   },
 };
 
+export const Secondary: Story = {
+  args: {
+    type: "button",
+    variant: "secondary",
+    children: "취소",
+  },
+};
+
 export const AsLink: Story = {
   args: {
     children: "답변 남기러 가기",
