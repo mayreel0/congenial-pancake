@@ -15,6 +15,11 @@ vi.mock("next/navigation", () => ({
   }),
   usePathname: () => "/",
   useSearchParams: () => new URLSearchParams(),
+  // vi.fn() (not a plain arrow fn) so a test that needs a specific dynamic
+  // route param (e.g. /u/[slug]) can override it per-test via
+  // vi.mocked(useParams).mockReturnValue({ slug: "..." }) — other mocks
+  // above don't need this since nothing currently overrides them per-test.
+  useParams: vi.fn(() => ({})),
 }));
 
 // AuthProvider calls /auth/me on mount, and useRequestsQuery calls

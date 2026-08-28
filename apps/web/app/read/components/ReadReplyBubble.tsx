@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { formatTimestamp } from "../../lib/format";
 import { BookmarkIcon, FlagIcon, MoreIcon } from "../../components/shared/icons";
@@ -7,6 +8,7 @@ import { BookmarkIcon, FlagIcon, MoreIcon } from "../../components/shared/icons"
 type ReadReplyBubbleProps = {
   reply: { id: string; body: string; createdAt: string };
   authorLabel: string;
+  authorHref?: string | null;
   saved: boolean;
   showActions: boolean;
   onReport(): void;
@@ -16,6 +18,7 @@ type ReadReplyBubbleProps = {
 export function ReadReplyBubble({
   reply,
   authorLabel,
+  authorHref = null,
   saved,
   showActions,
   onReport,
@@ -55,9 +58,18 @@ export function ReadReplyBubble({
       ) : null}
       <article className="max-w-[85%] space-y-1.5 rounded-lg bg-primary/10 px-4 py-3 sm:max-w-[70%]">
         <div className="flex items-center justify-between gap-3">
-          <p className="text-xs font-semibold text-foreground">
-            {authorLabel}
-          </p>
+          {authorHref ? (
+            <Link
+              className="text-xs font-semibold text-foreground hover:underline"
+              href={authorHref}
+            >
+              {authorLabel}
+            </Link>
+          ) : (
+            <p className="text-xs font-semibold text-foreground">
+              {authorLabel}
+            </p>
+          )}
           {showActions ? (
             <div className="relative shrink-0" ref={menuContainerRef}>
               <button

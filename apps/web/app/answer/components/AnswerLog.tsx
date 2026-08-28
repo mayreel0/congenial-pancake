@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { AnswerLogEntry } from "../useAnswerQueue";
 import type { RequestDto } from "../../lib/requests/api";
-import { authorDisplayLabel } from "../../lib/author-label";
+import { authorDisplayLabel, authorProfileHref } from "../../lib/author-label";
 import { formatDayLabel, isSameCalendarDay } from "../../lib/format";
 import { DateDivider } from "./DateDivider";
 import { RequestBubble } from "./RequestBubble";
@@ -54,6 +54,7 @@ export function AnswerLog({
           <DateDivider label={formatDayLabel(reply.createdAt)} />
         ) : null}
         <RequestBubble
+          authorHref={authorProfileHref(request.author)}
           authorLabel={authorDisplayLabel(
             request.author,
             authorLabels.get(request.id) ?? "익명",
@@ -83,6 +84,7 @@ export function AnswerLog({
       <div className="flex flex-col gap-2" key="live-current">
         {showLiveDivider ? <DateDivider label="오늘" /> : null}
         <RequestBubble
+          authorHref={authorProfileHref(currentRequest.author)}
           authorLabel={authorDisplayLabel(
             currentRequest.author,
             authorLabels.get(currentRequest.id) ?? "익명",

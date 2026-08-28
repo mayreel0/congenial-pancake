@@ -1,5 +1,5 @@
 import type { FeedItemDto } from "../../lib/requests/api";
-import { authorDisplayLabel } from "../../lib/author-label";
+import { authorDisplayLabel, authorProfileHref } from "../../lib/author-label";
 import { ReadReplyBubble } from "./ReadReplyBubble";
 import { ReadRequestBubble } from "./ReadRequestBubble";
 
@@ -26,6 +26,7 @@ export function ReadThread({
     <section className="space-y-3 rounded-xl border border-line bg-background px-4 py-4 sm:px-5">
       <div className="flex flex-col gap-2">
         <ReadRequestBubble
+          authorHref={authorProfileHref(item.request.author)}
           authorLabel={authorDisplayLabel(
             item.request.author,
             authorLabels.get(item.request.authorSlot) ?? "익명",
@@ -36,6 +37,7 @@ export function ReadThread({
         />
         {item.replies.map((reply) => (
           <ReadReplyBubble
+            authorHref={authorProfileHref(reply.author)}
             authorLabel={authorDisplayLabel(
               reply.author,
               authorLabels.get(reply.authorSlot) ?? "익명",
