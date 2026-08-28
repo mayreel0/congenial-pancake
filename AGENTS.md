@@ -85,8 +85,8 @@ Record each confirmed decision as its own file in `docs/decisions/`, named `YYYY
 
 ## Git & PR Conventions
 
-- Never push directly to `main` or `v1` — every change goes through a work branch and a PR.
-- Commit messages and PR titles both use a `<type>: <설명>` prefix (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, ...), and the two must match for the same change. Before writing either, check the existing convention rather than assuming — `git log --oneline -10` for commit style, `gh pr list --state all --limit 10` for PR title style. Do not title a PR without doing this check, even if the commit message already has a prefix.
+- Never push directly to `main` or `v1` — every change goes through a work branch and a PR. This is enforced, not just prose: `.claude/hooks/block-main-push.py` (registered in `.claude/settings.json`) blocks a `git push` targeting either branch, explicit or implicit.
+- Commit messages and PR titles both use a `<type>: <설명>` prefix (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, ...), and the two must match for the same change. Before writing either, check the existing convention rather than assuming — `git log --oneline -10` for commit style, `gh pr list --state all --limit 10` for PR title style. Do not title a PR without doing this check, even if the commit message already has a prefix. PR titles are also checked by CI (`.github/workflows/pr-title.yml`) before merge.
 - Prefer several small, single-concern PRs over one large bundled one. This repo's history deliberately splits backend and frontend for the same feature into separate rounds — default to proposing that split rather than bundling.
 
 ## Verification Standard
