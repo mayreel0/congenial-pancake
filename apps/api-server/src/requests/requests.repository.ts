@@ -21,6 +21,7 @@ export type CreateRequestInput = {
   body: string;
   authorId?: string;
   guestId?: string;
+  anonymous?: boolean;
 };
 
 export type RequestRecord = typeof requests.$inferSelect;
@@ -63,6 +64,7 @@ export class RequestsRepository {
         hidden: requests.hidden,
         deletedAt: requests.deletedAt,
         reviewedAt: requests.reviewedAt,
+        anonymous: requests.anonymous,
         replyCount: count(replies.id),
       })
       .from(requests)
@@ -94,6 +96,7 @@ export class RequestsRepository {
         hidden: requests.hidden,
         deletedAt: requests.deletedAt,
         reviewedAt: requests.reviewedAt,
+        anonymous: requests.anonymous,
       })
       .from(requests)
       .innerJoin(
@@ -255,6 +258,7 @@ export class RequestsRepository {
         hidden: requests.hidden,
         deletedAt: requests.deletedAt,
         reviewedAt: requests.reviewedAt,
+        anonymous: requests.anonymous,
         replyCount,
       })
       .from(requests)

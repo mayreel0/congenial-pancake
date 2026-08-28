@@ -21,6 +21,7 @@ function makeRequest(overrides: Partial<RequestRecord> = {}): RequestRecord {
     hidden: false,
     deletedAt: null,
     reviewedAt: null,
+    anonymous: true,
     ...overrides,
   };
 }
@@ -36,6 +37,7 @@ function makeReply(overrides: Partial<ReplyRecord> = {}): ReplyRecord {
     hidden: false,
     deletedAt: null,
     reviewedAt: null,
+    anonymous: true,
     ...overrides,
   };
 }

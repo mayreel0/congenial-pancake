@@ -17,6 +17,16 @@ export class UsersService {
     return this.usersRepository.findById(id);
   }
 
+  findByIds(ids: string[]): Promise<User[]> {
+    return this.usersRepository.findByIds(ids);
+  }
+
+  async nicknameMapFor(userIds: string[]): Promise<Map<string, string | null>> {
+    const uniqueIds = [...new Set(userIds)];
+    const found = await this.usersRepository.findByIds(uniqueIds);
+    return new Map(found.map((user) => [user.id, user.nickname]));
+  }
+
   create(input: CreateUserInput): Promise<User> {
     return this.usersRepository.create(input);
   }

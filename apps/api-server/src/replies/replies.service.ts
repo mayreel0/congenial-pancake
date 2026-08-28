@@ -1,12 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { AnswerInteractionsService } from '../answer-interactions/answer-interactions.service';
 import {
+  NicknameRequiredException,
   ReplyAlreadySubmittedException,
   ReplyGuestLimitExceededException,
   RequestNotFoundException,
 } from '../common/exceptions/app.exception';
 import { RequestsService } from '../requests/requests.service';
 import { SettingsService } from '../settings/settings.service';
+import { UsersService } from '../users/users.service';
 import type { CreateReplyDto } from './dto/create-reply.dto';
 import {
   RepliesRepository,
@@ -21,6 +23,7 @@ export class RepliesService {
     private readonly requestsService: RequestsService,
     private readonly answerInteractionsService: AnswerInteractionsService,
     private readonly settingsService: SettingsService,
+    private readonly usersService: UsersService,
   ) {}
 
   async create(
@@ -39,10 +42,19 @@ export class RepliesService {
       );
       if (existing) throw new ReplyAlreadySubmittedException();
 
+      // A guest can never reply non-anonymously — dto.anonymous is only
+      // meaningful here, on the member path.
+      const anonymous = dto.anonymous !== false;
+      if (!anonymous) {
+        const user = await this.usersService.findById(userId);
+        if (!user?.nickname) throw new NicknameRequiredException();
+      }
+
       const reply = await this.repliesRepository.create({
         requestId,
         body: dto.body,
         authorId: userId,
+        anonymous,
       });
       // Answering a held request resolves it — it shouldn't linger in the
       // hold panel once there's a reply for it.

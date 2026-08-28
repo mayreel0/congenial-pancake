@@ -15,6 +15,7 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import { OptionalCurrentUser } from '../auth/optional-current-user.decorator';
 import { OptionalSessionGuard } from '../auth/optional-session.guard';
 import { SessionGuard } from '../auth/session.guard';
+import { UsersService } from '../users/users.service';
 import { CreateRequestDto } from './dto/create-request.dto';
 import { toFeedItemDto, type FeedItemResponseDto } from './dto/feed-item.dto';
 import {
@@ -22,6 +23,7 @@ import {
   type RequestResponseDto,
 } from './dto/request-response.dto';
 import { RequestsService } from './requests.service';
+import type { RequestRecord } from './requests.repository';
 
 @ApiTags('requests')
 @Controller('requests')
@@ -29,7 +31,19 @@ export class RequestsController {
   constructor(
     private readonly requestsService: RequestsService,
     private readonly answerInteractionsService: AnswerInteractionsService,
+    private readonly usersService: UsersService,
   ) {}
+
+  // Batches nickname lookups for a list response instead of one query per
+  // row — see UsersService.nicknameMapFor.
+  private nicknameMapFor(
+    records: Pick<RequestRecord, 'authorId'>[],
+  ): Promise<Map<string, string | null>> {
+    const authorIds = records
+      .map((record) => record.authorId)
+      .filter((id): id is string => id !== null);
+    return this.usersService.nicknameMapFor(authorIds);
+  }
 
   @Post()
   @UseGuards(OptionalSessionGuard)
@@ -40,13 +54,17 @@ export class RequestsController {
     @GuestId() guestId: string,
   ): Promise<RequestResponseDto> {
     const request = await this.requestsService.create(dto, userId, guestId);
-    return toRequestResponseDto(request);
+    const nicknameByUserId = await this.nicknameMapFor([request]);
+    return toRequestResponseDto(request, nicknameByUserId);
   }
 
   @Get()
   async findAll(): Promise<RequestResponseDto[]> {
     const requests = await this.requestsService.findVisible();
-    return requests.map(toRequestResponseDto);
+    const nicknameByUserId = await this.nicknameMapFor(requests);
+    return requests.map((request) =>
+      toRequestResponseDto(request, nicknameByUserId),
+    );
   }
 
   // /read's feed: every visible request that has at least one visible reply,
@@ -54,7 +72,14 @@ export class RequestsController {
   @Get('feed')
   async feed(): Promise<FeedItemResponseDto[]> {
     const items = await this.requestsService.findFeed();
-    return items.map(toFeedItemDto);
+    const authorIds = items.flatMap((item) => [
+      item.request.authorId,
+      ...item.replies.map((reply) => reply.authorId),
+    ]);
+    const nicknameByUserId = await this.usersService.nicknameMapFor(
+      authorIds.filter((id): id is string => id !== null),
+    );
+    return items.map((item) => toFeedItemDto(item, nicknameByUserId));
   }
 
   // The single next request this viewer should answer — see
@@ -69,7 +94,9 @@ export class RequestsController {
       userId,
       guestId,
     );
-    return request ? toRequestResponseDto(request) : null;
+    if (!request) return null;
+    const nicknameByUserId = await this.nicknameMapFor([request]);
+    return toRequestResponseDto(request, nicknameByUserId);
   }
 
   // Held requires a session — see docs/decisions/2026-08-22-onseol-answer-
@@ -78,7 +105,12 @@ export class RequestsController {
   @UseGuards(SessionGuard)
   async held(@CurrentUser() userId: string): Promise<RequestResponseDto[]> {
     const rows = await this.answerInteractionsService.findHeldForAuthor(userId);
-    return rows.map((row) => toRequestResponseDto(row.request));
+    const nicknameByUserId = await this.nicknameMapFor(
+      rows.map((row) => row.request),
+    );
+    return rows.map((row) =>
+      toRequestResponseDto(row.request, nicknameByUserId),
+    );
   }
 
   // Returns the next queue candidate directly so the client doesn't need a
@@ -93,7 +125,9 @@ export class RequestsController {
   ): Promise<RequestResponseDto | null> {
     await this.answerInteractionsService.skip(id, userId, guestId);
     const next = await this.requestsService.findQueueCandidate(userId, guestId);
-    return next ? toRequestResponseDto(next) : null;
+    if (!next) return null;
+    const nicknameByUserId = await this.nicknameMapFor([next]);
+    return toRequestResponseDto(next, nicknameByUserId);
   }
 
   // Same as skip — returns the next candidate so holding also only costs one
@@ -108,6 +142,8 @@ export class RequestsController {
   ): Promise<RequestResponseDto | null> {
     await this.answerInteractionsService.hold(id, userId);
     const next = await this.requestsService.findQueueCandidate(userId, guestId);
-    return next ? toRequestResponseDto(next) : null;
+    if (!next) return null;
+    const nicknameByUserId = await this.nicknameMapFor([next]);
+    return toRequestResponseDto(next, nicknameByUserId);
   }
 }

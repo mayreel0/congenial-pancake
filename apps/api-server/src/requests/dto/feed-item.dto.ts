@@ -14,8 +14,14 @@ export type FeedItemResponseDto = {
 };
 
 // authorSlot never carries authorId/guestId across the boundary — see
-// feed-author-slots.ts for what it does instead.
-export function toFeedItemDto(item: FeedItem): FeedItemResponseDto {
+// feed-author-slots.ts for what it does instead. assignAuthorSlots itself
+// is unmodified by the nickname-reveal feature: slots keep being computed
+// for every identity regardless of `anonymous`, and the frontend prefers
+// the real `author` field whenever author.anonymous === false.
+export function toFeedItemDto(
+  item: FeedItem,
+  nicknameByUserId: Map<string, string | null>,
+): FeedItemResponseDto {
   const { requestAuthorSlot, replySlots } = assignAuthorSlots(
     item.request,
     item.replies,
@@ -23,12 +29,12 @@ export function toFeedItemDto(item: FeedItem): FeedItemResponseDto {
 
   return {
     request: {
-      ...toRequestResponseDto(item.request),
+      ...toRequestResponseDto(item.request, nicknameByUserId),
       replyCount: item.replies.length,
       authorSlot: requestAuthorSlot,
     },
     replies: item.replies.map((reply, index) => ({
-      ...toReplyResponseDto(reply),
+      ...toReplyResponseDto(reply, nicknameByUserId),
       authorSlot: replySlots[index],
     })),
   };

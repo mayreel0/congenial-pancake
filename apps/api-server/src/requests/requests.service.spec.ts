@@ -1,6 +1,11 @@
-import { RequestGuestLimitExceededException } from '../common/exceptions/app.exception';
+import {
+  NicknameRequiredException,
+  RequestGuestLimitExceededException,
+} from '../common/exceptions/app.exception';
 import type { SettingsService } from '../settings/settings.service';
 import type { SettingsRecord } from '../settings/settings.repository';
+import type { UsersService } from '../users/users.service';
+import type { User } from '../users/users.repository';
 import type { RequestRecord } from './requests.repository';
 import type { RequestsRepository } from './requests.repository';
 import { RequestsService } from './requests.service';
@@ -15,6 +20,18 @@ function makeRequest(overrides: Partial<RequestRecord> = {}): RequestRecord {
     hidden: false,
     deletedAt: null,
     reviewedAt: null,
+    anonymous: true,
+    ...overrides,
+  };
+}
+
+function makeUser(overrides: Partial<User> = {}): User {
+  return {
+    id: 'user-1',
+    email: 'user@example.com',
+    passwordHash: null,
+    nickname: null,
+    createdAt: new Date('2026-08-21T00:00:00.000Z'),
     ...overrides,
   };
 }
@@ -33,6 +50,7 @@ function makeSettings(overrides: Partial<SettingsRecord> = {}): SettingsRecord {
 describe('RequestsService', () => {
   let requestsRepository: jest.Mocked<RequestsRepository>;
   let settingsService: jest.Mocked<SettingsService>;
+  let usersService: jest.Mocked<UsersService>;
   let requestsService: RequestsService;
 
   beforeEach(() => {
@@ -47,8 +65,15 @@ describe('RequestsService', () => {
     settingsService = {
       get: jest.fn().mockResolvedValue(makeSettings()),
     } as unknown as jest.Mocked<SettingsService>;
+    usersService = {
+      findById: jest.fn(),
+    } as unknown as jest.Mocked<UsersService>;
 
-    requestsService = new RequestsService(requestsRepository, settingsService);
+    requestsService = new RequestsService(
+      requestsRepository,
+      settingsService,
+      usersService,
+    );
   });
 
   describe('create', () => {
@@ -66,8 +91,41 @@ describe('RequestsService', () => {
       expect(requestsRepository.create).toHaveBeenCalledWith({
         body: '오늘 조금 힘들었어요.',
         authorId: 'user-1',
+        anonymous: true,
       });
       expect(result).toEqual(created);
+    });
+
+    it('creates a named request when the user opts out of anonymity and has a nickname', async () => {
+      usersService.findById.mockResolvedValue(makeUser({ nickname: '민들레' }));
+      const created = makeRequest({ authorId: 'user-1', anonymous: false });
+      requestsRepository.create.mockResolvedValue(created);
+
+      const result = await requestsService.create(
+        { body: '내용', anonymous: false },
+        'user-1',
+        'unused-guest-id',
+      );
+
+      expect(requestsRepository.create).toHaveBeenCalledWith({
+        body: '내용',
+        authorId: 'user-1',
+        anonymous: false,
+      });
+      expect(result).toEqual(created);
+    });
+
+    it('throws when the user opts out of anonymity without a nickname set', async () => {
+      usersService.findById.mockResolvedValue(makeUser({ nickname: null }));
+
+      await expect(
+        requestsService.create(
+          { body: '내용', anonymous: false },
+          'user-1',
+          'unused-guest-id',
+        ),
+      ).rejects.toBeInstanceOf(NicknameRequiredException);
+      expect(requestsRepository.create).not.toHaveBeenCalled();
     });
 
     it('throws when the guest already posted a request', async () => {

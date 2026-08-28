@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { RequestGuestLimitExceededException } from '../common/exceptions/app.exception';
+import {
+  NicknameRequiredException,
+  RequestGuestLimitExceededException,
+} from '../common/exceptions/app.exception';
 import { SettingsService } from '../settings/settings.service';
+import { UsersService } from '../users/users.service';
 import type { CreateRequestDto } from './dto/create-request.dto';
 import {
   RequestsRepository,
@@ -14,6 +18,7 @@ export class RequestsService {
   constructor(
     private readonly requestsRepository: RequestsRepository,
     private readonly settingsService: SettingsService,
+    private readonly usersService: UsersService,
   ) {}
 
   async create(
@@ -22,9 +27,17 @@ export class RequestsService {
     guestId: string,
   ): Promise<RequestRecord> {
     if (userId) {
+      // A guest can never post non-anonymously — dto.anonymous is only
+      // meaningful here, on the member path.
+      const anonymous = dto.anonymous !== false;
+      if (!anonymous) {
+        const user = await this.usersService.findById(userId);
+        if (!user?.nickname) throw new NicknameRequiredException();
+      }
       return this.requestsRepository.create({
         body: dto.body,
         authorId: userId,
+        anonymous,
       });
     }
 
