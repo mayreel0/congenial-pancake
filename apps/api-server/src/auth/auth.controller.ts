@@ -31,6 +31,7 @@ import {
 import { OAuthProviderRegistry } from './oauth/oauth-provider-registry';
 import { PasswordResetService } from './password-reset/password-reset.service';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { UpdateNicknameDto } from './dto/update-nickname.dto';
 import { clearSessionCookie, setSessionCookie } from './session-cookie';
 import { SessionGuard } from './session.guard';
 import { SessionService } from './session.service';
@@ -119,6 +120,20 @@ export class AuthController {
         'Session references a missing user.',
       );
     }
+    return toUserResponseDto(user);
+  }
+
+  // No reveal/anonymity behavior yet — this only lets a signed-in user set
+  // what nickname *would* be shown on a future opt-in "post as me" round.
+  // Not unique — see users.schema.ts.
+  @Post('nickname')
+  @UseGuards(SessionGuard)
+  @HttpCode(HttpStatus.OK)
+  async updateNickname(
+    @CurrentUser() userId: string,
+    @Body() dto: UpdateNicknameDto,
+  ): Promise<UserResponseDto> {
+    const user = await this.usersService.updateNickname(userId, dto.nickname);
     return toUserResponseDto(user);
   }
 

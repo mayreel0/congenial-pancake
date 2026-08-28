@@ -24,4 +24,8 @@ export class UsersService {
   updatePasswordHash(id: string, passwordHash: string): Promise<void> {
     return this.usersRepository.updatePasswordHash(id, passwordHash);
   }
+
+  updateNickname(id: string, nickname: string): Promise<User> {
+    return this.usersRepository.updateNickname(id, nickname);
+  }
 }
