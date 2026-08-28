@@ -136,6 +136,48 @@ export class RequestsRepository {
     }));
   }
 
+  // "내 기록" → 내가 작성한 고민: every request this member posted, newest
+  // first, with every reply nested oldest-first — no hidden/deletedAt
+  // filtering on either side, matching RepliesRepository.findMine()'s
+  // precedent that a viewer's own content is shown to them unfiltered.
+  async findMine(authorId: string): Promise<FeedItem[]> {
+    const requestRows = await this.db
+      .select({
+        id: requests.id,
+        body: requests.body,
+        authorId: requests.authorId,
+        guestId: requests.guestId,
+        createdAt: requests.createdAt,
+        hidden: requests.hidden,
+        deletedAt: requests.deletedAt,
+        reviewedAt: requests.reviewedAt,
+        anonymous: requests.anonymous,
+      })
+      .from(requests)
+      .where(eq(requests.authorId, authorId))
+      .orderBy(desc(requests.createdAt));
+
+    if (requestRows.length === 0) return [];
+
+    const requestIds = requestRows.map((row) => row.id);
+    const replyRows = await this.db.query.replies.findMany({
+      where: inArray(replies.requestId, requestIds),
+      orderBy: asc(replies.createdAt),
+    });
+
+    const repliesByRequestId = new Map<string, ReplyRecord[]>();
+    for (const reply of replyRows) {
+      const list = repliesByRequestId.get(reply.requestId) ?? [];
+      list.push(reply);
+      repliesByRequestId.set(reply.requestId, list);
+    }
+
+    return requestRows.map((request) => ({
+      request,
+      replies: repliesByRequestId.get(request.id) ?? [],
+    }));
+  }
+
   findByGuestId(guestId: string): Promise<RequestRecord | undefined> {
     return this.db.query.requests.findFirst({
       where: eq(requests.guestId, guestId),
