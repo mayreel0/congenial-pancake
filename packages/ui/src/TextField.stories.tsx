@@ -32,3 +32,17 @@ export const Required: Story = {
     required: true,
   },
 };
+
+// compact + no hint (e.g. NicknameSection's edit form) — the one
+// combination WithHint doesn't cover, and the one where a bare (non-block)
+// <label> used to sit inline next to a narrow input instead of stacking
+// above it, since nothing forced a line break the way <p>(hint) or a
+// full-width input incidentally did.
+export const CompactNoHint: Story = {
+  args: {
+    label: "닉네임",
+    id: "nickname",
+    width: "compact",
+    maxLength: 20,
+  },
+};

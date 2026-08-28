@@ -31,7 +31,9 @@ export function TextField({
     <div className="space-y-1">
       <label
         className={
-          hint ? "text-sm font-semibold text-foreground" : "text-sm text-muted"
+          hint
+            ? "block text-sm font-semibold text-foreground"
+            : "block text-sm text-muted"
         }
         htmlFor={id}
       >
