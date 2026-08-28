@@ -1,4 +1,4 @@
-import { render, screen } from "../lib/test-utils";
+import { fireEvent, render, screen } from "../lib/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import RecordsPage from "./page";
 
@@ -50,6 +50,10 @@ function installFakeBackend({
   return fetchMock;
 }
 
+async function switchToRepliesTab() {
+  fireEvent.click(await screen.findByRole("tab", { name: "내가 남긴 답변" }));
+}
+
 describe("RecordsPage", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -68,16 +72,37 @@ describe("RecordsPage", () => {
         expect.objectContaining({ href: "http://localhost:3000/login" }),
       ]),
     );
-    expect(screen.queryByText("내가 남긴 답변")).not.toBeInTheDocument();
-    expect(screen.queryByText("내가 남긴 고민")).not.toBeInTheDocument();
+    expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
+  });
+
+  it("defaults to the 내가 남긴 고민 tab", async () => {
+    installFakeBackend({ loggedIn: true });
+
+    render(<RecordsPage />);
+
+    expect(
+      await screen.findByRole("tab", { name: "내가 남긴 고민", selected: true }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("tab", { name: "내가 남긴 답변", selected: false }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "내가 남긴 고민" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "내가 남긴 답변" }),
+    ).not.toBeInTheDocument();
   });
 
   it("shows an answer CTA when the member has not replied yet", async () => {
     installFakeBackend({ loggedIn: true });
 
     render(<RecordsPage />);
+    await switchToRepliesTab();
 
-    expect(await screen.findByText("내가 남긴 답변")).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "내가 남긴 답변" }),
+    ).toBeInTheDocument();
     expect(
       await screen.findByText("아직 남긴 답변이 없습니다."),
     ).toBeInTheDocument();
@@ -92,7 +117,9 @@ describe("RecordsPage", () => {
 
     render(<RecordsPage />);
 
-    expect(await screen.findByText("내가 남긴 고민")).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "내가 남긴 고민" }),
+    ).toBeInTheDocument();
     expect(
       await screen.findByText("아직 남긴 고민이 없습니다."),
     ).toBeInTheDocument();
@@ -118,6 +145,7 @@ describe("RecordsPage", () => {
     });
 
     render(<RecordsPage />);
+    await switchToRepliesTab();
 
     expect(await screen.findByText("요즘 마음이 자꾸 가라앉아요.")).toBeInTheDocument();
     expect(
@@ -183,5 +211,44 @@ describe("RecordsPage", () => {
 
     expect(await screen.findByText("요즘 마음이 자꾸 가라앉아요.")).toBeInTheDocument();
     expect(screen.getByText("아직 받은 답변이 없어요.")).toBeInTheDocument();
+  });
+
+  it("switching tabs shows one section's content at a time", async () => {
+    installFakeBackend({
+      loggedIn: true,
+      requestLog: [
+        {
+          request: {
+            id: "request-1",
+            body: "요즘 마음이 자꾸 가라앉아요.",
+            createdAt: "2026-08-20T10:15:00.000Z",
+            author: { anonymous: true },
+          },
+          replies: [],
+        },
+      ],
+      replies: [
+        {
+          requestId: "request-2",
+          requestBody: "오늘도 무사히 지나갔어요.",
+          requestCreatedAt: "2026-08-20T10:15:00.000Z",
+          replyId: "reply-1",
+          replyBody: "잘 하셨어요.",
+          replyCreatedAt: "2026-08-21T11:30:00.000Z",
+        },
+      ],
+    });
+
+    render(<RecordsPage />);
+
+    expect(await screen.findByText("요즘 마음이 자꾸 가라앉아요.")).toBeInTheDocument();
+    expect(screen.queryByText("오늘도 무사히 지나갔어요.")).not.toBeInTheDocument();
+
+    await switchToRepliesTab();
+
+    expect(await screen.findByText("오늘도 무사히 지나갔어요.")).toBeInTheDocument();
+    expect(
+      screen.queryByText("요즘 마음이 자꾸 가라앉아요."),
+    ).not.toBeInTheDocument();
   });
 });
