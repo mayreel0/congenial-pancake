@@ -37,6 +37,7 @@ describe('UsersService', () => {
     usersRepository = {
       findById: jest.fn(),
       updateNickname: jest.fn(),
+      findByNickname: jest.fn(),
     } as unknown as jest.Mocked<UsersRepository>;
     settingsService = {
       get: jest.fn().mockResolvedValue(makeSettings()),
@@ -140,6 +141,56 @@ describe('UsersService', () => {
       );
 
       expect(result).toEqual(new Date('2026-08-24T00:00:00.000Z'));
+    });
+  });
+
+  describe('findByNicknameAndDiscriminator', () => {
+    it('picks the candidate whose id hashes to the requested discriminator', async () => {
+      usersRepository.findByNickname.mockResolvedValue([
+        makeUser({
+          id: 'aaaaaaaa-0000-0000-0000-000000000001',
+          nickname: '민들레',
+        }),
+        makeUser({
+          id: 'f8b3cf41-d4ee-4bce-9d5d-425fb33ac376',
+          nickname: '민들레',
+        }),
+      ]);
+
+      const result = await usersService.findByNicknameAndDiscriminator(
+        '민들레',
+        'C376',
+      );
+
+      expect(usersRepository.findByNickname).toHaveBeenCalledWith('민들레');
+      expect(result?.id).toBe('f8b3cf41-d4ee-4bce-9d5d-425fb33ac376');
+    });
+
+    it('is case-insensitive on the discriminator', async () => {
+      usersRepository.findByNickname.mockResolvedValue([
+        makeUser({
+          id: 'f8b3cf41-d4ee-4bce-9d5d-425fb33ac376',
+          nickname: '민들레',
+        }),
+      ]);
+
+      const result = await usersService.findByNicknameAndDiscriminator(
+        '민들레',
+        'c376',
+      );
+
+      expect(result?.id).toBe('f8b3cf41-d4ee-4bce-9d5d-425fb33ac376');
+    });
+
+    it('returns undefined when nobody currently holds that nickname', async () => {
+      usersRepository.findByNickname.mockResolvedValue([]);
+
+      const result = await usersService.findByNicknameAndDiscriminator(
+        '민들레',
+        'C376',
+      );
+
+      expect(result).toBeUndefined();
     });
   });
 });

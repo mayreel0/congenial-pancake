@@ -63,6 +63,10 @@ export class RequestsService {
     return this.requestsRepository.findMine(authorId);
   }
 
+  findPublicByAuthor(authorId: string): Promise<RequestRecord[]> {
+    return this.requestsRepository.findPublicByAuthor(authorId);
+  }
+
   async findQueueCandidate(
     userId: string | undefined,
     guestId: string,

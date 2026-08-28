@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { NicknameCooldownException } from '../common/exceptions/app.exception';
 import { SettingsService } from '../settings/settings.service';
+import { nicknameDiscriminator } from './nickname-discriminator';
 import {
   UsersRepository,
   type CreateUserInput,
@@ -26,6 +27,22 @@ export class UsersService {
 
   findByIds(ids: string[]): Promise<User[]> {
     return this.usersRepository.findByIds(ids);
+  }
+
+  // Public profile lookup: nickname + discriminator together identify one
+  // account (Discord-style tag), even though nickname alone isn't unique.
+  // Case-insensitive on the discriminator since it's shown/typed as
+  // uppercase hex but a URL segment shouldn't be case-sensitive for this.
+  // Returns undefined if nobody currently holds that exact nickname (a
+  // stale link after someone renames/clears their nickname resolves to
+  // nothing — not treated as an error to recover from).
+  async findByNicknameAndDiscriminator(
+    nickname: string,
+    discriminator: string,
+  ): Promise<User | undefined> {
+    const candidates = await this.usersRepository.findByNickname(nickname);
+    const target = discriminator.toUpperCase();
+    return candidates.find((user) => nicknameDiscriminator(user.id) === target);
   }
 
   async nicknameMapFor(userIds: string[]): Promise<Map<string, string | null>> {

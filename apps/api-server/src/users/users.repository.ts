@@ -34,6 +34,17 @@ export class UsersRepository {
     });
   }
 
+  // Nickname isn't unique (see users.schema.ts) — callers resolve the
+  // specific user via nicknameDiscriminator(id) among these candidates.
+  // Nearly always 0-1 rows in practice; a table scan here is fine at this
+  // scale (no index on nickname, matching there being no uniqueness
+  // constraint to index against).
+  findByNickname(nickname: string): Promise<User[]> {
+    return this.db.query.users.findMany({
+      where: eq(users.nickname, nickname),
+    });
+  }
+
   async create(input: CreateUserInput): Promise<User> {
     const [user] = await this.db.insert(users).values(input).returning();
     return user;
