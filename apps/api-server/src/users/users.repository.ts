@@ -7,6 +7,10 @@ import { users } from '../database/schema';
 export type CreateUserInput = {
   email: string;
   passwordHash?: string;
+  // OAuth signups pass this as `new Date()` — the provider already vouched
+  // for the email, so there's no separate verification step for them.
+  // Password signups omit it and verify via email_verification_tokens.
+  emailVerifiedAt?: Date;
 };
 
 export type User = typeof users.$inferSelect;
@@ -43,5 +47,12 @@ export class UsersRepository {
       .where(eq(users.id, id))
       .returning();
     return user;
+  }
+
+  async markEmailVerified(id: string): Promise<void> {
+    await this.db
+      .update(users)
+      .set({ emailVerifiedAt: new Date() })
+      .where(eq(users.id, id));
   }
 }

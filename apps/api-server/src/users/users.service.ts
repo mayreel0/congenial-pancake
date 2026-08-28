@@ -28,4 +28,8 @@ export class UsersService {
   updateNickname(id: string, nickname: string): Promise<User> {
     return this.usersRepository.updateNickname(id, nickname);
   }
+
+  markEmailVerified(id: string): Promise<void> {
+    return this.usersRepository.markEmailVerified(id);
+  }
 }
