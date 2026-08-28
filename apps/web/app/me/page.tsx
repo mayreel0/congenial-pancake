@@ -27,8 +27,8 @@ function MeContent({ status, user }: MeContentProps) {
             <p>{user.email}</p>
             <p className="text-sm">{formatJoinedDate(user.createdAt)} 가입</p>
           </div>
+          <NicknameSection />
         </section>
-        <NicknameSection />
         <MyAnswerLogSection />
       </>
     );

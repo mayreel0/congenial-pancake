@@ -1,4 +1,6 @@
 import { Injectable } from '@nestjs/common';
+import { NicknameCooldownException } from '../common/exceptions/app.exception';
+import { NICKNAME_COOLDOWN_MS } from './nickname-cooldown.constants';
 import {
   UsersRepository,
   type CreateUserInput,
@@ -35,7 +37,21 @@ export class UsersService {
     return this.usersRepository.updatePasswordHash(id, passwordHash);
   }
 
-  updateNickname(id: string, nickname: string): Promise<User> {
+  // Setting a nickname for the first time (from null) is always free —
+  // only a change to an already-set nickname is rate-limited, checked
+  // against when it was last changed.
+  async updateNickname(id: string, nickname: string): Promise<User> {
+    const current = await this.usersRepository.findById(id);
+    if (current?.nickname !== null && current?.nicknameChangedAt) {
+      const elapsedMs = Date.now() - current.nicknameChangedAt.getTime();
+      if (elapsedMs < NICKNAME_COOLDOWN_MS) {
+        const daysRemaining = Math.ceil(
+          (NICKNAME_COOLDOWN_MS - elapsedMs) / (24 * 60 * 60 * 1000),
+        );
+        throw new NicknameCooldownException(daysRemaining);
+      }
+    }
+
     return this.usersRepository.updateNickname(id, nickname);
   }
 }

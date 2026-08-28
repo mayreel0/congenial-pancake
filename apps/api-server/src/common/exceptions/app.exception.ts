@@ -111,3 +111,20 @@ export class NicknameRequiredException extends AppException {
     );
   }
 }
+
+// Korean, not English — unlike most exceptions here, NicknameSection shows
+// this message directly (no frontend code→text lookup table), matching how
+// UpdateNicknameDto's own class-validator messages are already Korean and
+// shown as-is. Deliberately doesn't restate the total cooldown length (that
+// constant lives in users/nickname-cooldown.constants.ts) — common/
+// exceptions shouldn't reach into a feature module just to echo a number
+// back in a message.
+export class NicknameCooldownException extends AppException {
+  constructor(daysRemaining: number) {
+    super(
+      'AUTH_NICKNAME_COOLDOWN',
+      `닉네임 변경 쿨타임이 아직 남아있어요. ${daysRemaining}일 후에 다시 시도해주세요.`,
+      HttpStatus.TOO_MANY_REQUESTS,
+    );
+  }
+}
