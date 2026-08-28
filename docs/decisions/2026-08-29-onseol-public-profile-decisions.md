@@ -28,3 +28,7 @@
 ## 남은 일
 
 - 프론트엔드(`/u/[slug]` 페이지, 닉네임 표시 위치마다 링크 연결)는 별도 PR — 이 PR은 백엔드만.
+
+## 추가: 프론트엔드 (PR #104)
+
+`/u/[slug]` 라우트 + `/read`/`/answer`/`/records`의 모든 닉네임 표시 위치에 링크 연결. 실브라우저 검증 중 실제 버그 하나 발견: Next.js의 `useParams()`는 서버 컴포넌트의 `params` prop과 달리 URL 세그먼트를 디코딩하지 않고 그대로 줌 — 이걸 모르고 그대로 `encodeURIComponent`에 넘기면 이미 퍼센트 인코딩된 문자열을 다시 인코딩해서(`%EB...` → `%25EB...`) 백엔드 호출이 항상 404가 남. `parseProfileSlug`에서 매칭 전에 `decodeURIComponent`를 한 번 거치도록 수정하고 회귀 테스트 추가.
