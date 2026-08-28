@@ -19,6 +19,10 @@ import { UsersService } from '../users/users.service';
 import { CreateRequestDto } from './dto/create-request.dto';
 import { toFeedItemDto, type FeedItemResponseDto } from './dto/feed-item.dto';
 import {
+  toMyRequestLogEntryDto,
+  type MyRequestLogEntryDto,
+} from './dto/my-request-log-entry.dto';
+import {
   toRequestResponseDto,
   type RequestResponseDto,
 } from './dto/request-response.dto';
@@ -80,6 +84,23 @@ export class RequestsController {
       authorIds.filter((id): id is string => id !== null),
     );
     return items.map((item) => toFeedItemDto(item, nicknameByUserId));
+  }
+
+  // "내 기록" → 내가 작성한 고민: every request this member posted, each with
+  // its full reply thread — member-only since a guest has no persistent
+  // identity to look this up by later.
+  @Get('mine')
+  @UseGuards(SessionGuard)
+  async mine(@CurrentUser() userId: string): Promise<MyRequestLogEntryDto[]> {
+    const items = await this.requestsService.findMine(userId);
+    const authorIds = items.flatMap((item) => [
+      item.request.authorId,
+      ...item.replies.map((reply) => reply.authorId),
+    ]);
+    const nicknameByUserId = await this.usersService.nicknameMapFor(
+      authorIds.filter((id): id is string => id !== null),
+    );
+    return items.map((item) => toMyRequestLogEntryDto(item, nicknameByUserId));
   }
 
   // The single next request this viewer should answer — see
