@@ -14,6 +14,15 @@ export function signup(email: string, password: string): Promise<CurrentUser> {
   });
 }
 
+// 1-20 chars, not whitespace-only — enforced server-side (UpdateNicknameDto);
+// this just surfaces whatever error message comes back.
+export function updateNickname(nickname: string): Promise<CurrentUser> {
+  return apiFetch<CurrentUser>("/auth/nickname", {
+    method: "POST",
+    body: JSON.stringify({ nickname }),
+  });
+}
+
 // Consumes a one-off token issued from apps/admin (never self-service) —
 // see docs/decisions/2026-08-27-onseol-oauth-password-reset-decisions.md.
 export function resetPassword(token: string, password: string): Promise<void> {

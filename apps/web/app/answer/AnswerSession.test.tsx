@@ -81,9 +81,11 @@ function installFakeBackend(initialQueue: RequestDto[]) {
               requestId: target.id,
               requestBody: target.body,
               requestCreatedAt: target.createdAt,
+              requestAuthor: target.author,
               replyId: `reply-${replyCounter}`,
               replyBody: body.body,
               replyCreatedAt: new Date().toISOString(),
+              replyAuthor: { anonymous: true },
             },
           ];
         }
@@ -117,6 +119,7 @@ function makeRequest(overrides: Partial<RequestDto>): RequestDto {
     body: "요청 본문",
     createdAt: new Date().toISOString(),
     replyCount: 0,
+    author: { anonymous: true },
     ...overrides,
   };
 }

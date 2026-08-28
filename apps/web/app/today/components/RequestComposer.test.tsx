@@ -8,6 +8,9 @@ describe("RequestComposer", () => {
     render(
       <RequestComposer
         status="idle"
+        nickname={null}
+        anonymous={false}
+        onToggleAnonymous={vi.fn()}
         value=""
         onChange={vi.fn()}
         onSubmit={vi.fn()}
@@ -24,6 +27,9 @@ describe("RequestComposer", () => {
     render(
       <RequestComposer
         status="idle"
+        nickname={null}
+        anonymous={false}
+        onToggleAnonymous={vi.fn()}
         value="오늘은 조금 지쳤어요."
         onChange={vi.fn()}
         onSubmit={onSubmit}
@@ -42,6 +48,9 @@ describe("RequestComposer", () => {
     render(
       <RequestComposer
         status="idle"
+        nickname={null}
+        anonymous={false}
+        onToggleAnonymous={vi.fn()}
         value=""
         onChange={onChange}
         onSubmit={onSubmit}
@@ -63,6 +72,9 @@ describe("RequestComposer", () => {
     const { rerender } = render(
       <RequestComposer
         status="idle"
+        nickname={null}
+        anonymous={false}
+        onToggleAnonymous={vi.fn()}
         value="짧은 온설"
         onChange={vi.fn()}
         onSubmit={vi.fn()}
@@ -78,6 +90,9 @@ describe("RequestComposer", () => {
     rerender(
       <RequestComposer
         status="idle"
+        nickname={null}
+        anonymous={false}
+        onToggleAnonymous={vi.fn()}
         value={"길어진 온설\n".repeat(6)}
         onChange={vi.fn()}
         onSubmit={vi.fn()}
@@ -94,6 +109,9 @@ describe("RequestComposer", () => {
     rerender(
       <RequestComposer
         status="success"
+        nickname={null}
+        anonymous={false}
+        onToggleAnonymous={vi.fn()}
         value=""
         onChange={vi.fn()}
         onSubmit={vi.fn()}
@@ -107,6 +125,9 @@ describe("RequestComposer", () => {
     const { rerender } = render(
       <RequestComposer
         status="idle"
+        nickname={null}
+        anonymous={false}
+        onToggleAnonymous={vi.fn()}
         value="아주 긴 온설"
         onChange={vi.fn()}
         onSubmit={vi.fn()}
@@ -122,6 +143,9 @@ describe("RequestComposer", () => {
     rerender(
       <RequestComposer
         status="idle"
+        nickname={null}
+        anonymous={false}
+        onToggleAnonymous={vi.fn()}
         value={"아주 긴 온설\n".repeat(20)}
         onChange={vi.fn()}
         onSubmit={vi.fn()}
@@ -135,6 +159,9 @@ describe("RequestComposer", () => {
     const { rerender } = render(
       <RequestComposer
         status="pending"
+        nickname={null}
+        anonymous={false}
+        onToggleAnonymous={vi.fn()}
         value="오늘은 조금 지쳤어요."
         onChange={vi.fn()}
         onSubmit={vi.fn()}
@@ -146,6 +173,9 @@ describe("RequestComposer", () => {
     rerender(
       <RequestComposer
         status="success"
+        nickname={null}
+        anonymous={false}
+        onToggleAnonymous={vi.fn()}
         value=""
         onChange={vi.fn()}
         onSubmit={vi.fn()}

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useAuth } from "../lib/auth/useAuth";
-import type { RequestDto } from "../lib/requests/api";
+import type { AuthorDisplayDto, RequestDto } from "../lib/requests/api";
 import {
   useHeldRequestsQuery,
   useHoldMutation,
@@ -13,8 +13,19 @@ import { useCreateReplyMutation, useMyAnswerLogQuery } from "../lib/replies/quer
 import { useCreateReportMutation } from "../lib/reports/queries";
 
 export type AnswerLogEntry = {
-  request: { id: string; body: string; createdAt: string };
-  reply: { id: string; requestId: string; body: string; createdAt: string };
+  request: {
+    id: string;
+    body: string;
+    createdAt: string;
+    author: AuthorDisplayDto;
+  };
+  reply: {
+    id: string;
+    requestId: string;
+    body: string;
+    createdAt: string;
+    author: AuthorDisplayDto;
+  };
 };
 
 type UseAnswerQueueResult = {
@@ -26,6 +37,11 @@ type UseAnswerQueueResult = {
   // answer-queue-decisions.md) — skip does not, so it's not gated here.
   canManageCurrentRequest: boolean;
   replyDrafts: Record<string, string>;
+  // Same reveal-toggle rule as useTodayComposer — null nickname means the
+  // composer hides the toggle entirely.
+  nickname: string | null;
+  anonymous: boolean;
+  toggleAnonymous(): void;
   updateReplyDraft(requestId: string, value: string): void;
   submitReply(requestId: string): Promise<void>;
   skipRequest(requestId: string): Promise<void>;
@@ -36,8 +52,9 @@ type UseAnswerQueueResult = {
 };
 
 export function useAnswerQueue(): UseAnswerQueueResult {
-  const { status } = useAuth();
+  const { status, user } = useAuth();
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
+  const [anonymous, setAnonymous] = useState(true);
   const [activeHeldRequestId, setActiveHeldRequestId] = useState<
     string | null
   >(null);
@@ -63,12 +80,14 @@ export function useAnswerQueue(): UseAnswerQueueResult {
         id: entry.requestId,
         body: entry.requestBody,
         createdAt: entry.requestCreatedAt,
+        author: entry.requestAuthor,
       },
       reply: {
         id: entry.replyId,
         requestId: entry.requestId,
         body: entry.replyBody,
         createdAt: entry.replyCreatedAt,
+        author: entry.replyAuthor,
       },
     }),
   );
@@ -77,11 +96,19 @@ export function useAnswerQueue(): UseAnswerQueueResult {
     setReplyDrafts((current) => ({ ...current, [requestId]: value }));
   }
 
+  function toggleAnonymous(): void {
+    setAnonymous((current) => !current);
+  }
+
   async function submitReply(requestId: string): Promise<void> {
     const body = (replyDrafts[requestId] ?? "").trim();
     if (!body) return;
 
-    await createReplyMutation.mutateAsync({ requestId, body });
+    await createReplyMutation.mutateAsync({
+      requestId,
+      body,
+      anonymous: user?.nickname ? anonymous : true,
+    });
     setReplyDrafts((current) => ({ ...current, [requestId]: "" }));
     if (activeHeldRequestId === requestId) setActiveHeldRequestId(null);
   }
@@ -115,6 +142,9 @@ export function useAnswerQueue(): UseAnswerQueueResult {
     isAnsweringHeldRequest: activeHeldRequest !== null,
     canManageCurrentRequest: status === "authenticated",
     replyDrafts,
+    nickname: user?.nickname ?? null,
+    anonymous,
+    toggleAnonymous,
     updateReplyDraft,
     submitReply,
     skipRequest,

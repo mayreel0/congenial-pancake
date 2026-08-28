@@ -1,10 +1,19 @@
 import { apiFetch } from "../api";
 
+// Mirrors apps/api-server/src/common/author-display.ts's AuthorDisplayDto.
+// A guest post is always { anonymous: true }; a member post is only
+// { anonymous: false, ... } when they opted in for that specific post AND
+// had a nickname set at the time.
+export type AuthorDisplayDto =
+  | { anonymous: true }
+  | { anonymous: false; nickname: string; nicknameDiscriminator: string };
+
 export type RequestDto = {
   id: string;
   body: string;
   createdAt: string;
   replyCount: number;
+  author: AuthorDisplayDto;
 };
 
 export function listRequests(): Promise<RequestDto[]> {
@@ -15,10 +24,17 @@ export function listRequests(): Promise<RequestDto[]> {
 // cookie (apps/api's GuestIdMiddleware) sent automatically with every
 // request via apiFetch's credentials: "include" — no client-side id to
 // manage here anymore.
-export function createRequest(body: string): Promise<RequestDto> {
+//
+// anonymous defaults to true server-side when omitted, and is ignored
+// entirely for guest writers (they can never post non-anonymously) — see
+// docs/decisions/2026-08-28-onseol-nickname-post-reveal-decisions.md.
+export function createRequest(
+  body: string,
+  anonymous?: boolean,
+): Promise<RequestDto> {
   return apiFetch<RequestDto>("/requests", {
     method: "POST",
-    body: JSON.stringify({ body }),
+    body: JSON.stringify({ body, anonymous }),
   });
 }
 
@@ -53,6 +69,7 @@ export type FeedReplyDto = {
   body: string;
   createdAt: string;
   authorSlot: number;
+  author: AuthorDisplayDto;
 };
 
 export type FeedItemDto = {

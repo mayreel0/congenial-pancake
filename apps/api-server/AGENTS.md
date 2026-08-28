@@ -100,7 +100,7 @@ Schema, the report threshold, and admin identification are all grounded in `docs
 
 ## Frontend wiring status
 
-Auth, `/today`, `/answer`, and `/read` all call this API for real now (`apps/web/app/lib/`, `today/useTodayComposer.ts`, `answer/useAnswerQueue.ts`, `read/useReadFeed.ts`). Only `today/prototype/useMyRecords.ts` (for a future `/me`) is still localStorage-backed, per its own header comment — not wired to anything yet. `apps/admin` is a second, separate frontend consumer (the moderation screen) — see "Admin" above.
+Auth, `/today`, `/answer`, `/read`, and `/me` all call this API for real now (`apps/web/app/lib/`, `today/useTodayComposer.ts`, `answer/useAnswerQueue.ts`, `read/useReadFeed.ts`). Nickname reveal (opt-in per-post, see "Nicknames" above) is fully wired too: `/me` has a nickname-setting section, `/today`'s and `/answer`'s composers show a reveal toggle whenever the user has a nickname, and `/read`/`/answer` render the real nickname over the anonymous fallback label wherever `author.anonymous === false` — see `docs/decisions/2026-08-28-onseol-nickname-post-reveal-frontend-decisions.md`. Only `today/prototype/useMyRecords.ts` (superseded by `/me`) is still localStorage-backed, per its own header comment — not wired to anything yet. `apps/admin` is a second, separate frontend consumer (the moderation screen) — see "Admin" above.
 
 ## Read feed (`GET /requests/feed`) and saved replies
 

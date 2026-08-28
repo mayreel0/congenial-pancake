@@ -6,6 +6,7 @@ import {
   login as apiLogin,
   logout as apiLogout,
   signup as apiSignup,
+  updateNickname as apiUpdateNickname,
   type CurrentUser,
 } from "../api";
 
@@ -41,6 +42,17 @@ export function useSignupMutation() {
   return useMutation({
     mutationFn: ({ email, password }: { email: string; password: string }) =>
       apiSignup(email, password),
+    onSuccess: (user: CurrentUser) => {
+      queryClient.setQueryData(authKeys.me, user);
+    },
+  });
+}
+
+export function useUpdateNicknameMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (nickname: string) => apiUpdateNickname(nickname),
     onSuccess: (user: CurrentUser) => {
       queryClient.setQueryData(authKeys.me, user);
     },

@@ -29,7 +29,8 @@ export function useCreateRequestMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (body: string) => createRequest(body),
+    mutationFn: ({ body, anonymous }: { body: string; anonymous?: boolean }) =>
+      createRequest(body, anonymous),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: requestKeys.list });
     },

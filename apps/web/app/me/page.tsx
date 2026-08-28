@@ -5,6 +5,7 @@ import { ServiceNav } from "../components/navigation/ServiceNav";
 import { formatJoinedDate } from "../lib/format";
 import { useAuth } from "../lib/auth/useAuth";
 import { MyAnswerLogSection } from "./components/MyAnswerLogSection";
+import { NicknameSection } from "./components/NicknameSection";
 
 type MeContentProps = {
   status: ReturnType<typeof useAuth>["status"];
@@ -27,6 +28,7 @@ function MeContent({ status, user }: MeContentProps) {
             <p className="text-sm">{formatJoinedDate(user.createdAt)} 가입</p>
           </div>
         </section>
+        <NicknameSection />
         <MyAnswerLogSection />
       </>
     );

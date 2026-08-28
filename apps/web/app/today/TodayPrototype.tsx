@@ -96,10 +96,13 @@ export function TodayPrototype() {
             data-testid="today-entry-composer"
           >
             <RequestComposer
+              anonymous={prototype.anonymous}
+              nickname={prototype.nickname}
               status={prototype.requestSubmitStatus}
               value={prototype.requestDraft}
               onChange={prototype.updateRequestDraft}
               onSubmit={submitRequest}
+              onToggleAnonymous={prototype.toggleAnonymous}
             />
           </div>
 

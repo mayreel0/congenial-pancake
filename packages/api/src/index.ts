@@ -46,6 +46,10 @@ export type CurrentUser = {
   id: string;
   email: string;
   createdAt: string;
+  // nicknameDiscriminator is always present even when nickname is null —
+  // see apps/api-server/src/users/nickname-discriminator.ts.
+  nickname: string | null;
+  nicknameDiscriminator: string;
 };
 
 // Present in both apps as-is. Signup and Google OAuth are apps/web-only

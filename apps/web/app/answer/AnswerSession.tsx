@@ -150,8 +150,10 @@ export function AnswerSession() {
           ) : null}
         </div>
         <AnswerComposer
+          anonymous={prototype.anonymous}
           disabled={!currentTarget || loadingNext}
           isAnsweringHeldRequest={prototype.isAnsweringHeldRequest}
+          nickname={prototype.nickname}
           pending={answerSubmitStatus === "pending"}
           value={draft}
           onCancelHeld={prototype.closeHeldRequest}
@@ -159,6 +161,7 @@ export function AnswerSession() {
             currentTarget && prototype.updateReplyDraft(currentTarget.id, value)
           }
           onSubmit={handleSubmit}
+          onToggleAnonymous={prototype.toggleAnonymous}
         />
       </div>
       <ActionConfirmDialog

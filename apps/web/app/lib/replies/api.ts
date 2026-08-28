@@ -1,3 +1,4 @@
+import type { AuthorDisplayDto } from "../requests/api";
 import { apiFetch } from "../api";
 
 export type ReplyDto = {
@@ -5,12 +6,19 @@ export type ReplyDto = {
   requestId: string;
   body: string;
   createdAt: string;
+  author: AuthorDisplayDto;
 };
 
-export function createReply(requestId: string, body: string): Promise<ReplyDto> {
+// anonymous defaults to true server-side when omitted, ignored entirely for
+// guest writers — see requests/api.ts's createRequest for the same rule.
+export function createReply(
+  requestId: string,
+  body: string,
+  anonymous?: boolean,
+): Promise<ReplyDto> {
   return apiFetch<ReplyDto>(`/requests/${requestId}/replies`, {
     method: "POST",
-    body: JSON.stringify({ body }),
+    body: JSON.stringify({ body, anonymous }),
   });
 }
 
@@ -18,9 +26,11 @@ export type MyAnswerLogEntryDto = {
   requestId: string;
   requestBody: string;
   requestCreatedAt: string;
+  requestAuthor: AuthorDisplayDto;
   replyId: string;
   replyBody: string;
   replyCreatedAt: string;
+  replyAuthor: AuthorDisplayDto;
 };
 
 export function fetchMyAnswerLog(): Promise<MyAnswerLogEntryDto[]> {
