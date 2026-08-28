@@ -15,7 +15,13 @@ type UseAdminSettingsResult = {
   updateError: string | null;
   update(
     input: Partial<
-      Pick<AdminSettingsDto, "queueFreshnessHours" | "queueReplyCap" | "guestReplyLimit">
+      Pick<
+        AdminSettingsDto,
+        | "queueFreshnessHours"
+        | "queueReplyCap"
+        | "guestReplyLimit"
+        | "nicknameCooldownDays"
+      >
     >,
   ): Promise<void>;
 };

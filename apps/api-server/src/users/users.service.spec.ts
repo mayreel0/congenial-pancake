@@ -1,4 +1,6 @@
 import { NicknameCooldownException } from '../common/exceptions/app.exception';
+import type { SettingsService } from '../settings/settings.service';
+import type { SettingsRecord } from '../settings/settings.repository';
 import type { User, UsersRepository } from './users.repository';
 import { UsersService } from './users.service';
 
@@ -14,8 +16,21 @@ function makeUser(overrides: Partial<User> = {}): User {
   };
 }
 
+function makeSettings(overrides: Partial<SettingsRecord> = {}): SettingsRecord {
+  return {
+    id: 1,
+    queueFreshnessHours: 60,
+    queueReplyCap: 5,
+    guestReplyLimit: 5,
+    nicknameCooldownDays: 7,
+    updatedAt: new Date('2026-08-21T00:00:00.000Z'),
+    ...overrides,
+  };
+}
+
 describe('UsersService', () => {
   let usersRepository: jest.Mocked<UsersRepository>;
+  let settingsService: jest.Mocked<SettingsService>;
   let usersService: UsersService;
 
   beforeEach(() => {
@@ -23,8 +38,11 @@ describe('UsersService', () => {
       findById: jest.fn(),
       updateNickname: jest.fn(),
     } as unknown as jest.Mocked<UsersRepository>;
+    settingsService = {
+      get: jest.fn().mockResolvedValue(makeSettings()),
+    } as unknown as jest.Mocked<SettingsService>;
 
-    usersService = new UsersService(usersRepository);
+    usersService = new UsersService(usersRepository, settingsService);
   });
 
   describe('updateNickname', () => {
@@ -77,6 +95,51 @@ describe('UsersService', () => {
         '다른닉네임',
       );
       expect(result).toEqual(updated);
+    });
+
+    it('reads the cooldown length from settings, not a hardcoded value', async () => {
+      settingsService.get.mockResolvedValue(
+        makeSettings({ nicknameCooldownDays: 1 }),
+      );
+      const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
+      usersRepository.findById.mockResolvedValue(
+        makeUser({ nickname: '민들레', nicknameChangedAt: twoDaysAgo }),
+      );
+      const updated = makeUser({
+        nickname: '다른닉네임',
+        nicknameChangedAt: new Date(),
+      });
+      usersRepository.updateNickname.mockResolvedValue(updated);
+
+      // A 1-day cooldown means 2 days ago is already past it, even though
+      // the default 7-day cooldown would still reject this.
+      const result = await usersService.updateNickname('user-1', '다른닉네임');
+
+      expect(result).toEqual(updated);
+    });
+  });
+
+  describe('nicknameChangeAvailableAt', () => {
+    it('returns null when the nickname has never been changed', async () => {
+      const result = await usersService.nicknameChangeAvailableAt(
+        makeUser({ nicknameChangedAt: null }),
+      );
+
+      expect(result).toBeNull();
+      expect(settingsService.get).not.toHaveBeenCalled();
+    });
+
+    it('returns nicknameChangedAt offset by the configured cooldown', async () => {
+      settingsService.get.mockResolvedValue(
+        makeSettings({ nicknameCooldownDays: 3 }),
+      );
+      const changedAt = new Date('2026-08-21T00:00:00.000Z');
+
+      const result = await usersService.nicknameChangeAvailableAt(
+        makeUser({ nicknameChangedAt: changedAt }),
+      );
+
+      expect(result).toEqual(new Date('2026-08-24T00:00:00.000Z'));
     });
   });
 });

@@ -29,6 +29,14 @@ PR #97(닉네임 게시물 노출 프론트엔드) 리뷰 중 사용자 피드�
 - `apps/web`/`packages/ui`/`packages/api`: lint/typecheck/test(67/67)/build 통과. `apps/admin`/`apps/storybook-app`도 영향 없음 확인.
 - 실브라우저 검증: `/me`에서 닉네임 변경(레거시 계정이라 `nicknameChangedAt`이 없어 최초 변경은 무료로 처리됨, 결정 2와 일치) → 즉시 "N일 후에 다시 바꿀 수 있어요." 표시 + "수정" 버튼 비활성화 확인. 토글 스위치가 실제로 스위치 모양으로 렌더링되고 클릭 시 상태가 바뀌는 것, 새 토글로 작성한 글이 `/read`에 실제 닉네임으로 정확히 표시되는 것까지 확인.
 
+## 추가: 쿨타임을 admin 설정으로 이동 (같은 날 후속)
+
+7일 쿨타임을 배포 없이 바꿀 수 있으면 좋겠다는 사용자 제안 — 이미 `settings` 단일 행 테이블에 `queueFreshnessHours`/`queueReplyCap`/`guestReplyLimit`이 정확히 같은 패턴(admin이 `PATCH /admin/settings`로 조정 가능한 튜닝 값)으로 있었으므로, 실제 트레이드오프 없이 같은 패턴을 그대로 하나 더 얹는 것으로 판단해 확인 없이 바로 진행.
+
+- `settings.nickname_cooldown_days`(기본 7) 추가. `UsersService`가 하드코딩된 상수 대신 `SettingsService.get()`으로 매 호출마다 조회(다른 세 값과 동일하게 캐싱 없음).
+- `UserResponseDto.nicknameChangeAvailableAt` 계산이 더 이상 순수 동기 함수가 아니게 됨(쿨타임 일수가 동적이라) — `toUserResponseDto()`는 여전히 순수 매퍼로 남기고, 계산 자체는 새 `UsersService.nicknameChangeAvailableAt(user)`로 옮겨서 `AuthController`의 4개 라우트(signup/login/me/updateNickname) 전부가 이 메서드를 거치도록 함. `nicknameByUserId`를 필수 파라미터로 강제했던 PR #93의 패턴과 동일한 이유 — 빠뜨린 콜사이트는 타입체크가 잡아냄.
+- `apps/admin`의 "설정" 폼에 "닉네임 변경 쿨타임 (일)" 필드 추가(1~90일).
+
 ## 남은 일
 
 - 기존에(이 컬럼이 생기기 전에) 닉네임을 이미 설정해둔 계정들은 `nicknameChangedAt`이 `NULL`이라 다음 변경이 무료로 처리됨 — 백필하지 않기로 함(의도적: 마이그레이션 시점의 사용자를 소급 제재할 이유가 없음).

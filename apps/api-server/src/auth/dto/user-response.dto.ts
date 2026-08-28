@@ -1,6 +1,5 @@
 import type { User } from '../../users/users.repository';
 import { nicknameDiscriminator } from '../../users/nickname-discriminator';
-import { NICKNAME_COOLDOWN_MS } from '../../users/nickname-cooldown.constants';
 
 export type UserResponseDto = {
   id: string;
@@ -19,15 +18,22 @@ export type UserResponseDto = {
   nicknameChangeAvailableAt: Date | null;
 };
 
-export function toUserResponseDto(user: User): UserResponseDto {
+// nicknameChangeAvailableAt is a required (not defaulted) param, not
+// computed here, because the cooldown length is admin-tunable
+// (settings.nicknameCooldownDays) — this stays a pure sync mapper, and
+// every caller must go through UsersService.nicknameChangeAvailableAt()
+// first so a forgotten call site fails typecheck instead of silently
+// returning a wrong/stale availability.
+export function toUserResponseDto(
+  user: User,
+  nicknameChangeAvailableAt: Date | null,
+): UserResponseDto {
   return {
     id: user.id,
     email: user.email,
     createdAt: user.createdAt,
     nickname: user.nickname,
     nicknameDiscriminator: nicknameDiscriminator(user.id),
-    nicknameChangeAvailableAt: user.nicknameChangedAt
-      ? new Date(user.nicknameChangedAt.getTime() + NICKNAME_COOLDOWN_MS)
-      : null,
+    nicknameChangeAvailableAt,
   };
 }

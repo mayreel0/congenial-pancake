@@ -16,6 +16,7 @@ function makeSettings(
     queueFreshnessHours: 60,
     queueReplyCap: 5,
     guestReplyLimit: 5,
+    nicknameCooldownDays: 7,
     updatedAt: "2026-08-26T00:00:00.000Z",
     ...overrides,
   };
