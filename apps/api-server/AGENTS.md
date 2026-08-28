@@ -14,6 +14,10 @@ App-specific rules only. Project-wide rules (branching policy, decision-confirma
 
 Services depend only on repository/provider interfaces, never on the Drizzle client (`DRIZZLE` token) directly — the Drizzle client is only referenced inside `*.repository.ts` files. Example: `src/auth/sessions.repository.ts` injects `DRIZZLE`, and `src/auth/session.service.ts` depends only on `SessionsRepository`.
 
+## Drizzle: NULL-safe negation
+
+When excluding/negating a condition on a **nullable** column (e.g. `requests.author_id`/`guest_id`, `replies.author_id`/`guest_id`, or any future nullable-identity column following that pattern), never write a bare `not(eq(col, value))`. SQL's 3-valued logic makes `NOT (NULL = x)` evaluate to `NULL`, and a `WHERE` clause treats `NULL` as "row excluded," not "condition satisfied" — so a bare `not(eq(...))` silently drops every row where that column is NULL, not just rows equal to `value`. Use the NULL-safe form instead: `or(isNull(col), ne(col, value))`. This caused a real bug (PR #73): `RequestsRepository.findQueueCandidate()`'s self-authored-exclusion used `not(eq(requests.guestId, viewer.guestId))` for guest viewers, but member-authored requests have `guest_id = NULL` — so it silently excluded every member-authored request from every guest's queue (and symmetrically, every guest-authored request from every member's queue), not just the viewer's own post. Before writing or reviewing `not(eq(...))`/`not(and(...))`/`not(or(...))` on a nullable column, stop and ask whether NULL rows should be included in the negated set — for "not this specific viewer" exclusions, the answer is almost always yes.
+
 ## Auth
 
 DB-backed sessions (`src/auth/`) — not JWT. `SessionGuard` reads the token from either a cookie (`SESSION_COOKIE_NAME`, default `session_token`) or an `Authorization: Bearer` header, validating both against the same `SessionService` (web uses the cookie, a future mobile app would use the header). Sessions are issued per device/login, not per user — logging out a single device is just deleting that session row.
