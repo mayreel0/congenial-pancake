@@ -4,6 +4,7 @@ import { Button } from "ui/Button";
 import { ServiceNav } from "../components/navigation/ServiceNav";
 import { useAuth } from "../lib/auth/useAuth";
 import { MyAnswerLogSection } from "./components/MyAnswerLogSection";
+import { MyRequestLogSection } from "./components/MyRequestLogSection";
 
 type RecordsContentProps = {
   status: ReturnType<typeof useAuth>["status"];
@@ -21,6 +22,7 @@ function RecordsContent({ status }: RecordsContentProps) {
             내 기록
           </h1>
         </section>
+        <MyRequestLogSection />
         <MyAnswerLogSection />
       </>
     );

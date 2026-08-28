@@ -1,0 +1,64 @@
+import { Button } from "ui/Button";
+import type { MyRequestLogEntryDto } from "../../lib/requests/api";
+import { useMyRequestLogQuery } from "../../lib/requests/queries";
+import { RequestLogCard } from "./RequestLogCard";
+
+type RequestLogBodyProps = {
+  loading: boolean;
+  entries: MyRequestLogEntryDto[];
+};
+
+// Early return instead of a nested ternary — matches
+// apps/admin/app/components/AdminStatusGate.tsx's pattern.
+function RequestLogBody({ loading, entries }: RequestLogBodyProps) {
+  if (loading) {
+    return (
+      <p className="rounded-lg border border-line bg-surface px-4 py-5 text-sm text-muted shadow-sm">
+        고민 기록을 불러오는 중입니다.
+      </p>
+    );
+  }
+
+  if (entries.length === 0) {
+    return (
+      <div className="space-y-3 rounded-lg border border-line bg-surface px-4 py-5 shadow-sm">
+        <p className="text-sm text-muted">아직 남긴 고민이 없습니다.</p>
+        <Button href="/today" size="sm">
+          고민 남기러 가기
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <ol className="space-y-4">
+      {entries.map((entry) => (
+        <RequestLogCard entry={entry} key={entry.request.id} />
+      ))}
+    </ol>
+  );
+}
+
+export function MyRequestLogSection() {
+  const requestLog = useMyRequestLogQuery();
+
+  return (
+    <section className="space-y-4" aria-labelledby="my-request-log-heading">
+      <div className="space-y-1">
+        <h2
+          className="text-lg font-semibold tracking-normal"
+          id="my-request-log-heading"
+        >
+          내가 남긴 고민
+        </h2>
+        <p className="text-sm text-muted">
+          내가 남긴 고민과 거기 달린 답변을 모아봤어요.
+        </p>
+      </div>
+      <RequestLogBody
+        entries={requestLog.data ?? []}
+        loading={requestLog.isPending || requestLog.isLoading}
+      />
+    </section>
+  );
+}

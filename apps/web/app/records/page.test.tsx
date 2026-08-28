@@ -11,9 +11,11 @@ function jsonResponse(status: number, body: unknown): MockResponse {
 function installFakeBackend({
   loggedIn,
   replies = [],
+  requestLog = [],
 }: {
   loggedIn: boolean;
   replies?: unknown[];
+  requestLog?: unknown[];
 }) {
   const fetchMock = vi.fn(
     (input: RequestInfo | URL): Promise<MockResponse> => {
@@ -34,6 +36,10 @@ function installFakeBackend({
 
       if (url.endsWith("/replies/mine")) {
         return Promise.resolve(jsonResponse(200, replies));
+      }
+
+      if (url.endsWith("/requests/mine")) {
+        return Promise.resolve(jsonResponse(200, requestLog));
       }
 
       throw new Error(`Unmocked fetch: ${url}`);
@@ -63,6 +69,7 @@ describe("RecordsPage", () => {
       ]),
     );
     expect(screen.queryByText("내가 남긴 답변")).not.toBeInTheDocument();
+    expect(screen.queryByText("내가 남긴 고민")).not.toBeInTheDocument();
   });
 
   it("shows an answer CTA when the member has not replied yet", async () => {
@@ -77,6 +84,21 @@ describe("RecordsPage", () => {
     expect(screen.getByRole("link", { name: "답변 남기러 가기" })).toHaveAttribute(
       "href",
       "/answer",
+    );
+  });
+
+  it("shows a request CTA when the member has not posted a concern yet", async () => {
+    installFakeBackend({ loggedIn: true });
+
+    render(<RecordsPage />);
+
+    expect(await screen.findByText("내가 남긴 고민")).toBeInTheDocument();
+    expect(
+      await screen.findByText("아직 남긴 고민이 없습니다."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "고민 남기러 가기" })).toHaveAttribute(
+      "href",
+      "/today",
     );
   });
 
@@ -103,5 +125,63 @@ describe("RecordsPage", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("8월 20일 19:15")).toBeInTheDocument();
     expect(screen.getByText("8월 21일 20:30")).toBeInTheDocument();
+  });
+
+  it("renders the member's own requests with received replies", async () => {
+    installFakeBackend({
+      loggedIn: true,
+      requestLog: [
+        {
+          request: {
+            id: "request-1",
+            body: "요즘 마음이 자꾸 가라앉아요.",
+            createdAt: "2026-08-20T10:15:00.000Z",
+            author: { anonymous: true },
+          },
+          replies: [
+            {
+              id: "reply-1",
+              body: "잠깐이라도 쉬어가도 괜찮다고 말해주고 싶어요.",
+              createdAt: "2026-08-21T11:30:00.000Z",
+              author: {
+                anonymous: false,
+                nickname: "햇살",
+                nicknameDiscriminator: "AB12",
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    render(<RecordsPage />);
+
+    expect(await screen.findByText("요즘 마음이 자꾸 가라앉아요.")).toBeInTheDocument();
+    expect(
+      screen.getByText("잠깐이라도 쉬어가도 괜찮다고 말해주고 싶어요."),
+    ).toBeInTheDocument();
+    expect(screen.getByText("햇살#AB12")).toBeInTheDocument();
+  });
+
+  it("shows a placeholder when a posted request has no replies yet", async () => {
+    installFakeBackend({
+      loggedIn: true,
+      requestLog: [
+        {
+          request: {
+            id: "request-1",
+            body: "요즘 마음이 자꾸 가라앉아요.",
+            createdAt: "2026-08-20T10:15:00.000Z",
+            author: { anonymous: true },
+          },
+          replies: [],
+        },
+      ],
+    });
+
+    render(<RecordsPage />);
+
+    expect(await screen.findByText("요즘 마음이 자꾸 가라앉아요.")).toBeInTheDocument();
+    expect(screen.getByText("아직 받은 답변이 없어요.")).toBeInTheDocument();
   });
 });
