@@ -59,6 +59,10 @@ export class RequestsService {
     return this.requestsRepository.findFeed();
   }
 
+  findMine(authorId: string): Promise<FeedItem[]> {
+    return this.requestsRepository.findMine(authorId);
+  }
+
   async findQueueCandidate(
     userId: string | undefined,
     guestId: string,
