@@ -61,6 +61,7 @@ function makeUser(overrides: Partial<User> = {}): User {
     id: 'user-1',
     email: 'test@example.com',
     passwordHash: 'hashed',
+    nickname: null,
     emailVerifiedAt: new Date('2026-08-21T00:00:00.000Z'),
     createdAt: new Date('2026-08-21T00:00:00.000Z'),
     ...overrides,
