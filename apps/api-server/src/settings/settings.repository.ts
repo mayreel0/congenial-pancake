@@ -8,7 +8,10 @@ export type SettingsRecord = typeof settings.$inferSelect;
 export type UpdateSettingsInput = Partial<
   Pick<
     SettingsRecord,
-    'queueFreshnessHours' | 'queueReplyCap' | 'guestReplyLimit'
+    | 'queueFreshnessHours'
+    | 'queueReplyCap'
+    | 'guestReplyLimit'
+    | 'nicknameCooldownDays'
   >
 >;
 

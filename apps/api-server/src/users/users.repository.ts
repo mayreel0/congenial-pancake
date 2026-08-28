@@ -46,7 +46,7 @@ export class UsersRepository {
   async updateNickname(id: string, nickname: string): Promise<User> {
     const [user] = await this.db
       .update(users)
-      .set({ nickname })
+      .set({ nickname, nicknameChangedAt: new Date() })
       .where(eq(users.id, id))
       .returning();
     return user;

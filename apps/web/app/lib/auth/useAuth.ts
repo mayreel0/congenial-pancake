@@ -7,6 +7,7 @@ import {
   useLoginMutation,
   useLogoutMutation,
   useSignupMutation,
+  useUpdateNicknameMutation,
 } from "./queries";
 
 type AuthStatus = "loading" | "authenticated" | "anonymous";
@@ -18,6 +19,7 @@ type UseAuthResult = {
   signup(email: string, password: string): Promise<void>;
   logout(): Promise<void>;
   refresh(): Promise<void>;
+  updateNickname(nickname: string): Promise<void>;
 };
 
 function toAuthStatus(isPending: boolean, hasUser: boolean): AuthStatus {
@@ -32,6 +34,7 @@ export function useAuth(): UseAuthResult {
   const loginMutation = useLoginMutation();
   const signupMutation = useSignupMutation();
   const logoutMutation = useLogoutMutation();
+  const updateNicknameMutation = useUpdateNicknameMutation();
 
   const status = toAuthStatus(meQuery.isPending, Boolean(meQuery.data));
 
@@ -54,6 +57,10 @@ export function useAuth(): UseAuthResult {
     await meQuery.refetch();
   }
 
+  async function updateNickname(nickname: string): Promise<void> {
+    await updateNicknameMutation.mutateAsync(nickname);
+  }
+
   return {
     status,
     user: meQuery.data ?? null,
@@ -61,5 +68,6 @@ export function useAuth(): UseAuthResult {
     signup,
     logout,
     refresh,
+    updateNickname,
   };
 }

@@ -10,6 +10,7 @@ const item: FeedItemDto = {
     createdAt: "2026-08-19T09:00:00.000Z",
     replyCount: 1,
     authorSlot: 0,
+    author: { anonymous: true },
   },
   replies: [
     {
@@ -18,6 +19,7 @@ const item: FeedItemDto = {
       body: "괜히 커 보일 때가 있죠.",
       createdAt: "2026-08-19T09:30:00.000Z",
       authorSlot: 1,
+      author: { anonymous: true },
     },
   ],
 };

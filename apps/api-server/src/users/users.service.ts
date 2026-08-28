@@ -1,13 +1,20 @@
 import { Injectable } from '@nestjs/common';
+import { NicknameCooldownException } from '../common/exceptions/app.exception';
+import { SettingsService } from '../settings/settings.service';
 import {
   UsersRepository,
   type CreateUserInput,
   type User,
 } from './users.repository';
 
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
 @Injectable()
 export class UsersService {
-  constructor(private readonly usersRepository: UsersRepository) {}
+  constructor(
+    private readonly usersRepository: UsersRepository,
+    private readonly settingsService: SettingsService,
+  ) {}
 
   findByEmail(email: string): Promise<User | undefined> {
     return this.usersRepository.findByEmail(email);
@@ -35,7 +42,38 @@ export class UsersService {
     return this.usersRepository.updatePasswordHash(id, passwordHash);
   }
 
-  updateNickname(id: string, nickname: string): Promise<User> {
+  // Setting a nickname for the first time (from null) is always free —
+  // only a change to an already-set nickname is rate-limited, checked
+  // against when it was last changed. Cooldown length is admin-tunable
+  // (settings.nicknameCooldownDays), not hardcoded — see docs/decisions/
+  // 2026-08-29-onseol-nickname-cooldown-decisions.md.
+  async updateNickname(id: string, nickname: string): Promise<User> {
+    const current = await this.usersRepository.findById(id);
+    if (current?.nickname !== null && current?.nicknameChangedAt) {
+      const settings = await this.settingsService.get();
+      const cooldownMs = settings.nicknameCooldownDays * MS_PER_DAY;
+      const elapsedMs = Date.now() - current.nicknameChangedAt.getTime();
+      if (elapsedMs < cooldownMs) {
+        const daysRemaining = Math.ceil((cooldownMs - elapsedMs) / MS_PER_DAY);
+        throw new NicknameCooldownException(daysRemaining);
+      }
+    }
+
     return this.usersRepository.updateNickname(id, nickname);
+  }
+
+  // Null if the nickname has never been changed (first-time set is always
+  // free — see updateNickname above). Otherwise the timestamp the *next*
+  // change becomes allowed — may be in the past, meaning the cooldown
+  // already elapsed. AuthController calls this to build UserResponseDto's
+  // nicknameChangeAvailableAt for every route that returns a user, not just
+  // updateNickname's own response.
+  async nicknameChangeAvailableAt(user: User): Promise<Date | null> {
+    if (!user.nicknameChangedAt) return null;
+    const settings = await this.settingsService.get();
+    return new Date(
+      user.nicknameChangedAt.getTime() +
+        settings.nicknameCooldownDays * MS_PER_DAY,
+    );
   }
 }

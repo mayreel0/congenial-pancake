@@ -26,8 +26,15 @@ export function useCreateReplyMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ requestId, body }: { requestId: string; body: string }) =>
-      createReply(requestId, body),
+    mutationFn: ({
+      requestId,
+      body,
+      anonymous,
+    }: {
+      requestId: string;
+      body: string;
+      anonymous?: boolean;
+    }) => createReply(requestId, body, anonymous),
     // Awaited so the caller's mutateAsync only resolves once the queue/held
     // queries have actually refetched — otherwise the UI could briefly show
     // the just-answered request as still current.

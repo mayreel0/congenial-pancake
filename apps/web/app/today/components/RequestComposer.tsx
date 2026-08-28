@@ -8,14 +8,23 @@ const MAX_TEXTAREA_HEIGHT = 128;
 type RequestComposerProps = {
   value: string;
   status: "idle" | "pending" | "success";
+  // Reveal toggle only renders when the user has a nickname to reveal —
+  // guests and nicknameless members can never post non-anonymously (see
+  // docs/decisions/2026-08-28-onseol-nickname-post-reveal-decisions.md).
+  nickname: string | null;
+  anonymous: boolean;
   onChange(value: string): void;
+  onToggleAnonymous(): void;
   onSubmit(value: string): void | Promise<void>;
 };
 
 export function RequestComposer({
   value,
   status,
+  nickname,
+  anonymous,
   onChange,
+  onToggleAnonymous,
   onSubmit,
 }: RequestComposerProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -52,6 +61,17 @@ export function RequestComposer({
         if (canSubmit) void onSubmit(localValue.trim());
       }}
     >
+      {nickname ? (
+        <label className="mb-1.5 flex items-center gap-1.5 text-xs text-muted">
+          <input
+            checked={!anonymous}
+            className="h-3.5 w-3.5 accent-primary"
+            type="checkbox"
+            onChange={onToggleAnonymous}
+          />
+          닉네임({nickname})으로 남기기
+        </label>
+      ) : null}
       <label className="sr-only" htmlFor="request-body">
         오늘 어떤 말을 듣고 싶나요?
       </label>

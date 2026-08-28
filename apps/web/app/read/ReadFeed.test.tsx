@@ -17,6 +17,7 @@ function makeItem(overrides: Partial<FeedItemDto> = {}): FeedItemDto {
       createdAt: new Date().toISOString(),
       replyCount: 1,
       authorSlot: 0,
+      author: { anonymous: true },
     },
     replies: [
       {
@@ -25,6 +26,7 @@ function makeItem(overrides: Partial<FeedItemDto> = {}): FeedItemDto {
         body: "답변",
         createdAt: new Date().toISOString(),
         authorSlot: 1,
+        author: { anonymous: true },
       },
     ],
     ...overrides,
@@ -118,6 +120,7 @@ describe("ReadFeed", () => {
           createdAt: new Date().toISOString(),
           replyCount: 1,
           authorSlot: 0,
+          author: { anonymous: true },
         },
       }),
       makeItem({
@@ -127,6 +130,7 @@ describe("ReadFeed", () => {
           createdAt: new Date().toISOString(),
           replyCount: 1,
           authorSlot: 0,
+          author: { anonymous: true },
         },
         replies: [
           {
@@ -135,6 +139,7 @@ describe("ReadFeed", () => {
             body: "두 번째 답변",
             createdAt: new Date().toISOString(),
             authorSlot: 1,
+            author: { anonymous: true },
           },
         ],
       }),
@@ -170,6 +175,7 @@ describe("ReadFeed", () => {
             body: "첫 번째 답변",
             createdAt: "2026-08-19T09:00:00.000Z",
             authorSlot: 1,
+            author: { anonymous: true },
           },
           {
             id: "reply-2",
@@ -177,6 +183,7 @@ describe("ReadFeed", () => {
             body: "두 번째 답변",
             createdAt: "2026-08-19T10:00:00.000Z",
             authorSlot: 2,
+            author: { anonymous: true },
           },
         ],
       }),

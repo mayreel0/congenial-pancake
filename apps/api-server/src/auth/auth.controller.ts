@@ -68,7 +68,9 @@ export class AuthController {
       req.headers['user-agent'],
     );
     setSessionCookie(res, this.config, session.token, session.expiresAt);
-    return toUserResponseDto(user);
+    const nicknameChangeAvailableAt =
+      await this.usersService.nicknameChangeAvailableAt(user);
+    return toUserResponseDto(user, nicknameChangeAvailableAt);
   }
 
   @Throttle({ default: { ttl: 60_000, limit: 5 } })
@@ -84,7 +86,9 @@ export class AuthController {
       req.headers['user-agent'],
     );
     setSessionCookie(res, this.config, session.token, session.expiresAt);
-    return toUserResponseDto(user);
+    const nicknameChangeAvailableAt =
+      await this.usersService.nicknameChangeAvailableAt(user);
+    return toUserResponseDto(user, nicknameChangeAvailableAt);
   }
 
   // Public — the token itself (not a session) is the proof of authorization,
@@ -120,7 +124,9 @@ export class AuthController {
         'Session references a missing user.',
       );
     }
-    return toUserResponseDto(user);
+    const nicknameChangeAvailableAt =
+      await this.usersService.nicknameChangeAvailableAt(user);
+    return toUserResponseDto(user, nicknameChangeAvailableAt);
   }
 
   // No reveal/anonymity behavior yet — this only lets a signed-in user set
@@ -134,7 +140,9 @@ export class AuthController {
     @Body() dto: UpdateNicknameDto,
   ): Promise<UserResponseDto> {
     const user = await this.usersService.updateNickname(userId, dto.nickname);
-    return toUserResponseDto(user);
+    const nicknameChangeAvailableAt =
+      await this.usersService.nicknameChangeAvailableAt(user);
+    return toUserResponseDto(user, nicknameChangeAvailableAt);
   }
 
   // One pair of routes for every provider (google/kakao/naver) instead of

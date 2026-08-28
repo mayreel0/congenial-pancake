@@ -46,6 +46,15 @@ export type CurrentUser = {
   id: string;
   email: string;
   createdAt: string;
+  // nicknameDiscriminator is always present even when nickname is null —
+  // see apps/api-server/src/users/nickname-discriminator.ts.
+  nickname: string | null;
+  nicknameDiscriminator: string;
+  // null until the nickname has been changed at least once (a first-time
+  // set is always free). Otherwise the ISO timestamp the *next* change
+  // becomes allowed — may be in the past, meaning the cooldown already
+  // elapsed. See apps/api-server's UsersService.updateNickname.
+  nicknameChangeAvailableAt: string | null;
 };
 
 // Present in both apps as-is. Signup and Google OAuth are apps/web-only

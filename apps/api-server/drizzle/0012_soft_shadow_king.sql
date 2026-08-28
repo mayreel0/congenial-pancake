@@ -1,0 +1,1 @@
+ALTER TABLE "settings" ADD COLUMN "nickname_cooldown_days" integer DEFAULT 7 NOT NULL;

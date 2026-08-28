@@ -18,4 +18,10 @@ export class UpdateSettingsDto {
   @Min(1)
   @Max(50)
   guestReplyLimit?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(90)
+  nicknameCooldownDays?: number;
 }

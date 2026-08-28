@@ -31,6 +31,7 @@ function makeUser(overrides: Partial<User> = {}): User {
     email: 'user@example.com',
     passwordHash: null,
     nickname: null,
+    nicknameChangedAt: null,
     createdAt: new Date('2026-08-21T00:00:00.000Z'),
     ...overrides,
   };
@@ -42,6 +43,7 @@ function makeSettings(overrides: Partial<SettingsRecord> = {}): SettingsRecord {
     queueFreshnessHours: 60,
     queueReplyCap: 5,
     guestReplyLimit: 5,
+    nicknameCooldownDays: 7,
     updatedAt: new Date('2026-08-21T00:00:00.000Z'),
     ...overrides,
   };

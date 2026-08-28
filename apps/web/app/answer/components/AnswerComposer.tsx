@@ -10,7 +10,12 @@ type AnswerComposerProps = {
   disabled: boolean;
   pending: boolean;
   isAnsweringHeldRequest: boolean;
+  // Same reveal-toggle rule as RequestComposer — hidden entirely when the
+  // user has no nickname to reveal.
+  nickname: string | null;
+  anonymous: boolean;
   onChange(value: string): void;
+  onToggleAnonymous(): void;
   onSubmit(): void;
   onCancelHeld(): void;
 };
@@ -20,7 +25,10 @@ export function AnswerComposer({
   disabled,
   pending,
   isAnsweringHeldRequest,
+  nickname,
+  anonymous,
   onChange,
+  onToggleAnonymous,
   onSubmit,
   onCancelHeld,
 }: AnswerComposerProps) {
@@ -50,6 +58,18 @@ export function AnswerComposer({
         <p className="pb-2 text-xs text-muted">
           정답을 쓰지 않아도 됩니다. 짧게 들었다는 말이면 충분해요.
         </p>
+        {nickname ? (
+          <label className="mb-2 flex items-center gap-1.5 text-xs text-muted">
+            <input
+              checked={!anonymous}
+              className="h-3.5 w-3.5 accent-primary"
+              disabled={fieldDisabled}
+              type="checkbox"
+              onChange={onToggleAnonymous}
+            />
+            닉네임({nickname})으로 남기기
+          </label>
+        ) : null}
         {isAnsweringHeldRequest ? (
           <div className="flex items-center justify-between pb-2 text-xs text-muted">
             <span>보류한 온설에 답하는 중이에요.</span>
