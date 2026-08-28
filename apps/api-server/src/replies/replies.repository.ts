@@ -11,6 +11,7 @@ export type CreateReplyInput = {
   body: string;
   authorId?: string;
   guestId?: string;
+  anonymous?: boolean;
 };
 
 export type ReplyRecord = typeof replies.$inferSelect;

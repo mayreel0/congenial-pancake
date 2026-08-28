@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { DRIZZLE } from '../database/database.constants';
 import type { Database } from '../database/database.types';
 import { users } from '../database/schema';
@@ -24,6 +24,13 @@ export class UsersRepository {
   findById(id: string): Promise<User | undefined> {
     return this.db.query.users.findFirst({
       where: eq(users.id, id),
+    });
+  }
+
+  findByIds(ids: string[]): Promise<User[]> {
+    if (ids.length === 0) return Promise.resolve([]);
+    return this.db.query.users.findMany({
+      where: inArray(users.id, ids),
     });
   }
 

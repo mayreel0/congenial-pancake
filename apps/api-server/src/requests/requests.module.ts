@@ -3,6 +3,7 @@ import { AnswerInteractionsModule } from '../answer-interactions/answer-interact
 import { AuthModule } from '../auth/auth.module';
 import { DatabaseModule } from '../database/database.module';
 import { SettingsModule } from '../settings/settings.module';
+import { UsersModule } from '../users/users.module';
 import { RequestsController } from './requests.controller';
 import { RequestsRepository } from './requests.repository';
 import { RequestsService } from './requests.service';
@@ -13,6 +14,7 @@ import { RequestsService } from './requests.service';
     AuthModule,
     AnswerInteractionsModule,
     SettingsModule,
+    UsersModule,
   ],
   controllers: [RequestsController],
   providers: [RequestsRepository, RequestsService],

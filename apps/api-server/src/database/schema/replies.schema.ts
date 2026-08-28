@@ -33,11 +33,18 @@ export const replies = pgTable(
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
     // See requests.schema.ts's reviewedAt — same purpose.
     reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
+    // See requests.schema.ts's anonymous — same per-post reveal choice,
+    // same default, same guest restriction.
+    anonymous: boolean('anonymous').notNull().default(true),
   },
   (table) => [
     check(
       'replies_author_or_guest',
       sql`${table.authorId} is not null or ${table.guestId} is not null`,
+    ),
+    check(
+      'replies_guest_must_be_anonymous',
+      sql`${table.authorId} is not null or ${table.anonymous} = true`,
     ),
     // R13/R14: one reply per request per logged-in user; doesn't constrain
     // guest rows (authorId is null there) — see RepliesService for the

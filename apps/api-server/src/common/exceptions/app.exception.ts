@@ -101,3 +101,13 @@ export class PasswordResetTokenInvalidException extends AppException {
     );
   }
 }
+
+export class NicknameRequiredException extends AppException {
+  constructor() {
+    super(
+      'NICKNAME_REQUIRED',
+      'Set a nickname before posting under your name.',
+      HttpStatus.BAD_REQUEST,
+    );
+  }
+}

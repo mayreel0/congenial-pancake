@@ -33,11 +33,24 @@ export const requests = pgTable(
     // pre-existing report rows that caused the original hide would
     // immediately re-trigger it the moment one more person reports again.
     reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
+    // Chosen per-post, not an account-wide setting — see docs/decisions/
+    // 2026-08-28-onseol-nickname-decisions.md. true (the default) means the
+    // author's nickname is never shown for this post, same as before this
+    // column existed. A guest post is always anonymous (enforced below);
+    // a member post is anonymous unless they explicitly opted out AND had
+    // a nickname set at post time (checked in RequestsService, not here).
+    anonymous: boolean('anonymous').notNull().default(true),
   },
   (table) => [
     check(
       'requests_author_or_guest',
       sql`${table.authorId} is not null or ${table.guestId} is not null`,
+    ),
+    // A guest has no nickname to reveal — this makes "guest post that
+    // isn't anonymous" structurally impossible, not just app-enforced.
+    check(
+      'requests_guest_must_be_anonymous',
+      sql`${table.authorId} is not null or ${table.anonymous} = true`,
     ),
     // Unique constraints ignore NULL, so this only applies to guest rows —
     // enforces "1 request per guest" at the DB level.
