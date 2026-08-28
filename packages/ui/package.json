@@ -10,7 +10,8 @@
     "./ActionConfirmDialog": "./src/ActionConfirmDialog.tsx",
     "./QueryProvider": "./src/QueryProvider.tsx",
     "./Button": "./src/Button.tsx",
-    "./TextField": "./src/TextField.tsx"
+    "./TextField": "./src/TextField.tsx",
+    "./Toggle": "./src/Toggle.tsx"
   },
   "peerDependencies": {
     "@tanstack/react-query": "^5.101.4",

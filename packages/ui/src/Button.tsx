@@ -1,11 +1,14 @@
 import Link from "next/link";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 
-// Only the "primary" style found duplicated across apps/web and apps/admin
-// (bg-primary + shadow-sm + hover:opacity-90 + disabled state) — see
-// docs/decisions/2026-08-26-onseol-refactoring-pass-decisions.md. Add a
-// variant prop only once a second style is genuinely needed in more than
-// one place; don't design it in ahead of time.
+// "primary" was the only style found duplicated across apps/web and
+// apps/admin (bg-primary + shadow-sm + hover:opacity-90 + disabled state)
+// — see docs/decisions/2026-08-26-onseol-refactoring-pass-decisions.md.
+// "secondary" was added once a second real need showed up (a cancel action
+// next to a primary submit, e.g. NicknameSection's edit form) — an
+// outlined/muted button using the same border/surface tokens as the rest
+// of the UI, not a bespoke color.
+export type ButtonVariant = "primary" | "secondary";
 export type ButtonSize = "sm" | "md";
 
 const SIZE_CLASSES: Record<ButtonSize, string> = {
@@ -13,9 +16,20 @@ const SIZE_CLASSES: Record<ButtonSize, string> = {
   md: "h-11 px-4",
 };
 
-function buttonClassName(size: ButtonSize, fullWidth: boolean | undefined): string {
+const VARIANT_CLASSES: Record<ButtonVariant, string> = {
+  primary: "bg-primary text-primary-foreground shadow-sm hover:opacity-90",
+  secondary:
+    "border border-line bg-surface text-foreground hover:bg-surface-muted",
+};
+
+function buttonClassName(
+  variant: ButtonVariant,
+  size: ButtonSize,
+  fullWidth: boolean | undefined,
+): string {
   return [
-    "inline-flex items-center justify-center rounded-lg bg-primary text-sm font-semibold text-primary-foreground shadow-sm transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50",
+    "inline-flex items-center justify-center rounded-lg text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50",
+    VARIANT_CLASSES[variant],
     SIZE_CLASSES[size],
     fullWidth ? "w-full" : "",
   ]
@@ -24,6 +38,7 @@ function buttonClassName(size: ButtonSize, fullWidth: boolean | undefined): stri
 }
 
 type ButtonOwnProps = {
+  variant?: ButtonVariant;
   size?: ButtonSize;
   fullWidth?: boolean;
   children: ReactNode;
@@ -45,8 +60,8 @@ export type ButtonProps = ButtonAsButtonProps | ButtonAsLinkProps;
 // happens to navigate vs. one that submits a form), so this covers both
 // instead of forcing every caller to wrap a styled <a>/<button> itself.
 export function Button(props: ButtonProps) {
-  const { size = "md", fullWidth, children } = props;
-  const className = buttonClassName(size, fullWidth);
+  const { variant = "primary", size = "md", fullWidth, children } = props;
+  const className = buttonClassName(variant, size, fullWidth);
 
   if (props.href !== undefined) {
     return (
@@ -58,8 +73,16 @@ export function Button(props: ButtonProps) {
 
   // Bound only to exclude them from `rest` below — no-unused-vars doesn't
   // recognize destructuring-to-omit as a use.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { size: _size, fullWidth: _fullWidth, children: _children, href: _href, ...rest } = props;
+  /* eslint-disable @typescript-eslint/no-unused-vars */
+  const {
+    variant: _variant,
+    size: _size,
+    fullWidth: _fullWidth,
+    children: _children,
+    href: _href,
+    ...rest
+  } = props;
+  /* eslint-enable @typescript-eslint/no-unused-vars */
   return (
     <button className={className} type="button" {...rest}>
       {children}
