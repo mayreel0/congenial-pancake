@@ -81,6 +81,22 @@ Do not default to writing wiki documents into the current repository.
 Before making a product, UX, technical stack, backend, infrastructure, deployment, moderation, or workflow decision, present the recommended choice with rationale and ask the user to confirm.
 Do not silently finalize meaningful tradeoffs.
 
+Record each confirmed decision as its own file in `docs/decisions/`, named `YYYY-MM-DD-onseol-<topic>-decisions.md` (one file per decision session, real calendar date). Follow the shape already used by every existing file in that folder: 배경(context) → the decision(s) with rationale ("근거") → 산출물(what was actually built) → 검증(how it was verified) → 남은 일(what's left/deferred). Check `docs/decisions/` before proposing a design that touches auth, DB schema, moderation, or anonymous/guest access — several of these are already decided and documented; re-deciding from scratch risks contradicting a real prior decision instead of building on it. This is the default even outside Project Wiki Mode — Project Wiki Mode (above) is for promoting this into an Obsidian vault, not a substitute for it.
+
+## Git & PR Conventions
+
+- Never push directly to `main` or `v1` — every change goes through a work branch and a PR.
+- Commit messages and PR titles both use a `<type>: <설명>` prefix (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, ...), and the two must match for the same change. Before writing either, check the existing convention rather than assuming — `git log --oneline -10` for commit style, `gh pr list --state all --limit 10` for PR title style. Do not title a PR without doing this check, even if the commit message already has a prefix.
+- Prefer several small, single-concern PRs over one large bundled one. This repo's history deliberately splits backend and frontend for the same feature into separate rounds — default to proposing that split rather than bundling.
+
+## Verification Standard
+
+Passing lint/typecheck/tests is necessary but not sufficient before calling a change done. Verify backend changes against a real local server with `curl` (not just unit tests); verify frontend changes by clicking through them in a real browser against a live dev server. This has been the bar for every round in this project so far — treat it as a requirement, not an optional extra.
+
+## Local Dev Server Hygiene
+
+If you start a background dev server (`pnpm --filter <app> dev` / `start:dev`) to verify a change, stop it yourself once verification is done — don't leave it running for the user to find and kill later. Ports that recur in this project: `apps/web` 3000, `apps/api-server` 8080, `apps/admin` 3002, `apps/storybook-app` 6006, `apps/api-server`'s Swagger-only process 8081.
+
 ## Knowledge Capture Purpose
 
 The applied `effective-doodle` system is the project's LLM wiki workflow.
