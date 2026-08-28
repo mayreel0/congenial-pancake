@@ -80,3 +80,26 @@ export type FeedItemDto = {
 export function fetchFeed(): Promise<FeedItemDto[]> {
   return apiFetch<FeedItemDto[]>("/requests/feed");
 }
+
+// "내 기록" → 내가 작성한 고민: mirrors apps/api-server's
+// MyRequestLogEntryDto — nested, not flattened like MyAnswerLogEntryDto,
+// since a request can have many replies (an answer log entry is always
+// exactly one request + one reply).
+export type MyRequestLogEntryDto = {
+  request: {
+    id: string;
+    body: string;
+    createdAt: string;
+    author: AuthorDisplayDto;
+  };
+  replies: {
+    id: string;
+    body: string;
+    createdAt: string;
+    author: AuthorDisplayDto;
+  }[];
+};
+
+export function fetchMyRequestLog(): Promise<MyRequestLogEntryDto[]> {
+  return apiFetch<MyRequestLogEntryDto[]>("/requests/mine");
+}

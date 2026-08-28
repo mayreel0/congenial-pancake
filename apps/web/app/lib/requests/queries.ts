@@ -5,6 +5,7 @@ import {
   createRequest,
   fetchFeed,
   fetchHeldRequests,
+  fetchMyRequestLog,
   fetchQueueCandidate,
   holdRequest,
   listRequests,
@@ -16,6 +17,7 @@ export const requestKeys = {
   queue: ["requests", "queue"] as const,
   held: ["requests", "held"] as const,
   feed: ["requests", "feed"] as const,
+  mine: ["requests", "mine"] as const,
 };
 
 export function useRequestsQuery() {
@@ -33,6 +35,7 @@ export function useCreateRequestMutation() {
       createRequest(body, anonymous),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: requestKeys.list });
+      void queryClient.invalidateQueries({ queryKey: requestKeys.mine });
     },
   });
 }
@@ -71,6 +74,13 @@ export function useFeedQuery() {
   return useQuery({
     queryKey: requestKeys.feed,
     queryFn: fetchFeed,
+  });
+}
+
+export function useMyRequestLogQuery() {
+  return useQuery({
+    queryKey: requestKeys.mine,
+    queryFn: fetchMyRequestLog,
   });
 }
 
