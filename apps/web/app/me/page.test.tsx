@@ -10,10 +10,10 @@ function jsonResponse(status: number, body: unknown): MockResponse {
 
 function installFakeBackend({
   loggedIn,
-  replies = [],
+  nickname = null,
 }: {
   loggedIn: boolean;
-  replies?: unknown[];
+  nickname?: string | null;
 }) {
   const fetchMock = vi.fn(
     (input: RequestInfo | URL): Promise<MockResponse> => {
@@ -28,12 +28,11 @@ function installFakeBackend({
             id: "user-1",
             email: "member@example.com",
             createdAt: "2026-08-22T00:00:00.000Z",
+            nickname,
+            nicknameDiscriminator: "ABCD",
+            nicknameChangeAvailableAt: null,
           }),
         );
-      }
-
-      if (url.endsWith("/replies/mine")) {
-        return Promise.resolve(jsonResponse(200, replies));
       }
 
       throw new Error(`Unmocked fetch: ${url}`);
@@ -55,53 +54,41 @@ describe("MePage", () => {
     render(<MePage />);
 
     expect(
-      await screen.findByText("로그인하면 내 기록을 볼 수 있습니다."),
+      await screen.findByText("로그인하면 내 정보를 볼 수 있습니다."),
     ).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: "로그인" })).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ href: "http://localhost:3000/login" }),
       ]),
     );
-    expect(screen.queryByText("내가 남긴 답변")).not.toBeInTheDocument();
   });
 
-  it("shows an answer CTA when the member has not replied yet", async () => {
+  it("shows the member's email and joined date", async () => {
     installFakeBackend({ loggedIn: true });
 
     render(<MePage />);
 
-    expect(await screen.findByText("내가 남긴 답변")).toBeInTheDocument();
-    expect(
-      await screen.findByText("아직 남긴 답변이 없습니다."),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "답변 남기러 가기" })).toHaveAttribute(
-      "href",
-      "/answer",
-    );
+    expect(await screen.findByText("member@example.com")).toBeInTheDocument();
+    expect(screen.getByText("2026년 8월 22일 가입")).toBeInTheDocument();
   });
 
-  it("renders the member's answer log with request and reply timestamps", async () => {
-    installFakeBackend({
-      loggedIn: true,
-      replies: [
-        {
-          requestId: "request-1",
-          requestBody: "요즘 마음이 자꾸 가라앉아요.",
-          requestCreatedAt: "2026-08-20T10:15:00.000Z",
-          replyId: "reply-1",
-          replyBody: "잠깐이라도 쉬어가도 괜찮다고 말해주고 싶어요.",
-          replyCreatedAt: "2026-08-21T11:30:00.000Z",
-        },
-      ],
-    });
+  it("shows the nickname section for a logged-in member without a nickname yet", async () => {
+    installFakeBackend({ loggedIn: true, nickname: null });
 
     render(<MePage />);
 
-    expect(await screen.findByText("요즘 마음이 자꾸 가라앉아요.")).toBeInTheDocument();
     expect(
-      screen.getByText("잠깐이라도 쉬어가도 괜찮다고 말해주고 싶어요."),
+      await screen.findByText("아직 설정한 닉네임이 없어요."),
     ).toBeInTheDocument();
-    expect(screen.getByText("8월 20일 19:15")).toBeInTheDocument();
-    expect(screen.getByText("8월 21일 20:30")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "설정하기" })).toBeInTheDocument();
+  });
+
+  it("shows the current nickname when already set", async () => {
+    installFakeBackend({ loggedIn: true, nickname: "민들레" });
+
+    render(<MePage />);
+
+    expect(await screen.findByText("민들레")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "수정" })).toBeInTheDocument();
   });
 });
