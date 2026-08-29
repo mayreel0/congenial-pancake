@@ -43,3 +43,7 @@
 ## 남은 일
 
 - 프론트엔드: `/me`에 토글 3개 + "닉네임 지우기" UI, `/u/[slug]`에 개수 표시 및 "비공개로 설정했어요" 문구.
+
+## 추가: 프론트엔드 (PR #106)
+
+`/me`에 `ProfileVisibilitySection`(토글 3개, 클릭 즉시 반영) 추가. `NicknameSection`에 "지우기" 버튼 — `ui/ActionConfirmDialog`로 "기존 글도 익명으로 바뀐다"는 걸 확인받은 뒤 실행, 쿨타임 무관하게 항상 활성화. `/u/[slug]`는 백엔드의 `requestsVisible`/`repliesVisible`/`countsVisible` 불리언으로 "비공개" 안내 문구 vs "공개했지만 아직 없음" 문구를 구분하고, 개수는 목록 공개 여부와 무관하게 `countsVisible`만 보고 표시. 실브라우저 검증 중 발견한 것: 토글을 끈 직후 `/u/[slug]`를 다시 열면 즉시 반영되고(react-query 캐시 무효화), 개수는 목록을 꺼도 그대로 유지되는 것 확인.
