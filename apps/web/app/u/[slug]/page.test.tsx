@@ -106,7 +106,12 @@ describe("ProfilePage", () => {
     expect(
       screen.getByText('"오늘도 무사히 지나갔어요."에 남긴 답변'),
     ).toBeInTheDocument();
-    expect(screen.getByText("남긴 고민 1개 · 남긴 답변 1개")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "남긴 고민 (1)" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "남긴 답변 (1)" }),
+    ).toBeInTheDocument();
   });
 
   it("shows empty-state text for a profile with nothing revealed", async () => {
@@ -153,10 +158,17 @@ describe("ProfilePage", () => {
       await screen.findByText("이 계정은 남긴 고민을 비공개로 설정했어요."),
     ).toBeInTheDocument();
     expect(screen.getByText("공개한 답변이 없습니다.")).toBeInTheDocument();
-    expect(screen.getByText("남긴 고민 3개 · 남긴 답변 0개")).toBeInTheDocument();
+    // The count still shows in the heading even though the list itself is
+    // hidden — countsVisible is independent of requestsVisible.
+    expect(
+      screen.getByRole("heading", { name: "남긴 고민 (3)" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "남긴 답변 (0)" }),
+    ).toBeInTheDocument();
   });
 
-  it("hides the count summary entirely when counts are turned off", async () => {
+  it("omits the count suffix from section headings when counts are off", async () => {
     vi.mocked(useParams).mockReturnValue({ slug: "민들레-D59D" });
     installFakeBackend({
       profile: {
@@ -175,6 +187,11 @@ describe("ProfilePage", () => {
     render(<ProfilePage />);
 
     expect(await screen.findByText("공개한 고민이 없습니다.")).toBeInTheDocument();
-    expect(screen.queryByText(/남긴 고민 .*개/)).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "남긴 고민" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "남긴 답변" }),
+    ).toBeInTheDocument();
   });
 });

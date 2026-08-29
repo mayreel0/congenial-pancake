@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import type { CurrentUser, ProfileVisibilityPatch } from "../api";
 import {
-  useClearNicknameMutation,
   useCurrentUserQuery,
   useLoginMutation,
   useLogoutMutation,
@@ -22,7 +21,6 @@ type UseAuthResult = {
   logout(): Promise<void>;
   refresh(): Promise<void>;
   updateNickname(nickname: string): Promise<void>;
-  clearNickname(): Promise<void>;
   updateProfileVisibility(patch: ProfileVisibilityPatch): Promise<void>;
 };
 
@@ -39,7 +37,6 @@ export function useAuth(): UseAuthResult {
   const signupMutation = useSignupMutation();
   const logoutMutation = useLogoutMutation();
   const updateNicknameMutation = useUpdateNicknameMutation();
-  const clearNicknameMutation = useClearNicknameMutation();
   const updateProfileVisibilityMutation = useUpdateProfileVisibilityMutation();
 
   const status = toAuthStatus(meQuery.isPending, Boolean(meQuery.data));
@@ -67,10 +64,6 @@ export function useAuth(): UseAuthResult {
     await updateNicknameMutation.mutateAsync(nickname);
   }
 
-  async function clearNickname(): Promise<void> {
-    await clearNicknameMutation.mutateAsync();
-  }
-
   async function updateProfileVisibility(
     patch: ProfileVisibilityPatch,
   ): Promise<void> {
@@ -85,7 +78,6 @@ export function useAuth(): UseAuthResult {
     logout,
     refresh,
     updateNickname,
-    clearNickname,
     updateProfileVisibility,
   };
 }

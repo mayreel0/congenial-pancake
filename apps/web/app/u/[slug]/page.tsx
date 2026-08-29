@@ -69,14 +69,10 @@ function ProfileBody({ profile }: { profile: PublicProfileDto }) {
         <p className="max-w-xl leading-7 text-muted">
           이 계정이 닉네임을 공개하기로 선택한 글만 모아봤어요.
         </p>
-        {profile.countsVisible ? (
-          <p className="text-sm text-muted">
-            남긴 고민 {profile.requestCount}개 · 남긴 답변 {profile.replyCount}개
-          </p>
-        ) : null}
       </section>
 
       <ProfileSection
+        count={profile.countsVisible ? profile.requestCount : null}
         emptyMessage="공개한 고민이 없습니다."
         hiddenMessage="이 계정은 남긴 고민을 비공개로 설정했어요."
         title="남긴 고민"
@@ -97,6 +93,7 @@ function ProfileBody({ profile }: { profile: PublicProfileDto }) {
       </ProfileSection>
 
       <ProfileSection
+        count={profile.countsVisible ? profile.replyCount : null}
         emptyMessage="공개한 답변이 없습니다."
         hiddenMessage="이 계정은 남긴 답변을 비공개로 설정했어요."
         title="남긴 답변"
@@ -121,6 +118,10 @@ function ProfileBody({ profile }: { profile: PublicProfileDto }) {
 
 type ProfileSectionProps = {
   title: string;
+  // null when counts are hidden (profile.countsVisible: false) — the
+  // heading just omits the "(N)" suffix entirely rather than showing a
+  // placeholder, independent of whether the list itself (visible) is shown.
+  count: number | null;
   visible: boolean;
   hiddenMessage: string;
   emptyMessage: string;
@@ -132,6 +133,7 @@ type ProfileSectionProps = {
 // so this component (not the caller) decides which message applies.
 function ProfileSection({
   title,
+  count,
   visible,
   hiddenMessage,
   emptyMessage,
@@ -139,7 +141,10 @@ function ProfileSection({
 }: ProfileSectionProps) {
   return (
     <section className="space-y-3">
-      <h2 className="text-lg font-semibold tracking-normal">{title}</h2>
+      <h2 className="text-lg font-semibold tracking-normal">
+        {title}
+        {count !== null ? ` (${count})` : ""}
+      </h2>
       {visible ? (
         children ?? (
           <p className="rounded-lg border border-line bg-surface px-4 py-5 text-sm text-muted shadow-sm">

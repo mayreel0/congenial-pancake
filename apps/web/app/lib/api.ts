@@ -23,18 +23,17 @@ export function updateNickname(nickname: string): Promise<CurrentUser> {
   });
 }
 
-// Always allowed, no cooldown — see apps/api-server's UsersService.clearNickname.
-// Because author display is resolved live (not snapshotted per post), this
-// retroactively hides the nickname on every past post too, not just future
-// ones — no extra frontend work needed for that part.
-export function clearNickname(): Promise<CurrentUser> {
-  return apiFetch<CurrentUser>("/auth/nickname", { method: "DELETE" });
-}
-
 export type ProfileVisibilityPatch = {
   showRequestsOnProfile?: boolean;
   showRepliesOnProfile?: boolean;
   showCountsOnProfile?: boolean;
+  // A pure visibility switch, not the same as clearing/changing the
+  // nickname — never touches nickname/nicknameChangeAvailableAt, so
+  // toggling it has no effect on the change cooldown. Because author
+  // display is resolved live (not snapshotted per post), hiding it
+  // retroactively hides the nickname on every past post too, and
+  // un-hiding brings back the exact same nickname.
+  nicknameVisible?: boolean;
 };
 
 export function updateProfileVisibility(

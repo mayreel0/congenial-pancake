@@ -46,25 +46,36 @@ export function ProfileVisibilitySection() {
         </p>
       </div>
       <div className="space-y-3">
-        <Toggle
-          checked={user.showRequestsOnProfile}
-          label="내가 남긴 고민 목록 공개"
-          onChange={(checked) =>
-            void handleToggle("showRequestsOnProfile", checked)
-          }
-        />
-        <Toggle
-          checked={user.showRepliesOnProfile}
-          label="내가 남긴 답변 목록 공개"
-          onChange={(checked) =>
-            void handleToggle("showRepliesOnProfile", checked)
-          }
-        />
-        <Toggle
-          checked={user.showCountsOnProfile}
-          label="개수 공개"
-          onChange={(checked) => void handleToggle("showCountsOnProfile", checked)}
-        />
+        {/* Toggle's root element is inline-flex, not block — without a
+            wrapping div per toggle, space-y-3 has no effect between them
+            since they'd all sit on one line instead of stacking. */}
+        <div>
+          <Toggle
+            checked={user.showRequestsOnProfile}
+            label="내가 남긴 고민 목록 공개"
+            onChange={(checked) =>
+              void handleToggle("showRequestsOnProfile", checked)
+            }
+          />
+        </div>
+        <div>
+          <Toggle
+            checked={user.showRepliesOnProfile}
+            label="내가 남긴 답변 목록 공개"
+            onChange={(checked) =>
+              void handleToggle("showRepliesOnProfile", checked)
+            }
+          />
+        </div>
+        <div>
+          <Toggle
+            checked={user.showCountsOnProfile}
+            label="고민/답변 개수 공개"
+            onChange={(checked) =>
+              void handleToggle("showCountsOnProfile", checked)
+            }
+          />
+        </div>
       </div>
       {error ? <p className="text-xs text-red-600">{error}</p> : null}
     </section>

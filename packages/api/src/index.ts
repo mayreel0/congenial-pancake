@@ -61,6 +61,10 @@ export type CurrentUser = {
   showRequestsOnProfile: boolean;
   showRepliesOnProfile: boolean;
   showCountsOnProfile: boolean;
+  // Whether the nickname is shown to anyone but the owner — a pure
+  // visibility switch, not the same as clearing/changing it. Never affects
+  // nickname/nicknameChangeAvailableAt above.
+  nicknameVisible: boolean;
 };
 
 // Present in both apps as-is. Signup and Google OAuth are apps/web-only

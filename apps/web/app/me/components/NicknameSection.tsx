@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { ActionConfirmDialog } from "ui/ActionConfirmDialog";
 import { Button } from "ui/Button";
 import { TextField } from "ui/TextField";
+import { Toggle } from "ui/Toggle";
 import { ApiError } from "../../lib/api";
 import { useAuth } from "../../lib/auth/useAuth";
 
@@ -26,13 +26,12 @@ function cooldownDaysRemaining(availableAt: string | null): number | null {
 }
 
 export function NicknameSection() {
-  const { user, updateNickname, clearNickname } = useAuth();
+  const { user, updateNickname, updateProfileVisibility } = useAuth();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [confirmingClear, setConfirmingClear] = useState(false);
-  const [clearing, setClearing] = useState(false);
+  const [visibilityError, setVisibilityError] = useState<string | null>(null);
 
   if (!user) return null;
 
@@ -67,17 +66,12 @@ export function NicknameSection() {
     }
   }
 
-  async function handleConfirmClear(): Promise<void> {
-    setClearing(true);
+  async function handleToggleVisibility(checked: boolean): Promise<void> {
+    setVisibilityError(null);
     try {
-      await clearNickname();
-      setConfirmingClear(false);
-    } catch {
-      // Clearing has no dedicated error UI — it's a simple, always-allowed
-      // action (see UsersService.clearNickname), so a failure here is
-      // unexpected. Leave the dialog open so the user can just retry.
-    } finally {
-      setClearing(false);
+      await updateProfileVisibility({ nicknameVisible: checked });
+    } catch (toggleError) {
+      setVisibilityError(errorMessage(toggleError));
     }
   }
 
@@ -136,7 +130,7 @@ export function NicknameSection() {
               </p>
             ) : null}
           </div>
-          <div className="flex shrink-0 gap-2">
+          <div className="shrink-0">
             <Button
               disabled={cooldownActive}
               size="sm"
@@ -145,26 +139,26 @@ export function NicknameSection() {
             >
               {user.nickname ? "수정" : "설정하기"}
             </Button>
-            {user.nickname ? (
-              <Button
-                size="sm"
-                type="button"
-                variant="secondary"
-                onClick={() => setConfirmingClear(true)}
-              >
-                지우기
-              </Button>
-            ) : null}
           </div>
         </div>
       )}
-      <ActionConfirmDialog
-        confirmLabel={clearing ? "지우는 중" : "지우기"}
-        message="닉네임을 지울까요? 지금까지 닉네임으로 공개했던 글도 모두 익명으로 바뀌어요."
-        open={confirmingClear}
-        onCancel={() => setConfirmingClear(false)}
-        onConfirm={() => void handleConfirmClear()}
-      />
+      {user.nickname && !editing ? (
+        <div className="space-y-1 border-t border-line pt-3">
+          <Toggle
+            checked={user.nicknameVisible}
+            label="닉네임 공개"
+            onChange={(checked) => void handleToggleVisibility(checked)}
+          />
+          <p className="text-xs text-muted">
+            꺼두면 지금까지 남긴 글에서도 닉네임 대신 익명으로 보여요. 언제든
+            다시 켤 수 있고, 켜면 원래 닉네임 그대로 돌아와요 — 변경 쿨타임과는
+            무관해요.
+          </p>
+          {visibilityError ? (
+            <p className="text-xs text-red-600">{visibilityError}</p>
+          ) : null}
+        </div>
+      ) : null}
     </section>
   );
 }
