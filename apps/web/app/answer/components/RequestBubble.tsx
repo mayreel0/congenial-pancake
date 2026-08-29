@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { formatTimestamp } from "../../lib/format";
 import { ArchiveIcon, FlagIcon, MoreIcon } from "../../components/shared/icons";
@@ -7,6 +8,7 @@ import { ArchiveIcon, FlagIcon, MoreIcon } from "../../components/shared/icons";
 type RequestBubbleProps = {
   request: { id: string; body: string; createdAt: string };
   authorLabel: string;
+  authorHref?: string | null;
   showActions: boolean;
   leaving?: boolean;
   onReport?(): void;
@@ -19,6 +21,7 @@ const iconButtonClassName =
 export function RequestBubble({
   request,
   authorLabel,
+  authorHref = null,
   showActions,
   leaving = false,
   onReport,
@@ -51,7 +54,16 @@ export function RequestBubble({
       ].join(" ")}
     >
       <div className="flex items-center justify-between gap-3">
-        <p className="text-xs font-semibold text-foreground">{authorLabel}</p>
+        {authorHref ? (
+          <Link
+            className="text-xs font-semibold text-foreground hover:underline"
+            href={authorHref}
+          >
+            {authorLabel}
+          </Link>
+        ) : (
+          <p className="text-xs font-semibold text-foreground">{authorLabel}</p>
+        )}
         {showActions ? (
           <div className="relative shrink-0" ref={menuContainerRef}>
             <button

@@ -13,3 +13,11 @@ export function authorDisplayLabel(
   if (author.anonymous) return fallbackLabel;
   return `${author.nickname}#${author.nicknameDiscriminator}`;
 }
+
+// null for an anonymous author — there's no profile to link to. See
+// app/u/[slug]/page.tsx (and its parseProfileSlug) for the reverse
+// direction — this is the one place that builds that slug.
+export function authorProfileHref(author: AuthorDisplayDto): string | null {
+  if (author.anonymous) return null;
+  return `/u/${encodeURIComponent(`${author.nickname}-${author.nicknameDiscriminator}`)}`;
+}
