@@ -62,4 +62,34 @@ export class UsersRepository {
       .returning();
     return user;
   }
+
+  // Resets nicknameChangedAt too (not just nickname) — a cleared nickname
+  // has no cooldown to protect, and UsersService.updateNickname's cooldown
+  // check is already gated on "current nickname is non-null", so leaving a
+  // stale nicknameChangedAt around here would be inert but confusing.
+  async clearNickname(id: string): Promise<User> {
+    const [user] = await this.db
+      .update(users)
+      .set({ nickname: null, nicknameChangedAt: null })
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
+  async updateProfileVisibility(
+    id: string,
+    patch: Partial<
+      Pick<
+        User,
+        'showRequestsOnProfile' | 'showRepliesOnProfile' | 'showCountsOnProfile'
+      >
+    >,
+  ): Promise<User> {
+    const [user] = await this.db
+      .update(users)
+      .set(patch)
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
 }

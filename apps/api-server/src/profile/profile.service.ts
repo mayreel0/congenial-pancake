@@ -26,6 +26,11 @@ export class ProfileService {
     );
     if (!user || !user.nickname) return undefined;
 
+    // Always fetched regardless of the visibility switches below — the
+    // count switch is independent of the list switches, so a hidden list
+    // can still need its count, and computing "just the count" separately
+    // would be premature optimization for what's a tiny list at this
+    // project's scale.
     const [requests, repliesWithRequest] = await Promise.all([
       this.requestsService.findPublicByAuthor(user.id),
       this.repliesService.findPublicByAuthor(user.id),
@@ -34,18 +39,27 @@ export class ProfileService {
     return {
       nickname: user.nickname,
       nicknameDiscriminator: nicknameDiscriminator(user.id),
-      requests: requests.map((request) => ({
-        id: request.id,
-        body: request.body,
-        createdAt: request.createdAt,
-      })),
-      replies: repliesWithRequest.map(({ reply, request }) => ({
-        id: reply.id,
-        body: reply.body,
-        createdAt: reply.createdAt,
-        requestId: request.id,
-        requestBody: request.body,
-      })),
+      requestsVisible: user.showRequestsOnProfile,
+      repliesVisible: user.showRepliesOnProfile,
+      countsVisible: user.showCountsOnProfile,
+      requestCount: user.showCountsOnProfile ? requests.length : null,
+      replyCount: user.showCountsOnProfile ? repliesWithRequest.length : null,
+      requests: user.showRequestsOnProfile
+        ? requests.map((request) => ({
+            id: request.id,
+            body: request.body,
+            createdAt: request.createdAt,
+          }))
+        : [],
+      replies: user.showRepliesOnProfile
+        ? repliesWithRequest.map(({ reply, request }) => ({
+            id: reply.id,
+            body: reply.body,
+            createdAt: reply.createdAt,
+            requestId: request.id,
+            requestBody: request.body,
+          }))
+        : [],
     };
   }
 }

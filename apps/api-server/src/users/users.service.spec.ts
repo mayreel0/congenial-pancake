@@ -11,6 +11,9 @@ function makeUser(overrides: Partial<User> = {}): User {
     passwordHash: null,
     nickname: null,
     nicknameChangedAt: null,
+    showRequestsOnProfile: true,
+    showRepliesOnProfile: true,
+    showCountsOnProfile: true,
     createdAt: new Date('2026-08-21T00:00:00.000Z'),
     ...overrides,
   };
@@ -38,6 +41,8 @@ describe('UsersService', () => {
       findById: jest.fn(),
       updateNickname: jest.fn(),
       findByNickname: jest.fn(),
+      clearNickname: jest.fn(),
+      updateProfileVisibility: jest.fn(),
     } as unknown as jest.Mocked<UsersRepository>;
     settingsService = {
       get: jest.fn().mockResolvedValue(makeSettings()),
@@ -191,6 +196,39 @@ describe('UsersService', () => {
       );
 
       expect(result).toBeUndefined();
+    });
+  });
+
+  describe('clearNickname', () => {
+    it('always delegates without any cooldown check', async () => {
+      const cleared = makeUser({ nickname: null, nicknameChangedAt: null });
+      usersRepository.clearNickname.mockResolvedValue(cleared);
+
+      const result = await usersService.clearNickname('user-1');
+
+      expect(usersRepository.clearNickname).toHaveBeenCalledWith('user-1');
+      // No cooldown consultation at all — clearing is always free, even if
+      // the account is mid-cooldown from a recent change.
+      expect(settingsService.get).not.toHaveBeenCalled();
+      expect(usersRepository.findById).not.toHaveBeenCalled();
+      expect(result).toEqual(cleared);
+    });
+  });
+
+  describe('updateProfileVisibility', () => {
+    it('delegates the partial patch as-is', async () => {
+      const updated = makeUser({ showRequestsOnProfile: false });
+      usersRepository.updateProfileVisibility.mockResolvedValue(updated);
+
+      const result = await usersService.updateProfileVisibility('user-1', {
+        showRequestsOnProfile: false,
+      });
+
+      expect(usersRepository.updateProfileVisibility).toHaveBeenCalledWith(
+        'user-1',
+        { showRequestsOnProfile: false },
+      );
+      expect(result).toEqual(updated);
     });
   });
 });

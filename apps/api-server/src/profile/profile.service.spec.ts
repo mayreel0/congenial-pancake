@@ -16,6 +16,9 @@ function makeUser(overrides: Partial<User> = {}): User {
     passwordHash: null,
     nickname: '민들레',
     nicknameChangedAt: null,
+    showRequestsOnProfile: true,
+    showRepliesOnProfile: true,
+    showCountsOnProfile: true,
     createdAt: new Date('2026-08-21T00:00:00.000Z'),
     ...overrides,
   };
@@ -109,6 +112,11 @@ describe('ProfileService', () => {
     expect(result).toEqual({
       nickname: '민들레',
       nicknameDiscriminator: 'C376',
+      requestsVisible: true,
+      repliesVisible: true,
+      countsVisible: true,
+      requestCount: 1,
+      replyCount: 1,
       requests: [
         {
           id: 'request-1',
@@ -126,5 +134,46 @@ describe('ProfileService', () => {
         },
       ],
     });
+  });
+
+  it('hides requests/replies but still reports counts when only the lists are turned off', async () => {
+    usersService.findByNicknameAndDiscriminator.mockResolvedValue(
+      makeUser({ showRequestsOnProfile: false, showRepliesOnProfile: false }),
+    );
+    requestsService.findPublicByAuthor.mockResolvedValue([makeRequest()]);
+    repliesService.findPublicByAuthor.mockResolvedValue([
+      { reply: makeReply(), request: makeRequest({ id: 'request-2' }) },
+    ]);
+
+    const result = await profileService.findProfile('민들레', 'C376');
+
+    expect(result).toMatchObject({
+      requestsVisible: false,
+      repliesVisible: false,
+      countsVisible: true,
+      requestCount: 1,
+      replyCount: 1,
+      requests: [],
+      replies: [],
+    });
+  });
+
+  it('hides counts but still lists content when only the count switch is off', async () => {
+    usersService.findByNicknameAndDiscriminator.mockResolvedValue(
+      makeUser({ showCountsOnProfile: false }),
+    );
+    requestsService.findPublicByAuthor.mockResolvedValue([makeRequest()]);
+    repliesService.findPublicByAuthor.mockResolvedValue([]);
+
+    const result = await profileService.findProfile('민들레', 'C376');
+
+    expect(result).toMatchObject({
+      requestsVisible: true,
+      repliesVisible: true,
+      countsVisible: false,
+      requestCount: null,
+      replyCount: null,
+    });
+    expect(result?.requests).toHaveLength(1);
   });
 });

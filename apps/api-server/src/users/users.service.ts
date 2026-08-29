@@ -79,6 +79,29 @@ export class UsersService {
     return this.usersRepository.updateNickname(id, nickname);
   }
 
+  // Clearing is always free, no cooldown check — unlike changing to a
+  // different nickname, the whole point is being able to step back to
+  // anonymous immediately if you want to. Since AuthorDisplayDto's author
+  // label is resolved live from the current nickname (not snapshotted per
+  // post — see common/author-display.ts), this retroactively hides the
+  // nickname on every past post too, not just future ones, with no extra
+  // masking logic needed.
+  clearNickname(id: string): Promise<User> {
+    return this.usersRepository.clearNickname(id);
+  }
+
+  updateProfileVisibility(
+    id: string,
+    patch: Partial<
+      Pick<
+        User,
+        'showRequestsOnProfile' | 'showRepliesOnProfile' | 'showCountsOnProfile'
+      >
+    >,
+  ): Promise<User> {
+    return this.usersRepository.updateProfileVisibility(id, patch);
+  }
+
   // Null if the nickname has never been changed (first-time set is always
   // free — see updateNickname above). Otherwise the timestamp the *next*
   // change becomes allowed — may be in the past, meaning the cooldown

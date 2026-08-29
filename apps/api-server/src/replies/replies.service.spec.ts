@@ -52,6 +52,9 @@ function makeUser(overrides: Partial<User> = {}): User {
     passwordHash: null,
     nickname: null,
     nicknameChangedAt: null,
+    showRequestsOnProfile: true,
+    showRepliesOnProfile: true,
+    showCountsOnProfile: true,
     createdAt: new Date('2026-08-21T00:00:00.000Z'),
     ...overrides,
   };
