@@ -5,6 +5,7 @@ import { ServiceNav } from "../components/navigation/ServiceNav";
 import { formatJoinedDate } from "../lib/format";
 import { useAuth } from "../lib/auth/useAuth";
 import { NicknameSection } from "./components/NicknameSection";
+import { ProfileVisibilitySection } from "./components/ProfileVisibilitySection";
 
 type MeContentProps = {
   status: ReturnType<typeof useAuth>["status"];
@@ -28,6 +29,7 @@ function MeContent({ status, user }: MeContentProps) {
           </div>
         </section>
         <NicknameSection />
+        <ProfileVisibilitySection />
       </>
     );
   }

@@ -55,6 +55,12 @@ export type CurrentUser = {
   // becomes allowed — may be in the past, meaning the cooldown already
   // elapsed. See apps/api-server's UsersService.updateNickname.
   nicknameChangeAvailableAt: string | null;
+  // Independent public-profile (/u/[slug]) visibility switches — apps/web
+  // only concern for now (apps/admin doesn't surface these), but the
+  // response shape is shared. See apps/api-server's users.schema.ts.
+  showRequestsOnProfile: boolean;
+  showRepliesOnProfile: boolean;
+  showCountsOnProfile: boolean;
 };
 
 // Present in both apps as-is. Signup and Google OAuth are apps/web-only

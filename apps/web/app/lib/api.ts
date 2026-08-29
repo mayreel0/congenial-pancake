@@ -23,6 +23,29 @@ export function updateNickname(nickname: string): Promise<CurrentUser> {
   });
 }
 
+// Always allowed, no cooldown — see apps/api-server's UsersService.clearNickname.
+// Because author display is resolved live (not snapshotted per post), this
+// retroactively hides the nickname on every past post too, not just future
+// ones — no extra frontend work needed for that part.
+export function clearNickname(): Promise<CurrentUser> {
+  return apiFetch<CurrentUser>("/auth/nickname", { method: "DELETE" });
+}
+
+export type ProfileVisibilityPatch = {
+  showRequestsOnProfile?: boolean;
+  showRepliesOnProfile?: boolean;
+  showCountsOnProfile?: boolean;
+};
+
+export function updateProfileVisibility(
+  patch: ProfileVisibilityPatch,
+): Promise<CurrentUser> {
+  return apiFetch<CurrentUser>("/auth/profile-visibility", {
+    method: "PATCH",
+    body: JSON.stringify(patch),
+  });
+}
+
 // Consumes a one-off token issued from apps/admin (never self-service) —
 // see docs/decisions/2026-08-27-onseol-oauth-password-reset-decisions.md.
 export function resetPassword(token: string, password: string): Promise<void> {

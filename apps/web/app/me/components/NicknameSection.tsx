@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ActionConfirmDialog } from "ui/ActionConfirmDialog";
 import { Button } from "ui/Button";
 import { TextField } from "ui/TextField";
 import { ApiError } from "../../lib/api";
@@ -25,11 +26,13 @@ function cooldownDaysRemaining(availableAt: string | null): number | null {
 }
 
 export function NicknameSection() {
-  const { user, updateNickname } = useAuth();
+  const { user, updateNickname, clearNickname } = useAuth();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmingClear, setConfirmingClear] = useState(false);
+  const [clearing, setClearing] = useState(false);
 
   if (!user) return null;
 
@@ -61,6 +64,20 @@ export function NicknameSection() {
       setError(errorMessage(submitError));
     } finally {
       setPending(false);
+    }
+  }
+
+  async function handleConfirmClear(): Promise<void> {
+    setClearing(true);
+    try {
+      await clearNickname();
+      setConfirmingClear(false);
+    } catch {
+      // Clearing has no dedicated error UI — it's a simple, always-allowed
+      // action (see UsersService.clearNickname), so a failure here is
+      // unexpected. Leave the dialog open so the user can just retry.
+    } finally {
+      setClearing(false);
     }
   }
 
@@ -119,16 +136,35 @@ export function NicknameSection() {
               </p>
             ) : null}
           </div>
-          <Button
-            disabled={cooldownActive}
-            size="sm"
-            type="button"
-            onClick={startEditing}
-          >
-            {user.nickname ? "수정" : "설정하기"}
-          </Button>
+          <div className="flex shrink-0 gap-2">
+            <Button
+              disabled={cooldownActive}
+              size="sm"
+              type="button"
+              onClick={startEditing}
+            >
+              {user.nickname ? "수정" : "설정하기"}
+            </Button>
+            {user.nickname ? (
+              <Button
+                size="sm"
+                type="button"
+                variant="secondary"
+                onClick={() => setConfirmingClear(true)}
+              >
+                지우기
+              </Button>
+            ) : null}
+          </div>
         </div>
       )}
+      <ActionConfirmDialog
+        confirmLabel={clearing ? "지우는 중" : "지우기"}
+        message="닉네임을 지울까요? 지금까지 닉네임으로 공개했던 글도 모두 익명으로 바뀌어요."
+        open={confirmingClear}
+        onCancel={() => setConfirmingClear(false)}
+        onConfirm={() => void handleConfirmClear()}
+      />
     </section>
   );
 }

@@ -2,12 +2,15 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  clearNickname as apiClearNickname,
   fetchCurrentUser,
   login as apiLogin,
   logout as apiLogout,
   signup as apiSignup,
   updateNickname as apiUpdateNickname,
+  updateProfileVisibility as apiUpdateProfileVisibility,
   type CurrentUser,
+  type ProfileVisibilityPatch,
 } from "../api";
 
 export const authKeys = {
@@ -53,6 +56,29 @@ export function useUpdateNicknameMutation() {
 
   return useMutation({
     mutationFn: (nickname: string) => apiUpdateNickname(nickname),
+    onSuccess: (user: CurrentUser) => {
+      queryClient.setQueryData(authKeys.me, user);
+    },
+  });
+}
+
+export function useClearNicknameMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: apiClearNickname,
+    onSuccess: (user: CurrentUser) => {
+      queryClient.setQueryData(authKeys.me, user);
+    },
+  });
+}
+
+export function useUpdateProfileVisibilityMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (patch: ProfileVisibilityPatch) =>
+      apiUpdateProfileVisibility(patch),
     onSuccess: (user: CurrentUser) => {
       queryClient.setQueryData(authKeys.me, user);
     },

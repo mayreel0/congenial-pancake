@@ -11,9 +11,15 @@ function jsonResponse(status: number, body: unknown): MockResponse {
 function installFakeBackend({
   loggedIn,
   nickname = null,
+  showRequestsOnProfile = true,
+  showRepliesOnProfile = true,
+  showCountsOnProfile = true,
 }: {
   loggedIn: boolean;
   nickname?: string | null;
+  showRequestsOnProfile?: boolean;
+  showRepliesOnProfile?: boolean;
+  showCountsOnProfile?: boolean;
 }) {
   const fetchMock = vi.fn(
     (input: RequestInfo | URL): Promise<MockResponse> => {
@@ -31,6 +37,9 @@ function installFakeBackend({
             nickname,
             nicknameDiscriminator: "ABCD",
             nicknameChangeAvailableAt: null,
+            showRequestsOnProfile,
+            showRepliesOnProfile,
+            showCountsOnProfile,
           }),
         );
       }
@@ -90,5 +99,46 @@ describe("MePage", () => {
 
     expect(await screen.findByText("민들레")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "수정" })).toBeInTheDocument();
+  });
+
+  it("shows a clear-nickname button only when a nickname is set", async () => {
+    installFakeBackend({ loggedIn: true, nickname: "민들레" });
+
+    render(<MePage />);
+
+    expect(await screen.findByText("민들레")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "지우기" })).toBeInTheDocument();
+  });
+
+  it("hides the clear-nickname button when there's no nickname to clear", async () => {
+    installFakeBackend({ loggedIn: true, nickname: null });
+
+    render(<MePage />);
+
+    expect(
+      await screen.findByText("아직 설정한 닉네임이 없어요."),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "지우기" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows the profile visibility toggles reflecting current settings", async () => {
+    installFakeBackend({
+      loggedIn: true,
+      nickname: "민들레",
+      showRequestsOnProfile: false,
+    });
+
+    render(<MePage />);
+
+    const requestsToggle = await screen.findByRole("switch", {
+      name: "내가 남긴 고민 목록 공개",
+    });
+    expect(requestsToggle).not.toBeChecked();
+    expect(
+      screen.getByRole("switch", { name: "내가 남긴 답변 목록 공개" }),
+    ).toBeChecked();
+    expect(screen.getByRole("switch", { name: "개수 공개" })).toBeChecked();
   });
 });

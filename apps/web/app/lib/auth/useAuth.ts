@@ -1,13 +1,15 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import type { CurrentUser } from "../api";
+import type { CurrentUser, ProfileVisibilityPatch } from "../api";
 import {
+  useClearNicknameMutation,
   useCurrentUserQuery,
   useLoginMutation,
   useLogoutMutation,
   useSignupMutation,
   useUpdateNicknameMutation,
+  useUpdateProfileVisibilityMutation,
 } from "./queries";
 
 type AuthStatus = "loading" | "authenticated" | "anonymous";
@@ -20,6 +22,8 @@ type UseAuthResult = {
   logout(): Promise<void>;
   refresh(): Promise<void>;
   updateNickname(nickname: string): Promise<void>;
+  clearNickname(): Promise<void>;
+  updateProfileVisibility(patch: ProfileVisibilityPatch): Promise<void>;
 };
 
 function toAuthStatus(isPending: boolean, hasUser: boolean): AuthStatus {
@@ -35,6 +39,8 @@ export function useAuth(): UseAuthResult {
   const signupMutation = useSignupMutation();
   const logoutMutation = useLogoutMutation();
   const updateNicknameMutation = useUpdateNicknameMutation();
+  const clearNicknameMutation = useClearNicknameMutation();
+  const updateProfileVisibilityMutation = useUpdateProfileVisibilityMutation();
 
   const status = toAuthStatus(meQuery.isPending, Boolean(meQuery.data));
 
@@ -61,6 +67,16 @@ export function useAuth(): UseAuthResult {
     await updateNicknameMutation.mutateAsync(nickname);
   }
 
+  async function clearNickname(): Promise<void> {
+    await clearNicknameMutation.mutateAsync();
+  }
+
+  async function updateProfileVisibility(
+    patch: ProfileVisibilityPatch,
+  ): Promise<void> {
+    await updateProfileVisibilityMutation.mutateAsync(patch);
+  }
+
   return {
     status,
     user: meQuery.data ?? null,
@@ -69,5 +85,7 @@ export function useAuth(): UseAuthResult {
     logout,
     refresh,
     updateNickname,
+    clearNickname,
+    updateProfileVisibility,
   };
 }
