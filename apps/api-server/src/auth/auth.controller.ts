@@ -2,7 +2,6 @@ import { randomBytes } from 'node:crypto';
 import {
   Body,
   Controller,
-  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -148,19 +147,10 @@ export class AuthController {
     return toUserResponseDto(user, nicknameChangeAvailableAt);
   }
 
-  // Always allowed, no cooldown — see UsersService.clearNickname.
-  @Delete('nickname')
-  @UseGuards(SessionGuard)
-  @HttpCode(HttpStatus.OK)
-  async clearNickname(@CurrentUser() userId: string): Promise<UserResponseDto> {
-    const user = await this.usersService.clearNickname(userId);
-    const nicknameChangeAvailableAt =
-      await this.usersService.nicknameChangeAvailableAt(user);
-    return toUserResponseDto(user, nicknameChangeAvailableAt);
-  }
-
-  // Independent per-field switches for the public profile (/u/[slug]) —
-  // see users.schema.ts and ProfileService.findProfile.
+  // Independent per-field switches — three for the public profile
+  // (/u/[slug]) itself, plus nicknameVisible (whether the nickname shows up
+  // anywhere at all, including past posts) — see users.schema.ts and
+  // ProfileService.findProfile.
   @Patch('profile-visibility')
   @UseGuards(SessionGuard)
   @HttpCode(HttpStatus.OK)

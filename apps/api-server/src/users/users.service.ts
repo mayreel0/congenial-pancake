@@ -34,21 +34,36 @@ export class UsersService {
   // Case-insensitive on the discriminator since it's shown/typed as
   // uppercase hex but a URL segment shouldn't be case-sensitive for this.
   // Returns undefined if nobody currently holds that exact nickname (a
-  // stale link after someone renames/clears their nickname resolves to
-  // nothing — not treated as an error to recover from).
+  // stale link after someone renames it resolves to nothing — not treated
+  // as an error to recover from) **or** if they do but have hidden it
+  // (nicknameVisible: false) — same "not findable right now" outcome from
+  // the caller's perspective, so this is the one place that decision is
+  // made rather than leaking a hidden-but-technically-found user out to
+  // ProfileService.
   async findByNicknameAndDiscriminator(
     nickname: string,
     discriminator: string,
   ): Promise<User | undefined> {
     const candidates = await this.usersRepository.findByNickname(nickname);
     const target = discriminator.toUpperCase();
-    return candidates.find((user) => nicknameDiscriminator(user.id) === target);
+    const match = candidates.find(
+      (user) => nicknameDiscriminator(user.id) === target,
+    );
+    return match?.nicknameVisible ? match : undefined;
   }
 
+  // A hidden nickname (nicknameVisible: false) maps to null here — the same
+  // "no nickname" value toAuthorDisplayDto already falls back to anonymous
+  // for — rather than being filtered out separately at each call site.
   async nicknameMapFor(userIds: string[]): Promise<Map<string, string | null>> {
     const uniqueIds = [...new Set(userIds)];
     const found = await this.usersRepository.findByIds(uniqueIds);
-    return new Map(found.map((user) => [user.id, user.nickname]));
+    return new Map(
+      found.map((user) => [
+        user.id,
+        user.nicknameVisible ? user.nickname : null,
+      ]),
+    );
   }
 
   create(input: CreateUserInput): Promise<User> {
@@ -79,23 +94,23 @@ export class UsersService {
     return this.usersRepository.updateNickname(id, nickname);
   }
 
-  // Clearing is always free, no cooldown check — unlike changing to a
-  // different nickname, the whole point is being able to step back to
-  // anonymous immediately if you want to. Since AuthorDisplayDto's author
-  // label is resolved live from the current nickname (not snapshotted per
-  // post — see common/author-display.ts), this retroactively hides the
-  // nickname on every past post too, not just future ones, with no extra
-  // masking logic needed.
-  clearNickname(id: string): Promise<User> {
-    return this.usersRepository.clearNickname(id);
-  }
-
+  // Toggling nicknameVisible (bundled in with the other profile-visibility
+  // switches) never touches `nickname`/`nicknameChangedAt` — it's always
+  // free, no cooldown check, unlike updateNickname above. Since
+  // AuthorDisplayDto's author label is resolved live via nicknameMapFor
+  // (not snapshotted per post — see common/author-display.ts), hiding it
+  // retroactively hides the nickname on every past post too, not just
+  // future ones, with no extra masking logic needed — and un-hiding brings
+  // it right back, unaffected by the whole time it was hidden.
   updateProfileVisibility(
     id: string,
     patch: Partial<
       Pick<
         User,
-        'showRequestsOnProfile' | 'showRepliesOnProfile' | 'showCountsOnProfile'
+        | 'showRequestsOnProfile'
+        | 'showRepliesOnProfile'
+        | 'showCountsOnProfile'
+        | 'nicknameVisible'
       >
     >,
   ): Promise<User> {

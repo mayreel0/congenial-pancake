@@ -35,6 +35,14 @@ export const users = pgTable('users', {
   showCountsOnProfile: boolean('show_counts_on_profile')
     .notNull()
     .default(true),
+  // Whether the nickname is shown to anyone but the owner — a pure
+  // visibility switch, deliberately NOT the same as clearing/changing the
+  // nickname text. Toggling this doesn't touch `nickname` or
+  // `nicknameChangedAt`, so it never resets or bypasses the change
+  // cooldown; the underlying nickname (and its cooldown clock) is exactly
+  // as if this toggle didn't exist. See UsersService.nicknameMapFor and
+  // docs/decisions/2026-08-30-onseol-profile-privacy-decisions.md.
+  nicknameVisible: boolean('nickname_visible').notNull().default(true),
   createdAt: timestamp('created_at', { withTimezone: true })
     .notNull()
     .defaultNow(),

@@ -14,6 +14,7 @@ function makeUser(overrides: Partial<User> = {}): User {
     showRequestsOnProfile: true,
     showRepliesOnProfile: true,
     showCountsOnProfile: true,
+    nicknameVisible: true,
     createdAt: new Date('2026-08-21T00:00:00.000Z'),
     ...overrides,
   };
@@ -39,9 +40,9 @@ describe('UsersService', () => {
   beforeEach(() => {
     usersRepository = {
       findById: jest.fn(),
+      findByIds: jest.fn(),
       updateNickname: jest.fn(),
       findByNickname: jest.fn(),
-      clearNickname: jest.fn(),
       updateProfileVisibility: jest.fn(),
     } as unknown as jest.Mocked<UsersRepository>;
     settingsService = {
@@ -197,21 +198,36 @@ describe('UsersService', () => {
 
       expect(result).toBeUndefined();
     });
+
+    it('returns undefined when the matching account has hidden its nickname', async () => {
+      usersRepository.findByNickname.mockResolvedValue([
+        makeUser({
+          id: 'f8b3cf41-d4ee-4bce-9d5d-425fb33ac376',
+          nickname: '민들레',
+          nicknameVisible: false,
+        }),
+      ]);
+
+      const result = await usersService.findByNicknameAndDiscriminator(
+        '민들레',
+        'C376',
+      );
+
+      expect(result).toBeUndefined();
+    });
   });
 
-  describe('clearNickname', () => {
-    it('always delegates without any cooldown check', async () => {
-      const cleared = makeUser({ nickname: null, nicknameChangedAt: null });
-      usersRepository.clearNickname.mockResolvedValue(cleared);
+  describe('nicknameMapFor', () => {
+    it('maps a hidden nickname to null, same as no nickname set', async () => {
+      usersRepository.findByIds.mockResolvedValue([
+        makeUser({ id: 'user-1', nickname: '민들레', nicknameVisible: true }),
+        makeUser({ id: 'user-2', nickname: '햇살', nicknameVisible: false }),
+      ]);
 
-      const result = await usersService.clearNickname('user-1');
+      const result = await usersService.nicknameMapFor(['user-1', 'user-2']);
 
-      expect(usersRepository.clearNickname).toHaveBeenCalledWith('user-1');
-      // No cooldown consultation at all — clearing is always free, even if
-      // the account is mid-cooldown from a recent change.
-      expect(settingsService.get).not.toHaveBeenCalled();
-      expect(usersRepository.findById).not.toHaveBeenCalled();
-      expect(result).toEqual(cleared);
+      expect(result.get('user-1')).toBe('민들레');
+      expect(result.get('user-2')).toBeNull();
     });
   });
 
@@ -229,6 +245,25 @@ describe('UsersService', () => {
         { showRequestsOnProfile: false },
       );
       expect(result).toEqual(updated);
+    });
+
+    it('toggling nicknameVisible never touches nickname or nicknameChangedAt', async () => {
+      const updated = makeUser({ nicknameVisible: false });
+      usersRepository.updateProfileVisibility.mockResolvedValue(updated);
+
+      await usersService.updateProfileVisibility('user-1', {
+        nicknameVisible: false,
+      });
+
+      expect(usersRepository.updateProfileVisibility).toHaveBeenCalledWith(
+        'user-1',
+        { nicknameVisible: false },
+      );
+      // No cooldown consultation at all — hiding/unhiding is always free,
+      // unlike updateNickname's cooldown-gated path.
+      expect(settingsService.get).not.toHaveBeenCalled();
+      expect(usersRepository.findById).not.toHaveBeenCalled();
+      expect(usersRepository.updateNickname).not.toHaveBeenCalled();
     });
   });
 });

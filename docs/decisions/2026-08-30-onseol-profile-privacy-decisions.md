@@ -47,3 +47,13 @@
 ## 추가: 프론트엔드 (PR #106)
 
 `/me`에 `ProfileVisibilitySection`(토글 3개, 클릭 즉시 반영) 추가. `NicknameSection`에 "지우기" 버튼 — `ui/ActionConfirmDialog`로 "기존 글도 익명으로 바뀐다"는 걸 확인받은 뒤 실행, 쿨타임 무관하게 항상 활성화. `/u/[slug]`는 백엔드의 `requestsVisible`/`repliesVisible`/`countsVisible` 불리언으로 "비공개" 안내 문구 vs "공개했지만 아직 없음" 문구를 구분하고, 개수는 목록 공개 여부와 무관하게 `countsVisible`만 보고 표시. 실브라우저 검증 중 발견한 것: 토글을 끈 직후 `/u/[slug]`를 다시 열면 즉시 반영되고(react-query 캐시 무효화), 개수는 목록을 꺼도 그대로 유지되는 것 확인.
+
+## 정정: "지우기"가 아니라 "감추기" (같은 날, 사용자 리뷰 피드백)
+
+사용자 피드백: "닉네임 지우기 개념이 아니라 감추기임. 지금처럼 지우고 다시 닉네임을 정하면 닉네임 변경의 의미가 없잖음." — 정확한 지적. 원래 구현은 `nickname`과 `nicknameChangedAt`을 둘 다 `NULL`로 리셋했는데, `nicknameChangedAt`이 사라지면 `UsersService.updateNickname`의 쿨타임 체크(`current.nickname !== null`)가 항상 스킵되어 **지우고 바로 새 닉네임을 설정하면 쿨타임을 완전히 우회**할 수 있었음 — 애초에 쿨타임을 두는 목적(닉네임을 자주 바꾸며 신원을 세탁하는 것 방지)을 무력화하는 구멍.
+
+**수정**: "지우기" API(`DELETE /auth/nickname`, `UsersService.clearNickname`)를 완전히 제거하고, 대신 `users.nickname_visible`(boolean, 기본 `true`) 순수 가시성 스위치로 교체 — `nickname`/`nicknameChangedAt` 둘 다 절대 건드리지 않음. 껐다 켜도 원래 닉네임이 그대로 돌아오고(같은 판별자, 같은 프로필 URL), 쿨타임 시계도 이 토글과 완전히 무관하게 흘러감. `UsersService.nicknameMapFor()`가 `nicknameVisible`이 꺼진 계정은 닉네임을 `null`로 매핑해서 `toAuthorDisplayDto`가 자동으로 익명 처리하고(4번 요청의 "기존 글도 가리기"는 여전히 공짜), `findByNicknameAndDiscriminator()`도 숨겨진 계정은 "못 찾음" 취급해서 `/u/[slug]`가 404됨 — 감춘 동안은 어떤 경로로도 못 찾는 게 일관됨. `PATCH /auth/profile-visibility`에 4번째 필드로 통합(별도 엔드포인트 안 만듦).
+
+- 마이그레이션 `0014_lean_anita_blake.sql` 추가.
+- 실서버 검증: `nicknameVisible: false`로 껐다가 다시 `true`로 켜는 동안 `nicknameChangeAvailableAt`이 완전히 동일한 값으로 유지되는 것 확인(쿨타임 시계 무영향). 감춘 동안 `/u/[닉네임]-[판별자]`가 404되는 것 확인.
+- `apps/api-server` lint/typecheck/test(89/89)/build 통과.

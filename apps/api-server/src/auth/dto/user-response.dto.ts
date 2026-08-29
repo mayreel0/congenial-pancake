@@ -21,6 +21,10 @@ export type UserResponseDto = {
   showRequestsOnProfile: boolean;
   showRepliesOnProfile: boolean;
   showCountsOnProfile: boolean;
+  // Whether the nickname is shown to anyone but the owner — this DTO is
+  // always the owner's own view, so `nickname` above stays the real value
+  // regardless of this flag (they should always see their own nickname).
+  nicknameVisible: boolean;
 };
 
 // nicknameChangeAvailableAt is a required (not defaulted) param, not
@@ -43,5 +47,6 @@ export function toUserResponseDto(
     showRequestsOnProfile: user.showRequestsOnProfile,
     showRepliesOnProfile: user.showRepliesOnProfile,
     showCountsOnProfile: user.showCountsOnProfile,
+    nicknameVisible: user.nicknameVisible,
   };
 }
