@@ -1,14 +1,30 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "ui/Button";
 import { Toggle } from "ui/Toggle";
 import { ApiError } from "../../lib/api";
 import { useAuth } from "../../lib/auth/useAuth";
 
-type VisibilityField =
-  | "showRequestsOnProfile"
-  | "showRepliesOnProfile"
-  | "showCountsOnProfile";
+type VisibilityDraft = {
+  showRequestsOnProfile: boolean;
+  showRepliesOnProfile: boolean;
+  showCountsOnProfile: boolean;
+};
+
+const DEFAULT_DRAFT: VisibilityDraft = {
+  showRequestsOnProfile: true,
+  showRepliesOnProfile: true,
+  showCountsOnProfile: true,
+};
+
+function draftFromUser(user: VisibilityDraft): VisibilityDraft {
+  return {
+    showRequestsOnProfile: user.showRequestsOnProfile,
+    showRepliesOnProfile: user.showRepliesOnProfile,
+    showCountsOnProfile: user.showCountsOnProfile,
+  };
+}
 
 function errorMessage(error: unknown): string {
   if (error instanceof ApiError) return error.message;
@@ -17,22 +33,44 @@ function errorMessage(error: unknown): string {
 
 export function ProfileVisibilitySection() {
   const { user, updateProfileVisibility } = useAuth();
+  // Toggles only edit local draft state — a single "저장" sends all three
+  // at once, rather than firing a PATCH per click (three quick clicks would
+  // otherwise mean three separate round-trips). The parent only mounts this
+  // once `user` is confirmed non-null (see MeContent), so the lazy
+  // initializer below captures the real value on the meaningful first
+  // render — DEFAULT_DRAFT is just a hooks-order-safe placeholder.
+  const [draft, setDraft] = useState<VisibilityDraft>(
+    user ? draftFromUser(user) : DEFAULT_DRAFT,
+  );
+  const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   if (!user) return null;
 
-  // Fires immediately on toggle, no separate save step — matches typical
-  // settings UX, and each field updates independently (see
-  // apps/api-server's UpdateProfileVisibilityDto, all fields optional).
-  async function handleToggle(
-    field: VisibilityField,
-    value: boolean,
-  ): Promise<void> {
+  const isDirty =
+    draft.showRequestsOnProfile !== user.showRequestsOnProfile ||
+    draft.showRepliesOnProfile !== user.showRepliesOnProfile ||
+    draft.showCountsOnProfile !== user.showCountsOnProfile;
+
+  function updateDraft(field: keyof VisibilityDraft, value: boolean) {
+    setError(null);
+    setDraft((current) => ({ ...current, [field]: value }));
+  }
+
+  function resetDraft() {
+    setError(null);
+    setDraft(draftFromUser(user!));
+  }
+
+  async function handleSave(): Promise<void> {
+    setPending(true);
     setError(null);
     try {
-      await updateProfileVisibility({ [field]: value });
-    } catch (toggleError) {
-      setError(errorMessage(toggleError));
+      await updateProfileVisibility(draft);
+    } catch (saveError) {
+      setError(errorMessage(saveError));
+    } finally {
+      setPending(false);
     }
   }
 
@@ -51,33 +89,46 @@ export function ProfileVisibilitySection() {
             since they'd all sit on one line instead of stacking. */}
         <div>
           <Toggle
-            checked={user.showRequestsOnProfile}
+            checked={draft.showRequestsOnProfile}
             label="내가 남긴 고민 목록 공개"
-            onChange={(checked) =>
-              void handleToggle("showRequestsOnProfile", checked)
-            }
+            onChange={(checked) => updateDraft("showRequestsOnProfile", checked)}
           />
         </div>
         <div>
           <Toggle
-            checked={user.showRepliesOnProfile}
+            checked={draft.showRepliesOnProfile}
             label="내가 남긴 답변 목록 공개"
-            onChange={(checked) =>
-              void handleToggle("showRepliesOnProfile", checked)
-            }
+            onChange={(checked) => updateDraft("showRepliesOnProfile", checked)}
           />
         </div>
         <div>
           <Toggle
-            checked={user.showCountsOnProfile}
+            checked={draft.showCountsOnProfile}
             label="고민/답변 개수 공개"
-            onChange={(checked) =>
-              void handleToggle("showCountsOnProfile", checked)
-            }
+            onChange={(checked) => updateDraft("showCountsOnProfile", checked)}
           />
         </div>
       </div>
       {error ? <p className="text-xs text-red-600">{error}</p> : null}
+      <div className="flex gap-2">
+        <Button
+          disabled={pending || !isDirty}
+          size="sm"
+          type="button"
+          onClick={() => void handleSave()}
+        >
+          {pending ? "저장하는 중" : "저장"}
+        </Button>
+        <Button
+          disabled={pending || !isDirty}
+          size="sm"
+          type="button"
+          variant="secondary"
+          onClick={resetDraft}
+        >
+          취소
+        </Button>
+      </div>
     </section>
   );
 }

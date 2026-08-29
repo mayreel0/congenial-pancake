@@ -1,4 +1,4 @@
-import { render, screen } from "../lib/test-utils";
+import { fireEvent, render, screen } from "../lib/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import MePage from "./page";
 
@@ -24,7 +24,7 @@ function installFakeBackend({
   nicknameVisible?: boolean;
 }) {
   const fetchMock = vi.fn(
-    (input: RequestInfo | URL): Promise<MockResponse> => {
+    (input: RequestInfo | URL, init?: RequestInit): Promise<MockResponse> => {
       const url = typeof input === "string" ? input : input.toString();
 
       if (url.endsWith("/auth/me")) {
@@ -43,6 +43,27 @@ function installFakeBackend({
             showRepliesOnProfile,
             showCountsOnProfile,
             nicknameVisible,
+          }),
+        );
+      }
+
+      if (url.endsWith("/auth/profile-visibility")) {
+        const patch = init?.body
+          ? (JSON.parse(init.body as string) as Record<string, unknown>)
+          : {};
+        return Promise.resolve(
+          jsonResponse(200, {
+            id: "user-1",
+            email: "member@example.com",
+            createdAt: "2026-08-22T00:00:00.000Z",
+            nickname,
+            nicknameDiscriminator: "ABCD",
+            nicknameChangeAvailableAt: null,
+            showRequestsOnProfile,
+            showRepliesOnProfile,
+            showCountsOnProfile,
+            nicknameVisible,
+            ...patch,
           }),
         );
       }
@@ -161,5 +182,84 @@ describe("MePage", () => {
     expect(
       screen.getByRole("switch", { name: "고민/답변 개수 공개" }),
     ).toBeChecked();
+  });
+
+  it("toggling a profile-visibility switch doesn't call the API until saved", async () => {
+    const fetchMock = installFakeBackend({ loggedIn: true, nickname: "민들레" });
+
+    render(<MePage />);
+
+    const requestsToggle = await screen.findByRole("switch", {
+      name: "내가 남긴 고민 목록 공개",
+    });
+    fireEvent.click(requestsToggle);
+
+    expect(requestsToggle).not.toBeChecked();
+    expect(
+      fetchMock.mock.calls.some(([input]) =>
+        (typeof input === "string" ? input : input.toString()).endsWith(
+          "/auth/profile-visibility",
+        ),
+      ),
+    ).toBe(false);
+  });
+
+  it("saving a profile-visibility change sends the full draft", async () => {
+    const fetchMock = installFakeBackend({ loggedIn: true, nickname: "민들레" });
+
+    render(<MePage />);
+
+    const requestsToggle = await screen.findByRole("switch", {
+      name: "내가 남긴 고민 목록 공개",
+    });
+    fireEvent.click(requestsToggle);
+    fireEvent.click(screen.getByRole("button", { name: "저장" }));
+
+    await screen.findByRole("switch", { name: "내가 남긴 고민 목록 공개" });
+    const patchCall = fetchMock.mock.calls.find(([input]) =>
+      (typeof input === "string" ? input : input.toString()).endsWith(
+        "/auth/profile-visibility",
+      ),
+    );
+    expect(patchCall).toBeDefined();
+    const [, init] = patchCall!;
+    expect(JSON.parse(init!.body as string)).toEqual({
+      showRequestsOnProfile: false,
+      showRepliesOnProfile: true,
+      showCountsOnProfile: true,
+    });
+  });
+
+  it("canceling a profile-visibility change reverts without calling the API", async () => {
+    const fetchMock = installFakeBackend({ loggedIn: true, nickname: "민들레" });
+
+    render(<MePage />);
+
+    const requestsToggle = await screen.findByRole("switch", {
+      name: "내가 남긴 고민 목록 공개",
+    });
+    fireEvent.click(requestsToggle);
+    expect(requestsToggle).not.toBeChecked();
+
+    fireEvent.click(screen.getByRole("button", { name: "취소" }));
+
+    expect(requestsToggle).toBeChecked();
+    expect(
+      fetchMock.mock.calls.some(([input]) =>
+        (typeof input === "string" ? input : input.toString()).endsWith(
+          "/auth/profile-visibility",
+        ),
+      ),
+    ).toBe(false);
+  });
+
+  it("disables save/cancel until a profile-visibility change is made", async () => {
+    installFakeBackend({ loggedIn: true, nickname: "민들레" });
+
+    render(<MePage />);
+
+    await screen.findByRole("switch", { name: "내가 남긴 고민 목록 공개" });
+    expect(screen.getByRole("button", { name: "저장" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "취소" })).toBeDisabled();
   });
 });
