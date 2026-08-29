@@ -111,4 +111,29 @@ export class RepliesRepository {
       )
       .orderBy(asc(replies.createdAt));
   }
+
+  // Public profile page: only replies this member chose to reveal
+  // (anonymous: false) on a request that's itself still visible — a
+  // revealed reply on a since-hidden/deleted request must not resurface it
+  // via someone's profile. Unlike findMine, this is shown to *other*
+  // viewers, so both hidden/deletedAt filters apply (findMine's "show the
+  // viewer their own content unfiltered" policy doesn't extend to
+  // strangers).
+  findPublicByAuthor(authorId: string): Promise<ReplyWithRequest[]> {
+    return this.db
+      .select({ reply: replies, request: requests })
+      .from(replies)
+      .innerJoin(requests, eq(requests.id, replies.requestId))
+      .where(
+        and(
+          eq(replies.authorId, authorId),
+          eq(replies.anonymous, false),
+          eq(replies.hidden, false),
+          isNull(replies.deletedAt),
+          eq(requests.hidden, false),
+          isNull(requests.deletedAt),
+        ),
+      )
+      .orderBy(desc(replies.createdAt));
+  }
 }

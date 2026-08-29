@@ -7,6 +7,7 @@ import { ConfigModule } from './config/config.module';
 import { DatabaseModule } from './database/database.module';
 import { HealthModule } from './health/health.module';
 import { ModerationModule } from './moderation/moderation.module';
+import { ProfileModule } from './profile/profile.module';
 import { RepliesModule } from './replies/replies.module';
 import { ReportsModule } from './reports/reports.module';
 import { RequestsModule } from './requests/requests.module';
@@ -30,6 +31,7 @@ import { UsersModule } from './users/users.module';
     SavedRepliesModule,
     ModerationModule,
     AdminModule,
+    ProfileModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

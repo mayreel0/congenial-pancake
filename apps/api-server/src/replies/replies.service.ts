@@ -106,6 +106,10 @@ export class RepliesService {
     );
   }
 
+  findPublicByAuthor(authorId: string): Promise<ReplyWithRequest[]> {
+    return this.repliesRepository.findPublicByAuthor(authorId);
+  }
+
   hide(id: string): Promise<void> {
     return this.repliesRepository.setHidden(id, true);
   }

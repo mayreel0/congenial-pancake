@@ -21,7 +21,7 @@ jest.mock('drizzle-orm', () => ({
   or: jest.fn((...args: unknown[]) => ({ op: 'or', args })),
 }));
 
-import { asc, desc, eq, inArray } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull } from 'drizzle-orm';
 import type { Database } from '../database/database.types';
 import { replies, requests } from '../database/schema';
 import {
@@ -134,6 +134,28 @@ describe('RequestsRepository', () => {
 
       expect(result).toEqual([]);
       expect(findMany).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('findPublicByAuthor', () => {
+    it('only fetches revealed, visible requests, newest-first', async () => {
+      const rows = [makeRequest({ anonymous: false })];
+      const findMany = jest.fn().mockResolvedValue(rows);
+      const db = { query: { requests: { findMany } } } as unknown as Database;
+      const repository = new RequestsRepository(db);
+
+      const result = await repository.findPublicByAuthor('user-1');
+
+      expect(findMany).toHaveBeenCalledWith({
+        where: and(
+          eq(requests.authorId, 'user-1'),
+          eq(requests.anonymous, false),
+          eq(requests.hidden, false),
+          isNull(requests.deletedAt),
+        ),
+        orderBy: desc(requests.createdAt),
+      });
+      expect(result).toEqual(rows);
     });
   });
 });

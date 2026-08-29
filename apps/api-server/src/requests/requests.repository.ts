@@ -178,6 +178,22 @@ export class RequestsRepository {
     }));
   }
 
+  // Public profile page: only requests this member chose to reveal
+  // (anonymous: false) and that are still visible — mirrors findVisible's
+  // hidden/deletedAt filtering (shown to *other* viewers, unlike findMine
+  // which is the author's own unfiltered view).
+  findPublicByAuthor(authorId: string): Promise<RequestRecord[]> {
+    return this.db.query.requests.findMany({
+      where: and(
+        eq(requests.authorId, authorId),
+        eq(requests.anonymous, false),
+        eq(requests.hidden, false),
+        isNull(requests.deletedAt),
+      ),
+      orderBy: desc(requests.createdAt),
+    });
+  }
+
   findByGuestId(guestId: string): Promise<RequestRecord | undefined> {
     return this.db.query.requests.findFirst({
       where: eq(requests.guestId, guestId),
