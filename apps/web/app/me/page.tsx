@@ -5,7 +5,8 @@ import { ServiceNav } from "../components/navigation/ServiceNav";
 import { formatJoinedDate } from "../lib/format";
 import { useAuth } from "../lib/auth/useAuth";
 import { NicknameSection } from "./components/NicknameSection";
-import { VisibilitySettingsSection } from "./components/VisibilitySettingsSection";
+import { ProfileVisibilitySection } from "./components/ProfileVisibilitySection";
+import { VisibilityDraftProvider } from "./components/VisibilityDraftProvider";
 
 type MeContentProps = {
   status: ReturnType<typeof useAuth>["status"];
@@ -28,8 +29,10 @@ function MeContent({ status, user }: MeContentProps) {
             <p className="text-sm">{formatJoinedDate(user.createdAt)} 가입</p>
           </div>
         </section>
-        <NicknameSection />
-        <VisibilitySettingsSection />
+        <VisibilityDraftProvider user={user}>
+          <NicknameSection />
+          <ProfileVisibilitySection />
+        </VisibilityDraftProvider>
       </>
     );
   }

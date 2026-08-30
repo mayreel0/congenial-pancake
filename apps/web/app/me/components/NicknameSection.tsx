@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { Button } from "ui/Button";
 import { TextField } from "ui/TextField";
+import { Toggle } from "ui/Toggle";
 import { ApiError } from "../../lib/api";
 import { useAuth } from "../../lib/auth/useAuth";
+import { useVisibilityDraft } from "./VisibilityDraftProvider";
 
 function errorMessage(error: unknown): string {
   if (error instanceof ApiError) return error.message;
@@ -25,10 +27,12 @@ function cooldownDaysRemaining(availableAt: string | null): number | null {
 }
 
 // Nickname *visibility* (showing/hiding it from others without changing the
-// text) lives in VisibilitySettingsSection instead — this section only
-// covers the nickname's actual text and its change cooldown.
+// text) is its own toggle below, sharing the page-wide draft/save/dialog
+// from VisibilityDraftProvider instead of firing its own request — only the
+// nickname text edit above is this section's own local state.
 export function NicknameSection() {
   const { user, updateNickname } = useAuth();
+  const { draft: visibilityDraft, setField } = useVisibilityDraft();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
   const [pending, setPending] = useState(false);
@@ -134,6 +138,21 @@ export function NicknameSection() {
           </div>
         </div>
       )}
+
+      {user.nickname ? (
+        <div className="space-y-1 border-t border-line pt-3">
+          <Toggle
+            checked={visibilityDraft.nicknameVisible}
+            label="닉네임 공개"
+            onChange={(checked) => setField("nicknameVisible", checked)}
+          />
+          <p className="text-xs text-muted">
+            꺼두면 지금까지 남긴 글에서도 닉네임 대신 익명으로 보여요. 언제든
+            다시 켤 수 있고, 켜면 원래 닉네임 그대로 돌아와요 — 변경 쿨타임과는
+            무관해요.
+          </p>
+        </div>
+      ) : null}
     </section>
   );
 }

@@ -276,13 +276,43 @@ describe("MePage", () => {
     ).toBe(false);
   });
 
-  it("disables save/cancel until a visibility change is made", async () => {
+  it("hides the shared save/cancel bar until a visibility change is made", async () => {
     installFakeBackend({ loggedIn: true, nickname: "민들레" });
 
     render(<MePage />);
 
     await screen.findByRole("switch", { name: "내가 남긴 고민 목록 공개" });
-    expect(screen.getByRole("button", { name: "저장" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "취소" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "저장" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "취소" })).not.toBeInTheDocument();
+  });
+
+  it("shares one draft/save bar across the nickname toggle and the profile toggles", async () => {
+    const fetchMock = installFakeBackend({ loggedIn: true, nickname: "민들레" });
+
+    render(<MePage />);
+
+    const nicknameToggle = await screen.findByRole("switch", {
+      name: "닉네임 공개",
+    });
+    fireEvent.click(nicknameToggle);
+    fireEvent.click(screen.getByRole("button", { name: "저장" }));
+
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "저장" }));
+
+    await screen.findByRole("switch", { name: "닉네임 공개" });
+    const patchCall = fetchMock.mock.calls.find(([input]) =>
+      (typeof input === "string" ? input : input.toString()).endsWith(
+        "/auth/profile-visibility",
+      ),
+    );
+    expect(patchCall).toBeDefined();
+    const [, init] = patchCall!;
+    expect(JSON.parse(init!.body as string)).toEqual({
+      nicknameVisible: false,
+      showRequestsOnProfile: true,
+      showRepliesOnProfile: true,
+      showCountsOnProfile: true,
+    });
   });
 });
