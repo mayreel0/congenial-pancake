@@ -11,6 +11,10 @@ function makeUser(overrides: Partial<User> = {}): User {
     passwordHash: null,
     nickname: null,
     nicknameChangedAt: null,
+    showRequestsOnProfile: true,
+    showRepliesOnProfile: true,
+    showCountsOnProfile: true,
+    nicknameVisible: true,
     createdAt: new Date('2026-08-21T00:00:00.000Z'),
     ...overrides,
   };
@@ -36,8 +40,10 @@ describe('UsersService', () => {
   beforeEach(() => {
     usersRepository = {
       findById: jest.fn(),
+      findByIds: jest.fn(),
       updateNickname: jest.fn(),
       findByNickname: jest.fn(),
+      updateProfileVisibility: jest.fn(),
     } as unknown as jest.Mocked<UsersRepository>;
     settingsService = {
       get: jest.fn().mockResolvedValue(makeSettings()),
@@ -191,6 +197,73 @@ describe('UsersService', () => {
       );
 
       expect(result).toBeUndefined();
+    });
+
+    it('returns undefined when the matching account has hidden its nickname', async () => {
+      usersRepository.findByNickname.mockResolvedValue([
+        makeUser({
+          id: 'f8b3cf41-d4ee-4bce-9d5d-425fb33ac376',
+          nickname: '민들레',
+          nicknameVisible: false,
+        }),
+      ]);
+
+      const result = await usersService.findByNicknameAndDiscriminator(
+        '민들레',
+        'C376',
+      );
+
+      expect(result).toBeUndefined();
+    });
+  });
+
+  describe('nicknameMapFor', () => {
+    it('maps a hidden nickname to null, same as no nickname set', async () => {
+      usersRepository.findByIds.mockResolvedValue([
+        makeUser({ id: 'user-1', nickname: '민들레', nicknameVisible: true }),
+        makeUser({ id: 'user-2', nickname: '햇살', nicknameVisible: false }),
+      ]);
+
+      const result = await usersService.nicknameMapFor(['user-1', 'user-2']);
+
+      expect(result.get('user-1')).toBe('민들레');
+      expect(result.get('user-2')).toBeNull();
+    });
+  });
+
+  describe('updateProfileVisibility', () => {
+    it('delegates the partial patch as-is', async () => {
+      const updated = makeUser({ showRequestsOnProfile: false });
+      usersRepository.updateProfileVisibility.mockResolvedValue(updated);
+
+      const result = await usersService.updateProfileVisibility('user-1', {
+        showRequestsOnProfile: false,
+      });
+
+      expect(usersRepository.updateProfileVisibility).toHaveBeenCalledWith(
+        'user-1',
+        { showRequestsOnProfile: false },
+      );
+      expect(result).toEqual(updated);
+    });
+
+    it('toggling nicknameVisible never touches nickname or nicknameChangedAt', async () => {
+      const updated = makeUser({ nicknameVisible: false });
+      usersRepository.updateProfileVisibility.mockResolvedValue(updated);
+
+      await usersService.updateProfileVisibility('user-1', {
+        nicknameVisible: false,
+      });
+
+      expect(usersRepository.updateProfileVisibility).toHaveBeenCalledWith(
+        'user-1',
+        { nicknameVisible: false },
+      );
+      // No cooldown consultation at all — hiding/unhiding is always free,
+      // unlike updateNickname's cooldown-gated path.
+      expect(settingsService.get).not.toHaveBeenCalled();
+      expect(usersRepository.findById).not.toHaveBeenCalled();
+      expect(usersRepository.updateNickname).not.toHaveBeenCalled();
     });
   });
 });
