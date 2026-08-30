@@ -286,6 +286,58 @@ describe("MePage", () => {
     expect(screen.queryByRole("button", { name: "취소" })).not.toBeInTheDocument();
   });
 
+  it("disables the profile-visibility toggles while the nickname is hidden", async () => {
+    installFakeBackend({ loggedIn: true, nickname: "민들레", nicknameVisible: false });
+
+    render(<MePage />);
+
+    expect(
+      await screen.findByRole("switch", { name: "내가 남긴 고민 목록 공개" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("switch", { name: "내가 남긴 답변 목록 공개" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("switch", { name: "고민/답변 개수 공개" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByText(
+        "닉네임을 공개해야 다른 사람이 프로필 페이지를 볼 수 있어요 — 지금은 이 설정이 적용되지 않아요.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("disables the profile-visibility toggles when there's no nickname yet", async () => {
+    installFakeBackend({ loggedIn: true, nickname: null });
+
+    render(<MePage />);
+
+    expect(
+      await screen.findByRole("switch", { name: "내가 남긴 고민 목록 공개" }),
+    ).toBeDisabled();
+    expect(
+      screen.queryByRole("switch", { name: "닉네임 공개" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("disables the profile-visibility toggles as soon as the nickname toggle is turned off, before saving", async () => {
+    installFakeBackend({ loggedIn: true, nickname: "민들레" });
+
+    render(<MePage />);
+
+    const nicknameToggle = await screen.findByRole("switch", {
+      name: "닉네임 공개",
+    });
+    const requestsToggle = screen.getByRole("switch", {
+      name: "내가 남긴 고민 목록 공개",
+    });
+    expect(requestsToggle).not.toBeDisabled();
+
+    fireEvent.click(nicknameToggle);
+
+    expect(requestsToggle).toBeDisabled();
+  });
+
   it("shares one draft/save bar across the nickname toggle and the profile toggles", async () => {
     const fetchMock = installFakeBackend({ loggedIn: true, nickname: "민들레" });
 

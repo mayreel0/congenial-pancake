@@ -37,7 +37,7 @@ function errorMessage(error: unknown): string {
 }
 
 // Every "who can see this" toggle on /me — nickname visibility in
-// NicknameSection, the three profile-page switches in
+// NicknameVisibilitySection, the three profile-page switches in
 // ProfileVisibilitySection, and whatever gets added later — shares one
 // draft, one 저장/취소 control, and one confirm dialog instead of each
 // section owning its own. Toggles stay in whichever section they visually
@@ -45,6 +45,12 @@ function errorMessage(error: unknown): string {
 // once here as a fixed bar at the bottom of the page. Mounted only once
 // `user` is confirmed non-null (see MeContent), so this never has to
 // handle a null user itself.
+//
+// `children` (and the bar) are wrapped in a real <form> — safe to do here
+// specifically because NicknameSection's own text-edit <form> lives
+// *outside* this provider as a sibling in MePage, so there's no nesting.
+// Multiple independent <form> elements on one page is fine; only nesting
+// one inside another is invalid HTML.
 export function VisibilityDraftProvider({
   user,
   children,
@@ -57,6 +63,11 @@ export function VisibilityDraftProvider({
   const [confirming, setConfirming] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Announced via a persistent aria-live region below, separate from the
+  // bar's own (conditionally-mounted) text — the bar itself unmounts the
+  // instant a save succeeds (isDirty flips back to false), which would
+  // otherwise wipe out the "saved" message before assistive tech reads it.
+  const [statusMessage, setStatusMessage] = useState("");
 
   const isDirty =
     draft.nicknameVisible !== user.nicknameVisible ||
@@ -66,11 +77,13 @@ export function VisibilityDraftProvider({
 
   function setField(field: keyof VisibilityDraft, value: boolean) {
     setError(null);
+    setStatusMessage("저장하지 않은 변경사항이 있어요.");
     setDraft((current) => ({ ...current, [field]: value }));
   }
 
   function resetDraft() {
     setError(null);
+    setStatusMessage("");
     setDraft(draftFromUser(user));
   }
 
@@ -80,44 +93,54 @@ export function VisibilityDraftProvider({
     try {
       await updateProfileVisibility(draft);
       setConfirming(false);
+      setStatusMessage("설정이 저장되었습니다.");
     } catch (saveError) {
-      setError(errorMessage(saveError));
+      const message = errorMessage(saveError);
+      setError(message);
+      setStatusMessage(message);
     } finally {
       setPending(false);
     }
   }
 
+  function handleFormSubmit(event: React.FormEvent): void {
+    event.preventDefault();
+    if (!isDirty) return;
+    setConfirming(true);
+  }
+
   return (
     <VisibilityDraftContext.Provider value={{ draft, setField }}>
-      {children}
-      {isDirty ? (
-        <div className="fixed inset-x-0 bottom-0 z-10 border-t border-line bg-surface px-5 py-3 shadow-sm sm:px-8">
-          <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
-            {error ? (
-              <p className="text-xs text-red-600">{error}</p>
-            ) : (
-              <p className="text-xs text-muted">저장하지 않은 변경사항이 있어요.</p>
-            )}
-            <div className="flex shrink-0 gap-2">
-              <Button
-                size="sm"
-                type="button"
-                onClick={() => setConfirming(true)}
-              >
-                저장
-              </Button>
-              <Button
-                size="sm"
-                type="button"
-                variant="secondary"
-                onClick={resetDraft}
-              >
-                취소
-              </Button>
+      <div aria-live="polite" className="sr-only">
+        {statusMessage}
+      </div>
+      <form aria-label="공개 설정 변경" onSubmit={handleFormSubmit}>
+        {children}
+        {isDirty ? (
+          <div className="fixed inset-x-0 bottom-0 z-10 border-t border-line bg-surface px-5 py-3 shadow-sm sm:px-8">
+            <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
+              {error ? (
+                <p className="text-xs text-red-600">{error}</p>
+              ) : (
+                <p className="text-xs text-muted">저장하지 않은 변경사항이 있어요.</p>
+              )}
+              <div className="flex shrink-0 gap-2">
+                <Button size="sm" type="submit">
+                  저장
+                </Button>
+                <Button
+                  size="sm"
+                  type="button"
+                  variant="secondary"
+                  onClick={resetDraft}
+                >
+                  취소
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      ) : null}
+        ) : null}
+      </form>
       <ActionConfirmDialog
         confirmLabel={pending ? "저장하는 중" : "저장"}
         message="설정을 저장할까요?"
