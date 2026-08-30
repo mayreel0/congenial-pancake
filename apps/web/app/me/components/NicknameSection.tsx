@@ -24,6 +24,11 @@ function cooldownDaysRemaining(availableAt: string | null): number | null {
   return Math.ceil(remainingMs / MS_PER_DAY);
 }
 
+// Nickname *visibility* (showing/hiding it from others without changing the
+// text) lives in its own card, NicknameVisibilitySection, sharing the
+// page-wide draft/save/dialog from VisibilityDraftProvider — this section
+// only covers the nickname's actual text and its change cooldown, so it can
+// stay a self-contained <form> with no cross-component state.
 export function NicknameSection() {
   const { user, updateNickname } = useAuth();
   const [editing, setEditing] = useState(false);
@@ -119,14 +124,16 @@ export function NicknameSection() {
               </p>
             ) : null}
           </div>
-          <Button
-            disabled={cooldownActive}
-            size="sm"
-            type="button"
-            onClick={startEditing}
-          >
-            {user.nickname ? "수정" : "설정하기"}
-          </Button>
+          <div className="shrink-0">
+            <Button
+              disabled={cooldownActive}
+              size="sm"
+              type="button"
+              onClick={startEditing}
+            >
+              {user.nickname ? "수정" : "설정하기"}
+            </Button>
+          </div>
         </div>
       )}
     </section>

@@ -98,3 +98,21 @@
 - 앞으로 추가될 가시성 설정도 이 패턴을 따름: 토글은 자신이 속한 섹션에 두고 `useVisibilityDraft()`로 공유 draft에 참여하기만 하면 됨 — 새 설정마다 별도 draft/저장/다이얼로그를 만들 필요 없음.
 - 실브라우저 검증: 닉네임 카드와 공개 프로필 카드가 각자 원래 자리에 그대로 있는 것, 두 카드의 토글을 각각 하나씩 바꾸면 하단에 고정 바 하나만 나타나는 것, 저장 클릭 → 확인 다이얼로그 → 확인 시 두 변경사항이 한 번의 `PATCH /auth/profile-visibility` 요청(닉네임 공개 + 프로필 필드 모두 포함)으로 나가는 것, 저장 후 값이 정확히 반영되는 것 확인.
 - `apps/web` lint/typecheck/test(96/96)/build 통과.
+
+## 추가: 닉네임 공개 토글을 별도 카드로 분리, 진짜 `<form>` + aria-live 도입, 닉네임 비공개 시 프로필 설정 비활성화 (PR #105 머지 후, 사용자 요청 3건)
+
+PR #105(백엔드) 머지 후 프론트엔드(PR #106) 마무리 라운드. 세 가지 요청이 이어졌음:
+
+1. "지금 하단에 저장하지 않은 변경사항이 있어요 뜨는건 좋은데 이거 form 으로 안해도 괜찮아?" — `<form>`을 안 쓴 이유(당시엔 `NicknameSection`의 텍스트 편집용 `<form>`과 중첩되는 문제)를 설명하고, 대신 `aria-live` 알림 보강을 1순위로 제안.
+2. "닉네임 공개" 토글을 `NicknameSection`(텍스트 편집 폼) 안이 아니라 별도의 "닉네임 공개 설정" 카드로 분리하자는 사용자 제안 — 한 페이지에 `<form>`이 여러 개 있어도 되는지(된다 — HTML은 form **중첩**만 금지, 형제 `<form>`은 표준적) 확인 후 채택. 이 분리 자체가 중첩 문제를 없애줘서, `NicknameVisibilitySection` + `ProfileVisibilitySection` + 하단 바를 진짜 `<form>` 하나로 감쌀 수 있게 됨(`NicknameSection`의 자체 `<form>`은 이제 형제 관계라 중첩되지 않음).
+3. "닉네임 비공개 설정하면 공개 프로필 설정은 비활성화로 보이게 해줘" — `/u/[slug]`가 닉네임 비공개 시 이미 전원 404이므로(`UsersService.findByNicknameAndDiscriminator`), `ProfileVisibilitySection`의 토글 3개는 그동안 아무 효과가 없었음. 백엔드 변경 없이 프론트엔드에서만 `disabled` 처리.
+
+구현:
+- `NicknameSection`: "닉네임 공개" 토글 제거, 순수 텍스트 편집 `<form>`만 남음. `useVisibilityDraft()` 의존성 제거.
+- `NicknameVisibilitySection`(신규): "닉네임 공개" 토글만 담은 카드. `useVisibilityDraft()`로 공유 draft에 참여.
+- `ProfileVisibilitySection`: 토글 3개 모두 `disabled={!user?.nickname || !draft.nicknameVisible}` — 저장된 값이 아니라 **draft**를 기준으로 하므로, 저장 전에 닉네임 공개 토글을 끄는 즉시 반응. 비활성화 시 안내 문구("닉네임을 공개해야 다른 사람이 프로필 페이지를 볼 수 있어요 — 지금은 이 설정이 적용되지 않아요.") 표시. 저장된 값 자체는 건드리지 않고 그대로 두어, 닉네임을 다시 공개하면 자동으로 다시 적용됨.
+- `MePage`: `NicknameSection`을 `VisibilityDraftProvider` **밖**으로 빼서 형제 관계로 만듦 — `NicknameVisibilitySection` + `ProfileVisibilitySection`만 Provider 안에 남음.
+- `VisibilityDraftProvider`: `{children}` + 하단 바를 `<form aria-label="공개 설정 변경" onSubmit={...}>`로 감쌈 — "저장" 버튼은 `type="submit"`, 제출 시 `preventDefault` 후 확인 다이얼로그를 염(다이얼로그 확인이 실제 PATCH). `isDirty`가 아닐 때 제출되면 무시하는 가드 추가. `aria-live="polite"` + `sr-only`인 항상-마운트된 상태 알림 `<div>`를 추가해 "저장하지 않은 변경사항이 있어요."/에러/"설정이 저장되었습니다."를 announce — 하단 바 자체는 저장 성공 시 `isDirty`가 바로 `false`가 되며 언마운트되므로, 알림 텍스트를 하단 바 안에 두면 "저장됨" 메시지가 스크린리더에 닿기도 전에 사라짐. 그래서 별도의 항상-존재하는 요소로 분리.
+
+- 실브라우저 검증: 카드 3개(닉네임 / 닉네임 공개 설정 / 공개 프로필 설정)가 각자 분리되어 보이는 것, "닉네임 공개"를 끄면 저장 전에도 프로필 토글 3개가 즉시 회색으로 비활성화되고 안내 문구가 뜨는 것, 비활성화된 토글 클릭이 무시되는 것, accessibility tree상 `form "공개 설정 변경"`과 `button "저장" type="submit"`이 존재하는 것, 저장 버튼(네이티브 submit)이 확인 다이얼로그를 여는 것, 확인 후 `document.querySelector('[aria-live="polite"]').textContent`가 "설정이 저장되었습니다."로 바뀌는 것 확인.
+- `apps/web` lint/typecheck/test(99/99)/build 통과. 백엔드 변경 없음 — `PATCH /auth/profile-visibility`가 이미 4개 필드 모두 partial patch를 지원하므로, 비활성화는 순수 프론트엔드 UX임.

@@ -71,13 +71,14 @@ function ProfileBody({ profile }: { profile: PublicProfileDto }) {
         </p>
       </section>
 
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold tracking-normal">남긴 고민</h2>
-        {profile.requests.length === 0 ? (
-          <p className="rounded-lg border border-line bg-surface px-4 py-5 text-sm text-muted shadow-sm">
-            공개한 고민이 없습니다.
-          </p>
-        ) : (
+      <ProfileSection
+        count={profile.countsVisible ? profile.requestCount : null}
+        emptyMessage="공개한 고민이 없습니다."
+        hiddenMessage="이 계정은 남긴 고민을 비공개로 설정했어요."
+        title="남긴 고민"
+        visible={profile.requestsVisible}
+      >
+        {profile.requests.length > 0 ? (
           <ol className="space-y-2">
             {profile.requests.map((request) => (
               <ProfilePostCard
@@ -88,16 +89,17 @@ function ProfileBody({ profile }: { profile: PublicProfileDto }) {
               />
             ))}
           </ol>
-        )}
-      </section>
+        ) : null}
+      </ProfileSection>
 
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold tracking-normal">남긴 답변</h2>
-        {profile.replies.length === 0 ? (
-          <p className="rounded-lg border border-line bg-surface px-4 py-5 text-sm text-muted shadow-sm">
-            공개한 답변이 없습니다.
-          </p>
-        ) : (
+      <ProfileSection
+        count={profile.countsVisible ? profile.replyCount : null}
+        emptyMessage="공개한 답변이 없습니다."
+        hiddenMessage="이 계정은 남긴 답변을 비공개로 설정했어요."
+        title="남긴 답변"
+        visible={profile.repliesVisible}
+      >
+        {profile.replies.length > 0 ? (
           <ol className="space-y-2">
             {profile.replies.map((reply) => (
               <ProfilePostCard
@@ -108,9 +110,53 @@ function ProfileBody({ profile }: { profile: PublicProfileDto }) {
               />
             ))}
           </ol>
-        )}
-      </section>
+        ) : null}
+      </ProfileSection>
     </div>
+  );
+}
+
+type ProfileSectionProps = {
+  title: string;
+  // null when counts are hidden (profile.countsVisible: false) — the
+  // heading just omits the "(N)" suffix entirely rather than showing a
+  // placeholder, independent of whether the list itself (visible) is shown.
+  count: number | null;
+  visible: boolean;
+  hiddenMessage: string;
+  emptyMessage: string;
+  children: React.ReactNode;
+};
+
+// items.length is only meaningful when visible is true — the backend
+// returns an empty array either way (hidden vs. genuinely nothing there),
+// so this component (not the caller) decides which message applies.
+function ProfileSection({
+  title,
+  count,
+  visible,
+  hiddenMessage,
+  emptyMessage,
+  children,
+}: ProfileSectionProps) {
+  return (
+    <section className="space-y-3">
+      <h2 className="text-lg font-semibold tracking-normal">
+        {title}
+        {count !== null ? ` (${count})` : ""}
+      </h2>
+      {visible ? (
+        children ?? (
+          <p className="rounded-lg border border-line bg-surface px-4 py-5 text-sm text-muted shadow-sm">
+            {emptyMessage}
+          </p>
+        )
+      ) : (
+        <p className="rounded-lg border border-line bg-surface px-4 py-5 text-sm text-muted shadow-sm">
+          {hiddenMessage}
+        </p>
+      )}
+    </section>
   );
 }
 

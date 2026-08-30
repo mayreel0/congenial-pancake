@@ -4,6 +4,14 @@ import { apiFetch } from "../api";
 export type PublicProfileDto = {
   nickname: string;
   nicknameDiscriminator: string;
+  // Each independently toggleable from /me — a hidden list is an empty
+  // array (not an error), and *Count is non-null only when the count
+  // switch is on, regardless of whether the corresponding list is shown.
+  requestsVisible: boolean;
+  repliesVisible: boolean;
+  countsVisible: boolean;
+  requestCount: number | null;
+  replyCount: number | null;
   requests: {
     id: string;
     body: string;
