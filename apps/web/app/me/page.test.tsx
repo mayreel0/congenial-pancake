@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "../lib/test-utils";
+import { fireEvent, render, screen, within } from "../lib/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import MePage from "./page";
 
@@ -149,10 +149,11 @@ describe("MePage", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("reflects a hidden nickname in the toggle state", async () => {
+  it("reflects current settings, including a hidden nickname, in the toggles", async () => {
     installFakeBackend({
       loggedIn: true,
       nickname: "민들레",
+      showRequestsOnProfile: false,
       nicknameVisible: false,
     });
 
@@ -161,21 +162,9 @@ describe("MePage", () => {
     expect(
       await screen.findByRole("switch", { name: "닉네임 공개" }),
     ).not.toBeChecked();
-  });
-
-  it("shows the profile visibility toggles reflecting current settings", async () => {
-    installFakeBackend({
-      loggedIn: true,
-      nickname: "민들레",
-      showRequestsOnProfile: false,
-    });
-
-    render(<MePage />);
-
-    const requestsToggle = await screen.findByRole("switch", {
-      name: "내가 남긴 고민 목록 공개",
-    });
-    expect(requestsToggle).not.toBeChecked();
+    expect(
+      screen.getByRole("switch", { name: "내가 남긴 고민 목록 공개" }),
+    ).not.toBeChecked();
     expect(
       screen.getByRole("switch", { name: "내가 남긴 답변 목록 공개" }),
     ).toBeChecked();
@@ -184,27 +173,7 @@ describe("MePage", () => {
     ).toBeChecked();
   });
 
-  it("toggling a profile-visibility switch doesn't call the API until saved", async () => {
-    const fetchMock = installFakeBackend({ loggedIn: true, nickname: "민들레" });
-
-    render(<MePage />);
-
-    const requestsToggle = await screen.findByRole("switch", {
-      name: "내가 남긴 고민 목록 공개",
-    });
-    fireEvent.click(requestsToggle);
-
-    expect(requestsToggle).not.toBeChecked();
-    expect(
-      fetchMock.mock.calls.some(([input]) =>
-        (typeof input === "string" ? input : input.toString()).endsWith(
-          "/auth/profile-visibility",
-        ),
-      ),
-    ).toBe(false);
-  });
-
-  it("saving a profile-visibility change sends the full draft", async () => {
+  it("toggling a visibility switch doesn't call the API until saved and confirmed", async () => {
     const fetchMock = installFakeBackend({ loggedIn: true, nickname: "민들레" });
 
     render(<MePage />);
@@ -215,6 +184,31 @@ describe("MePage", () => {
     fireEvent.click(requestsToggle);
     fireEvent.click(screen.getByRole("button", { name: "저장" }));
 
+    expect(requestsToggle).not.toBeChecked();
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    expect(
+      fetchMock.mock.calls.some(([input]) =>
+        (typeof input === "string" ? input : input.toString()).endsWith(
+          "/auth/profile-visibility",
+        ),
+      ),
+    ).toBe(false);
+  });
+
+  it("confirming the dialog sends the full draft, including nicknameVisible", async () => {
+    const fetchMock = installFakeBackend({ loggedIn: true, nickname: "민들레" });
+
+    render(<MePage />);
+
+    const requestsToggle = await screen.findByRole("switch", {
+      name: "내가 남긴 고민 목록 공개",
+    });
+    fireEvent.click(requestsToggle);
+    fireEvent.click(screen.getByRole("button", { name: "저장" }));
+
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "저장" }));
+
     await screen.findByRole("switch", { name: "내가 남긴 고민 목록 공개" });
     const patchCall = fetchMock.mock.calls.find(([input]) =>
       (typeof input === "string" ? input : input.toString()).endsWith(
@@ -224,13 +218,42 @@ describe("MePage", () => {
     expect(patchCall).toBeDefined();
     const [, init] = patchCall!;
     expect(JSON.parse(init!.body as string)).toEqual({
+      nicknameVisible: true,
       showRequestsOnProfile: false,
       showRepliesOnProfile: true,
       showCountsOnProfile: true,
     });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("canceling a profile-visibility change reverts without calling the API", async () => {
+  it("canceling the dialog leaves the draft as-is without calling the API", async () => {
+    const fetchMock = installFakeBackend({ loggedIn: true, nickname: "민들레" });
+
+    render(<MePage />);
+
+    const requestsToggle = await screen.findByRole("switch", {
+      name: "내가 남긴 고민 목록 공개",
+    });
+    fireEvent.click(requestsToggle);
+    fireEvent.click(screen.getByRole("button", { name: "저장" }));
+
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "취소" }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    // Dialog cancel only closes the dialog — the unsaved toggle change
+    // itself is untouched, unlike the section's own "취소" button.
+    expect(requestsToggle).not.toBeChecked();
+    expect(
+      fetchMock.mock.calls.some(([input]) =>
+        (typeof input === "string" ? input : input.toString()).endsWith(
+          "/auth/profile-visibility",
+        ),
+      ),
+    ).toBe(false);
+  });
+
+  it("canceling via the section's own button reverts the draft without calling the API", async () => {
     const fetchMock = installFakeBackend({ loggedIn: true, nickname: "민들레" });
 
     render(<MePage />);
@@ -253,7 +276,7 @@ describe("MePage", () => {
     ).toBe(false);
   });
 
-  it("disables save/cancel until a profile-visibility change is made", async () => {
+  it("disables save/cancel until a visibility change is made", async () => {
     installFakeBackend({ loggedIn: true, nickname: "민들레" });
 
     render(<MePage />);

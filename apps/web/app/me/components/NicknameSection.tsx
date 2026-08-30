@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Button } from "ui/Button";
 import { TextField } from "ui/TextField";
-import { Toggle } from "ui/Toggle";
 import { ApiError } from "../../lib/api";
 import { useAuth } from "../../lib/auth/useAuth";
 
@@ -25,13 +24,15 @@ function cooldownDaysRemaining(availableAt: string | null): number | null {
   return Math.ceil(remainingMs / MS_PER_DAY);
 }
 
+// Nickname *visibility* (showing/hiding it from others without changing the
+// text) lives in VisibilitySettingsSection instead — this section only
+// covers the nickname's actual text and its change cooldown.
 export function NicknameSection() {
-  const { user, updateNickname, updateProfileVisibility } = useAuth();
+  const { user, updateNickname } = useAuth();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [visibilityError, setVisibilityError] = useState<string | null>(null);
 
   if (!user) return null;
 
@@ -63,15 +64,6 @@ export function NicknameSection() {
       setError(errorMessage(submitError));
     } finally {
       setPending(false);
-    }
-  }
-
-  async function handleToggleVisibility(checked: boolean): Promise<void> {
-    setVisibilityError(null);
-    try {
-      await updateProfileVisibility({ nicknameVisible: checked });
-    } catch (toggleError) {
-      setVisibilityError(errorMessage(toggleError));
     }
   }
 
@@ -142,23 +134,6 @@ export function NicknameSection() {
           </div>
         </div>
       )}
-      {user.nickname && !editing ? (
-        <div className="space-y-1 border-t border-line pt-3">
-          <Toggle
-            checked={user.nicknameVisible}
-            label="닉네임 공개"
-            onChange={(checked) => void handleToggleVisibility(checked)}
-          />
-          <p className="text-xs text-muted">
-            꺼두면 지금까지 남긴 글에서도 닉네임 대신 익명으로 보여요. 언제든
-            다시 켤 수 있고, 켜면 원래 닉네임 그대로 돌아와요 — 변경 쿨타임과는
-            무관해요.
-          </p>
-          {visibilityError ? (
-            <p className="text-xs text-red-600">{visibilityError}</p>
-          ) : null}
-        </div>
-      ) : null}
     </section>
   );
 }
