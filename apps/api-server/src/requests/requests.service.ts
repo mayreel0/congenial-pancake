@@ -8,7 +8,10 @@ import { UsersService } from '../users/users.service';
 import type { CreateRequestDto } from './dto/create-request.dto';
 import {
   RequestsRepository,
+  type DateRange,
   type FeedItem,
+  type PagedResult,
+  type Pagination,
   type RequestRecord,
   type RequestWithReplyCount,
 } from './requests.repository';
@@ -55,12 +58,19 @@ export class RequestsService {
     return this.requestsRepository.findVisibleById(id);
   }
 
-  findFeed(): Promise<FeedItem[]> {
-    return this.requestsRepository.findFeed();
+  findFeed(
+    range: DateRange,
+    pagination: Pagination,
+  ): Promise<PagedResult<FeedItem>> {
+    return this.requestsRepository.findFeed(range, pagination);
   }
 
-  findMine(authorId: string): Promise<FeedItem[]> {
-    return this.requestsRepository.findMine(authorId);
+  findMine(
+    authorId: string,
+    range: DateRange,
+    pagination: Pagination,
+  ): Promise<PagedResult<FeedItem>> {
+    return this.requestsRepository.findMine(authorId, range, pagination);
   }
 
   findPublicByAuthor(authorId: string): Promise<RequestRecord[]> {
