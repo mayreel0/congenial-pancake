@@ -19,6 +19,11 @@ describe('ProfileController', () => {
     const profile: PublicProfileDto = {
       nickname: '민들레',
       nicknameDiscriminator: 'C376',
+      requestsVisible: true,
+      repliesVisible: true,
+      countsVisible: true,
+      requestCount: 0,
+      replyCount: 0,
       requests: [],
       replies: [],
     };

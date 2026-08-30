@@ -62,4 +62,24 @@ export class UsersRepository {
       .returning();
     return user;
   }
+
+  async updateProfileVisibility(
+    id: string,
+    patch: Partial<
+      Pick<
+        User,
+        | 'showRequestsOnProfile'
+        | 'showRepliesOnProfile'
+        | 'showCountsOnProfile'
+        | 'nicknameVisible'
+      >
+    >,
+  ): Promise<User> {
+    const [user] = await this.db
+      .update(users)
+      .set(patch)
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
 }

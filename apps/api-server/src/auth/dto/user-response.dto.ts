@@ -16,6 +16,15 @@ export type UserResponseDto = {
   // cooldown has already elapsed. Lets the frontend show/disable
   // proactively instead of only finding out from a failed request.
   nicknameChangeAvailableAt: Date | null;
+  // Independent public-profile (/u/[slug]) visibility switches — see
+  // users.schema.ts and ProfileService.findProfile.
+  showRequestsOnProfile: boolean;
+  showRepliesOnProfile: boolean;
+  showCountsOnProfile: boolean;
+  // Whether the nickname is shown to anyone but the owner — this DTO is
+  // always the owner's own view, so `nickname` above stays the real value
+  // regardless of this flag (they should always see their own nickname).
+  nicknameVisible: boolean;
 };
 
 // nicknameChangeAvailableAt is a required (not defaulted) param, not
@@ -35,5 +44,9 @@ export function toUserResponseDto(
     nickname: user.nickname,
     nicknameDiscriminator: nicknameDiscriminator(user.id),
     nicknameChangeAvailableAt,
+    showRequestsOnProfile: user.showRequestsOnProfile,
+    showRepliesOnProfile: user.showRepliesOnProfile,
+    showCountsOnProfile: user.showCountsOnProfile,
+    nicknameVisible: user.nicknameVisible,
   };
 }

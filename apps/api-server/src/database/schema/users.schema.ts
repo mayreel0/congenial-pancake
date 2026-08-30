@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { boolean, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -18,6 +18,31 @@ export const users = pgTable('users', {
   // rate-limited against this timestamp — see UsersService.updateNickname
   // and docs/decisions/2026-08-29-onseol-nickname-cooldown-decisions.md.
   nicknameChangedAt: timestamp('nickname_changed_at', { withTimezone: true }),
+  // Independent public-profile (/u/[slug]) visibility switches — all
+  // default true (opt-out, not opt-in) since a member who's already
+  // revealing their nickname per-post has implicitly signaled they're okay
+  // being found. showCountsOnProfile is deliberately separate from the two
+  // list toggles (not derived from them) — a member can show activity
+  // counts as a trust signal while keeping the actual content hidden, or
+  // vice versa. See docs/decisions/2026-08-30-onseol-profile-privacy-
+  // decisions.md.
+  showRequestsOnProfile: boolean('show_requests_on_profile')
+    .notNull()
+    .default(true),
+  showRepliesOnProfile: boolean('show_replies_on_profile')
+    .notNull()
+    .default(true),
+  showCountsOnProfile: boolean('show_counts_on_profile')
+    .notNull()
+    .default(true),
+  // Whether the nickname is shown to anyone but the owner — a pure
+  // visibility switch, deliberately NOT the same as clearing/changing the
+  // nickname text. Toggling this doesn't touch `nickname` or
+  // `nicknameChangedAt`, so it never resets or bypasses the change
+  // cooldown; the underlying nickname (and its cooldown clock) is exactly
+  // as if this toggle didn't exist. See UsersService.nicknameMapFor and
+  // docs/decisions/2026-08-30-onseol-profile-privacy-decisions.md.
+  nicknameVisible: boolean('nickname_visible').notNull().default(true),
   createdAt: timestamp('created_at', { withTimezone: true })
     .notNull()
     .defaultNow(),

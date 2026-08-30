@@ -8,6 +8,7 @@ import {
   InternalServerErrorException,
   NotFoundException,
   Param,
+  Patch,
   Post,
   Req,
   Res,
@@ -32,6 +33,7 @@ import { OAuthProviderRegistry } from './oauth/oauth-provider-registry';
 import { PasswordResetService } from './password-reset/password-reset.service';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { UpdateNicknameDto } from './dto/update-nickname.dto';
+import { UpdateProfileVisibilityDto } from './dto/update-profile-visibility.dto';
 import { clearSessionCookie, setSessionCookie } from './session-cookie';
 import { SessionGuard } from './session.guard';
 import { SessionService } from './session.service';
@@ -140,6 +142,23 @@ export class AuthController {
     @Body() dto: UpdateNicknameDto,
   ): Promise<UserResponseDto> {
     const user = await this.usersService.updateNickname(userId, dto.nickname);
+    const nicknameChangeAvailableAt =
+      await this.usersService.nicknameChangeAvailableAt(user);
+    return toUserResponseDto(user, nicknameChangeAvailableAt);
+  }
+
+  // Independent per-field switches — three for the public profile
+  // (/u/[slug]) itself, plus nicknameVisible (whether the nickname shows up
+  // anywhere at all, including past posts) — see users.schema.ts and
+  // ProfileService.findProfile.
+  @Patch('profile-visibility')
+  @UseGuards(SessionGuard)
+  @HttpCode(HttpStatus.OK)
+  async updateProfileVisibility(
+    @CurrentUser() userId: string,
+    @Body() dto: UpdateProfileVisibilityDto,
+  ): Promise<UserResponseDto> {
+    const user = await this.usersService.updateProfileVisibility(userId, dto);
     const nicknameChangeAvailableAt =
       await this.usersService.nicknameChangeAvailableAt(user);
     return toUserResponseDto(user, nicknameChangeAvailableAt);
