@@ -115,7 +115,10 @@ export function VisibilityDraftProvider({
         {statusMessage}
       </div>
       <form aria-label="공개 설정 변경" onSubmit={handleFormSubmit}>
-        {children}
+        {/* space-y here, not on <form> itself — the fixed bottom bar below
+            is a sibling too, and margin-top from space-y would apply to it
+            despite position: fixed taking it out of normal flow. */}
+        <div className="space-y-8">{children}</div>
         {isDirty ? (
           <div className="fixed inset-x-0 bottom-0 z-10 border-t border-line bg-surface px-5 py-3 shadow-sm sm:px-8">
             <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
