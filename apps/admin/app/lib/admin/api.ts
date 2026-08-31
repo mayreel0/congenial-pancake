@@ -4,13 +4,9 @@ import type {
 } from "shared/dto";
 import { apiFetch } from "../api";
 
-export type AdminRequestDto = AdminRequestResponseDto;
-
-export type AdminReplyDto = AdminReplyResponseDto;
-
 export type HiddenModerationQueueDto = {
-  requests: AdminRequestDto[];
-  replies: AdminReplyDto[];
+  requests: AdminRequestResponseDto[];
+  replies: AdminReplyResponseDto[];
 };
 
 export function fetchHiddenModerationQueue(): Promise<HiddenModerationQueueDto> {

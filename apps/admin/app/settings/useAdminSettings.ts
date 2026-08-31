@@ -2,7 +2,7 @@
 
 import { ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth/useAuth";
-import type { AdminSettingsDto } from "../lib/admin/settings-api";
+import type { SettingsResponseDto } from "shared/dto";
 import {
   useAdminSettingsQuery,
   useUpdateAdminSettingsMutation,
@@ -10,13 +10,13 @@ import {
 
 type UseAdminSettingsResult = {
   status: "loading" | "signedOut" | "forbidden" | "ready";
-  settings: AdminSettingsDto | undefined;
+  settings: SettingsResponseDto | undefined;
   updating: boolean;
   updateError: string | null;
   update(
     input: Partial<
       Pick<
-        AdminSettingsDto,
+        SettingsResponseDto,
         | "queueFreshnessHours"
         | "queueReplyCap"
         | "guestReplyLimit"
