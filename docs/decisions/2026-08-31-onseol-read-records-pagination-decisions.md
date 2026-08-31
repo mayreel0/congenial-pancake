@@ -42,3 +42,15 @@
 
 - 실브라우저 검증(백엔드 PR 브랜치를 임시로 빌려와서): `/read`에서 이전/다음 날 이동 시 실제로 다른 날짜 데이터가 뜨고 "다음 날"이 어제에서 비활성화되는 것, `/records`에서 날짜 범위 입력 후 목록이 필터링되고 페이지 2로 이동 시 다른 항목이 뜨는 것, `/answer`는 콘솔 에러 없이 정상 렌더(테스트 계정 데이터가 20개 미만이라 실제 무한스크롤 트리거는 못 봤지만, 유닛 테스트로 sentinel→fetchNextPage→과거 항목 병합 전 과정 확인).
 - `apps/web` lint/typecheck/test(106/106)/build 통과. `apps/admin` lint/typecheck 통과(무관함 확인).
+
+## 추가: pageSize를 클라이언트가 선택 가능하게 (10/20/50, 기본 10) + 페이지네이션 UI 상시 표시
+
+사용자 피드백: "한 페이지사이즈를 20으로 해두었는데 기본은 10으로 하고 10, 20, 50 조절할 수 있게 하자. 그리고 페이지네이션은 다음페이지가 없어도 UI를 보여줘야해."
+
+- `DEFAULT_PAGE_SIZE` 20 → 10, `PAGE_SIZE_OPTIONS = [10, 20, 50]` 화이트리스트 도입 (`apps/api-server/src/common/pagination.dto.ts`). `parsePageSizeParam`도 `parsePageParam`과 같은 원칙(잘못된/화이트리스트 밖 값은 400 대신 조용히 기본값 10으로 폴백)을 따름.
+- `GET /requests/feed`, `GET /requests/mine`, `GET /replies/mine` 모두 `pageSize` 쿼리 파라미터 지원.
+- `ui/Pagination`에 페이지 크기 `<select>`(10/20/50) 추가, 그리고 **`totalPages <= 1`이어도 더 이상 `null`을 반환하지 않고 항상 렌더링** — 크기 선택 UI가 페이지 수와 무관하게 계속 닿을 수 있어야 하기 때문(예: 10개 기준 1페이지뿐이어도 50개로 바꾸고 싶을 수 있음). 페이지 크기를 바꾸면 페이지 1로 리셋.
+- `/answer`의 무한스크롤(`useMyAnswerLogInfiniteQuery`)은 이 선택 UI 대상이 아님 — pageSize 파라미터 없이 호출해 서버 기본값(10)을 그대로 씀. 채팅 로그 특성상 "페이지 크기"라는 개념을 사용자에게 노출할 필요가 없다고 판단.
+
+- 실브라우저 검증(백엔드 PR 브랜치를 임시로 빌려와서): `/records`에서 페이지 크기를 50으로 바꾸면 실제로 더 많은 항목이 한 페이지에 로드되고 페이지네이션 컨트롤(선택 UI 포함)이 1페이지 상태로도 계속 보이는 것, `/read`에서 항목이 페이지 크기보다 적은 날에도 페이지네이션 컨트롤이 그대로 보이는 것 확인.
+- `apps/api-server` lint/typecheck/test(132/132)/build 통과. `apps/web` lint/typecheck/test(107/107)/build 통과.
