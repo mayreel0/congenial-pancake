@@ -240,17 +240,57 @@ export class RequestsRepository {
   // Public profile page: only requests this member chose to reveal
   // (anonymous: false) and that are still visible — mirrors findVisible's
   // hidden/deletedAt filtering (shown to *other* viewers, unlike findMine
-  // which is the author's own unfiltered view).
-  findPublicByAuthor(authorId: string): Promise<RequestRecord[]> {
-    return this.db.query.requests.findMany({
-      where: and(
-        eq(requests.authorId, authorId),
-        eq(requests.anonymous, false),
-        eq(requests.hidden, false),
-        isNull(requests.deletedAt),
-      ),
+  // which is the author's own unfiltered view). Paginated — the main
+  // profile endpoint uses page 1 of a small pageSize as a preview and still
+  // needs the real totalItems for its "(N)" count, the dedicated list
+  // endpoint uses the caller's own page/pageSize.
+  async findPublicByAuthor(
+    authorId: string,
+    pagination: Pagination,
+  ): Promise<PagedResult<RequestRecord>> {
+    const whereClause = and(
+      eq(requests.authorId, authorId),
+      eq(requests.anonymous, false),
+      eq(requests.hidden, false),
+      isNull(requests.deletedAt),
+    );
+
+    const [{ value: totalItems }] = await this.db
+      .select({ value: count() })
+      .from(requests)
+      .where(whereClause);
+
+    if (totalItems === 0) return { items: [], totalItems: 0 };
+
+    const items = await this.db.query.requests.findMany({
+      where: whereClause,
       orderBy: desc(requests.createdAt),
+      limit: pagination.pageSize,
+      offset: (pagination.page - 1) * pagination.pageSize,
     });
+
+    return { items, totalItems };
+  }
+
+  // Single-thread version of findFeed/findMine's shape, for the public
+  // profile detail pages — one visible request plus all its visible
+  // replies (oldest first), with no "must have at least one reply"
+  // requirement unlike findFeed (a profile owner's own request with zero
+  // replies yet should still open, just showing an empty reply list).
+  async findFeedItemById(requestId: string): Promise<FeedItem | undefined> {
+    const request = await this.findVisibleById(requestId);
+    if (!request) return undefined;
+
+    const visibleReplies = await this.db.query.replies.findMany({
+      where: and(
+        eq(replies.requestId, requestId),
+        eq(replies.hidden, false),
+        isNull(replies.deletedAt),
+      ),
+      orderBy: asc(replies.createdAt),
+    });
+
+    return { request, replies: visibleReplies };
   }
 
   findByGuestId(guestId: string): Promise<RequestRecord | undefined> {

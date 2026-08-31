@@ -73,8 +73,15 @@ export class RequestsService {
     return this.requestsRepository.findMine(authorId, range, pagination);
   }
 
-  findPublicByAuthor(authorId: string): Promise<RequestRecord[]> {
-    return this.requestsRepository.findPublicByAuthor(authorId);
+  findPublicByAuthor(
+    authorId: string,
+    pagination: Pagination,
+  ): Promise<PagedResult<RequestRecord>> {
+    return this.requestsRepository.findPublicByAuthor(authorId, pagination);
+  }
+
+  findFeedItemById(requestId: string): Promise<FeedItem | undefined> {
+    return this.requestsRepository.findFeedItemById(requestId);
   }
 
   async findQueueCandidate(

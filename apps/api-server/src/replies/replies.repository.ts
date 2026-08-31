@@ -168,22 +168,40 @@ export class RepliesRepository {
   // via someone's profile. Unlike findMine, this is shown to *other*
   // viewers, so both hidden/deletedAt filters apply (findMine's "show the
   // viewer their own content unfiltered" policy doesn't extend to
-  // strangers).
-  findPublicByAuthor(authorId: string): Promise<ReplyWithRequest[]> {
-    return this.db
+  // strangers). Paginated for the same reason as
+  // RequestsRepository.findPublicByAuthor — the main profile endpoint uses
+  // a small preview page but still needs the real totalItems for its
+  // count, the dedicated list endpoint uses the caller's page/pageSize.
+  async findPublicByAuthor(
+    authorId: string,
+    pagination: Pagination,
+  ): Promise<PagedResult<ReplyWithRequest>> {
+    const whereClause = and(
+      eq(replies.authorId, authorId),
+      eq(replies.anonymous, false),
+      eq(replies.hidden, false),
+      isNull(replies.deletedAt),
+      eq(requests.hidden, false),
+      isNull(requests.deletedAt),
+    );
+
+    const [{ value: totalItems }] = await this.db
+      .select({ value: count() })
+      .from(replies)
+      .innerJoin(requests, eq(requests.id, replies.requestId))
+      .where(whereClause);
+
+    if (totalItems === 0) return { items: [], totalItems: 0 };
+
+    const items = await this.db
       .select({ reply: replies, request: requests })
       .from(replies)
       .innerJoin(requests, eq(requests.id, replies.requestId))
-      .where(
-        and(
-          eq(replies.authorId, authorId),
-          eq(replies.anonymous, false),
-          eq(replies.hidden, false),
-          isNull(replies.deletedAt),
-          eq(requests.hidden, false),
-          isNull(requests.deletedAt),
-        ),
-      )
-      .orderBy(desc(replies.createdAt));
+      .where(whereClause)
+      .orderBy(desc(replies.createdAt))
+      .limit(pagination.pageSize)
+      .offset((pagination.page - 1) * pagination.pageSize);
+
+    return { items, totalItems };
   }
 }
