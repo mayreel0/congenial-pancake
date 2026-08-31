@@ -8,6 +8,10 @@ type ReadThreadProps = {
   authorLabels: Map<number, string>;
   savedReplyIds: Set<string>;
   showActions: boolean;
+  // Public-profile 답변 상세 (/u/[slug]/replies/[id]) passes the replyId it
+  // navigated from so that one bubble stands out in the full thread; /read
+  // never sets this.
+  highlightReplyId?: string;
   onToggleSaveReply(replyId: string): void;
   onReportRequest(): void;
   onReportReply(replyId: string): void;
@@ -18,6 +22,7 @@ export function ReadThread({
   authorLabels,
   savedReplyIds,
   showActions,
+  highlightReplyId,
   onToggleSaveReply,
   onReportRequest,
   onReportReply,
@@ -42,6 +47,7 @@ export function ReadThread({
               reply.author,
               authorLabels.get(reply.authorSlot) ?? "익명",
             )}
+            highlighted={reply.id === highlightReplyId}
             key={reply.id}
             reply={reply}
             saved={savedReplyIds.has(reply.id)}

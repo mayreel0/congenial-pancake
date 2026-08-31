@@ -112,6 +112,46 @@ describe("ProfilePage", () => {
     expect(
       screen.getByRole("heading", { name: "남긴 답변 (1)" }),
     ).toBeInTheDocument();
+    // Section titles link out to the full paginated "모두 보기" list —
+    // built from the canonical nickname/discriminator the API returned,
+    // not the raw (possibly differently-cased) URL param.
+    expect(screen.getByRole("link", { name: "남긴 고민 (1)" })).toHaveAttribute(
+      "href",
+      "/u/%EB%AF%BC%EB%93%A4%EB%A0%88-D59D/requests",
+    );
+    expect(screen.getByRole("link", { name: "남긴 답변 (1)" })).toHaveAttribute(
+      "href",
+      "/u/%EB%AF%BC%EB%93%A4%EB%A0%88-D59D/replies",
+    );
+  });
+
+  it("does not link a hidden section's title", async () => {
+    vi.mocked(useParams).mockReturnValue({ slug: "민들레-D59D" });
+    installFakeBackend({
+      profile: {
+        nickname: "민들레",
+        nicknameDiscriminator: "D59D",
+        requestsVisible: false,
+        repliesVisible: true,
+        countsVisible: true,
+        requestCount: 3,
+        replyCount: 0,
+        requests: [],
+        replies: [],
+      },
+    });
+
+    render(<ProfilePage />);
+
+    expect(
+      await screen.findByText("이 계정은 남긴 고민을 비공개로 설정했어요."),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "남긴 고민 (3)" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "남긴 답변 (0)" }),
+    ).toBeInTheDocument();
   });
 
   it("shows empty-state text for a profile with nothing revealed", async () => {

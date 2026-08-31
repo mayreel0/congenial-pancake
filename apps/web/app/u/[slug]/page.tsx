@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ApiError } from "../../lib/api";
 import { ServiceNav } from "../../components/navigation/ServiceNav";
@@ -58,6 +59,11 @@ function ProfileContent({ slug }: ProfileContentProps) {
 }
 
 function ProfileBody({ profile }: { profile: PublicProfileDto }) {
+  // Canonical form, not the raw (possibly differently-cased) URL param —
+  // the discriminator match is case-insensitive, so this is the one place
+  // that should be trusted to build further links off this profile.
+  const profileHref = `/u/${encodeURIComponent(`${profile.nickname}-${profile.nicknameDiscriminator}`)}`;
+
   return (
     <div className="space-y-8">
       <section className="space-y-3">
@@ -75,6 +81,7 @@ function ProfileBody({ profile }: { profile: PublicProfileDto }) {
         count={profile.countsVisible ? profile.requestCount : null}
         emptyMessage="공개한 고민이 없습니다."
         hiddenMessage="이 계정은 남긴 고민을 비공개로 설정했어요."
+        href={`${profileHref}/requests`}
         title="남긴 고민"
         visible={profile.requestsVisible}
       >
@@ -96,6 +103,7 @@ function ProfileBody({ profile }: { profile: PublicProfileDto }) {
         count={profile.countsVisible ? profile.replyCount : null}
         emptyMessage="공개한 답변이 없습니다."
         hiddenMessage="이 계정은 남긴 답변을 비공개로 설정했어요."
+        href={`${profileHref}/replies`}
         title="남긴 답변"
         visible={profile.repliesVisible}
       >
@@ -125,25 +133,45 @@ type ProfileSectionProps = {
   visible: boolean;
   hiddenMessage: string;
   emptyMessage: string;
+  // Full paginated "모두 보기" list — only linked when the list is visible;
+  // a hidden section has nowhere to send anyone (that route 404s too, see
+  // ProfileService.findRequestsPage/findRepliesPage).
+  href: string;
   children: React.ReactNode;
 };
 
 // items.length is only meaningful when visible is true — the backend
 // returns an empty array either way (hidden vs. genuinely nothing there),
-// so this component (not the caller) decides which message applies.
+// so this component (not the caller) decides which message applies. This
+// section itself only ever shows a short preview (see PROFILE_PREVIEW_SIZE
+// in apps/api-server's profile.service.ts) — the title links out to the
+// full paginated list.
 function ProfileSection({
   title,
   count,
   visible,
   hiddenMessage,
   emptyMessage,
+  href,
   children,
 }: ProfileSectionProps) {
+  const heading = (
+    <>
+      {title}
+      {count !== null ? ` (${count})` : ""}
+    </>
+  );
+
   return (
     <section className="space-y-3">
       <h2 className="text-lg font-semibold tracking-normal">
-        {title}
-        {count !== null ? ` (${count})` : ""}
+        {visible ? (
+          <Link className="hover:underline" href={href}>
+            {heading}
+          </Link>
+        ) : (
+          heading
+        )}
       </h2>
       {visible ? (
         children ?? (
