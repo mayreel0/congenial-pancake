@@ -1,9 +1,10 @@
-const PAGE_SIZE_OPTIONS = [10, 20, 50] as const;
-
 type PaginationProps = {
   page: number;
   totalPages: number;
   pageSize: number;
+  // Which sizes the selector offers — the app decides this policy
+  // (apps/web/app/lib/pagination.ts), not this shared component.
+  pageSizeOptions: readonly number[];
   onPageChange(page: number): void;
   onPageSizeChange(pageSize: number): void;
 };
@@ -44,6 +45,7 @@ export function Pagination({
   page,
   totalPages,
   pageSize,
+  pageSizeOptions,
   onPageChange,
   onPageSizeChange,
 }: PaginationProps) {
@@ -56,7 +58,7 @@ export function Pagination({
           value={pageSize}
           onChange={(event) => onPageSizeChange(Number(event.currentTarget.value))}
         >
-          {PAGE_SIZE_OPTIONS.map((size) => (
+          {pageSizeOptions.map((size) => (
             <option key={size} value={size}>
               {size}개
             </option>

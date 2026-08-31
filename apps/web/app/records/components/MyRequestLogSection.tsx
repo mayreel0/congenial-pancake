@@ -1,6 +1,7 @@
 import { Button } from "ui/Button";
 import { Pagination } from "ui/Pagination";
 import { Skeleton } from "ui/Skeleton";
+import { PAGE_SIZE_OPTIONS } from "../../lib/pagination";
 import type { MyRequestLogEntryDto } from "../../lib/requests/api";
 import { useMyRequestLogQuery } from "../../lib/requests/queries";
 import { useDateRangePage } from "../useDateRangePage";
@@ -54,7 +55,7 @@ function RequestLogBody({ loading, entries }: RequestLogBodyProps) {
 
 export function MyRequestLogSection() {
   const { from, to, page, pageSize, setFrom, setTo, setPage, setPageSize } =
-    useDateRangePage();
+    useDateRangePage("req");
   const requestLog = useMyRequestLogQuery(from, to, page, pageSize);
   const data = requestLog.data;
 
@@ -86,6 +87,7 @@ export function MyRequestLogSection() {
         <Pagination
           page={data.page}
           pageSize={data.pageSize}
+          pageSizeOptions={PAGE_SIZE_OPTIONS}
           totalPages={data.totalPages}
           onPageChange={setPage}
           onPageSizeChange={setPageSize}

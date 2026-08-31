@@ -6,6 +6,7 @@ import { ServiceNav } from "../components/navigation/ServiceNav";
 import { ActionConfirmDialog } from "ui/ActionConfirmDialog";
 import { Pagination } from "ui/Pagination";
 import { Skeleton } from "ui/Skeleton";
+import { PAGE_SIZE_OPTIONS } from "../lib/pagination";
 import { DayNav } from "./components/DayNav";
 import { ReadThread } from "./components/ReadThread";
 import { buildFeedItemLabels } from "./labels";
@@ -174,6 +175,7 @@ export function ReadFeed() {
         <Pagination
           page={feed.page}
           pageSize={feed.pageSize}
+          pageSizeOptions={PAGE_SIZE_OPTIONS}
           totalPages={feed.totalPages}
           onPageChange={feed.setPage}
           onPageSizeChange={feed.setPageSize}

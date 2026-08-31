@@ -1,9 +1,13 @@
 "use client";
 
-import { useState } from "react";
 import { useAuth } from "../lib/auth/useAuth";
-import { addDaysToDateString, yesterdayKstDateString } from "../lib/kst-date";
-import { DEFAULT_PAGE_SIZE } from "../lib/pagination";
+import {
+  addDaysToDateString,
+  isValidDateString,
+  yesterdayKstDateString,
+} from "../lib/kst-date";
+import { parsePageParam, parsePageSizeParam } from "../lib/pagination";
+import { useUrlState } from "../lib/useUrlState";
 import type { FeedItemDto } from "../lib/requests/api";
 import { useFeedQuery } from "../lib/requests/queries";
 import {
@@ -38,12 +42,23 @@ type UseReadFeedResult = {
   toggleSavedReply(replyId: string): Promise<void>;
 };
 
+type ReadUrlKey = "date" | "page" | "pageSize";
+
 export function useReadFeed(): UseReadFeedResult {
   const { status } = useAuth();
   const canManage = status === "authenticated";
-  const [date, setDate] = useState<string | undefined>(undefined);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSizeState] = useState(DEFAULT_PAGE_SIZE);
+  const [urlState, updateUrlState] = useUrlState<ReadUrlKey>(
+    "/read",
+    ["date", "page", "pageSize"],
+    { date: undefined, page: undefined, pageSize: undefined },
+  );
+
+  const date =
+    urlState.date && isValidDateString(urlState.date)
+      ? urlState.date
+      : undefined;
+  const page = parsePageParam(urlState.page);
+  const pageSize = parsePageSizeParam(urlState.pageSize);
 
   const feedQuery = useFeedQuery(date, page, pageSize);
   const savedQuery = useSavedReplyIdsQuery(canManage);
@@ -56,19 +71,26 @@ export function useReadFeed(): UseReadFeedResult {
   const canGoToNextDay = currentDate < yesterdayKstDateString();
 
   function goToPreviousDay(): void {
-    setDate(addDaysToDateString(currentDate, -1));
-    setPage(1);
+    updateUrlState({
+      date: addDaysToDateString(currentDate, -1),
+      page: undefined,
+    });
   }
 
   function goToNextDay(): void {
     if (!canGoToNextDay) return;
-    setDate(addDaysToDateString(currentDate, 1));
-    setPage(1);
+    updateUrlState({
+      date: addDaysToDateString(currentDate, 1),
+      page: undefined,
+    });
+  }
+
+  function setPage(nextPage: number): void {
+    updateUrlState({ page: String(nextPage) });
   }
 
   function setPageSize(size: number): void {
-    setPageSizeState(size);
-    setPage(1);
+    updateUrlState({ pageSize: String(size), page: undefined });
   }
 
   async function reportRequest(requestId: string): Promise<void> {

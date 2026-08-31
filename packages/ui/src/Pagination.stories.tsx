@@ -24,15 +24,29 @@ function ControlledPagination(props: React.ComponentProps<typeof Pagination>) {
   );
 }
 
+const PAGE_SIZE_OPTIONS = [10, 20, 50] as const;
+
 export const FewPages: Story = {
   render: (args) => (
-    <ControlledPagination {...args} page={2} pageSize={10} totalPages={4} />
+    <ControlledPagination
+      {...args}
+      page={2}
+      pageSize={10}
+      pageSizeOptions={PAGE_SIZE_OPTIONS}
+      totalPages={4}
+    />
   ),
 };
 
 export const ManyPages: Story = {
   render: (args) => (
-    <ControlledPagination {...args} page={12} pageSize={10} totalPages={40} />
+    <ControlledPagination
+      {...args}
+      page={12}
+      pageSize={10}
+      pageSizeOptions={PAGE_SIZE_OPTIONS}
+      totalPages={40}
+    />
   ),
 };
 
@@ -40,6 +54,12 @@ export const ManyPages: Story = {
 // though there's nowhere else to page to.
 export const SinglePage: Story = {
   render: (args) => (
-    <ControlledPagination {...args} page={1} pageSize={10} totalPages={1} />
+    <ControlledPagination
+      {...args}
+      page={1}
+      pageSize={10}
+      pageSizeOptions={PAGE_SIZE_OPTIONS}
+      totalPages={1}
+    />
   ),
 };

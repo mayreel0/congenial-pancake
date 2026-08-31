@@ -1,6 +1,7 @@
 import { Button } from "ui/Button";
 import { Pagination } from "ui/Pagination";
 import { Skeleton } from "ui/Skeleton";
+import { PAGE_SIZE_OPTIONS } from "../../lib/pagination";
 import type { MyAnswerLogEntryDto } from "../../lib/replies/api";
 import { useMyAnswerLogQuery } from "../../lib/replies/queries";
 import { useDateRangePage } from "../useDateRangePage";
@@ -54,7 +55,7 @@ function AnswerLogBody({ loading, entries }: AnswerLogBodyProps) {
 
 export function MyAnswerLogSection() {
   const { from, to, page, pageSize, setFrom, setTo, setPage, setPageSize } =
-    useDateRangePage();
+    useDateRangePage("rep");
   const answerLog = useMyAnswerLogQuery(from, to, page, pageSize);
   const data = answerLog.data;
 
@@ -86,6 +87,7 @@ export function MyAnswerLogSection() {
         <Pagination
           page={data.page}
           pageSize={data.pageSize}
+          pageSizeOptions={PAGE_SIZE_OPTIONS}
           totalPages={data.totalPages}
           onPageChange={setPage}
           onPageSizeChange={setPageSize}
