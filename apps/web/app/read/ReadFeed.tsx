@@ -155,6 +155,12 @@ export function ReadFeed() {
     <div className="min-h-dvh bg-background text-foreground">
       <ServiceNav activePath="/read" />
       <main className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-5 py-10 sm:px-8">
+        <section className="space-y-3">
+          <p className="text-sm text-muted">온설</p>
+          <h1 className="text-2xl font-semibold tracking-normal sm:text-4xl">
+            온설 읽기
+          </h1>
+        </section>
         <DayNav
           canGoNext={feed.canGoToNextDay}
           date={feed.currentDate}
