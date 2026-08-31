@@ -140,7 +140,7 @@ export function AnswerSession() {
               setHoldPanelOpen(false);
             }}
           />
-          {prototype.canManageCurrentRequest ? (
+          {prototype.canManageCurrentRequest && (
             <div className="mx-auto flex w-full max-w-6xl items-center justify-between">
               <button
                 className="text-xs font-medium text-muted transition hover:text-foreground"
@@ -150,7 +150,7 @@ export function AnswerSession() {
                 보류 중 ({prototype.heldRequests.length})
               </button>
             </div>
-          ) : null}
+          )}
         </div>
         <AnswerComposer
           anonymous={prototype.anonymous}

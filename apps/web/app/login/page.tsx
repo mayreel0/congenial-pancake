@@ -93,7 +93,7 @@ export default function LoginPage() {
             onChange={(event) => setPassword(event.currentTarget.value)}
           />
 
-          {error ? <p className="text-sm text-red-600">{error}</p> : null}
+          {error && <p className="text-sm text-red-600">{error}</p>}
 
           <Button
             disabled={submitStatus === "pending"}

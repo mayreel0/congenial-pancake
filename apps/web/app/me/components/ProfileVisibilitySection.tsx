@@ -27,12 +27,12 @@ export function ProfileVisibilitySection() {
           닉네임으로 남긴 글을 내 프로필 페이지에서 다른 사람도 볼 수 있는지
           정해요.
         </p>
-        {disabled ? (
+        {disabled && (
           <p className="text-xs text-amber-600">
             닉네임을 공개해야 다른 사람이 프로필 페이지를 볼 수 있어요 — 지금은
             이 설정이 적용되지 않아요.
           </p>
-        ) : null}
+        )}
       </div>
       <div className="space-y-3">
         {/* Toggle's root element is inline-flex, not block — without a

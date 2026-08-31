@@ -59,7 +59,7 @@ export function AnswerComposer({
         <p className="pb-2 text-xs text-muted">
           정답을 쓰지 않아도 됩니다. 짧게 들었다는 말이면 충분해요.
         </p>
-        {nickname ? (
+        {nickname && (
           <div className="mb-2">
             <Toggle
               checked={!anonymous}
@@ -68,8 +68,8 @@ export function AnswerComposer({
               onChange={() => onToggleAnonymous()}
             />
           </div>
-        ) : null}
-        {isAnsweringHeldRequest ? (
+        )}
+        {isAnsweringHeldRequest && (
           <div className="flex items-center justify-between pb-2 text-xs text-muted">
             <span>보류한 온설에 답하는 중이에요.</span>
             <button
@@ -80,7 +80,7 @@ export function AnswerComposer({
               그만두기
             </button>
           </div>
-        ) : null}
+        )}
         <div className="flex items-end gap-2 rounded-lg border border-line bg-surface px-3 py-2 transition focus-within:border-primary">
           <label className="sr-only" htmlFor="answer-body">
             답변 남기기

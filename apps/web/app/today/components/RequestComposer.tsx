@@ -62,7 +62,7 @@ export function RequestComposer({
         if (canSubmit) void onSubmit(localValue.trim());
       }}
     >
-      {nickname ? (
+      {nickname && (
         <div className="mb-1.5">
           <Toggle
             checked={!anonymous}
@@ -70,7 +70,7 @@ export function RequestComposer({
             onChange={() => onToggleAnonymous()}
           />
         </div>
-      ) : null}
+      )}
       <label className="sr-only" htmlFor="request-body">
         오늘 어떤 말을 듣고 싶나요?
       </label>

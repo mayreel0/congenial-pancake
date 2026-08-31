@@ -89,7 +89,7 @@ export function NicknameSection() {
             width="compact"
             onChange={(event) => setDraft(event.currentTarget.value)}
           />
-          {error ? <p className="text-xs text-red-600">{error}</p> : null}
+          {error && <p className="text-xs text-red-600">{error}</p>}
           <div className="flex gap-2">
             <Button disabled={pending || !draft.trim()} size="sm" type="submit">
               {pending ? "저장하는 중" : "저장"}
@@ -118,11 +118,11 @@ export function NicknameSection() {
                 <span className="text-muted">아직 설정한 닉네임이 없어요.</span>
               )}
             </p>
-            {cooldownActive ? (
+            {cooldownActive && (
               <p className="text-xs text-muted">
                 {daysRemaining}일 후에 다시 바꿀 수 있어요.
               </p>
-            ) : null}
+            )}
           </div>
           <div className="shrink-0">
             <Button

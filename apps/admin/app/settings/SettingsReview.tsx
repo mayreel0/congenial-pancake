@@ -15,14 +15,14 @@ export function SettingsReview() {
       <AdminNav activePath="/settings" />
       <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-5 py-10 sm:px-8">
         <AdminStatusGate status={admin.status} login={auth.login}>
-          {admin.settings ? (
+          {admin.settings && (
             <SettingsForm
               settings={admin.settings}
               updating={admin.updating}
               updateError={admin.updateError}
               update={admin.update}
             />
-          ) : null}
+          )}
         </AdminStatusGate>
       </main>
     </div>

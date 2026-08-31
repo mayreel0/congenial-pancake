@@ -66,16 +66,16 @@ export function AccountForm({
             }}
           />
 
-          {issueError ? (
+          {issueError && (
             <p className="text-sm text-red-600">{issueError}</p>
-          ) : null}
+          )}
 
           <Button disabled={issuing} type="submit">
             {issuing ? "발급 중" : "링크 발급"}
           </Button>
         </form>
 
-        {url ? (
+        {url && (
           <div className="space-y-2 rounded-lg border border-line bg-surface p-4">
             <p className="break-all text-sm text-foreground">{url}</p>
             <div className="flex items-center gap-3">
@@ -86,15 +86,15 @@ export function AccountForm({
               >
                 복사
               </button>
-              {copied ? (
+              {copied && (
                 <span className="text-sm text-primary">복사했어요.</span>
-              ) : null}
+              )}
             </div>
             <p className="text-xs text-muted">
               30분간 유효하며, 한 번 사용하면 만료됩니다.
             </p>
           </div>
-        ) : null}
+        )}
       </div>
     </>
   );

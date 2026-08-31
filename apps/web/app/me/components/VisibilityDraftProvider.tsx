@@ -119,7 +119,7 @@ export function VisibilityDraftProvider({
             is a sibling too, and margin-top from space-y would apply to it
             despite position: fixed taking it out of normal flow. */}
         <div className="space-y-8">{children}</div>
-        {isDirty ? (
+        {isDirty && (
           <div className="fixed inset-x-0 bottom-0 z-10 border-t border-line bg-surface px-5 py-3 shadow-sm sm:px-8">
             <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
               {error ? (
@@ -142,7 +142,7 @@ export function VisibilityDraftProvider({
               </div>
             </div>
           </div>
-        ) : null}
+        )}
       </form>
       <ActionConfirmDialog
         confirmLabel={pending ? "저장하는 중" : "저장"}

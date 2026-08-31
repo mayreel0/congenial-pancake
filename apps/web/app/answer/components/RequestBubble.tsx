@@ -64,7 +64,7 @@ export function RequestBubble({
         ) : (
           <p className="text-xs font-semibold text-foreground">{authorLabel}</p>
         )}
-        {showActions ? (
+        {showActions && (
           <div className="relative shrink-0" ref={menuContainerRef}>
             <button
               aria-expanded={menuOpen}
@@ -76,7 +76,7 @@ export function RequestBubble({
             >
               <MoreIcon className="h-4 w-4" />
             </button>
-            {menuOpen ? (
+            {menuOpen && (
               <div
                 aria-label="답하기 도구"
                 className="absolute right-0 top-full z-20 mt-1 w-32 overflow-hidden rounded-lg border border-line bg-surface shadow-sm"
@@ -104,9 +104,9 @@ export function RequestBubble({
                   신고하기
                 </button>
               </div>
-            ) : null}
+            )}
           </div>
-        ) : null}
+        )}
       </div>
       <p className="text-sm leading-6 text-foreground">{request.body}</p>
       <time

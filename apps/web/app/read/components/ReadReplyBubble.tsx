@@ -51,7 +51,7 @@ export function ReadReplyBubble({
 
   return (
     <div className="flex items-end justify-end gap-2">
-      {showActions ? (
+      {showActions && (
         <button
           aria-label={saved ? "마음에 남긴 답변, 눌러서 지우기" : "마음에 남기기"}
           aria-pressed={saved}
@@ -61,7 +61,7 @@ export function ReadReplyBubble({
         >
           <BookmarkIcon className="h-4 w-4" filled={saved} />
         </button>
-      ) : null}
+      )}
       <article
         className={`max-w-[85%] space-y-1.5 rounded-lg bg-primary/10 px-4 py-3 sm:max-w-[70%] ${
           highlighted ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""
@@ -80,7 +80,7 @@ export function ReadReplyBubble({
               {authorLabel}
             </p>
           )}
-          {showActions ? (
+          {showActions && (
             <div className="relative shrink-0" ref={menuContainerRef}>
               <button
                 aria-expanded={menuOpen}
@@ -92,7 +92,7 @@ export function ReadReplyBubble({
               >
                 <MoreIcon className="h-4 w-4" />
               </button>
-              {menuOpen ? (
+              {menuOpen && (
                 <div
                   aria-label="답변 도구"
                   className="absolute right-0 top-full z-20 mt-1 w-32 overflow-hidden rounded-lg border border-line bg-surface shadow-sm"
@@ -109,9 +109,9 @@ export function ReadReplyBubble({
                     신고하기
                   </button>
                 </div>
-              ) : null}
+              )}
             </div>
-          ) : null}
+          )}
         </div>
         <p className="text-sm leading-6 text-foreground">{reply.body}</p>
         <time

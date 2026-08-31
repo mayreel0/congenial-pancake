@@ -135,7 +135,7 @@ export function RepliesListContent() {
               profileHref={`/u/${encodeURIComponent(`${parsed.nickname}-${parsed.discriminator}`)}`}
               query={query}
             />
-            {query.data ? (
+            {query.data && (
               <Pagination
                 page={page}
                 pageSize={pageSize}
@@ -144,7 +144,7 @@ export function RepliesListContent() {
                 onPageChange={setPage}
                 onPageSizeChange={setPageSize}
               />
-            ) : null}
+            )}
           </>
         ) : (
           <p className="max-w-xl leading-7 text-muted">

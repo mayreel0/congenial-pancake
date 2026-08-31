@@ -39,7 +39,7 @@ export function TextField({
       >
         {label}
       </label>
-      {hint ? <p className="text-xs text-muted">{hint}</p> : null}
+      {hint && <p className="text-xs text-muted">{hint}</p>}
       <input
         className={`${WIDTH_CLASSES[width]} rounded-lg border border-line bg-surface px-3 py-2 text-base text-foreground outline-none focus:border-primary`}
         id={id}
