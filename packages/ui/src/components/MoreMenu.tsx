@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { useDismissOnOutsideClick } from "../hooks/useDismissOnOutsideClick";
+import { MoreIcon } from "../icons/MoreIcon";
 
 type MoreMenuItem = {
   key: string;
@@ -31,11 +32,7 @@ export function MoreMenu({ ariaLabel, items }: MoreMenuProps) {
         type="button"
         onClick={() => setOpen((value) => !value)}
       >
-        <svg aria-hidden="true" className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
-          <circle cx="5" cy="12" r="1.7" />
-          <circle cx="12" cy="12" r="1.7" />
-          <circle cx="19" cy="12" r="1.7" />
-        </svg>
+        <MoreIcon className="h-4 w-4" />
       </button>
       {open && (
         <div
