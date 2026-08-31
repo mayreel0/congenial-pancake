@@ -10,6 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { ZodResponse } from 'nestjs-zod';
 import { AnswerInteractionsService } from '../answer-interactions/answer-interactions.service';
 import { GuestId } from '../common/decorators/guest-id.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
@@ -36,8 +37,8 @@ import {
   type MyRequestLogEntryDto,
 } from './dto/my-request-log-entry.dto';
 import {
+  RequestResponseDto,
   toRequestResponseDto,
-  type RequestResponseDto,
 } from './dto/request-response.dto';
 import { RequestsService } from './requests.service';
 import type { RequestRecord } from './requests.repository';
@@ -65,6 +66,7 @@ export class RequestsController {
   @Post()
   @UseGuards(OptionalSessionGuard)
   @HttpCode(HttpStatus.CREATED)
+  @ZodResponse({ status: HttpStatus.CREATED, type: RequestResponseDto })
   async create(
     @Body() dto: CreateRequestDto,
     @OptionalCurrentUser() userId: string | undefined,
@@ -76,6 +78,7 @@ export class RequestsController {
   }
 
   @Get()
+  @ZodResponse({ type: [RequestResponseDto] })
   async findAll(): Promise<RequestResponseDto[]> {
     const requests = await this.requestsService.findVisible();
     const nicknameByUserId = await this.nicknameMapFor(requests);

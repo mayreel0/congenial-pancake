@@ -1,16 +1,9 @@
-import {
-  toAuthorDisplayDto,
-  type AuthorDisplayDto,
-} from '../../common/author-display';
+import { createZodDto } from 'nestjs-zod';
+import { replyResponseSchema } from 'shared/dto';
+import { toAuthorDisplayDto } from '../../common/author-display';
 import type { ReplyRecord } from '../replies.repository';
 
-export type ReplyResponseDto = {
-  id: string;
-  requestId: string;
-  body: string;
-  createdAt: Date;
-  author: AuthorDisplayDto;
-};
+export class ReplyResponseDto extends createZodDto(replyResponseSchema) {}
 
 // See request-response.dto.ts — same author-display convention, same reason
 // `nicknameByUserId` is a required (not defaulted) param.
@@ -22,7 +15,7 @@ export function toReplyResponseDto(
     id: reply.id,
     requestId: reply.requestId,
     body: reply.body,
-    createdAt: reply.createdAt,
+    createdAt: reply.createdAt.toISOString(),
     author: toAuthorDisplayDto(reply, nicknameByUserId),
   };
 }
