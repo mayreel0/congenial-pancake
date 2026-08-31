@@ -1,0 +1,19 @@
+{
+  "name": "shared",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit"
+  },
+  "exports": {
+    "./pagination": "./src/pagination.ts",
+    "./kst-date": "./src/kst-date.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.1",
+    "typescript": "^5"
+  }
+}

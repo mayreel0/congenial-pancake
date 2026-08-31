@@ -138,6 +138,10 @@ Saving a reply ("마음에 남기기") is member-only, matching hold — `src/sa
 
 `src/common/kst-date.ts` computes KST day/range boundaries as plain UTC arithmetic — KST is a fixed UTC+9 offset with no DST, so no timezone library is needed. `GET /requests/feed`'s response also echoes back the `date` actually used, since the frontend needs to know when the default (yesterday) applied.
 
+### `packages/shared` (2026-09-01)
+
+`src/common/pagination.dto.ts` and `src/common/kst-date.ts` are now thin re-export shims — `PaginatedDto<T>`/`DEFAULT_PAGE_SIZE`/`PAGE_SIZE_OPTIONS`/`parsePageParam`/`parsePageSizeParam`/`toPaginatedDto` and `isValidDateString`/`yesterdayKstDateString` live in `packages/shared` (genuinely identical to `apps/web`'s copies) and are re-exported here so every existing import keeps working unchanged. `kstDayRange`/`kstDateRange` stay local to this file — they're backend-only (build UTC instant ranges for Drizzle queries). This is the first `packages/*` workspace package `apps/api-server` consumes; see `packages/shared/AGENTS.md` for the Node-native-TS-stripping mechanism that makes a build-free shared package work here too, and its erasable-syntax-only constraint.
+
 Query params (`date`, `from`, `to`, `page`, `pageSize`) are read via individual `@Query('key')` args and parsed defensively in the controller, not via a `@Query()` DTO class — the global `ValidationPipe` doesn't have `transform: true` set (left alone to avoid touching every other DTO's behavior), and a malformed/missing param falls back to a sane default instead of 400ing, since these are plain browsing params in a URL that shouldn't break the page if stale.
 
 `/replies/mine`'s sort flipped from oldest-first to newest-first as part of this — a numbered pager's page 1 is conventionally "most recent," matching `/requests/mine`'s existing order; nothing else depended on the old order.

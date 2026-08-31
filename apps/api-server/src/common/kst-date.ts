@@ -1,19 +1,12 @@
 // 온설 is a Korean-only service, so "그날" always means a KST calendar day —
 // KST is a fixed UTC+9 offset with no DST, so this is plain arithmetic, no
-// timezone library needed.
-const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
-const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-
-export function isValidDateString(value: string): boolean {
-  if (!DATE_PATTERN.test(value)) return false;
-  const [year, month, day] = value.split('-').map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day));
-  return (
-    date.getUTCFullYear() === year &&
-    date.getUTCMonth() === month - 1 &&
-    date.getUTCDate() === day
-  );
-}
+// timezone library needed. isValidDateString/yesterdayKstDateString are
+// genuinely identical to apps/web's copy and live in packages/shared —
+// re-exported here so every existing import of this file keeps working
+// unchanged. kstDayRange/kstDateRange stay local: they're backend-only
+// (build UTC instant ranges for Drizzle queries), nothing on the frontend
+// side needs them.
+export { isValidDateString, yesterdayKstDateString } from 'shared/kst-date';
 
 // The UTC instant marking the start of the given KST calendar day.
 function kstDayStart(dateString: string): Date {
@@ -39,10 +32,4 @@ export function kstDateRange(
     ? new Date(kstDayStart(to).getTime() + 24 * 60 * 60 * 1000)
     : undefined;
   return { start, end };
-}
-
-export function yesterdayKstDateString(now: Date = new Date()): string {
-  const kstNow = new Date(now.getTime() + KST_OFFSET_MS);
-  kstNow.setUTCDate(kstNow.getUTCDate() - 1);
-  return kstNow.toISOString().slice(0, 10);
 }
