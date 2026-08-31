@@ -29,3 +29,16 @@
 
 - `apps/api-server` lint/typecheck/test(120/120)/build 통과. 새로 작성: `kst-date.spec.ts`(날짜 경계·잘못된 날짜·"어제" 계산), `pagination.dto.spec.ts`, `findFeed`/`findMine` 리포지토리 테스트(날짜 필터+페이지네이션), 컨트롤러 레벨 테스트(파라미터 기본값/폴백).
 - 실서버 curl 검증: `date` 파라미터 없이 호출 시 KST 기준 어제 데이터 반환, 잘못된 `date` 값은 조용히 어제로 폴백, 명시적 `date`로 필터링 확인.
+
+## 추가: 프론트엔드 UI (별도 PR) + 답하기 무한스크롤도 같이 처리
+
+프론트엔드 라운드 시작 시 사용자가 "답하기의 답변 로그(채팅 스타일 이력)도 이번에 무한스크롤로 바꿀까요?"라는 질문에 "지금 같이 구현"으로 답해, 원래 백로그의 3번(답하기 무한스크롤)도 이번 라운드에 포함시킴 — `/replies/mine`이 답변 로그의 유일한 데이터 소스인데 페이지네이션을 걸면서 이 화면이 자동으로 최근 20개로 잘리는 회귀가 생기는 걸 발견했기 때문.
+
+- `/read`: `DayNav`(이전/다음 날) + `ui/Pagination`(하루 안 번호 페이지) + `ui/Skeleton` 로딩. 다음 날 버튼은 "어제"에서 막힘(오늘은 아직 마감 안 된 하루).
+- `/records`: 두 탭(내가 남긴 고민/답변) 각각 `DateRangeFilter`(네이티브 `<input type="date">` 시작일/종료일) + `ui/Pagination` + `ui/Skeleton`. 날짜 범위를 바꾸면 페이지 1로 리셋(`useDateRangePage` 훅). 두 탭 구조가 동일해서 이 라운드 안에서 바로 공용화(패턴만 확인되면 나중에 추출하는 원칙과 별개로, 처음부터 같은 PR에서 2곳이 쓰는 게 확정이라 즉시 공용화).
+- `/answer`: 답변 로그를 `useInfiniteQuery`로 전환 — 1페이지가 최신이고 다음 페이지로 갈수록 과거라, "위로 스크롤하면 과거 로드"라는 방향과 정확히 맞물림. 스크롤 컨테이너 맨 위(가장 오래된 위치)에 sentinel을 두고 `IntersectionObserver`로 감지, 과거 페이지가 위에 붙을 때 `scrollTop`을 높이 변화량만큼 보정해서 화면이 튀지 않게 함.
+- `ui/Pagination`, `ui/Skeleton` 신규 공용 컴포넌트 — 카드 모양은 각 페이지가 `Skeleton` 조각을 조합해서 직접 구성(공용 컴포넌트가 카드 모양까지 알 필요 없게).
+- jsdom에 `IntersectionObserver`가 없어서 `vitest.setup.ts`에 최소 mock(`MockIntersectionObserver`, 인스턴스 export)을 추가 — 테스트가 sentinel의 콜백을 직접 호출해 "스크롤로 보임"을 흉내낼 수 있음.
+
+- 실브라우저 검증(백엔드 PR 브랜치를 임시로 빌려와서): `/read`에서 이전/다음 날 이동 시 실제로 다른 날짜 데이터가 뜨고 "다음 날"이 어제에서 비활성화되는 것, `/records`에서 날짜 범위 입력 후 목록이 필터링되고 페이지 2로 이동 시 다른 항목이 뜨는 것, `/answer`는 콘솔 에러 없이 정상 렌더(테스트 계정 데이터가 20개 미만이라 실제 무한스크롤 트리거는 못 봤지만, 유닛 테스트로 sentinel→fetchNextPage→과거 항목 병합 전 과정 확인).
+- `apps/web` lint/typecheck/test(106/106)/build 통과. `apps/admin` lint/typecheck 통과(무관함 확인).
