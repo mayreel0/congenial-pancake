@@ -3,15 +3,18 @@ import {
   and,
   asc,
   count,
+  countDistinct,
   desc,
   eq,
   gt,
+  gte,
   inArray,
   isNull,
   lt,
   ne,
   notInArray,
   or,
+  type SQL,
 } from 'drizzle-orm';
 import { DRIZZLE } from '../database/database.constants';
 import type { Database } from '../database/database.types';
@@ -29,10 +32,25 @@ export type RequestWithReplyCount = RequestRecord & { replyCount: number };
 export type ViewerIdentity = { authorId?: string; guestId?: string };
 export type ReplyRecord = typeof replies.$inferSelect;
 export type FeedItem = { request: RequestRecord; replies: ReplyRecord[] };
+export type PagedResult<T> = { items: T[]; totalItems: number };
+export type DateRange = { start?: Date; end?: Date };
+export type Pagination = { page: number; pageSize: number };
 export type QueueCandidateLimits = {
   freshnessHours: number;
   replyCap: number;
 };
+
+// `start`/`end` are both optional (/records' date range defaults to
+// unbounded) — undefined here means "no filter", not "match nothing".
+function dateRangeCondition(
+  column: typeof requests.createdAt,
+  range: DateRange,
+) {
+  const conditions: SQL[] = [];
+  if (range.start) conditions.push(gte(column, range.start));
+  if (range.end) conditions.push(lt(column, range.end));
+  return conditions.length > 0 ? and(...conditions) : undefined;
+}
 
 @Injectable()
 export class RequestsRepository {
@@ -85,7 +103,29 @@ export class RequestsRepository {
   // request first, each with its full (visible) reply list oldest-first.
   // Two queries rather than one join-and-group-into-JSON query — same
   // clarity-over-cleverness call as findQueueCandidate below.
-  async findFeed(): Promise<FeedItem[]> {
+  async findFeed(
+    range: DateRange,
+    pagination: Pagination,
+  ): Promise<PagedResult<FeedItem>> {
+    const whereClause = and(
+      eq(requests.hidden, false),
+      isNull(requests.deletedAt),
+      dateRangeCondition(requests.createdAt, range),
+    );
+    const replyJoinCondition = and(
+      eq(replies.requestId, requests.id),
+      eq(replies.hidden, false),
+      isNull(replies.deletedAt),
+    );
+
+    const [{ value: totalItems }] = await this.db
+      .select({ value: countDistinct(requests.id) })
+      .from(requests)
+      .innerJoin(replies, replyJoinCondition)
+      .where(whereClause);
+
+    if (totalItems === 0) return { items: [], totalItems: 0 };
+
     const requestRows = await this.db
       .select({
         id: requests.id,
@@ -99,19 +139,14 @@ export class RequestsRepository {
         anonymous: requests.anonymous,
       })
       .from(requests)
-      .innerJoin(
-        replies,
-        and(
-          eq(replies.requestId, requests.id),
-          eq(replies.hidden, false),
-          isNull(replies.deletedAt),
-        ),
-      )
-      .where(and(eq(requests.hidden, false), isNull(requests.deletedAt)))
+      .innerJoin(replies, replyJoinCondition)
+      .where(whereClause)
       .groupBy(requests.id)
-      .orderBy(desc(requests.createdAt));
+      .orderBy(desc(requests.createdAt))
+      .limit(pagination.pageSize)
+      .offset((pagination.page - 1) * pagination.pageSize);
 
-    if (requestRows.length === 0) return [];
+    if (requestRows.length === 0) return { items: [], totalItems };
 
     const requestIds = requestRows.map((row) => row.id);
     const replyRows = await this.db.query.replies.findMany({
@@ -130,17 +165,36 @@ export class RequestsRepository {
       repliesByRequestId.set(reply.requestId, list);
     }
 
-    return requestRows.map((request) => ({
-      request,
-      replies: repliesByRequestId.get(request.id) ?? [],
-    }));
+    return {
+      items: requestRows.map((request) => ({
+        request,
+        replies: repliesByRequestId.get(request.id) ?? [],
+      })),
+      totalItems,
+    };
   }
 
   // "내 기록" → 내가 작성한 고민: every request this member posted, newest
   // first, with every reply nested oldest-first — no hidden/deletedAt
   // filtering on either side, matching RepliesRepository.findMine()'s
   // precedent that a viewer's own content is shown to them unfiltered.
-  async findMine(authorId: string): Promise<FeedItem[]> {
+  async findMine(
+    authorId: string,
+    range: DateRange,
+    pagination: Pagination,
+  ): Promise<PagedResult<FeedItem>> {
+    const whereClause = and(
+      eq(requests.authorId, authorId),
+      dateRangeCondition(requests.createdAt, range),
+    );
+
+    const [{ value: totalItems }] = await this.db
+      .select({ value: count(requests.id) })
+      .from(requests)
+      .where(whereClause);
+
+    if (totalItems === 0) return { items: [], totalItems: 0 };
+
     const requestRows = await this.db
       .select({
         id: requests.id,
@@ -154,10 +208,12 @@ export class RequestsRepository {
         anonymous: requests.anonymous,
       })
       .from(requests)
-      .where(eq(requests.authorId, authorId))
-      .orderBy(desc(requests.createdAt));
+      .where(whereClause)
+      .orderBy(desc(requests.createdAt))
+      .limit(pagination.pageSize)
+      .offset((pagination.page - 1) * pagination.pageSize);
 
-    if (requestRows.length === 0) return [];
+    if (requestRows.length === 0) return { items: [], totalItems };
 
     const requestIds = requestRows.map((row) => row.id);
     const replyRows = await this.db.query.replies.findMany({
@@ -172,10 +228,13 @@ export class RequestsRepository {
       repliesByRequestId.set(reply.requestId, list);
     }
 
-    return requestRows.map((request) => ({
-      request,
-      replies: repliesByRequestId.get(request.id) ?? [],
-    }));
+    return {
+      items: requestRows.map((request) => ({
+        request,
+        replies: repliesByRequestId.get(request.id) ?? [],
+      })),
+      totalItems,
+    };
   }
 
   // Public profile page: only requests this member chose to reveal

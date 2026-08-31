@@ -6,6 +6,7 @@ import {
   HttpStatus,
   Param,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
@@ -15,6 +16,18 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import { OptionalCurrentUser } from '../auth/optional-current-user.decorator';
 import { OptionalSessionGuard } from '../auth/optional-session.guard';
 import { SessionGuard } from '../auth/session.guard';
+import {
+  isValidDateString,
+  kstDateRange,
+  kstDayRange,
+  yesterdayKstDateString,
+} from '../common/kst-date';
+import {
+  parsePageParam,
+  parsePageSizeParam,
+  toPaginatedDto,
+  type PaginatedDto,
+} from '../common/pagination.dto';
 import { UsersService } from '../users/users.service';
 import { CreateRequestDto } from './dto/create-request.dto';
 import { toFeedItemDto, type FeedItemResponseDto } from './dto/feed-item.dto';
@@ -71,11 +84,27 @@ export class RequestsController {
     );
   }
 
-  // /read's feed: every visible request that has at least one visible reply,
-  // newest first, with its replies nested (oldest first).
+  // /read's feed: every visible request that has at least one visible reply
+  // on the given KST calendar day (default: yesterday), newest first, with
+  // its replies nested (oldest first). "그날의 온설" is browsed one day at a
+  // time, not as one continuously-scrolling feed.
   @Get('feed')
-  async feed(): Promise<FeedItemResponseDto[]> {
-    const items = await this.requestsService.findFeed();
+  async feed(
+    @Query('date') dateParam: string | undefined,
+    @Query('page') pageParam: string | undefined,
+    @Query('pageSize') pageSizeParam: string | undefined,
+  ): Promise<PaginatedDto<FeedItemResponseDto> & { date: string }> {
+    const date =
+      dateParam && isValidDateString(dateParam)
+        ? dateParam
+        : yesterdayKstDateString();
+    const page = parsePageParam(pageParam);
+    const pageSize = parsePageSizeParam(pageSizeParam);
+
+    const { items, totalItems } = await this.requestsService.findFeed(
+      kstDayRange(date),
+      { page, pageSize },
+    );
     const authorIds = items.flatMap((item) => [
       item.request.authorId,
       ...item.replies.map((reply) => reply.authorId),
@@ -83,16 +112,41 @@ export class RequestsController {
     const nicknameByUserId = await this.usersService.nicknameMapFor(
       authorIds.filter((id): id is string => id !== null),
     );
-    return items.map((item) => toFeedItemDto(item, nicknameByUserId));
+    return {
+      ...toPaginatedDto(
+        items.map((item) => toFeedItemDto(item, nicknameByUserId)),
+        page,
+        totalItems,
+        pageSize,
+      ),
+      date,
+    };
   }
 
-  // "내 기록" → 내가 작성한 고민: every request this member posted, each with
+  // "내 기록" → 내가 작성한 고민: every request this member posted in the
+  // given KST date range (default: unbounded — full history), each with
   // its full reply thread — member-only since a guest has no persistent
   // identity to look this up by later.
   @Get('mine')
   @UseGuards(SessionGuard)
-  async mine(@CurrentUser() userId: string): Promise<MyRequestLogEntryDto[]> {
-    const items = await this.requestsService.findMine(userId);
+  async mine(
+    @CurrentUser() userId: string,
+    @Query('from') fromParam: string | undefined,
+    @Query('to') toParam: string | undefined,
+    @Query('page') pageParam: string | undefined,
+    @Query('pageSize') pageSizeParam: string | undefined,
+  ): Promise<PaginatedDto<MyRequestLogEntryDto>> {
+    const from =
+      fromParam && isValidDateString(fromParam) ? fromParam : undefined;
+    const to = toParam && isValidDateString(toParam) ? toParam : undefined;
+    const page = parsePageParam(pageParam);
+    const pageSize = parsePageSizeParam(pageSizeParam);
+
+    const { items, totalItems } = await this.requestsService.findMine(
+      userId,
+      kstDateRange(from, to),
+      { page, pageSize },
+    );
     const authorIds = items.flatMap((item) => [
       item.request.authorId,
       ...item.replies.map((reply) => reply.authorId),
@@ -100,7 +154,12 @@ export class RequestsController {
     const nicknameByUserId = await this.usersService.nicknameMapFor(
       authorIds.filter((id): id is string => id !== null),
     );
-    return items.map((item) => toMyRequestLogEntryDto(item, nicknameByUserId));
+    return toPaginatedDto(
+      items.map((item) => toMyRequestLogEntryDto(item, nicknameByUserId)),
+      page,
+      totalItems,
+      pageSize,
+    );
   }
 
   // The single next request this viewer should answer — see

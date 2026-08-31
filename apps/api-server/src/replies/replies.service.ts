@@ -6,6 +6,11 @@ import {
   ReplyGuestLimitExceededException,
   RequestNotFoundException,
 } from '../common/exceptions/app.exception';
+import type {
+  DateRange,
+  PagedResult,
+  Pagination,
+} from '../requests/requests.repository';
 import { RequestsService } from '../requests/requests.service';
 import { SettingsService } from '../settings/settings.service';
 import { UsersService } from '../users/users.service';
@@ -100,9 +105,13 @@ export class RepliesService {
   findMine(
     userId: string | undefined,
     guestId: string,
-  ): Promise<ReplyWithRequest[]> {
+    range: DateRange,
+    pagination: Pagination,
+  ): Promise<PagedResult<ReplyWithRequest>> {
     return this.repliesRepository.findMine(
       userId ? { authorId: userId } : { guestId },
+      range,
+      pagination,
     );
   }
 

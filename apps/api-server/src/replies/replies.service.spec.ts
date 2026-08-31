@@ -276,23 +276,43 @@ describe('RepliesService', () => {
 
   describe('findMine', () => {
     it('resolves the viewer identity for a logged-in user', async () => {
-      repliesRepository.findMine.mockResolvedValue([]);
-
-      await repliesService.findMine('user-1', 'unused-guest-id');
-
-      expect(repliesRepository.findMine).toHaveBeenCalledWith({
-        authorId: 'user-1',
+      repliesRepository.findMine.mockResolvedValue({
+        items: [],
+        totalItems: 0,
       });
+
+      await repliesService.findMine(
+        'user-1',
+        'unused-guest-id',
+        {},
+        { page: 1, pageSize: 20 },
+      );
+
+      expect(repliesRepository.findMine).toHaveBeenCalledWith(
+        { authorId: 'user-1' },
+        {},
+        { page: 1, pageSize: 20 },
+      );
     });
 
     it('resolves the viewer identity for a guest', async () => {
-      repliesRepository.findMine.mockResolvedValue([]);
-
-      await repliesService.findMine(undefined, 'guest-1');
-
-      expect(repliesRepository.findMine).toHaveBeenCalledWith({
-        guestId: 'guest-1',
+      repliesRepository.findMine.mockResolvedValue({
+        items: [],
+        totalItems: 0,
       });
+
+      await repliesService.findMine(
+        undefined,
+        'guest-1',
+        {},
+        { page: 1, pageSize: 20 },
+      );
+
+      expect(repliesRepository.findMine).toHaveBeenCalledWith(
+        { guestId: 'guest-1' },
+        {},
+        { page: 1, pageSize: 20 },
+      );
     });
   });
 });

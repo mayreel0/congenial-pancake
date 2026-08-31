@@ -124,6 +124,18 @@ Auth, `/today`, `/answer`, `/read`, and `/me` all call this API for real now (`a
 
 Saving a reply ("마음에 남기기") is member-only, matching hold — `src/saved-replies/` (`SavedRepliesController`, routes on `/replies`: `POST`/`DELETE /replies/:id/save`, `GET /replies/saved`) follows the same shape as `answer-interactions` but as its own module/table (`saved_replies`) since it's a many-to-many bookmark, not a per-viewer queue exclusion.
 
+### Pagination: `/read` (day-based) and `/records` (date-range) (2026-08-31)
+
+`/read`'s feed and `/records`' two "내 기록" endpoints (`GET /requests/mine`, `GET /replies/mine`) are browsed by KST calendar date, not as one continuously-growing list — see `docs/decisions/2026-08-31-onseol-read-records-pagination-decisions.md`. `/read` pages by a single day (`date` query param, default: yesterday KST); `/records` pages by a date range (`from`/`to`, default: unbounded). Within either, results are offset/limit-paginated via `page` + `pageSize` (`src/common/pagination.dto.ts`'s `PaginatedDto<T>`) — offset/limit was chosen over cursor pagination specifically because these are numbered-page UIs (jump to page 3), which cursors can't do.
+
+`pageSize` is client-controlled but whitelisted (`PAGE_SIZE_OPTIONS = [10, 20, 50]`, default `10`) — `parsePageSizeParam` falls back to the default for anything outside that set rather than accepting an arbitrary client-requested size, which would defeat the point of paginating at all.
+
+`src/common/kst-date.ts` computes KST day/range boundaries as plain UTC arithmetic — KST is a fixed UTC+9 offset with no DST, so no timezone library is needed. `GET /requests/feed`'s response also echoes back the `date` actually used, since the frontend needs to know when the default (yesterday) applied.
+
+Query params (`date`, `from`, `to`, `page`, `pageSize`) are read via individual `@Query('key')` args and parsed defensively in the controller, not via a `@Query()` DTO class — the global `ValidationPipe` doesn't have `transform: true` set (left alone to avoid touching every other DTO's behavior), and a malformed/missing param falls back to a sane default instead of 400ing, since these are plain browsing params in a URL that shouldn't break the page if stale.
+
+`/replies/mine`'s sort flipped from oldest-first to newest-first as part of this — a numbered pager's page 1 is conventionally "most recent," matching `/requests/mine`'s existing order; nothing else depended on the old order.
+
 ## OpenAPI / Swagger docs
 
 **`src/main.ts` (the normal `start`/`start:dev`) never starts Swagger at all.** Docs are entirely opt-in, via a separate entry point: `pnpm --filter api-server start:swagger` (or `start:swagger:watch`) runs `src/swagger-only.ts`, which builds the real OpenAPI document from `AppModule`'s actual controllers (via the shared `buildOpenApiDocument()` helper in `src/openapi.ts`) and serves it on its **own port** (`SWAGGER_PORT`, default 8081) through a second, otherwise-empty Nest app (`SwaggerDocsModule`, also in `src/openapi.ts`) — but never calls `app.listen(PORT)`, so no real API route is reachable from that process either. The two processes are fully independent: run just `start:dev` and 8081 never opens at all; run `start:swagger` alongside it and both are up, each on its own port. Same reasoning as `apps/admin` getting its own port instead of a path inside `apps/web` — see `docs/decisions/2026-08-26-onseol-openapi-decisions.md` for the full history (shipped first as a hard-to-guess path on the main port, then a second port bootstrapped alongside the main one in `main.ts`, then split into this fully separate opt-in process — each change came from the user asking "can it be X instead" after seeing the previous version).
