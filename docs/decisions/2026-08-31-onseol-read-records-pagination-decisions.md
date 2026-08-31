@@ -54,3 +54,16 @@
 
 - 실브라우저 검증(백엔드 PR 브랜치를 임시로 빌려와서): `/records`에서 페이지 크기를 50으로 바꾸면 실제로 더 많은 항목이 한 페이지에 로드되고 페이지네이션 컨트롤(선택 UI 포함)이 1페이지 상태로도 계속 보이는 것, `/read`에서 항목이 페이지 크기보다 적은 날에도 페이지네이션 컨트롤이 그대로 보이는 것 확인.
 - `apps/api-server` lint/typecheck/test(132/132)/build 통과. `apps/web` lint/typecheck/test(107/107)/build 통과.
+
+## 추가: pageSizeOptions를 prop으로 분리 + /read, /records 상태를 URL 쿼리스트링에 동기화
+
+사용자 피드백: "PAGE_SIZE_OPTIONS 는 왜 Paginations 에 종속돼있는거야? queryString 으로 조절하는게 낫지않음? UI 도 묶여버리고. 날짜 선택도 그래" — 두 가지 지적: (1) `ui/Pagination`이 자신의 페이지 크기 옵션을 직접 하드코딩하고 있어 앱의 정책이 공용 컴포넌트에 묶여버림, (2) `/read`/`/records`의 날짜·페이지·페이지 크기가 로컬 `useState`에만 있어 새로고침하거나 링크를 공유하면 상태가 사라짐. 둘 다 즉시 진행하기로 확인.
+
+- `ui/Pagination`은 이제 `pageSizeOptions: readonly number[]`을 필수 prop으로 받고, 로컬 하드코딩된 `PAGE_SIZE_OPTIONS` 상수를 제거. `apps/web`의 세 호출부(`/read`, `/records` 두 탭)는 모두 `apps/web/app/lib/pagination.ts`의 `PAGE_SIZE_OPTIONS`를 전달. `Pagination.stories.tsx`는 스토리 전용 로컬 상수를 유지(스토리에는 참조할 앱이 없음).
+- 새 공용 훅 `apps/web/app/lib/useUrlState.ts`: `/records`의 기존 `?tab=` 패턴(URL에서 한 번만 시드해 로컬 `useState`로 렌더링을 구동하고, 변경 시 `router.replace`는 부수효과로만 호출)을 다중 키로 일반화. `pathname`은 `usePathname()`이 아니라 리터럴 문자열로 받음 — 테스트 셋업의 `usePathname()` mock이 항상 `"/"`를 반환해서 실제 값을 못 믿기 때문(`RecordsPageContent`가 `/records?tab=...`를 직접 문자열로 쓰는 것과 동일한 이유). 여러 키를 한 번에 바꿀 때(예: 날짜 변경 시 페이지를 1로 리셋) `router.replace`를 한 번만 호출하도록 설계 — 키마다 따로 호출하면 각자 오래된 `searchParams` 스냅샷을 기준으로 URL을 써서 뒤에 호출된 쪽이 앞의 변경을 지워버림.
+- `/read`: `page.tsx`를 `/records/page.tsx`와 동일하게 서버 컴포넌트 + `<Suspense>` 래핑으로 재구성(`useReadFeed`가 `useSearchParams()`를 쓰게 됐으므로 필요). `useReadFeed`는 `date`/`page`/`pageSize`를 `useUrlState`로 관리 — `?date=&page=&pageSize=`.
+- `/records`: `useDateRangePage`가 `prefix: "req" | "rep"` 인자를 받도록 변경, `reqFrom`/`reqTo`/`reqPage`/`reqPageSize`와 `repFrom`/`repTo`/`repPage`/`repPageSize`로 네임스페이스 — 탭 전환 시 서로의 URL 파라미터를 침범하지 않게 함(다만 탭 전환 자체는 기존 `?tab=` 핸들러가 URL을 통째로 `?tab=...`로 교체하므로, 전환 시점에 이전 탭의 파라미터가 URL에서 지워지는 건 기존 동작 그대로 — 어차피 탭 전환 시 해당 섹션 컴포넌트가 언마운트되어 로컬 상태도 사라지므로 회귀 아님).
+- 프론트엔드 전용 변경 — 백엔드 API는 그대로. PR #109(아직 열려있음)에 이어서 커밋.
+
+- 실브라우저 검증: `/read`에서 이전 날짜로 이동 후 `?date=2026-08-29`가 URL에 반영되고, 그 URL로 직접 새로고침해도 같은 날짜가 그대로 뜸. 페이지 크기를 20으로 바꾸면 `?pageSize=20`이 추가되고 `page`는 생략됨(1로 리셋). `/records`에서 "내가 남긴 고민" 탭에 시작일을 넣으면 `?reqFrom=2026-08-01`로 반영, "내가 남긴 답변" 탭으로 전환 후 시작일을 넣으면 `?tab=replies&repFrom=2026-08-05`로 반영, 그 URL로 새로고침해도 탭과 날짜 입력값이 그대로 복원됨을 확인.
+- `packages/ui`, `apps/web` lint/typecheck 통과. `apps/web` test(107/107)/build 통과.
