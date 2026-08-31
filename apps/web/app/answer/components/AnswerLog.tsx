@@ -92,11 +92,11 @@ export function AnswerLog({
   if (hasOlderEntries) {
     blocks.push(
       <div className="flex justify-center py-3" key="load-older" ref={sentinelRef}>
-        {isLoadingOlderEntries ? (
+        {isLoadingOlderEntries && (
           <p aria-live="polite" className="text-xs text-muted">
             이전 대화 불러오는 중…
           </p>
-        ) : null}
+        )}
       </div>,
     );
   }
@@ -110,9 +110,9 @@ export function AnswerLog({
 
     return (
       <div className="flex flex-col gap-2" key={reply.id}>
-        {showDivider ? (
+        {showDivider && (
           <DateDivider label={formatDayLabel(reply.createdAt)} />
-        ) : null}
+        )}
         <RequestBubble
           authorHref={authorProfileHref(request.author)}
           authorLabel={authorDisplayLabel(
@@ -131,7 +131,7 @@ export function AnswerLog({
   if (loadingNext) {
     blocks.push(
       <div className="flex flex-col gap-2" key="live-loading">
-        {showLiveDivider ? <DateDivider label="오늘" /> : null}
+        {showLiveDivider && <DateDivider label="오늘" />}
         <div
           aria-live="polite"
           className="onseol-bubble-enter max-w-[85%] animate-pulse self-start rounded-lg border border-line bg-surface px-4 py-3 sm:max-w-[70%]"
@@ -143,7 +143,7 @@ export function AnswerLog({
   } else if (currentRequest) {
     blocks.push(
       <div className="flex flex-col gap-2" key="live-current">
-        {showLiveDivider ? <DateDivider label="오늘" /> : null}
+        {showLiveDivider && <DateDivider label="오늘" />}
         <RequestBubble
           authorHref={authorProfileHref(currentRequest.author)}
           authorLabel={authorDisplayLabel(
@@ -156,7 +156,7 @@ export function AnswerLog({
           onHold={() => onHold(currentRequest.id)}
           onReport={() => onReport(currentRequest.id)}
         />
-        {isTyping ? <TypingBubble /> : null}
+        {isTyping && <TypingBubble />}
         <div className="flex justify-end">
           <button
             className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 text-xs font-medium text-muted shadow-sm transition hover:bg-surface-muted hover:text-foreground"

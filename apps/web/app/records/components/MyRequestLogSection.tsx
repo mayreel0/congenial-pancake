@@ -83,7 +83,7 @@ export function MyRequestLogSection() {
         entries={data?.items ?? []}
         loading={requestLog.isPending || requestLog.isLoading}
       />
-      {data ? (
+      {data && (
         <Pagination
           page={data.page}
           pageSize={data.pageSize}
@@ -92,7 +92,7 @@ export function MyRequestLogSection() {
           onPageChange={setPage}
           onPageSizeChange={setPageSize}
         />
-      ) : null}
+      )}
     </section>
   );
 }

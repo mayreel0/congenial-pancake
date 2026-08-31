@@ -48,7 +48,7 @@ function ProfileArea({
         >
           {user.email.charAt(0).toUpperCase()}
         </button>
-        {profileMenuOpen ? (
+        {profileMenuOpen && (
           <div
             aria-label="프로필"
             className="absolute right-0 top-full z-20 mt-1 w-44 overflow-hidden rounded-lg border border-line bg-surface shadow-sm"
@@ -78,7 +78,7 @@ function ProfileArea({
               로그아웃
             </button>
           </div>
-        ) : null}
+        )}
       </div>
     );
   }
@@ -193,7 +193,7 @@ export function ServiceNav({ activePath }: ServiceNavProps) {
           />
         </nav>
       </div>
-      {menuOpen ? (
+      {menuOpen && (
         <nav
           aria-label="모바일 서비스 이동"
           className="absolute left-0 right-0 top-full border-b border-line bg-background px-5 py-3 shadow-sm md:hidden"
@@ -224,7 +224,7 @@ export function ServiceNav({ activePath }: ServiceNavProps) {
             })}
           </div>
         </nav>
-      ) : null}
+      )}
     </header>
   );
 }

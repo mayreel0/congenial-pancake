@@ -135,7 +135,7 @@ export function RequestsListContent() {
               profileHref={`/u/${encodeURIComponent(`${parsed.nickname}-${parsed.discriminator}`)}`}
               query={query}
             />
-            {query.data ? (
+            {query.data && (
               <Pagination
                 page={page}
                 pageSize={pageSize}
@@ -144,7 +144,7 @@ export function RequestsListContent() {
                 onPageChange={setPage}
                 onPageSizeChange={setPageSize}
               />
-            ) : null}
+            )}
           </>
         ) : (
           <p className="max-w-xl leading-7 text-muted">

@@ -83,7 +83,7 @@ export function MyAnswerLogSection() {
         entries={data?.items ?? []}
         loading={answerLog.isPending || answerLog.isLoading}
       />
-      {data ? (
+      {data && (
         <Pagination
           page={data.page}
           pageSize={data.pageSize}
@@ -92,7 +92,7 @@ export function MyAnswerLogSection() {
           onPageChange={setPage}
           onPageSizeChange={setPageSize}
         />
-      ) : null}
+      )}
     </section>
   );
 }

@@ -122,12 +122,12 @@ export function SettingsForm({
           />
         ))}
 
-        {updateError ? (
+        {updateError && (
           <p className="text-sm text-red-600">{updateError}</p>
-        ) : null}
-        {!updateError && saved ? (
+        )}
+        {!updateError && saved && (
           <p className="text-sm text-primary">저장했어요.</p>
-        ) : null}
+        )}
 
         <Button disabled={updating} type="submit">
           {updating ? "저장 중" : "저장"}

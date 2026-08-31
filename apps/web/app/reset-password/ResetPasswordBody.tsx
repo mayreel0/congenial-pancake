@@ -55,7 +55,7 @@ export function ResetPasswordBody({
         onChange={(event) => onPasswordChange(event.currentTarget.value)}
       />
 
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {error && <p className="text-sm text-red-600">{error}</p>}
 
       <Button disabled={status === "pending"} fullWidth type="submit">
         {status === "pending" ? "처리 중" : "비밀번호 설정"}
