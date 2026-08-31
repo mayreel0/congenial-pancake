@@ -1,11 +1,13 @@
-import type { FeedItemDto } from "../lib/requests/api";
+import type { FeedItemDto } from "./requests/api";
 
 // The API never exposes authorId/guestId (see apps/api/src/requests/dto/
 // request-response.dto.ts) — a thread only gets a per-thread authorSlot
 // (apps/api/src/requests/feed-author-slots.ts) telling us "this is the same
 // author as slot N within this thread," nothing more. We map each slot to a
 // nickname drawn from a fixed pool, offset by a hash of the thread's request
-// id so different threads don't all start from the same nickname.
+// id so different threads don't all start from the same nickname. Shared
+// between /read (ReadFeed) and /u/[slug]'s thread detail pages — both
+// render the exact same FeedItemDto-shaped thread.
 const NICKNAME_POOL = [
   "조용한 파도",
   "포근한 밤",

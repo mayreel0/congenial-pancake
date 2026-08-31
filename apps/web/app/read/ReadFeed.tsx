@@ -6,10 +6,10 @@ import { ServiceNav } from "../components/navigation/ServiceNav";
 import { ActionConfirmDialog } from "ui/ActionConfirmDialog";
 import { Pagination } from "ui/Pagination";
 import { Skeleton } from "ui/Skeleton";
+import { buildFeedItemLabels } from "../lib/feed-item-labels";
 import { PAGE_SIZE_OPTIONS } from "../lib/pagination";
 import { DayNav } from "./components/DayNav";
 import { ReadThread } from "./components/ReadThread";
-import { buildFeedItemLabels } from "./labels";
 import { useReadFeed } from "./useReadFeed";
 
 type PendingReport =

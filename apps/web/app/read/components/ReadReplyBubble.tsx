@@ -11,6 +11,11 @@ type ReadReplyBubbleProps = {
   authorHref?: string | null;
   saved: boolean;
   showActions: boolean;
+  // Public-profile thread detail (/u/[slug]/replies/[id]) rings the one
+  // reply the viewer navigated to, so it stands out among the rest of the
+  // thread — unused (always false) on /read, which has no single "this
+  // one" reply to call out.
+  highlighted?: boolean;
   onReport(): void;
   onToggleSave(): void;
 };
@@ -21,6 +26,7 @@ export function ReadReplyBubble({
   authorHref = null,
   saved,
   showActions,
+  highlighted = false,
   onReport,
   onToggleSave,
 }: ReadReplyBubbleProps) {
@@ -56,7 +62,11 @@ export function ReadReplyBubble({
           <BookmarkIcon className="h-4 w-4" filled={saved} />
         </button>
       ) : null}
-      <article className="max-w-[85%] space-y-1.5 rounded-lg bg-primary/10 px-4 py-3 sm:max-w-[70%]">
+      <article
+        className={`max-w-[85%] space-y-1.5 rounded-lg bg-primary/10 px-4 py-3 sm:max-w-[70%] ${
+          highlighted ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""
+        }`}
+      >
         <div className="flex items-center justify-between gap-3">
           {authorHref ? (
             <Link
