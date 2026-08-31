@@ -1,5 +1,10 @@
 import { fireEvent, render, screen, waitFor, within } from "../lib/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  addDaysToDateString,
+  formatKoreanDate,
+  yesterdayKstDateString,
+} from "../lib/kst-date";
 import type { FeedItemDto } from "../lib/requests/api";
 import { ReadFeed } from "./ReadFeed";
 
@@ -69,7 +74,7 @@ function installFakeBackend(initialFeed: FeedItemDto[], loggedIn = true) {
             pageSize: requestedPageSize,
             totalItems: feed.length,
             totalPages: 1,
-            date: requestedDate ?? "2026-08-30",
+            date: requestedDate ?? yesterdayKstDateString(),
           }),
         );
       }
@@ -271,16 +276,24 @@ describe("ReadFeed", () => {
   });
 
   it("browses by KST day: previous day re-fetches an earlier date, and 다음 날 is disabled at yesterday", async () => {
+    // canGoToNextDay compares the shown date against the real "yesterday"
+    // (yesterdayKstDateString() with no argument, evaluated at whatever
+    // moment this test actually runs) — computing the expected labels the
+    // same way, rather than hardcoding a date, keeps this test correct
+    // regardless of which real day it runs on.
+    const yesterday = yesterdayKstDateString();
+    const dayBeforeYesterday = addDaysToDateString(yesterday, -1);
+
     const fetchMock = installFakeBackend([]);
     render(<ReadFeed />);
 
-    // Defaults to yesterday (mocked as 2026-08-30 by installFakeBackend).
-    await screen.findByText("2026년 8월 30일");
+    // Defaults to yesterday (mocked by installFakeBackend).
+    await screen.findByText(formatKoreanDate(yesterday));
     expect(screen.getByRole("button", { name: "다음 날" })).toBeDisabled();
 
     fireEvent.click(screen.getByRole("button", { name: "이전 날" }));
 
-    await screen.findByText("2026년 8월 29일");
+    await screen.findByText(formatKoreanDate(dayBeforeYesterday));
     expect(
       screen.getByRole("button", { name: "다음 날" }),
     ).not.toBeDisabled();
@@ -295,14 +308,14 @@ describe("ReadFeed", () => {
     const requestedUrl = new URL(
       typeof input === "string" ? input : input.toString(),
     );
-    expect(requestedUrl.searchParams.get("date")).toBe("2026-08-29");
+    expect(requestedUrl.searchParams.get("date")).toBe(dayBeforeYesterday);
   });
 
   it("shows the pagination control even with a single page, and changing page size resets to page 1", async () => {
     const fetchMock = installFakeBackend([]);
     render(<ReadFeed />);
 
-    await screen.findByText("2026년 8월 30일");
+    await screen.findByText(formatKoreanDate(yesterdayKstDateString()));
     // Only one page of results, but the size selector must stay reachable.
     expect(screen.getByRole("navigation", { name: "페이지" })).toBeInTheDocument();
 
