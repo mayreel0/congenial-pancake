@@ -53,8 +53,9 @@ function AnswerLogBody({ loading, entries }: AnswerLogBodyProps) {
 }
 
 export function MyAnswerLogSection() {
-  const { from, to, page, setFrom, setTo, setPage } = useDateRangePage();
-  const answerLog = useMyAnswerLogQuery(from, to, page);
+  const { from, to, page, pageSize, setFrom, setTo, setPage, setPageSize } =
+    useDateRangePage();
+  const answerLog = useMyAnswerLogQuery(from, to, page, pageSize);
   const data = answerLog.data;
 
   return (
@@ -82,7 +83,13 @@ export function MyAnswerLogSection() {
         loading={answerLog.isPending || answerLog.isLoading}
       />
       {data ? (
-        <Pagination page={data.page} totalPages={data.totalPages} onPageChange={setPage} />
+        <Pagination
+          page={data.page}
+          pageSize={data.pageSize}
+          totalPages={data.totalPages}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+        />
       ) : null}
     </section>
   );

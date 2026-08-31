@@ -173,8 +173,10 @@ export function ReadFeed() {
         />
         <Pagination
           page={feed.page}
+          pageSize={feed.pageSize}
           totalPages={feed.totalPages}
           onPageChange={feed.setPage}
+          onPageSizeChange={feed.setPageSize}
         />
       </main>
       <ActionConfirmDialog

@@ -40,11 +40,13 @@ export function fetchMyAnswerLog(
   from?: string,
   to?: string,
   page?: number,
+  pageSize?: number,
 ): Promise<PaginatedDto<MyAnswerLogEntryDto>> {
   const params = new URLSearchParams();
   if (from) params.set("from", from);
   if (to) params.set("to", to);
   if (page) params.set("page", String(page));
+  if (pageSize) params.set("pageSize", String(pageSize));
   const query = params.toString();
   return apiFetch<PaginatedDto<MyAnswerLogEntryDto>>(
     `/replies/mine${query ? `?${query}` : ""}`,

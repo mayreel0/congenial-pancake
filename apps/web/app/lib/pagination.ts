@@ -8,3 +8,7 @@ export type PaginatedDto<T> = {
   totalItems: number;
   totalPages: number;
 };
+
+// Mirrors the backend's own default/whitelist — kept in sync manually,
+// there's no shared package between apps/api-server and apps/web for this.
+export const DEFAULT_PAGE_SIZE = 10;

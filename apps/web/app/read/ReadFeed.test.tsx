@@ -59,12 +59,14 @@ function installFakeBackend(initialFeed: FeedItemDto[], loggedIn = true) {
         );
       }
       if (url.includes("/requests/feed") && method === "GET") {
-        const requestedDate = new URL(url).searchParams.get("date");
+        const params = new URL(url).searchParams;
+        const requestedDate = params.get("date");
+        const requestedPageSize = Number(params.get("pageSize") ?? "10");
         return Promise.resolve(
           jsonResponse(200, {
             items: feed,
             page: 1,
-            pageSize: 20,
+            pageSize: requestedPageSize,
             totalItems: feed.length,
             totalPages: 1,
             date: requestedDate ?? "2026-08-30",
@@ -294,5 +296,31 @@ describe("ReadFeed", () => {
       typeof input === "string" ? input : input.toString(),
     );
     expect(requestedUrl.searchParams.get("date")).toBe("2026-08-29");
+  });
+
+  it("shows the pagination control even with a single page, and changing page size resets to page 1", async () => {
+    const fetchMock = installFakeBackend([]);
+    render(<ReadFeed />);
+
+    await screen.findByText("2026년 8월 30일");
+    // Only one page of results, but the size selector must stay reachable.
+    expect(screen.getByRole("navigation", { name: "페이지" })).toBeInTheDocument();
+
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "50" } });
+
+    await waitFor(() => {
+      const feedCalls = fetchMock.mock.calls.filter(([input]) =>
+        (typeof input === "string" ? input : input.toString()).includes(
+          "/requests/feed",
+        ),
+      );
+      const lastCall = feedCalls.at(-1)!;
+      const [input] = lastCall;
+      const requestedUrl = new URL(
+        typeof input === "string" ? input : input.toString(),
+      );
+      expect(requestedUrl.searchParams.get("pageSize")).toBe("50");
+      expect(requestedUrl.searchParams.get("page")).toBe("1");
+    });
   });
 });

@@ -12,17 +12,34 @@ type Story = StoryObj<typeof Pagination>;
 
 function ControlledPagination(props: React.ComponentProps<typeof Pagination>) {
   const [page, setPage] = useState(props.page);
-  return <Pagination {...props} page={page} onPageChange={setPage} />;
+  const [pageSize, setPageSize] = useState(props.pageSize);
+  return (
+    <Pagination
+      {...props}
+      page={page}
+      pageSize={pageSize}
+      onPageChange={setPage}
+      onPageSizeChange={setPageSize}
+    />
+  );
 }
 
 export const FewPages: Story = {
-  render: (args) => <ControlledPagination {...args} page={2} totalPages={4} />,
+  render: (args) => (
+    <ControlledPagination {...args} page={2} pageSize={10} totalPages={4} />
+  ),
 };
 
 export const ManyPages: Story = {
-  render: (args) => <ControlledPagination {...args} page={12} totalPages={40} />,
+  render: (args) => (
+    <ControlledPagination {...args} page={12} pageSize={10} totalPages={40} />
+  ),
 };
 
+// Still shows the full control (including the page-size selector) even
+// though there's nowhere else to page to.
 export const SinglePage: Story = {
-  render: (args) => <ControlledPagination {...args} page={1} totalPages={1} />,
+  render: (args) => (
+    <ControlledPagination {...args} page={1} pageSize={10} totalPages={1} />
+  ),
 };

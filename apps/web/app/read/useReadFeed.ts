@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useAuth } from "../lib/auth/useAuth";
 import { addDaysToDateString, yesterdayKstDateString } from "../lib/kst-date";
+import { DEFAULT_PAGE_SIZE } from "../lib/pagination";
 import type { FeedItemDto } from "../lib/requests/api";
 import { useFeedQuery } from "../lib/requests/queries";
 import {
@@ -25,6 +26,8 @@ type UseReadFeedResult = {
   page: number;
   totalPages: number;
   setPage(page: number): void;
+  pageSize: number;
+  setPageSize(pageSize: number): void;
   savedReplyIds: string[];
   // Save and report both require a login (see docs/decisions/2026-08-22-
   // onseol-answer-queue-decisions.md) — gated together here, matching
@@ -40,8 +43,9 @@ export function useReadFeed(): UseReadFeedResult {
   const canManage = status === "authenticated";
   const [date, setDate] = useState<string | undefined>(undefined);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSizeState] = useState(DEFAULT_PAGE_SIZE);
 
-  const feedQuery = useFeedQuery(date, page);
+  const feedQuery = useFeedQuery(date, page, pageSize);
   const savedQuery = useSavedReplyIdsQuery(canManage);
   const saveMutation = useSaveReplyMutation();
   const unsaveMutation = useUnsaveReplyMutation();
@@ -59,6 +63,11 @@ export function useReadFeed(): UseReadFeedResult {
   function goToNextDay(): void {
     if (!canGoToNextDay) return;
     setDate(addDaysToDateString(currentDate, 1));
+    setPage(1);
+  }
+
+  function setPageSize(size: number): void {
+    setPageSizeState(size);
     setPage(1);
   }
 
@@ -94,6 +103,8 @@ export function useReadFeed(): UseReadFeedResult {
     page,
     totalPages: feedQuery.data?.totalPages ?? 1,
     setPage,
+    pageSize,
+    setPageSize,
     savedReplyIds,
     canManage,
     reportRequest,

@@ -22,13 +22,17 @@ export const requestKeys = {
   queue: ["requests", "queue"] as const,
   held: ["requests", "held"] as const,
   // Prefix keys — pass to invalidateQueries to match every feed(...)/
-  // mine(...) variant regardless of its date/page args.
+  // mine(...) variant regardless of its date/page/pageSize args.
   feedAll: ["requests", "feed"] as const,
-  feed: (date: string | undefined, page: number) =>
-    ["requests", "feed", date ?? null, page] as const,
+  feed: (date: string | undefined, page: number, pageSize: number) =>
+    ["requests", "feed", date ?? null, page, pageSize] as const,
   mineAll: ["requests", "mine"] as const,
-  mine: (from: string | undefined, to: string | undefined, page: number) =>
-    ["requests", "mine", from ?? null, to ?? null, page] as const,
+  mine: (
+    from: string | undefined,
+    to: string | undefined,
+    page: number,
+    pageSize: number,
+  ) => ["requests", "mine", from ?? null, to ?? null, page, pageSize] as const,
 };
 
 export function useRequestsQuery() {
@@ -84,10 +88,14 @@ export function useSkipMutation() {
 // keepPreviousData avoids a full loading-state flash on page change — the
 // previous page's items stay on screen (still tagged isPlaceholderData)
 // until the new page resolves.
-export function useFeedQuery(date: string | undefined, page: number) {
+export function useFeedQuery(
+  date: string | undefined,
+  page: number,
+  pageSize: number,
+) {
   return useQuery({
-    queryKey: requestKeys.feed(date, page),
-    queryFn: () => fetchFeed(date, page),
+    queryKey: requestKeys.feed(date, page, pageSize),
+    queryFn: () => fetchFeed(date, page, pageSize),
     placeholderData: keepPreviousData,
   });
 }
@@ -96,10 +104,11 @@ export function useMyRequestLogQuery(
   from: string | undefined,
   to: string | undefined,
   page: number,
+  pageSize: number,
 ) {
   return useQuery({
-    queryKey: requestKeys.mine(from, to, page),
-    queryFn: () => fetchMyRequestLog(from, to, page),
+    queryKey: requestKeys.mine(from, to, page, pageSize),
+    queryFn: () => fetchMyRequestLog(from, to, page, pageSize),
     placeholderData: keepPreviousData,
   });
 }

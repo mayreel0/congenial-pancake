@@ -53,8 +53,9 @@ function RequestLogBody({ loading, entries }: RequestLogBodyProps) {
 }
 
 export function MyRequestLogSection() {
-  const { from, to, page, setFrom, setTo, setPage } = useDateRangePage();
-  const requestLog = useMyRequestLogQuery(from, to, page);
+  const { from, to, page, pageSize, setFrom, setTo, setPage, setPageSize } =
+    useDateRangePage();
+  const requestLog = useMyRequestLogQuery(from, to, page, pageSize);
   const data = requestLog.data;
 
   return (
@@ -82,7 +83,13 @@ export function MyRequestLogSection() {
         loading={requestLog.isPending || requestLog.isLoading}
       />
       {data ? (
-        <Pagination page={data.page} totalPages={data.totalPages} onPageChange={setPage} />
+        <Pagination
+          page={data.page}
+          pageSize={data.pageSize}
+          totalPages={data.totalPages}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+        />
       ) : null}
     </section>
   );

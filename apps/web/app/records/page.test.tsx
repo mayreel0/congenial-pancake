@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "../lib/test-utils";
+import { fireEvent, render, screen, waitFor } from "../lib/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import RecordsPage from "./page";
 
@@ -346,5 +346,14 @@ describe("RecordsPage", () => {
     expect(pageCall?.get("page")).toBe("2");
     // The date range set above should still apply on page 2.
     expect(pageCall?.get("from")).toBe("2026-08-01");
+
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "50" } });
+
+    await waitFor(() => {
+      const sizeCall = requestedParams.at(-1)!;
+      expect(sizeCall.get("pageSize")).toBe("50");
+      // Changing the page size also resets to page 1.
+      expect(sizeCall.get("page")).toBe("1");
+    });
   });
 });

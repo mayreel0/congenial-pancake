@@ -18,10 +18,14 @@ import {
 
 export const replyKeys = {
   // Prefix key — pass to invalidateQueries to match every mine(...) variant
-  // regardless of its from/to/page args.
+  // regardless of its from/to/page/pageSize args.
   mineAll: ["replies", "mine"] as const,
-  mine: (from: string | undefined, to: string | undefined, page: number) =>
-    ["replies", "mine", from ?? null, to ?? null, page] as const,
+  mine: (
+    from: string | undefined,
+    to: string | undefined,
+    page: number,
+    pageSize: number,
+  ) => ["replies", "mine", from ?? null, to ?? null, page, pageSize] as const,
   saved: ["replies", "saved"] as const,
 };
 
@@ -29,10 +33,11 @@ export function useMyAnswerLogQuery(
   from: string | undefined,
   to: string | undefined,
   page: number,
+  pageSize: number,
 ) {
   return useQuery({
-    queryKey: replyKeys.mine(from, to, page),
-    queryFn: () => fetchMyAnswerLog(from, to, page),
+    queryKey: replyKeys.mine(from, to, page, pageSize),
+    queryFn: () => fetchMyAnswerLog(from, to, page, pageSize),
     placeholderData: keepPreviousData,
   });
 }
