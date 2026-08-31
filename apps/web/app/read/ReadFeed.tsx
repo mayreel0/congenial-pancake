@@ -4,6 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { ApiError } from "../lib/api";
 import { ServiceNav } from "../components/navigation/ServiceNav";
 import { ActionConfirmDialog } from "ui/ActionConfirmDialog";
+import { Pagination } from "ui/Pagination";
+import { Skeleton } from "ui/Skeleton";
+import { DayNav } from "./components/DayNav";
 import { ReadThread } from "./components/ReadThread";
 import { buildFeedItemLabels } from "./labels";
 import { useReadFeed } from "./useReadFeed";
@@ -23,6 +26,66 @@ function errorMessage(error: unknown): string {
     return ERROR_MESSAGES[error.code] ?? "요청을 처리하지 못했어요. 잠시 후 다시 시도해주세요.";
   }
   return "요청을 처리하지 못했어요. 잠시 후 다시 시도해주세요.";
+}
+
+type ReadFeedBodyProps = {
+  feed: ReturnType<typeof useReadFeed>;
+  savedSet: Set<string>;
+  onReportRequest(requestId: string): void;
+  onReportReply(requestId: string, replyId: string): void;
+  onToggleSaveReply(replyId: string): void;
+};
+
+// Early return instead of a nested ternary — matches
+// apps/admin/app/components/AdminStatusGate.tsx's pattern.
+function ReadFeedBody({
+  feed,
+  savedSet,
+  onReportRequest,
+  onReportReply,
+  onToggleSaveReply,
+}: ReadFeedBodyProps) {
+  if (feed.isLoading) {
+    return (
+      <div className="space-y-4">
+        {[0, 1, 2].map((key) => (
+          <div
+            className="space-y-3 rounded-lg border border-line bg-surface px-4 py-5 shadow-sm"
+            key={key}
+          >
+            <Skeleton className="h-4 w-2/3" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-1/3" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (feed.readFeed.length === 0) {
+    return (
+      <p className="py-16 text-center text-sm text-muted">
+        이 날 읽을 수 있는 온설이 없어요.
+      </p>
+    );
+  }
+
+  return (
+    <>
+      {feed.readFeed.map((item) => (
+        <ReadThread
+          authorLabels={buildFeedItemLabels(item)}
+          item={item}
+          key={item.request.id}
+          savedReplyIds={savedSet}
+          showActions={feed.canManage}
+          onReportReply={(replyId) => onReportReply(item.request.id, replyId)}
+          onReportRequest={() => onReportRequest(item.request.id)}
+          onToggleSaveReply={onToggleSaveReply}
+        />
+      ))}
+    </>
+  );
 }
 
 export function ReadFeed() {
@@ -91,32 +154,28 @@ export function ReadFeed() {
     <div className="min-h-dvh bg-background text-foreground">
       <ServiceNav activePath="/read" />
       <main className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-5 py-10 sm:px-8">
-        {feed.readFeed.length === 0 ? (
-          <p className="py-16 text-center text-sm text-muted">
-            아직 읽을 수 있는 온설이 없어요.
-          </p>
-        ) : (
-          feed.readFeed.map((item) => (
-            <ReadThread
-              authorLabels={buildFeedItemLabels(item)}
-              item={item}
-              key={item.request.id}
-              savedReplyIds={savedSet}
-              showActions={feed.canManage}
-              onReportReply={(replyId) =>
-                setPendingReport({
-                  kind: "reply",
-                  requestId: item.request.id,
-                  replyId,
-                })
-              }
-              onReportRequest={() =>
-                setPendingReport({ kind: "request", requestId: item.request.id })
-              }
-              onToggleSaveReply={(replyId) => void toggleSavedReply(replyId)}
-            />
-          ))
-        )}
+        <DayNav
+          canGoNext={feed.canGoToNextDay}
+          date={feed.currentDate}
+          onNext={feed.goToNextDay}
+          onPrevious={feed.goToPreviousDay}
+        />
+        <ReadFeedBody
+          feed={feed}
+          savedSet={savedSet}
+          onReportReply={(requestId, replyId) =>
+            setPendingReport({ kind: "reply", requestId, replyId })
+          }
+          onReportRequest={(requestId) =>
+            setPendingReport({ kind: "request", requestId })
+          }
+          onToggleSaveReply={(replyId) => void toggleSavedReply(replyId)}
+        />
+        <Pagination
+          page={feed.page}
+          totalPages={feed.totalPages}
+          onPageChange={feed.setPage}
+        />
       </main>
       <ActionConfirmDialog
         confirmLabel="신고하기"

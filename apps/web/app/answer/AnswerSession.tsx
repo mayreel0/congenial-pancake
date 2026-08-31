@@ -120,10 +120,13 @@ export function AnswerSession() {
           canManageCurrentRequest={prototype.canManageCurrentRequest}
           currentRequest={currentTarget}
           entries={prototype.answerLog}
+          hasOlderEntries={prototype.hasOlderAnswerLogEntries}
+          isLoadingOlderEntries={prototype.isLoadingOlderAnswerLogEntries}
           isTyping={isTyping}
           leavingRequestId={leavingRequestId}
           loadingNext={loadingNext}
           onHold={(requestId) => requestAction("hold", requestId)}
+          onLoadOlderEntries={prototype.loadOlderAnswerLogEntries}
           onReport={(requestId) => requestAction("report", requestId)}
           onSkip={(requestId) => requestAction("skip", requestId)}
         />

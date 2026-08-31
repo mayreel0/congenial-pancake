@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, within } from "../lib/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { RequestDto } from "../lib/requests/api";
 import type { MyAnswerLogEntryDto } from "../lib/replies/api";
+import { MockIntersectionObserver } from "../../vitest.setup";
 import { AnswerSession } from "./AnswerSession";
 
 type MockResponse = { ok: boolean; status: number; json: () => Promise<unknown> };
@@ -43,8 +44,16 @@ function installFakeBackend(initialQueue: RequestDto[]) {
       if (url.endsWith("/requests/held") && method === "GET") {
         return Promise.resolve(jsonResponse(200, held));
       }
-      if (url.endsWith("/replies/mine") && method === "GET") {
-        return Promise.resolve(jsonResponse(200, log));
+      if (url.includes("/replies/mine") && method === "GET") {
+        return Promise.resolve(
+          jsonResponse(200, {
+            items: log,
+            page: 1,
+            pageSize: 20,
+            totalItems: log.length,
+            totalPages: 1,
+          }),
+        );
       }
 
       const skipMatch = /\/requests\/([^/]+)\/skip$/.exec(url);
@@ -185,8 +194,16 @@ describe("AnswerSession", () => {
           jsonResponse(200, makeRequest({ id: "req-1", body: "요청 본문" })),
         );
       }
-      if (url.endsWith("/replies/mine")) {
-        return Promise.resolve(jsonResponse(200, []));
+      if (url.includes("/replies/mine")) {
+        return Promise.resolve(
+          jsonResponse(200, {
+            items: [],
+            page: 1,
+            pageSize: 20,
+            totalItems: 0,
+            totalPages: 1,
+          }),
+        );
       }
       throw new Error(`Unmocked fetch: ${url}`);
     });
@@ -293,5 +310,80 @@ describe("AnswerSession", () => {
     expect(
       screen.queryByText("오늘 실수한 일이 계속 떠올라요."),
     ).not.toBeInTheDocument();
+  });
+
+  it("loads an older page of the answer log when the top sentinel scrolls into view", async () => {
+    const recentEntry: MyAnswerLogEntryDto = {
+      requestId: "req-recent",
+      requestBody: "최근에 남긴 고민",
+      requestCreatedAt: "2026-08-25T00:00:00.000Z",
+      requestAuthor: { anonymous: true },
+      replyId: "reply-recent",
+      replyBody: "최근에 남긴 답변",
+      replyCreatedAt: "2026-08-25T01:00:00.000Z",
+      replyAuthor: { anonymous: true },
+    };
+    const olderEntry: MyAnswerLogEntryDto = {
+      requestId: "req-older",
+      requestBody: "예전에 남긴 고민",
+      requestCreatedAt: "2026-08-01T00:00:00.000Z",
+      requestAuthor: { anonymous: true },
+      replyId: "reply-older",
+      replyBody: "예전에 남긴 답변",
+      replyCreatedAt: "2026-08-01T01:00:00.000Z",
+      replyAuthor: { anonymous: true },
+    };
+
+    const fetchMock = vi.fn((input: RequestInfo | URL): Promise<MockResponse> => {
+      const url = typeof input === "string" ? input : input.toString();
+
+      if (url.endsWith("/auth/me")) {
+        return Promise.resolve(
+          jsonResponse(200, {
+            id: "user-1",
+            email: "member@example.com",
+            createdAt: "2026-08-22T00:00:00.000Z",
+          }),
+        );
+      }
+      if (url.endsWith("/requests/queue")) {
+        return Promise.resolve(jsonResponse(200, null));
+      }
+      if (url.endsWith("/requests/held")) {
+        return Promise.resolve(jsonResponse(200, []));
+      }
+      if (url.includes("/replies/mine")) {
+        const page = Number(new URL(url).searchParams.get("page") ?? "1");
+        return Promise.resolve(
+          jsonResponse(200, {
+            items: page === 1 ? [recentEntry] : [olderEntry],
+            page,
+            pageSize: 1,
+            totalItems: 2,
+            totalPages: 2,
+          }),
+        );
+      }
+      throw new Error(`Unmocked fetch: ${url}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<AnswerSession />);
+
+    expect(await screen.findByText("최근에 남긴 고민")).toBeInTheDocument();
+    expect(screen.queryByText("예전에 남긴 고민")).not.toBeInTheDocument();
+
+    const observer = MockIntersectionObserver.instances.at(-1);
+    expect(observer).toBeDefined();
+    await act(async () => {
+      observer!.callback(
+        [{ isIntersecting: true } as IntersectionObserverEntry],
+        observer! as unknown as IntersectionObserver,
+      );
+    });
+
+    expect(await screen.findByText("예전에 남긴 고민")).toBeInTheDocument();
+    // Both loaded pages stay visible — older is prepended, not swapped in.
+    expect(screen.getByText("최근에 남긴 고민")).toBeInTheDocument();
   });
 });

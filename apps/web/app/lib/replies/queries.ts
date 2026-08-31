@@ -1,6 +1,12 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { requestKeys } from "../requests/queries";
 import {
   createReply,
@@ -11,14 +17,39 @@ import {
 } from "./api";
 
 export const replyKeys = {
-  mine: ["replies", "mine"] as const,
+  // Prefix key — pass to invalidateQueries to match every mine(...) variant
+  // regardless of its from/to/page args.
+  mineAll: ["replies", "mine"] as const,
+  mine: (from: string | undefined, to: string | undefined, page: number) =>
+    ["replies", "mine", from ?? null, to ?? null, page] as const,
   saved: ["replies", "saved"] as const,
 };
 
-export function useMyAnswerLogQuery() {
+export function useMyAnswerLogQuery(
+  from: string | undefined,
+  to: string | undefined,
+  page: number,
+) {
   return useQuery({
-    queryKey: replyKeys.mine,
-    queryFn: fetchMyAnswerLog,
+    queryKey: replyKeys.mine(from, to, page),
+    queryFn: () => fetchMyAnswerLog(from, to, page),
+    placeholderData: keepPreviousData,
+  });
+}
+
+// /answer's chat-style history: page 1 is the most recent (backend default
+// sort), and each further page is progressively older — exactly the
+// "scroll up to load older" shape, so fetchNextPage here means "further
+// into the past," not "later." Separate from useMyAnswerLogQuery (used by
+// /records' numbered pager) since the two need different react-query
+// primitives for the same underlying endpoint.
+export function useMyAnswerLogInfiniteQuery() {
+  return useInfiniteQuery({
+    queryKey: [...replyKeys.mineAll, "infinite"],
+    queryFn: ({ pageParam }) => fetchMyAnswerLog(undefined, undefined, pageParam),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) =>
+      lastPage.page < lastPage.totalPages ? lastPage.page + 1 : undefined,
   });
 }
 
@@ -42,8 +73,8 @@ export function useCreateReplyMutation() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: requestKeys.queue }),
         queryClient.invalidateQueries({ queryKey: requestKeys.held }),
-        queryClient.invalidateQueries({ queryKey: requestKeys.feed }),
-        queryClient.invalidateQueries({ queryKey: replyKeys.mine }),
+        queryClient.invalidateQueries({ queryKey: requestKeys.feedAll }),
+        queryClient.invalidateQueries({ queryKey: replyKeys.mineAll }),
       ]);
     },
   });

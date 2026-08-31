@@ -10,6 +10,8 @@
     "./ActionConfirmDialog": "./src/ActionConfirmDialog.tsx",
     "./QueryProvider": "./src/QueryProvider.tsx",
     "./Button": "./src/Button.tsx",
+    "./Pagination": "./src/Pagination.tsx",
+    "./Skeleton": "./src/Skeleton.tsx",
     "./TextField": "./src/TextField.tsx",
     "./Toggle": "./src/Toggle.tsx"
   },

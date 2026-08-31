@@ -99,7 +99,10 @@ describe("AnswerLog date dividers", () => {
         entries={entries}
         isTyping={false}
         leavingRequestId={null}
+        hasOlderEntries={false}
+        isLoadingOlderEntries={false}
         loadingNext={false}
+        onLoadOlderEntries={() => {}}
         onHold={noop}
         onReport={noop}
         onSkip={noop}
@@ -151,7 +154,10 @@ describe("AnswerLog date dividers", () => {
         entries={entries}
         isTyping={false}
         leavingRequestId={null}
+        hasOlderEntries={false}
+        isLoadingOlderEntries={false}
         loadingNext={false}
+        onLoadOlderEntries={() => {}}
         onHold={noop}
         onReport={noop}
         onSkip={noop}
@@ -173,7 +179,10 @@ describe("AnswerLog date dividers", () => {
         entries={[]}
         isTyping={false}
         leavingRequestId={null}
+        hasOlderEntries={false}
+        isLoadingOlderEntries={false}
         loadingNext={false}
+        onLoadOlderEntries={() => {}}
         onHold={noop}
         onReport={noop}
         onSkip={noop}
