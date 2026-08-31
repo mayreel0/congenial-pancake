@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { useDismissOnOutsideClick } from "../hooks/useDismissOnOutsideClick";
-import { MoreIcon } from "../icons/MoreIcon";
+import { MoreIcon } from "../icons";
 
 type MoreMenuItem = {
   key: string;
