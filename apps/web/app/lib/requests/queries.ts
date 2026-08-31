@@ -1,6 +1,11 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   createRequest,
   fetchFeed,
@@ -16,8 +21,18 @@ export const requestKeys = {
   list: ["requests", "list"] as const,
   queue: ["requests", "queue"] as const,
   held: ["requests", "held"] as const,
-  feed: ["requests", "feed"] as const,
-  mine: ["requests", "mine"] as const,
+  // Prefix keys — pass to invalidateQueries to match every feed(...)/
+  // mine(...) variant regardless of its date/page/pageSize args.
+  feedAll: ["requests", "feed"] as const,
+  feed: (date: string | undefined, page: number, pageSize: number) =>
+    ["requests", "feed", date ?? null, page, pageSize] as const,
+  mineAll: ["requests", "mine"] as const,
+  mine: (
+    from: string | undefined,
+    to: string | undefined,
+    page: number,
+    pageSize: number,
+  ) => ["requests", "mine", from ?? null, to ?? null, page, pageSize] as const,
 };
 
 export function useRequestsQuery() {
@@ -35,7 +50,7 @@ export function useCreateRequestMutation() {
       createRequest(body, anonymous),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: requestKeys.list });
-      void queryClient.invalidateQueries({ queryKey: requestKeys.mine });
+      void queryClient.invalidateQueries({ queryKey: requestKeys.mineAll });
     },
   });
 }
@@ -70,17 +85,31 @@ export function useSkipMutation() {
   });
 }
 
-export function useFeedQuery() {
+// keepPreviousData avoids a full loading-state flash on page change — the
+// previous page's items stay on screen (still tagged isPlaceholderData)
+// until the new page resolves.
+export function useFeedQuery(
+  date: string | undefined,
+  page: number,
+  pageSize: number,
+) {
   return useQuery({
-    queryKey: requestKeys.feed,
-    queryFn: fetchFeed,
+    queryKey: requestKeys.feed(date, page, pageSize),
+    queryFn: () => fetchFeed(date, page, pageSize),
+    placeholderData: keepPreviousData,
   });
 }
 
-export function useMyRequestLogQuery() {
+export function useMyRequestLogQuery(
+  from: string | undefined,
+  to: string | undefined,
+  page: number,
+  pageSize: number,
+) {
   return useQuery({
-    queryKey: requestKeys.mine,
-    queryFn: fetchMyRequestLog,
+    queryKey: requestKeys.mine(from, to, page, pageSize),
+    queryFn: () => fetchMyRequestLog(from, to, page, pageSize),
+    placeholderData: keepPreviousData,
   });
 }
 

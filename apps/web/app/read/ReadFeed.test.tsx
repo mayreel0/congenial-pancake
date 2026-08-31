@@ -58,8 +58,20 @@ function installFakeBackend(initialFeed: FeedItemDto[], loggedIn = true) {
           }),
         );
       }
-      if (url.endsWith("/requests/feed") && method === "GET") {
-        return Promise.resolve(jsonResponse(200, feed));
+      if (url.includes("/requests/feed") && method === "GET") {
+        const params = new URL(url).searchParams;
+        const requestedDate = params.get("date");
+        const requestedPageSize = Number(params.get("pageSize") ?? "10");
+        return Promise.resolve(
+          jsonResponse(200, {
+            items: feed,
+            page: 1,
+            pageSize: requestedPageSize,
+            totalItems: feed.length,
+            totalPages: 1,
+            date: requestedDate ?? "2026-08-30",
+          }),
+        );
       }
       if (url.endsWith("/replies/saved") && method === "GET") {
         return Promise.resolve(jsonResponse(200, savedReplyIds));
@@ -241,7 +253,7 @@ describe("ReadFeed", () => {
     render(<ReadFeed />);
 
     expect(
-      await screen.findByText("아직 읽을 수 있는 온설이 없어요."),
+      await screen.findByText("이 날 읽을 수 있는 온설이 없어요."),
     ).toBeInTheDocument();
   });
 
@@ -256,5 +268,59 @@ describe("ReadFeed", () => {
     expect(
       screen.queryByRole("button", { name: "더보기" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("browses by KST day: previous day re-fetches an earlier date, and 다음 날 is disabled at yesterday", async () => {
+    const fetchMock = installFakeBackend([]);
+    render(<ReadFeed />);
+
+    // Defaults to yesterday (mocked as 2026-08-30 by installFakeBackend).
+    await screen.findByText("2026년 8월 30일");
+    expect(screen.getByRole("button", { name: "다음 날" })).toBeDisabled();
+
+    fireEvent.click(screen.getByRole("button", { name: "이전 날" }));
+
+    await screen.findByText("2026년 8월 29일");
+    expect(
+      screen.getByRole("button", { name: "다음 날" }),
+    ).not.toBeDisabled();
+    const feedCalls = fetchMock.mock.calls.filter(([input]) =>
+      (typeof input === "string" ? input : input.toString()).includes(
+        "/requests/feed",
+      ),
+    );
+    const lastFeedCall = feedCalls.at(-1);
+    expect(lastFeedCall).toBeDefined();
+    const [input] = lastFeedCall!;
+    const requestedUrl = new URL(
+      typeof input === "string" ? input : input.toString(),
+    );
+    expect(requestedUrl.searchParams.get("date")).toBe("2026-08-29");
+  });
+
+  it("shows the pagination control even with a single page, and changing page size resets to page 1", async () => {
+    const fetchMock = installFakeBackend([]);
+    render(<ReadFeed />);
+
+    await screen.findByText("2026년 8월 30일");
+    // Only one page of results, but the size selector must stay reachable.
+    expect(screen.getByRole("navigation", { name: "페이지" })).toBeInTheDocument();
+
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "50" } });
+
+    await waitFor(() => {
+      const feedCalls = fetchMock.mock.calls.filter(([input]) =>
+        (typeof input === "string" ? input : input.toString()).includes(
+          "/requests/feed",
+        ),
+      );
+      const lastCall = feedCalls.at(-1)!;
+      const [input] = lastCall;
+      const requestedUrl = new URL(
+        typeof input === "string" ? input : input.toString(),
+      );
+      expect(requestedUrl.searchParams.get("pageSize")).toBe("50");
+      expect(requestedUrl.searchParams.get("page")).toBe("1");
+    });
   });
 });

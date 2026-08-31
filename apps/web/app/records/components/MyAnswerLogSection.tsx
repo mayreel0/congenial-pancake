@@ -1,7 +1,12 @@
 import { Button } from "ui/Button";
+import { Pagination } from "ui/Pagination";
+import { Skeleton } from "ui/Skeleton";
+import { PAGE_SIZE_OPTIONS } from "../../lib/pagination";
 import type { MyAnswerLogEntryDto } from "../../lib/replies/api";
 import { useMyAnswerLogQuery } from "../../lib/replies/queries";
+import { useDateRangePage } from "../useDateRangePage";
 import { AnswerLogCard } from "./AnswerLogCard";
+import { DateRangeFilter } from "./DateRangeFilter";
 
 type AnswerLogBodyProps = {
   loading: boolean;
@@ -13,9 +18,18 @@ type AnswerLogBodyProps = {
 function AnswerLogBody({ loading, entries }: AnswerLogBodyProps) {
   if (loading) {
     return (
-      <p className="rounded-lg border border-line bg-surface px-4 py-5 text-sm text-muted shadow-sm">
-        답변 기록을 불러오는 중입니다.
-      </p>
+      <div className="space-y-4">
+        {[0, 1, 2].map((key) => (
+          <div
+            className="space-y-3 rounded-lg border border-line bg-surface px-4 py-5 shadow-sm"
+            key={key}
+          >
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-1/2" />
+          </div>
+        ))}
+      </div>
     );
   }
 
@@ -40,7 +54,10 @@ function AnswerLogBody({ loading, entries }: AnswerLogBodyProps) {
 }
 
 export function MyAnswerLogSection() {
-  const answerLog = useMyAnswerLogQuery();
+  const { from, to, page, pageSize, setFrom, setTo, setPage, setPageSize } =
+    useDateRangePage("rep");
+  const answerLog = useMyAnswerLogQuery(from, to, page, pageSize);
+  const data = answerLog.data;
 
   return (
     <section className="space-y-4" aria-labelledby="my-answer-log-heading">
@@ -55,10 +72,27 @@ export function MyAnswerLogSection() {
           내가 어떤 온설에 어떤 답을 남겼는지 모아봤어요.
         </p>
       </div>
+      <DateRangeFilter
+        from={from}
+        idPrefix="answer-log"
+        to={to}
+        onFromChange={setFrom}
+        onToChange={setTo}
+      />
       <AnswerLogBody
-        entries={answerLog.data ?? []}
+        entries={data?.items ?? []}
         loading={answerLog.isPending || answerLog.isLoading}
       />
+      {data ? (
+        <Pagination
+          page={data.page}
+          pageSize={data.pageSize}
+          pageSizeOptions={PAGE_SIZE_OPTIONS}
+          totalPages={data.totalPages}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+        />
+      ) : null}
     </section>
   );
 }

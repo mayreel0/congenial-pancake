@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useAuth } from "../lib/auth/useAuth";
 import type { AuthorDisplayDto, RequestDto } from "../lib/requests/api";
 import {
@@ -9,7 +9,10 @@ import {
   useQueueQuery,
   useSkipMutation,
 } from "../lib/requests/queries";
-import { useCreateReplyMutation, useMyAnswerLogQuery } from "../lib/replies/queries";
+import {
+  useCreateReplyMutation,
+  useMyAnswerLogInfiniteQuery,
+} from "../lib/replies/queries";
 import { useCreateReportMutation } from "../lib/reports/queries";
 
 export type AnswerLogEntry = {
@@ -33,6 +36,9 @@ type UseAnswerQueueResult = {
   heldRequests: RequestDto[];
   answerLog: AnswerLogEntry[];
   isAnsweringHeldRequest: boolean;
+  hasOlderAnswerLogEntries: boolean;
+  isLoadingOlderAnswerLogEntries: boolean;
+  loadOlderAnswerLogEntries(): void;
   // Hold/report require a login (see docs/decisions/2026-08-22-onseol-
   // answer-queue-decisions.md) — skip does not, so it's not gated here.
   canManageCurrentRequest: boolean;
@@ -61,11 +67,15 @@ export function useAnswerQueue(): UseAnswerQueueResult {
 
   const queueQuery = useQueueQuery();
   const heldQuery = useHeldRequestsQuery(status === "authenticated");
-  const answerLogQuery = useMyAnswerLogQuery();
+  const answerLogQuery = useMyAnswerLogInfiniteQuery();
   const skipMutation = useSkipMutation();
   const holdMutation = useHoldMutation();
   const createReplyMutation = useCreateReplyMutation();
   const reportMutation = useCreateReportMutation();
+  const { fetchNextPage } = answerLogQuery;
+  const loadOlderAnswerLogEntries = useCallback(() => {
+    void fetchNextPage();
+  }, [fetchNextPage]);
 
   const heldRequests = heldQuery.data ?? [];
   const activeHeldRequest = activeHeldRequestId
@@ -74,8 +84,14 @@ export function useAnswerQueue(): UseAnswerQueueResult {
     : null;
   const currentAnswerTarget = activeHeldRequest ?? queueQuery.data ?? null;
 
-  const answerLog: AnswerLogEntry[] = (answerLogQuery.data ?? []).map(
-    (entry) => ({
+  // Each page is newest-first; pages are fetched newest-page-first too, so
+  // flattening in fetch order gives one continuous newest→oldest sequence —
+  // reversed here since AnswerLog renders oldest-first (a chat log growing
+  // downward toward the live "지금 답할 차례" section).
+  const answerLog: AnswerLogEntry[] = (answerLogQuery.data?.pages ?? [])
+    .flatMap((page) => page.items)
+    .reverse()
+    .map((entry) => ({
       request: {
         id: entry.requestId,
         body: entry.requestBody,
@@ -89,8 +105,7 @@ export function useAnswerQueue(): UseAnswerQueueResult {
         createdAt: entry.replyCreatedAt,
         author: entry.replyAuthor,
       },
-    }),
-  );
+    }));
 
   function updateReplyDraft(requestId: string, value: string): void {
     setReplyDrafts((current) => ({ ...current, [requestId]: value }));
@@ -140,6 +155,9 @@ export function useAnswerQueue(): UseAnswerQueueResult {
     heldRequests,
     answerLog,
     isAnsweringHeldRequest: activeHeldRequest !== null,
+    hasOlderAnswerLogEntries: answerLogQuery.hasNextPage,
+    isLoadingOlderAnswerLogEntries: answerLogQuery.isFetchingNextPage,
+    loadOlderAnswerLogEntries,
     canManageCurrentRequest: status === "authenticated",
     replyDrafts,
     nickname: user?.nickname ?? null,

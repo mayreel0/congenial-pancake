@@ -1,6 +1,29 @@
 import "@testing-library/jest-dom/vitest";
 import { afterEach, beforeEach, vi } from "vitest";
 
+// jsdom has no real IntersectionObserver — AnswerLog's reverse-infinite-
+// scroll (and anything else using this pattern later) needs one to exist so
+// construction doesn't throw. Exported so a test can grab the most recent
+// instance and manually invoke its callback to simulate a sentinel
+// scrolling into view.
+export class MockIntersectionObserver implements IntersectionObserver {
+  static instances: MockIntersectionObserver[] = [];
+  readonly root = null;
+  readonly rootMargin = "";
+  readonly thresholds: ReadonlyArray<number> = [];
+  callback: IntersectionObserverCallback;
+
+  constructor(callback: IntersectionObserverCallback) {
+    this.callback = callback;
+    MockIntersectionObserver.instances.push(this);
+  }
+
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
+  takeRecords = vi.fn(() => [] as IntersectionObserverEntry[]);
+}
+
 // AuthContext (and /login) call useRouter() — there's no real Next.js App
 // Router in a plain RTL render, so every component that renders AuthProvider
 // (effectively the whole app) needs this mocked.
@@ -28,6 +51,8 @@ vi.mock("next/navigation", () => ({
 // logged in" / "no requests yet" so components don't need real network
 // access. Tests that care about either override with mockResolvedValueOnce.
 beforeEach(() => {
+  MockIntersectionObserver.instances = [];
+  vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
   vi.stubGlobal(
     "fetch",
     vi.fn((input: RequestInfo | URL) => {

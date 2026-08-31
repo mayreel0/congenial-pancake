@@ -1,4 +1,5 @@
 import { apiFetch } from "../api";
+import type { PaginatedDto } from "../pagination";
 
 // Mirrors apps/api-server/src/common/author-display.ts's AuthorDisplayDto.
 // A guest post is always { anonymous: true }; a member post is only
@@ -77,8 +78,25 @@ export type FeedItemDto = {
   replies: FeedReplyDto[];
 };
 
-export function fetchFeed(): Promise<FeedItemDto[]> {
-  return apiFetch<FeedItemDto[]>("/requests/feed");
+export type FeedResponseDto = PaginatedDto<FeedItemDto> & { date: string };
+
+// date omitted lets the backend default to yesterday (KST) — see
+// apps/api-server's common/kst-date.ts. `date` always comes back in the
+// response so the caller knows which day actually rendered, whether or not
+// one was passed in. pageSize omitted lets the backend default to 10; only
+// 10/20/50 are accepted server-side, anything else falls back to that
+// default.
+export function fetchFeed(
+  date?: string,
+  page?: number,
+  pageSize?: number,
+): Promise<FeedResponseDto> {
+  const params = new URLSearchParams();
+  if (date) params.set("date", date);
+  if (page) params.set("page", String(page));
+  if (pageSize) params.set("pageSize", String(pageSize));
+  const query = params.toString();
+  return apiFetch<FeedResponseDto>(`/requests/feed${query ? `?${query}` : ""}`);
 }
 
 // "내 기록" → 내가 작성한 고민: mirrors apps/api-server's
@@ -100,6 +118,21 @@ export type MyRequestLogEntryDto = {
   }[];
 };
 
-export function fetchMyRequestLog(): Promise<MyRequestLogEntryDto[]> {
-  return apiFetch<MyRequestLogEntryDto[]>("/requests/mine");
+// from/to both omitted → unbounded (the full history) — see
+// apps/api-server's kstDateRange.
+export function fetchMyRequestLog(
+  from?: string,
+  to?: string,
+  page?: number,
+  pageSize?: number,
+): Promise<PaginatedDto<MyRequestLogEntryDto>> {
+  const params = new URLSearchParams();
+  if (from) params.set("from", from);
+  if (to) params.set("to", to);
+  if (page) params.set("page", String(page));
+  if (pageSize) params.set("pageSize", String(pageSize));
+  const query = params.toString();
+  return apiFetch<PaginatedDto<MyRequestLogEntryDto>>(
+    `/requests/mine${query ? `?${query}` : ""}`,
+  );
 }
