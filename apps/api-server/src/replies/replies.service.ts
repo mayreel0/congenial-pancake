@@ -115,8 +115,11 @@ export class RepliesService {
     );
   }
 
-  findPublicByAuthor(authorId: string): Promise<ReplyWithRequest[]> {
-    return this.repliesRepository.findPublicByAuthor(authorId);
+  findPublicByAuthor(
+    authorId: string,
+    pagination: Pagination,
+  ): Promise<PagedResult<ReplyWithRequest>> {
+    return this.repliesRepository.findPublicByAuthor(authorId, pagination);
   }
 
   hide(id: string): Promise<void> {

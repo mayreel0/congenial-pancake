@@ -238,24 +238,104 @@ describe('RequestsRepository', () => {
   });
 
   describe('findPublicByAuthor', () => {
-    it('only fetches revealed, visible requests, newest-first', async () => {
+    const expectedWhere = and(
+      eq(requests.authorId, 'user-1'),
+      eq(requests.anonymous, false),
+      eq(requests.hidden, false),
+      isNull(requests.deletedAt),
+    );
+
+    it('paginates revealed, visible requests newest-first, with the true total', async () => {
       const rows = [makeRequest({ anonymous: false })];
+      const where = jest.fn().mockResolvedValue([{ value: 1 }]);
+      const from = jest.fn(() => ({ where }));
+      const select = jest.fn(() => ({ from }));
       const findMany = jest.fn().mockResolvedValue(rows);
-      const db = { query: { requests: { findMany } } } as unknown as Database;
+      const db = {
+        select,
+        query: { requests: { findMany } },
+      } as unknown as Database;
       const repository = new RequestsRepository(db);
 
-      const result = await repository.findPublicByAuthor('user-1');
+      const result = await repository.findPublicByAuthor('user-1', {
+        page: 1,
+        pageSize: 20,
+      });
 
+      expect(where).toHaveBeenCalledWith(expectedWhere);
       expect(findMany).toHaveBeenCalledWith({
+        where: expectedWhere,
+        orderBy: desc(requests.createdAt),
+        limit: 20,
+        offset: 0,
+      });
+      expect(result).toEqual({ items: rows, totalItems: 1 });
+    });
+
+    it('skips the row query when the author has nothing revealed', async () => {
+      const where = jest.fn().mockResolvedValue([{ value: 0 }]);
+      const from = jest.fn(() => ({ where }));
+      const select = jest.fn(() => ({ from }));
+      const findMany = jest.fn();
+      const db = {
+        select,
+        query: { requests: { findMany } },
+      } as unknown as Database;
+      const repository = new RequestsRepository(db);
+
+      const result = await repository.findPublicByAuthor('user-1', {
+        page: 1,
+        pageSize: 20,
+      });
+
+      expect(result).toEqual({ items: [], totalItems: 0 });
+      expect(findMany).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('findFeedItemById', () => {
+    it('returns the request with its visible replies, oldest first', async () => {
+      const request = makeRequest();
+      const replyRows = [makeReply({ id: 'reply-1' })];
+      const findFirst = jest.fn().mockResolvedValue(request);
+      const findMany = jest.fn().mockResolvedValue(replyRows);
+      const db = {
+        query: { requests: { findFirst }, replies: { findMany } },
+      } as unknown as Database;
+      const repository = new RequestsRepository(db);
+
+      const result = await repository.findFeedItemById('request-1');
+
+      expect(findFirst).toHaveBeenCalledWith({
         where: and(
-          eq(requests.authorId, 'user-1'),
-          eq(requests.anonymous, false),
+          eq(requests.id, 'request-1'),
           eq(requests.hidden, false),
           isNull(requests.deletedAt),
         ),
-        orderBy: desc(requests.createdAt),
       });
-      expect(result).toEqual(rows);
+      expect(findMany).toHaveBeenCalledWith({
+        where: and(
+          eq(replies.requestId, 'request-1'),
+          eq(replies.hidden, false),
+          isNull(replies.deletedAt),
+        ),
+        orderBy: asc(replies.createdAt),
+      });
+      expect(result).toEqual({ request, replies: replyRows });
+    });
+
+    it('returns undefined without fetching replies when the request itself is not visible', async () => {
+      const findFirst = jest.fn().mockResolvedValue(undefined);
+      const findMany = jest.fn();
+      const db = {
+        query: { requests: { findFirst }, replies: { findMany } },
+      } as unknown as Database;
+      const repository = new RequestsRepository(db);
+
+      const result = await repository.findFeedItemById('request-1');
+
+      expect(result).toBeUndefined();
+      expect(findMany).not.toHaveBeenCalled();
     });
   });
 });

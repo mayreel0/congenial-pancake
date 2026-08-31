@@ -1,3 +1,43 @@
+import type { ReplyWithRequest } from '../../replies/replies.repository';
+import type { RequestRecord } from '../../requests/requests.repository';
+
+export type PublicRequestItemDto = {
+  id: string;
+  body: string;
+  createdAt: Date;
+};
+
+export function toPublicRequestItemDto(
+  request: RequestRecord,
+): PublicRequestItemDto {
+  return {
+    id: request.id,
+    body: request.body,
+    createdAt: request.createdAt,
+  };
+}
+
+export type PublicReplyItemDto = {
+  id: string;
+  body: string;
+  createdAt: Date;
+  requestId: string;
+  requestBody: string;
+};
+
+export function toPublicReplyItemDto({
+  reply,
+  request,
+}: ReplyWithRequest): PublicReplyItemDto {
+  return {
+    id: reply.id,
+    body: reply.body,
+    createdAt: reply.createdAt,
+    requestId: request.id,
+    requestBody: request.body,
+  };
+}
+
 export type PublicProfileDto = {
   nickname: string;
   nicknameDiscriminator: string;
@@ -10,16 +50,9 @@ export type PublicProfileDto = {
   countsVisible: boolean;
   requestCount: number | null;
   replyCount: number | null;
-  requests: {
-    id: string;
-    body: string;
-    createdAt: Date;
-  }[];
-  replies: {
-    id: string;
-    body: string;
-    createdAt: Date;
-    requestId: string;
-    requestBody: string;
-  }[];
+  // Preview only — the most recent PROFILE_PREVIEW_SIZE (see
+  // profile.service.ts). The full paginated list lives at
+  // GET /users/:nickname/:discriminator/requests|replies.
+  requests: PublicRequestItemDto[];
+  replies: PublicReplyItemDto[];
 };

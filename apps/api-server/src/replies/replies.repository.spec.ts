@@ -20,36 +20,77 @@ describe('RepliesRepository', () => {
   });
 
   describe('findPublicByAuthor', () => {
-    it('only fetches revealed replies on visible requests, newest-first', async () => {
-      const orderBy = jest.fn().mockResolvedValue([]);
+    // Two sequential db.select() calls: a joined count, then the paginated,
+    // joined rows themselves — mirrors findMine's pattern below, plus the
+    // innerJoin every step needs since visibility depends on both the reply
+    // and its parent request.
+    function makeCountChain(totalItems: number) {
+      const where = jest.fn().mockResolvedValue([{ value: totalItems }]);
+      const innerJoin = jest.fn(() => ({ where }));
+      const from = jest.fn(() => ({ innerJoin }));
+      return { from, innerJoin, where };
+    }
+
+    function makeRowsChain(rows: unknown[]) {
+      const offset = jest.fn().mockResolvedValue(rows);
+      const limit = jest.fn(() => ({ offset }));
+      const orderBy = jest.fn(() => ({ limit }));
       const where = jest.fn(() => ({ orderBy }));
       const innerJoin = jest.fn(() => ({ where }));
       const from = jest.fn(() => ({ innerJoin }));
-      const select = jest.fn(() => ({ from }));
+      return { from, innerJoin, where, orderBy, limit, offset };
+    }
+
+    const expectedWhere = and(
+      eq(replies.authorId, 'user-1'),
+      eq(replies.anonymous, false),
+      eq(replies.hidden, false),
+      isNull(replies.deletedAt),
+      eq(requests.hidden, false),
+      isNull(requests.deletedAt),
+    );
+
+    it('paginates revealed replies on visible requests, newest-first, with the true total', async () => {
+      const rows = [{ reply: { id: 'reply-1' }, request: { id: 'request-1' } }];
+      const countChain = makeCountChain(1);
+      const rowsChain = makeRowsChain(rows);
+      const select = jest
+        .fn()
+        .mockReturnValueOnce({ from: countChain.from })
+        .mockReturnValueOnce({ from: rowsChain.from });
       const db = { select } as unknown as Database;
       const repository = new RepliesRepository(db);
 
-      await repository.findPublicByAuthor('user-1');
-
-      expect(select).toHaveBeenCalledWith({
-        reply: replies,
-        request: requests,
+      const result = await repository.findPublicByAuthor('user-1', {
+        page: 1,
+        pageSize: 20,
       });
-      expect(innerJoin).toHaveBeenCalledWith(
+
+      expect(countChain.where).toHaveBeenCalledWith(expectedWhere);
+      expect(rowsChain.innerJoin).toHaveBeenCalledWith(
         requests,
         eq(requests.id, replies.requestId),
       );
-      expect(where).toHaveBeenCalledWith(
-        and(
-          eq(replies.authorId, 'user-1'),
-          eq(replies.anonymous, false),
-          eq(replies.hidden, false),
-          isNull(replies.deletedAt),
-          eq(requests.hidden, false),
-          isNull(requests.deletedAt),
-        ),
-      );
-      expect(orderBy).toHaveBeenCalledWith(desc(replies.createdAt));
+      expect(rowsChain.where).toHaveBeenCalledWith(expectedWhere);
+      expect(rowsChain.orderBy).toHaveBeenCalledWith(desc(replies.createdAt));
+      expect(rowsChain.limit).toHaveBeenCalledWith(20);
+      expect(rowsChain.offset).toHaveBeenCalledWith(0);
+      expect(result).toEqual({ items: rows, totalItems: 1 });
+    });
+
+    it('skips the row query when the author has nothing revealed', async () => {
+      const countChain = makeCountChain(0);
+      const select = jest.fn().mockReturnValueOnce({ from: countChain.from });
+      const db = { select } as unknown as Database;
+      const repository = new RepliesRepository(db);
+
+      const result = await repository.findPublicByAuthor('user-1', {
+        page: 1,
+        pageSize: 20,
+      });
+
+      expect(result).toEqual({ items: [], totalItems: 0 });
+      expect(select).toHaveBeenCalledTimes(1);
     });
   });
 
