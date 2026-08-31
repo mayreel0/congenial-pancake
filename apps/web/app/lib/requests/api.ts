@@ -1,21 +1,16 @@
+import type {
+  AuthorDisplayDto,
+  FeedItemResponseDto,
+  FeedReplyResponseDto,
+  MyRequestLogEntryDto as SharedMyRequestLogEntryDto,
+  RequestResponseDto,
+} from "shared/dto";
 import { apiFetch } from "../api";
 import type { PaginatedDto } from "../pagination";
 
-// Mirrors apps/api-server/src/common/author-display.ts's AuthorDisplayDto.
-// A guest post is always { anonymous: true }; a member post is only
-// { anonymous: false, ... } when they opted in for that specific post AND
-// had a nickname set at the time.
-export type AuthorDisplayDto =
-  | { anonymous: true }
-  | { anonymous: false; nickname: string; nicknameDiscriminator: string };
+export type { AuthorDisplayDto };
 
-export type RequestDto = {
-  id: string;
-  body: string;
-  createdAt: string;
-  replyCount: number;
-  author: AuthorDisplayDto;
-};
+export type RequestDto = RequestResponseDto;
 
 export function listRequests(): Promise<RequestDto[]> {
   return apiFetch<RequestDto[]>("/requests");
@@ -64,19 +59,9 @@ export function fetchHeldRequests(): Promise<RequestDto[]> {
 // authorSlot identifies a repeat author only within this one thread — see
 // apps/api/src/requests/feed-author-slots.ts. It carries no identity beyond
 // that; the frontend maps it to a randomly-picked display nickname.
-export type FeedReplyDto = {
-  id: string;
-  requestId: string;
-  body: string;
-  createdAt: string;
-  authorSlot: number;
-  author: AuthorDisplayDto;
-};
+export type FeedReplyDto = FeedReplyResponseDto;
 
-export type FeedItemDto = {
-  request: RequestDto & { authorSlot: number };
-  replies: FeedReplyDto[];
-};
+export type FeedItemDto = FeedItemResponseDto;
 
 export type FeedResponseDto = PaginatedDto<FeedItemDto> & { date: string };
 
@@ -103,20 +88,7 @@ export function fetchFeed(
 // MyRequestLogEntryDto — nested, not flattened like MyAnswerLogEntryDto,
 // since a request can have many replies (an answer log entry is always
 // exactly one request + one reply).
-export type MyRequestLogEntryDto = {
-  request: {
-    id: string;
-    body: string;
-    createdAt: string;
-    author: AuthorDisplayDto;
-  };
-  replies: {
-    id: string;
-    body: string;
-    createdAt: string;
-    author: AuthorDisplayDto;
-  }[];
-};
+export type MyRequestLogEntryDto = SharedMyRequestLogEntryDto;
 
 // from/to both omitted → unbounded (the full history) — see
 // apps/api-server's kstDateRange.

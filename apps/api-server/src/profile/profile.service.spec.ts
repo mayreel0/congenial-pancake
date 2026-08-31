@@ -135,14 +135,14 @@ describe('ProfileService', () => {
           {
             id: 'request-1',
             body: '오늘 조금 힘들었어요.',
-            createdAt: new Date('2026-08-21T00:00:00.000Z'),
+            createdAt: '2026-08-21T00:00:00.000Z',
           },
         ],
         replies: [
           {
             id: 'reply-1',
             body: '괜찮아요.',
-            createdAt: new Date('2026-08-22T00:00:00.000Z'),
+            createdAt: '2026-08-22T00:00:00.000Z',
             requestId: 'request-2',
             requestBody: '오늘도 무사히 지나갔어요.',
           },
@@ -226,7 +226,7 @@ describe('ProfileService', () => {
           {
             id: 'request-1',
             body: '오늘 조금 힘들었어요.',
-            createdAt: new Date('2026-08-21T00:00:00.000Z'),
+            createdAt: '2026-08-21T00:00:00.000Z',
           },
         ],
         totalItems: 13,
@@ -282,7 +282,7 @@ describe('ProfileService', () => {
           {
             id: 'reply-1',
             body: '괜찮아요.',
-            createdAt: new Date('2026-08-22T00:00:00.000Z'),
+            createdAt: '2026-08-22T00:00:00.000Z',
             requestId: 'request-2',
             requestBody: '무사히요.',
           },

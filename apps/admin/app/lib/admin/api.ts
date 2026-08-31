@@ -1,20 +1,12 @@
+import type {
+  AdminReplyResponseDto,
+  AdminRequestResponseDto,
+} from "shared/dto";
 import { apiFetch } from "../api";
 
-export type AdminRequestDto = {
-  id: string;
-  body: string;
-  createdAt: string;
-  reportCount: number;
-};
+export type AdminRequestDto = AdminRequestResponseDto;
 
-export type AdminReplyDto = {
-  id: string;
-  requestId: string;
-  requestBody: string;
-  body: string;
-  createdAt: string;
-  reportCount: number;
-};
+export type AdminReplyDto = AdminReplyResponseDto;
 
 export type HiddenModerationQueueDto = {
   requests: AdminRequestDto[];

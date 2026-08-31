@@ -59,7 +59,13 @@ describe('ProfileController', () => {
   describe('requests', () => {
     it('returns a paginated dto, defaulting page/pageSize', async () => {
       profileService.findRequestsPage.mockResolvedValue({
-        items: [{ id: 'request-1', body: '고민', createdAt: new Date() }],
+        items: [
+          {
+            id: 'request-1',
+            body: '고민',
+            createdAt: new Date().toISOString(),
+          },
+        ],
         totalItems: 1,
       });
 

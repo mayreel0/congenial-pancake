@@ -126,3 +126,171 @@ export const myAnswerLogEntrySchema = z.object({
   replyAuthor: authorDisplaySchema,
 });
 export type MyAnswerLogEntryDto = z.infer<typeof myAnswerLogEntrySchema>;
+
+const EMAIL_MESSAGE = "올바른 이메일 형식이 아닙니다.";
+const PASSWORD_MESSAGE = "비밀번호는 8자 이상이어야 합니다.";
+
+// POST /auth/signup, POST /auth/login bodies — identical shape.
+export const signupSchema = z
+  .object({
+    email: z.string().email(EMAIL_MESSAGE),
+    password: z.string().min(8, PASSWORD_MESSAGE),
+  })
+  .strict();
+export type SignupInput = z.infer<typeof signupSchema>;
+
+export const loginSchema = z
+  .object({
+    email: z.string().email(EMAIL_MESSAGE),
+    password: z.string().min(8, PASSWORD_MESSAGE),
+  })
+  .strict();
+export type LoginInput = z.infer<typeof loginSchema>;
+
+// POST /auth/reset-password body.
+export const resetPasswordSchema = z
+  .object({
+    token: z.string(),
+    password: z.string().min(8, PASSWORD_MESSAGE),
+  })
+  .strict();
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+
+// POST /auth/nickname body.
+export const updateNicknameSchema = z
+  .object({
+    nickname: z
+      .string()
+      .min(1, "닉네임을 입력해주세요.")
+      .max(20, "닉네임은 20자 이하여야 합니다.")
+      .regex(/\S/, "닉네임은 공백만으로 이루어질 수 없습니다."),
+  })
+  .strict();
+export type UpdateNicknameInput = z.infer<typeof updateNicknameSchema>;
+
+// PATCH /auth/profile-visibility body — each field independent/optional so
+// the frontend can flip one switch at a time without resending the others.
+export const updateProfileVisibilitySchema = z
+  .object({
+    showRequestsOnProfile: z.boolean().optional(),
+    showRepliesOnProfile: z.boolean().optional(),
+    showCountsOnProfile: z.boolean().optional(),
+    nicknameVisible: z.boolean().optional(),
+  })
+  .strict();
+export type UpdateProfileVisibilityInput = z.infer<
+  typeof updateProfileVisibilitySchema
+>;
+
+// POST /reports body.
+export const createReportSchema = z
+  .object({
+    targetType: z.enum(["request", "reply"]),
+    targetId: z.string().uuid(),
+  })
+  .strict();
+export type CreateReportInput = z.infer<typeof createReportSchema>;
+
+// PATCH /admin/settings body — each field independent/optional, same
+// reasoning as updateProfileVisibilitySchema.
+export const updateSettingsSchema = z
+  .object({
+    queueFreshnessHours: z.number().int().min(1).max(720).optional(),
+    queueReplyCap: z.number().int().min(1).max(50).optional(),
+    guestReplyLimit: z.number().int().min(1).max(50).optional(),
+    nicknameCooldownDays: z.number().int().min(1).max(90).optional(),
+  })
+  .strict();
+export type UpdateSettingsInput = z.infer<typeof updateSettingsSchema>;
+
+// POST /admin/users/password-reset-link body.
+export const issuePasswordResetLinkSchema = z
+  .object({
+    email: z.string().email(EMAIL_MESSAGE),
+  })
+  .strict();
+export type IssuePasswordResetLinkInput = z.infer<
+  typeof issuePasswordResetLinkSchema
+>;
+
+// GET /auth/me and every auth response (signup/login/etc.) — the
+// authenticated user's own view of themselves. createdAt and
+// nicknameChangeAvailableAt are both plain ISO strings (or null for the
+// latter), same createdAt convention as every other response schema here;
+// the backend mapper calls `?.toISOString() ?? null` for the nullable one.
+export const userResponseSchema = z.object({
+  id: z.string(),
+  email: z.string(),
+  createdAt: z.string(),
+  nickname: z.string().nullable(),
+  nicknameDiscriminator: z.string(),
+  nicknameChangeAvailableAt: z.string().nullable(),
+  showRequestsOnProfile: z.boolean(),
+  showRepliesOnProfile: z.boolean(),
+  showCountsOnProfile: z.boolean(),
+  nicknameVisible: z.boolean(),
+});
+export type UserResponseDto = z.infer<typeof userResponseSchema>;
+
+// GET/PATCH /admin/settings response.
+export const settingsResponseSchema = z.object({
+  queueFreshnessHours: z.number(),
+  queueReplyCap: z.number(),
+  guestReplyLimit: z.number(),
+  nicknameCooldownDays: z.number(),
+  updatedAt: z.string(),
+});
+export type SettingsResponseDto = z.infer<typeof settingsResponseSchema>;
+
+// GET /users/:nickname/:discriminator (public profile) response pieces.
+export const publicRequestItemSchema = z.object({
+  id: z.string(),
+  body: z.string(),
+  createdAt: z.string(),
+});
+export type PublicRequestItemDto = z.infer<typeof publicRequestItemSchema>;
+
+export const publicReplyItemSchema = z.object({
+  id: z.string(),
+  body: z.string(),
+  createdAt: z.string(),
+  requestId: z.string(),
+  requestBody: z.string(),
+});
+export type PublicReplyItemDto = z.infer<typeof publicReplyItemSchema>;
+
+export const publicProfileSchema = z.object({
+  nickname: z.string(),
+  nicknameDiscriminator: z.string(),
+  requestsVisible: z.boolean(),
+  repliesVisible: z.boolean(),
+  countsVisible: z.boolean(),
+  requestCount: z.number().nullable(),
+  replyCount: z.number().nullable(),
+  requests: z.array(publicRequestItemSchema),
+  replies: z.array(publicReplyItemSchema),
+});
+export type PublicProfileDto = z.infer<typeof publicProfileSchema>;
+
+// Admin moderation queue rows — authorId/guestId still never cross the
+// HTTP boundary, even admin doesn't need to know who wrote it, just
+// whether to restore or delete it.
+export const adminRequestResponseSchema = z.object({
+  id: z.string(),
+  body: z.string(),
+  createdAt: z.string(),
+  reportCount: z.number(),
+});
+export type AdminRequestResponseDto = z.infer<
+  typeof adminRequestResponseSchema
+>;
+
+export const adminReplyResponseSchema = z.object({
+  id: z.string(),
+  requestId: z.string(),
+  requestBody: z.string(),
+  body: z.string(),
+  createdAt: z.string(),
+  reportCount: z.number(),
+});
+export type AdminReplyResponseDto = z.infer<typeof adminReplyResponseSchema>;

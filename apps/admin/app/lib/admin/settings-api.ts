@@ -1,12 +1,7 @@
+import type { SettingsResponseDto } from "shared/dto";
 import { apiFetch } from "../api";
 
-export type AdminSettingsDto = {
-  queueFreshnessHours: number;
-  queueReplyCap: number;
-  guestReplyLimit: number;
-  nicknameCooldownDays: number;
-  updatedAt: string;
-};
+export type AdminSettingsDto = SettingsResponseDto;
 
 export type UpdateAdminSettingsInput = Partial<
   Pick<

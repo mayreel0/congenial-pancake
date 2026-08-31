@@ -6,6 +6,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { ZodResponse } from 'nestjs-zod';
 import {
   parsePageParam,
   parsePageSizeParam,
@@ -14,14 +15,14 @@ import {
 } from '../common/pagination.dto';
 import {
   toFeedItemDto,
-  type FeedItemResponseDto,
+  FeedItemResponseDto,
 } from '../requests/dto/feed-item.dto';
 import type { FeedItem } from '../requests/requests.repository';
 import { UsersService } from '../users/users.service';
-import type {
+import {
   PublicProfileDto,
-  PublicReplyItemDto,
-  PublicRequestItemDto,
+  type PublicReplyItemDto,
+  type PublicRequestItemDto,
 } from './dto/public-profile.dto';
 import { ProfileService } from './profile.service';
 
@@ -37,6 +38,7 @@ export class ProfileController {
   ) {}
 
   @Get(':nickname/:discriminator')
+  @ZodResponse({ type: PublicProfileDto })
   async profile(
     @Param('nickname') nickname: string,
     @Param('discriminator') discriminator: string,
@@ -91,6 +93,7 @@ export class ProfileController {
   // reply to it, including other people's replies), same response shape
   // /read's feed uses.
   @Get(':nickname/:discriminator/requests/:requestId')
+  @ZodResponse({ type: FeedItemResponseDto })
   async requestThread(
     @Param('nickname') nickname: string,
     @Param('discriminator') discriminator: string,
@@ -108,6 +111,7 @@ export class ProfileController {
   // 답변 상세 — same thread shape as requestThread; the frontend already
   // knows which replyId it navigated from and highlights that one itself.
   @Get(':nickname/:discriminator/replies/:replyId')
+  @ZodResponse({ type: FeedItemResponseDto })
   async replyThread(
     @Param('nickname') nickname: string,
     @Param('discriminator') discriminator: string,

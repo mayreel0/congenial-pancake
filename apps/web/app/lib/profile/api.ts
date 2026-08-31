@@ -1,39 +1,18 @@
+import type {
+  PublicProfileDto as SharedPublicProfileDto,
+  PublicReplyItemDto as SharedPublicReplyItemDto,
+  PublicRequestItemDto as SharedPublicRequestItemDto,
+} from "shared/dto";
 import { apiFetch } from "../api";
 import type { PaginatedDto } from "../pagination";
 import type { FeedItemDto } from "../requests/api";
 
 // Mirrors apps/api-server's PublicProfileDto (src/profile/dto/public-profile.dto.ts).
-export type PublicProfileDto = {
-  nickname: string;
-  nicknameDiscriminator: string;
-  // Each independently toggleable from /me — a hidden list is an empty
-  // array (not an error), and *Count is non-null only when the count
-  // switch is on, regardless of whether the corresponding list is shown.
-  requestsVisible: boolean;
-  repliesVisible: boolean;
-  countsVisible: boolean;
-  requestCount: number | null;
-  replyCount: number | null;
-  // Preview only — the most recent few (apps/api-server's
-  // PROFILE_PREVIEW_SIZE). The full paginated list is fetched separately
-  // via fetchPublicRequests/fetchPublicReplies below.
-  requests: PublicRequestItemDto[];
-  replies: PublicReplyItemDto[];
-};
+export type PublicProfileDto = SharedPublicProfileDto;
 
-export type PublicRequestItemDto = {
-  id: string;
-  body: string;
-  createdAt: string;
-};
+export type PublicRequestItemDto = SharedPublicRequestItemDto;
 
-export type PublicReplyItemDto = {
-  id: string;
-  body: string;
-  createdAt: string;
-  requestId: string;
-  requestBody: string;
-};
+export type PublicReplyItemDto = SharedPublicReplyItemDto;
 
 export function fetchPublicProfile(
   nickname: string,

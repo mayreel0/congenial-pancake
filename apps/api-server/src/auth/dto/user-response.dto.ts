@@ -1,31 +1,9 @@
+import { createZodDto } from 'nestjs-zod';
+import { userResponseSchema } from 'shared/dto';
 import type { User } from '../../users/users.repository';
 import { nicknameDiscriminator } from '../../users/nickname-discriminator';
 
-export type UserResponseDto = {
-  id: string;
-  email: string;
-  createdAt: Date;
-  nickname: string | null;
-  // Always present regardless of whether nickname is set — cheap to
-  // compute, harmless unused, and the frontend needs it the moment a
-  // nickname exists without a second round trip.
-  nicknameDiscriminator: string;
-  // null if the nickname has never been changed (first-time set is always
-  // free — see UsersService.updateNickname). Otherwise the timestamp the
-  // *next* change becomes allowed — may be in the past, meaning the
-  // cooldown has already elapsed. Lets the frontend show/disable
-  // proactively instead of only finding out from a failed request.
-  nicknameChangeAvailableAt: Date | null;
-  // Independent public-profile (/u/[slug]) visibility switches — see
-  // users.schema.ts and ProfileService.findProfile.
-  showRequestsOnProfile: boolean;
-  showRepliesOnProfile: boolean;
-  showCountsOnProfile: boolean;
-  // Whether the nickname is shown to anyone but the owner — this DTO is
-  // always the owner's own view, so `nickname` above stays the real value
-  // regardless of this flag (they should always see their own nickname).
-  nicknameVisible: boolean;
-};
+export class UserResponseDto extends createZodDto(userResponseSchema) {}
 
 // nicknameChangeAvailableAt is a required (not defaulted) param, not
 // computed here, because the cooldown length is admin-tunable
@@ -40,10 +18,10 @@ export function toUserResponseDto(
   return {
     id: user.id,
     email: user.email,
-    createdAt: user.createdAt,
+    createdAt: user.createdAt.toISOString(),
     nickname: user.nickname,
     nicknameDiscriminator: nicknameDiscriminator(user.id),
-    nicknameChangeAvailableAt,
+    nicknameChangeAvailableAt: nicknameChangeAvailableAt?.toISOString() ?? null,
     showRequestsOnProfile: user.showRequestsOnProfile,
     showRepliesOnProfile: user.showRepliesOnProfile,
     showCountsOnProfile: user.showCountsOnProfile,

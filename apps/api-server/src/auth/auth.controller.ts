@@ -17,6 +17,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Throttle } from '@nestjs/throttler';
 import { ApiTags } from '@nestjs/swagger';
+import { ZodResponse } from 'nestjs-zod';
 import type { Request, Response } from 'express';
 import type { Env } from '../config/env.schema';
 import { OAuthExchangeFailedException } from '../common/exceptions/app.exception';
@@ -25,10 +26,7 @@ import type { AuthenticatedRequest } from './authenticated-request';
 import { CurrentUser } from './current-user.decorator';
 import { LoginDto } from './dto/login.dto';
 import { SignupDto } from './dto/signup.dto';
-import {
-  toUserResponseDto,
-  type UserResponseDto,
-} from './dto/user-response.dto';
+import { UserResponseDto, toUserResponseDto } from './dto/user-response.dto';
 import { OAuthProviderRegistry } from './oauth/oauth-provider-registry';
 import { PasswordResetService } from './password-reset/password-reset.service';
 import { ResetPasswordDto } from './dto/reset-password.dto';
@@ -60,6 +58,7 @@ export class AuthController {
   @Throttle({ default: { ttl: 60_000, limit: 5 } })
   @Post('signup')
   @HttpCode(HttpStatus.CREATED)
+  @ZodResponse({ status: HttpStatus.CREATED, type: UserResponseDto })
   async signup(
     @Body() dto: SignupDto,
     @Req() req: Request,
@@ -78,6 +77,7 @@ export class AuthController {
   @Throttle({ default: { ttl: 60_000, limit: 5 } })
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @ZodResponse({ type: UserResponseDto })
   async login(
     @Body() dto: LoginDto,
     @Req() req: Request,
@@ -119,6 +119,7 @@ export class AuthController {
 
   @Get('me')
   @UseGuards(SessionGuard)
+  @ZodResponse({ type: UserResponseDto })
   async me(@CurrentUser() userId: string): Promise<UserResponseDto> {
     const user = await this.usersService.findById(userId);
     if (!user) {
@@ -137,6 +138,7 @@ export class AuthController {
   @Post('nickname')
   @UseGuards(SessionGuard)
   @HttpCode(HttpStatus.OK)
+  @ZodResponse({ type: UserResponseDto })
   async updateNickname(
     @CurrentUser() userId: string,
     @Body() dto: UpdateNicknameDto,
@@ -154,6 +156,7 @@ export class AuthController {
   @Patch('profile-visibility')
   @UseGuards(SessionGuard)
   @HttpCode(HttpStatus.OK)
+  @ZodResponse({ type: UserResponseDto })
   async updateProfileVisibility(
     @CurrentUser() userId: string,
     @Body() dto: UpdateProfileVisibilityDto,
