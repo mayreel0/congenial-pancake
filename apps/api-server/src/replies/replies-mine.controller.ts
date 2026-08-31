@@ -6,6 +6,7 @@ import { OptionalSessionGuard } from '../auth/optional-session.guard';
 import { isValidDateString, kstDateRange } from '../common/kst-date';
 import {
   parsePageParam,
+  parsePageSizeParam,
   toPaginatedDto,
   type PaginatedDto,
 } from '../common/pagination.dto';
@@ -38,17 +39,19 @@ export class RepliesMineController {
     @Query('from') fromParam: string | undefined,
     @Query('to') toParam: string | undefined,
     @Query('page') pageParam: string | undefined,
+    @Query('pageSize') pageSizeParam: string | undefined,
   ): Promise<PaginatedDto<MyAnswerLogEntryDto>> {
     const from =
       fromParam && isValidDateString(fromParam) ? fromParam : undefined;
     const to = toParam && isValidDateString(toParam) ? toParam : undefined;
     const page = parsePageParam(pageParam);
+    const pageSize = parsePageSizeParam(pageSizeParam);
 
     const { items, totalItems } = await this.repliesService.findMine(
       userId,
       guestId,
       kstDateRange(from, to),
-      { page, pageSize: 20 },
+      { page, pageSize },
     );
     const authorIds = items.flatMap((entry) => [
       entry.request.authorId,
@@ -61,6 +64,7 @@ export class RepliesMineController {
       items.map((entry) => toMyAnswerLogEntryDto(entry, nicknameByUserId)),
       page,
       totalItems,
+      pageSize,
     );
   }
 }

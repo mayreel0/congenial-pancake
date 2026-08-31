@@ -20,13 +20,20 @@ describe('RepliesMineController', () => {
   });
 
   it('defaults to an unbounded date range when neither from nor to is given', async () => {
-    await controller.mine('user-1', 'guest-1', undefined, undefined, undefined);
+    await controller.mine(
+      'user-1',
+      'guest-1',
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+    );
 
     expect(repliesService.findMine).toHaveBeenCalledWith(
       'user-1',
       'guest-1',
       kstDateRange(undefined, undefined),
-      { page: 1, pageSize: 20 },
+      { page: 1, pageSize: 10 },
     );
   });
 
@@ -37,13 +44,14 @@ describe('RepliesMineController', () => {
       '2026-08-01',
       '2026-08-31',
       undefined,
+      undefined,
     );
 
     expect(repliesService.findMine).toHaveBeenCalledWith(
       'user-1',
       'guest-1',
       kstDateRange('2026-08-01', '2026-08-31'),
-      { page: 1, pageSize: 20 },
+      { page: 1, pageSize: 10 },
     );
   });
 
@@ -54,24 +62,64 @@ describe('RepliesMineController', () => {
       'not-a-date',
       '2026/08/31',
       undefined,
+      undefined,
     );
 
     expect(repliesService.findMine).toHaveBeenCalledWith(
       'user-1',
       'guest-1',
       kstDateRange(undefined, undefined),
-      { page: 1, pageSize: 20 },
+      { page: 1, pageSize: 10 },
     );
   });
 
   it('parses the page param, defaulting invalid values to 1', async () => {
-    await controller.mine('user-1', 'guest-1', undefined, undefined, '2');
+    await controller.mine(
+      'user-1',
+      'guest-1',
+      undefined,
+      undefined,
+      '2',
+      undefined,
+    );
 
     expect(repliesService.findMine).toHaveBeenCalledWith(
       'user-1',
       'guest-1',
       kstDateRange(undefined, undefined),
-      { page: 2, pageSize: 20 },
+      { page: 2, pageSize: 10 },
+    );
+  });
+
+  it('parses the pageSize param, whitelisting only 10/20/50', async () => {
+    await controller.mine(
+      'user-1',
+      'guest-1',
+      undefined,
+      undefined,
+      undefined,
+      '50',
+    );
+    expect(repliesService.findMine).toHaveBeenCalledWith(
+      'user-1',
+      'guest-1',
+      kstDateRange(undefined, undefined),
+      { page: 1, pageSize: 50 },
+    );
+
+    await controller.mine(
+      'user-1',
+      'guest-1',
+      undefined,
+      undefined,
+      undefined,
+      '999',
+    );
+    expect(repliesService.findMine).toHaveBeenLastCalledWith(
+      'user-1',
+      'guest-1',
+      kstDateRange(undefined, undefined),
+      { page: 1, pageSize: 10 },
     );
   });
 
@@ -87,14 +135,15 @@ describe('RepliesMineController', () => {
       undefined,
       undefined,
       undefined,
+      undefined,
     );
 
     expect(result).toEqual({
       items: [],
       page: 1,
-      pageSize: 20,
+      pageSize: 10,
       totalItems: 45,
-      totalPages: 3,
+      totalPages: 5,
     });
   });
 });

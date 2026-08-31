@@ -24,6 +24,7 @@ import {
 } from '../common/kst-date';
 import {
   parsePageParam,
+  parsePageSizeParam,
   toPaginatedDto,
   type PaginatedDto,
 } from '../common/pagination.dto';
@@ -91,16 +92,18 @@ export class RequestsController {
   async feed(
     @Query('date') dateParam: string | undefined,
     @Query('page') pageParam: string | undefined,
+    @Query('pageSize') pageSizeParam: string | undefined,
   ): Promise<PaginatedDto<FeedItemResponseDto> & { date: string }> {
     const date =
       dateParam && isValidDateString(dateParam)
         ? dateParam
         : yesterdayKstDateString();
     const page = parsePageParam(pageParam);
+    const pageSize = parsePageSizeParam(pageSizeParam);
 
     const { items, totalItems } = await this.requestsService.findFeed(
       kstDayRange(date),
-      { page, pageSize: 20 },
+      { page, pageSize },
     );
     const authorIds = items.flatMap((item) => [
       item.request.authorId,
@@ -114,6 +117,7 @@ export class RequestsController {
         items.map((item) => toFeedItemDto(item, nicknameByUserId)),
         page,
         totalItems,
+        pageSize,
       ),
       date,
     };
@@ -130,16 +134,18 @@ export class RequestsController {
     @Query('from') fromParam: string | undefined,
     @Query('to') toParam: string | undefined,
     @Query('page') pageParam: string | undefined,
+    @Query('pageSize') pageSizeParam: string | undefined,
   ): Promise<PaginatedDto<MyRequestLogEntryDto>> {
     const from =
       fromParam && isValidDateString(fromParam) ? fromParam : undefined;
     const to = toParam && isValidDateString(toParam) ? toParam : undefined;
     const page = parsePageParam(pageParam);
+    const pageSize = parsePageSizeParam(pageSizeParam);
 
     const { items, totalItems } = await this.requestsService.findMine(
       userId,
       kstDateRange(from, to),
-      { page, pageSize: 20 },
+      { page, pageSize },
     );
     const authorIds = items.flatMap((item) => [
       item.request.authorId,
@@ -152,6 +158,7 @@ export class RequestsController {
       items.map((item) => toMyRequestLogEntryDto(item, nicknameByUserId)),
       page,
       totalItems,
+      pageSize,
     );
   }
 

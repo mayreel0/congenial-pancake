@@ -67,45 +67,59 @@ describe('RequestsController', () => {
     });
 
     it('defaults to yesterday (KST) when no date is given', async () => {
-      const result = await controller.feed(undefined, undefined);
+      const result = await controller.feed(undefined, undefined, undefined);
 
       const expectedDate = yesterdayKstDateString();
       expect(requestsService.findFeed).toHaveBeenCalledWith(
         kstDayRange(expectedDate),
-        { page: 1, pageSize: 20 },
+        { page: 1, pageSize: 10 },
       );
       expect(result.date).toBe(expectedDate);
     });
 
     it('uses the given date when it is a valid calendar date', async () => {
-      await controller.feed('2026-08-20', undefined);
+      await controller.feed('2026-08-20', undefined, undefined);
 
       expect(requestsService.findFeed).toHaveBeenCalledWith(
         kstDayRange('2026-08-20'),
-        { page: 1, pageSize: 20 },
+        { page: 1, pageSize: 10 },
       );
     });
 
     it('falls back to yesterday when the date param is malformed', async () => {
-      await controller.feed('not-a-date', undefined);
+      await controller.feed('not-a-date', undefined, undefined);
 
       expect(requestsService.findFeed).toHaveBeenCalledWith(
         kstDayRange(yesterdayKstDateString()),
-        { page: 1, pageSize: 20 },
+        { page: 1, pageSize: 10 },
       );
     });
 
     it('parses the page param, defaulting invalid values to 1', async () => {
-      await controller.feed('2026-08-20', '3');
+      await controller.feed('2026-08-20', '3', undefined);
       expect(requestsService.findFeed).toHaveBeenCalledWith(
         kstDayRange('2026-08-20'),
-        { page: 3, pageSize: 20 },
+        { page: 3, pageSize: 10 },
       );
 
-      await controller.feed('2026-08-20', 'nope');
+      await controller.feed('2026-08-20', 'nope', undefined);
       expect(requestsService.findFeed).toHaveBeenLastCalledWith(
         kstDayRange('2026-08-20'),
+        { page: 1, pageSize: 10 },
+      );
+    });
+
+    it('parses the pageSize param, whitelisting only 10/20/50', async () => {
+      await controller.feed('2026-08-20', undefined, '20');
+      expect(requestsService.findFeed).toHaveBeenCalledWith(
+        kstDayRange('2026-08-20'),
         { page: 1, pageSize: 20 },
+      );
+
+      await controller.feed('2026-08-20', undefined, '999');
+      expect(requestsService.findFeed).toHaveBeenLastCalledWith(
+        kstDayRange('2026-08-20'),
+        { page: 1, pageSize: 10 },
       );
     });
   });
@@ -136,12 +150,13 @@ describe('RequestsController', () => {
         undefined,
         undefined,
         undefined,
+        undefined,
       );
 
       expect(requestsService.findMine).toHaveBeenCalledWith(
         'user-1',
         { start: undefined, end: undefined },
-        { page: 1, pageSize: 20 },
+        { page: 1, pageSize: 10 },
       );
       expect(usersService.nicknameMapFor).toHaveBeenCalledWith([
         'user-1',
@@ -181,7 +196,7 @@ describe('RequestsController', () => {
           },
         ],
         page: 1,
-        pageSize: 20,
+        pageSize: 10,
         totalItems: 1,
         totalPages: 1,
       });
