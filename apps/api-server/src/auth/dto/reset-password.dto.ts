@@ -1,10 +1,4 @@
-import { IsString, MinLength } from 'class-validator';
+import { createZodDto } from 'nestjs-zod';
+import { resetPasswordSchema } from 'shared/dto';
 
-export class ResetPasswordDto {
-  @IsString()
-  token!: string;
-
-  @IsString()
-  @MinLength(8, { message: '비밀번호는 8자 이상이어야 합니다.' })
-  password!: string;
-}
+export class ResetPasswordDto extends createZodDto(resetPasswordSchema) {}

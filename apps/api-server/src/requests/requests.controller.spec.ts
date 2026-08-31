@@ -168,7 +168,7 @@ describe('RequestsController', () => {
             request: {
               id: 'request-1',
               body: '오늘 조금 힘들었어요.',
-              createdAt: new Date('2026-08-21T00:00:00.000Z'),
+              createdAt: '2026-08-21T00:00:00.000Z',
               author: {
                 anonymous: false,
                 nickname: '민들레',
@@ -179,7 +179,7 @@ describe('RequestsController', () => {
               {
                 id: 'reply-1',
                 body: '괜찮아요.',
-                createdAt: new Date('2026-08-21T01:00:00.000Z'),
+                createdAt: '2026-08-21T01:00:00.000Z',
                 author: {
                   anonymous: false,
                   nickname: '햇살',
@@ -189,7 +189,7 @@ describe('RequestsController', () => {
               {
                 id: 'reply-2',
                 body: '괜찮아요.',
-                createdAt: new Date('2026-08-21T01:00:00.000Z'),
+                createdAt: '2026-08-21T01:00:00.000Z',
                 author: { anonymous: true },
               },
             ],

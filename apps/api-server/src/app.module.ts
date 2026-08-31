@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { ZodSerializerInterceptor } from 'nestjs-zod';
 import { AdminModule } from './admin/admin.module';
 import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from './config/config.module';
@@ -13,6 +14,7 @@ import { ReportsModule } from './reports/reports.module';
 import { RequestsModule } from './requests/requests.module';
 import { SavedRepliesModule } from './saved-replies/saved-replies.module';
 import { UsersModule } from './users/users.module';
+import { ZodValidationPipe } from './common/zod-validation';
 
 @Module({
   imports: [
@@ -33,6 +35,15 @@ import { UsersModule } from './users/users.module';
     AdminModule,
     ProfileModule,
   ],
-  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
+  providers: [
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    // Every controller input is now a zod DTO (createZodDto(...)); reject
+    // anything with fields a DTO doesn't declare, same as the old
+    // class-validator ValidationPipe — see common/zod-validation.ts.
+    { provide: APP_PIPE, useClass: ZodValidationPipe },
+    // Serializes/validates every response typed with @ZodResponse against
+    // its DTO's schema.
+    { provide: APP_INTERCEPTOR, useClass: ZodSerializerInterceptor },
+  ],
 })
 export class AppModule {}

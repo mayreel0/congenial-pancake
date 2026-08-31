@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { Button } from "ui/Button";
 import { TextField } from "ui/TextField";
-import type { AdminSettingsDto } from "../lib/admin/settings-api";
+import type { SettingsResponseDto } from "shared/dto";
 import type { useAdminSettings } from "./useAdminSettings";
 
 type FormState = {
@@ -50,7 +50,7 @@ const FIELDS: Array<{
   },
 ];
 
-function toFormState(settings: AdminSettingsDto): FormState {
+function toFormState(settings: SettingsResponseDto): FormState {
   return {
     queueFreshnessHours: String(settings.queueFreshnessHours),
     queueReplyCap: String(settings.queueReplyCap),
@@ -60,7 +60,7 @@ function toFormState(settings: AdminSettingsDto): FormState {
 }
 
 type SettingsFormProps = {
-  settings: AdminSettingsDto;
+  settings: SettingsResponseDto;
   updating: boolean;
   updateError: string | null;
   update: ReturnType<typeof useAdminSettings>["update"];

@@ -1,16 +1,9 @@
-import {
-  toAuthorDisplayDto,
-  type AuthorDisplayDto,
-} from '../../common/author-display';
+import { createZodDto } from 'nestjs-zod';
+import { requestResponseSchema } from 'shared/dto';
+import { toAuthorDisplayDto } from '../../common/author-display';
 import type { RequestRecord } from '../requests.repository';
 
-export type RequestResponseDto = {
-  id: string;
-  body: string;
-  createdAt: Date;
-  replyCount: number;
-  author: AuthorDisplayDto;
-};
+export class RequestResponseDto extends createZodDto(requestResponseSchema) {}
 
 // authorId/guestId themselves never cross the HTTP boundary — only the
 // derived `author` field does (see common/author-display.ts), which stays
@@ -28,7 +21,7 @@ export function toRequestResponseDto(
   return {
     id: request.id,
     body: request.body,
-    createdAt: request.createdAt,
+    createdAt: request.createdAt.toISOString(),
     replyCount: request.replyCount ?? 0,
     author: toAuthorDisplayDto(request, nicknameByUserId),
   };

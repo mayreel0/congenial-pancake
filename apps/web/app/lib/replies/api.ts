@@ -1,14 +1,11 @@
-import type { AuthorDisplayDto } from "../requests/api";
+import type {
+  MyAnswerLogEntryDto as SharedMyAnswerLogEntryDto,
+  ReplyResponseDto,
+} from "shared/dto";
 import { apiFetch } from "../api";
 import type { PaginatedDto } from "../pagination";
 
-export type ReplyDto = {
-  id: string;
-  requestId: string;
-  body: string;
-  createdAt: string;
-  author: AuthorDisplayDto;
-};
+export type ReplyDto = ReplyResponseDto;
 
 // anonymous defaults to true server-side when omitted, ignored entirely for
 // guest writers — see requests/api.ts's createRequest for the same rule.
@@ -23,16 +20,7 @@ export function createReply(
   });
 }
 
-export type MyAnswerLogEntryDto = {
-  requestId: string;
-  requestBody: string;
-  requestCreatedAt: string;
-  requestAuthor: AuthorDisplayDto;
-  replyId: string;
-  replyBody: string;
-  replyCreatedAt: string;
-  replyAuthor: AuthorDisplayDto;
-};
+export type MyAnswerLogEntryDto = SharedMyAnswerLogEntryDto;
 
 // from/to both omitted → unbounded (the full history) — see
 // apps/api-server's kstDateRange.

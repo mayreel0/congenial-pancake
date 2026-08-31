@@ -1,8 +1,7 @@
 import { nicknameDiscriminator } from '../users/nickname-discriminator';
+import type { AuthorDisplayDto } from 'shared/dto';
 
-export type AuthorDisplayDto =
-  | { anonymous: true }
-  | { anonymous: false; nickname: string; nicknameDiscriminator: string };
+export type { AuthorDisplayDto };
 
 // `nicknameByUserId` must be built by the caller (batched via
 // UsersService.nicknameMapFor) — this stays a pure function so it works the

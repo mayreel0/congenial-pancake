@@ -1,11 +1,15 @@
+import { createZodDto } from 'nestjs-zod';
+import {
+  publicProfileSchema,
+  publicReplyItemSchema,
+  publicRequestItemSchema,
+} from 'shared/dto';
 import type { ReplyWithRequest } from '../../replies/replies.repository';
 import type { RequestRecord } from '../../requests/requests.repository';
 
-export type PublicRequestItemDto = {
-  id: string;
-  body: string;
-  createdAt: Date;
-};
+export class PublicRequestItemDto extends createZodDto(
+  publicRequestItemSchema,
+) {}
 
 export function toPublicRequestItemDto(
   request: RequestRecord,
@@ -13,17 +17,11 @@ export function toPublicRequestItemDto(
   return {
     id: request.id,
     body: request.body,
-    createdAt: request.createdAt,
+    createdAt: request.createdAt.toISOString(),
   };
 }
 
-export type PublicReplyItemDto = {
-  id: string;
-  body: string;
-  createdAt: Date;
-  requestId: string;
-  requestBody: string;
-};
+export class PublicReplyItemDto extends createZodDto(publicReplyItemSchema) {}
 
 export function toPublicReplyItemDto({
   reply,
@@ -32,27 +30,10 @@ export function toPublicReplyItemDto({
   return {
     id: reply.id,
     body: reply.body,
-    createdAt: reply.createdAt,
+    createdAt: reply.createdAt.toISOString(),
     requestId: request.id,
     requestBody: request.body,
   };
 }
 
-export type PublicProfileDto = {
-  nickname: string;
-  nicknameDiscriminator: string;
-  // Each independently toggleable (users.show*OnProfile) — a hidden list
-  // is an empty array, not an error; requestCount/replyCount are non-null
-  // only when the count switch is on, regardless of whether the
-  // corresponding list itself is shown.
-  requestsVisible: boolean;
-  repliesVisible: boolean;
-  countsVisible: boolean;
-  requestCount: number | null;
-  replyCount: number | null;
-  // Preview only — the most recent PROFILE_PREVIEW_SIZE (see
-  // profile.service.ts). The full paginated list lives at
-  // GET /users/:nickname/:discriminator/requests|replies.
-  requests: PublicRequestItemDto[];
-  replies: PublicReplyItemDto[];
-};
+export class PublicProfileDto extends createZodDto(publicProfileSchema) {}

@@ -1,12 +1,8 @@
+import { createZodDto } from 'nestjs-zod';
+import { settingsResponseSchema } from 'shared/dto';
 import type { SettingsRecord } from '../settings.repository';
 
-export type SettingsResponseDto = {
-  queueFreshnessHours: number;
-  queueReplyCap: number;
-  guestReplyLimit: number;
-  nicknameCooldownDays: number;
-  updatedAt: Date;
-};
+export class SettingsResponseDto extends createZodDto(settingsResponseSchema) {}
 
 export function toSettingsResponseDto(
   settings: SettingsRecord,
@@ -16,6 +12,6 @@ export function toSettingsResponseDto(
     queueReplyCap: settings.queueReplyCap,
     guestReplyLimit: settings.guestReplyLimit,
     nicknameCooldownDays: settings.nicknameCooldownDays,
-    updatedAt: settings.updatedAt,
+    updatedAt: settings.updatedAt.toISOString(),
   };
 }

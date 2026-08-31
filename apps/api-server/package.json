@@ -26,7 +26,6 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
-    "shared": "workspace:*",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.0.1",
@@ -38,9 +37,11 @@
     "class-validator": "^0.15.1",
     "cookie-parser": "^1.4.7",
     "drizzle-orm": "^0.45.2",
+    "nestjs-zod": "^5.5.0",
     "postgres": "^3.4.9",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
+    "shared": "workspace:*",
     "zod": "^4.4.3"
   },
   "devDependencies": {

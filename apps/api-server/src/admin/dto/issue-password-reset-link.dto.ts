@@ -1,6 +1,6 @@
-import { IsEmail } from 'class-validator';
+import { createZodDto } from 'nestjs-zod';
+import { issuePasswordResetLinkSchema } from 'shared/dto';
 
-export class IssuePasswordResetLinkDto {
-  @IsEmail({}, { message: '올바른 이메일 형식이 아닙니다.' })
-  email!: string;
-}
+export class IssuePasswordResetLinkDto extends createZodDto(
+  issuePasswordResetLinkSchema,
+) {}

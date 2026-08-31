@@ -9,15 +9,13 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { ZodResponse } from 'nestjs-zod';
 import { GuestId } from '../common/decorators/guest-id.decorator';
 import { OptionalCurrentUser } from '../auth/optional-current-user.decorator';
 import { OptionalSessionGuard } from '../auth/optional-session.guard';
 import { UsersService } from '../users/users.service';
 import { CreateReplyDto } from './dto/create-reply.dto';
-import {
-  toReplyResponseDto,
-  type ReplyResponseDto,
-} from './dto/reply-response.dto';
+import { ReplyResponseDto, toReplyResponseDto } from './dto/reply-response.dto';
 import type { ReplyRecord } from './replies.repository';
 import { RepliesService } from './replies.service';
 
@@ -41,6 +39,7 @@ export class RepliesController {
   @Post()
   @UseGuards(OptionalSessionGuard)
   @HttpCode(HttpStatus.CREATED)
+  @ZodResponse({ status: HttpStatus.CREATED, type: ReplyResponseDto })
   async create(
     @Param('requestId') requestId: string,
     @Body() dto: CreateReplyDto,
@@ -58,6 +57,7 @@ export class RepliesController {
   }
 
   @Get()
+  @ZodResponse({ type: [ReplyResponseDto] })
   async findAll(
     @Param('requestId') requestId: string,
   ): Promise<ReplyResponseDto[]> {
