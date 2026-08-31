@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
+import { useDismissOnOutsideClick } from "ui/useDismissOnOutsideClick";
 import { useAuth } from "../../lib/auth/useAuth";
 import { accountNavItems, landingEntryLinks, serviceNavItems } from "./routes";
 
@@ -100,24 +101,11 @@ function ProfileArea({
 export function ServiceNav({ activePath }: ServiceNavProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
-  const profileMenuRef = useRef<HTMLDivElement>(null);
+  const profileMenuRef = useDismissOnOutsideClick<HTMLDivElement>(
+    profileMenuOpen,
+    () => setProfileMenuOpen(false),
+  );
   const { status, user, logout } = useAuth();
-
-  useEffect(() => {
-    if (!profileMenuOpen) return;
-
-    function handlePointerDown(event: MouseEvent) {
-      if (
-        profileMenuRef.current &&
-        !profileMenuRef.current.contains(event.target as Node)
-      ) {
-        setProfileMenuOpen(false);
-      }
-    }
-
-    document.addEventListener("mousedown", handlePointerDown);
-    return () => document.removeEventListener("mousedown", handlePointerDown);
-  }, [profileMenuOpen]);
 
   return (
     <header className="relative sticky top-0 z-20 border-b border-line bg-background/95 backdrop-blur">

@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { MoreMenu } from "ui/MoreMenu";
 import { formatTimestamp } from "../../lib/format";
-import { BookmarkIcon, FlagIcon, MoreIcon } from "../../components/shared/icons";
+import { BookmarkIcon, FlagIcon } from "../../components/shared/icons";
 
 type ReadReplyBubbleProps = {
   reply: { id: string; body: string; createdAt: string };
@@ -30,25 +30,6 @@ export function ReadReplyBubble({
   onReport,
   onToggleSave,
 }: ReadReplyBubbleProps) {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuContainerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!menuOpen) return;
-
-    function handlePointerDown(event: MouseEvent) {
-      if (
-        menuContainerRef.current &&
-        !menuContainerRef.current.contains(event.target as Node)
-      ) {
-        setMenuOpen(false);
-      }
-    }
-
-    document.addEventListener("mousedown", handlePointerDown);
-    return () => document.removeEventListener("mousedown", handlePointerDown);
-  }, [menuOpen]);
-
   return (
     <div className="flex items-end justify-end gap-2">
       {showActions && (
@@ -81,36 +62,17 @@ export function ReadReplyBubble({
             </p>
           )}
           {showActions && (
-            <div className="relative shrink-0" ref={menuContainerRef}>
-              <button
-                aria-expanded={menuOpen}
-                aria-label="더보기"
-                className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted transition hover:bg-surface-muted hover:text-foreground"
-                title="더보기"
-                type="button"
-                onClick={() => setMenuOpen((open) => !open)}
-              >
-                <MoreIcon className="h-4 w-4" />
-              </button>
-              {menuOpen && (
-                <div
-                  aria-label="답변 도구"
-                  className="absolute right-0 top-full z-20 mt-1 w-32 overflow-hidden rounded-lg border border-line bg-surface shadow-sm"
-                >
-                  <button
-                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-foreground transition hover:bg-surface-muted"
-                    type="button"
-                    onClick={() => {
-                      setMenuOpen(false);
-                      onReport();
-                    }}
-                  >
-                    <FlagIcon className="h-4 w-4" />
-                    신고하기
-                  </button>
-                </div>
-              )}
-            </div>
+            <MoreMenu
+              ariaLabel="답변 도구"
+              items={[
+                {
+                  key: "report",
+                  icon: <FlagIcon className="h-4 w-4" />,
+                  label: "신고하기",
+                  onClick: onReport,
+                },
+              ]}
+            />
           )}
         </div>
         <p className="text-sm leading-6 text-foreground">{reply.body}</p>
