@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { useDismissOnOutsideClick } from "./useDismissOnOutsideClick";
+import { useDismissOnOutsideClick } from "../hooks/useDismissOnOutsideClick";
 
 type MoreMenuItem = {
   key: string;
