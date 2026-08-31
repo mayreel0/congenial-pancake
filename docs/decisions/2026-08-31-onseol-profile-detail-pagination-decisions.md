@@ -22,4 +22,13 @@
 - `apps/api-server` lint/typecheck/test(158/158)/build 통과.
 - 실서버 curl 검증: `/users/민들레/C376/requests`, `/replies` 페이지네이션 목록 정상 동작(`totalItems`/`totalPages` 포함), 메인 프로필 엔드포인트가 여전히 정확한 카운트를 보여주면서 목록만 미리보기로 줄어든 것 확인. `/users/민들레/C376/requests/:id`가 그 고민 + 달린 익명 답변까지 포함한 스레드를 반환, `/replies/:id`가 부모 고민 스레드를 정확히 찾아 반환(그 안의 답변 author가 revealed로 나옴) 확인. 존재하지 않는 id는 404.
 
-프론트엔드는 별도 PR로 진행 예정.
+## 추가: 프론트엔드 (별도 PR)
+
+- `/u/[slug]` 메인 페이지: `ProfileSection`의 제목("남긴 고민 (N)")이 이제 `visible`일 때만 `/u/[slug]/requests`(또는 `/replies`)로 가는 링크가 됨. 백엔드가 이미 미리보기(5개)만 내려주므로 프론트는 그대로 렌더링만 함 — 별도 slice 없음.
+- 신규 라우트 `/u/[slug]/requests`, `/u/[slug]/replies`: `ui/Pagination` + `apps/web/app/lib/useUrlState`(8/31 URL 동기화 라운드에서 나온 훅)로 `?page=&pageSize=` 관리. `/records`/`/read`와 같은 서버 컴포넌트+`<Suspense>` 래핑 패턴(`useSearchParams()` 필요). 목록 항목은 `<li><Link>...</Link></li>` 형태의 새 `ProfileListItemLink`(카드 전체가 클릭 가능) — 기존 `ProfilePostCard`(순수 `<li>`)를 그대로 `<Link>`로 감싸면 `<ol>` 바로 아래에 `<a>`가 오게 돼서 구조가 깨지므로 재사용하지 않고 새로 만듦.
+- 신규 라우트 `/u/[slug]/requests/[requestId]`, `/u/[slug]/replies/[replyId]`: 스레드 렌더링은 `/read`가 이미 쓰는 `ReadThread`를 그대로 재사용(`showActions={false}`로 신고/저장 버튼만 숨김) — 백엔드가 정확히 같은 `FeedItemDto` 모양을 돌려주므로 새 컴포넌트를 만들 필요가 없었음. 답변 상세는 `ReadThread`에 새로 추가한 `highlightReplyId` prop으로 그 답변에 `ring-2 ring-primary`를 줌(다른 답변은 그대로) — `/read`는 이 prop을 안 넘기므로 기존 화면엔 영향 없음.
+- `authorSlot` 기반 익명 닉네임 라벨링(`buildFeedItemLabels`)은 `/read`(`app/read/labels.ts`)에만 있던 걸 `app/lib/feed-item-labels.ts`로 옮김 — 이번 라운드에서 `/u/[slug]`의 두 상세 페이지가 정확히 같은 로직이 필요한 두 번째 실사용처가 생겼으므로([[feature_then_extract_shared_component]] 원칙상 "두 번째 실사용처가 생기면 공용화"에 해당).
+- 프로필 주인이 아직 답변이 하나도 없는 자기 글의 상세를 열어도(백엔드가 "답변 0개 허용"으로 설계됨) 정상 렌더링됨을 실브라우저로 확인.
+
+- 실브라우저 검증(백엔드 PR 브랜치를 임시로 빌려와서): 메인 프로필 → "남긴 답변" 제목 클릭 → 페이지네이션 목록 → 항목 클릭 → 스레드 상세(그 답변에 링 강조) 전체 흐름 확인. "남긴 고민" 쪽도 동일하게 확인, 답변이 없는 고민의 상세도 정상 렌더링됨을 확인.
+- `apps/web` lint/typecheck/test(124/124)/build 통과.
