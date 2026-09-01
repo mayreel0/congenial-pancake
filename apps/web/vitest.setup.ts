@@ -66,6 +66,27 @@ beforeEach(() => {
         });
       }
 
+      if (url.includes("/public/stats")) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () =>
+            Promise.resolve({
+              requests: { today: 0, month: 0, total: 0 },
+              replies: { today: 0, month: 0, total: 0 },
+              waitingForReply: 0,
+            }),
+        });
+      }
+
+      if (url.includes("/public/samples")) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({ samples: [] }),
+        });
+      }
+
       return Promise.resolve({
         ok: false,
         status: 401,
