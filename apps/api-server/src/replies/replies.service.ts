@@ -8,8 +8,10 @@ import {
 } from '../common/exceptions/app.exception';
 import type {
   DateRange,
+  DayCount,
   PagedResult,
   Pagination,
+  ViewerIdentity,
 } from '../requests/requests.repository';
 import { RequestsService } from '../requests/requests.service';
 import { SettingsService } from '../settings/settings.service';
@@ -113,6 +115,15 @@ export class RepliesService {
       range,
       pagination,
     );
+  }
+
+  countMineByDay(
+    userId: string | undefined,
+    guestId: string,
+    range: DateRange,
+  ): Promise<DayCount[]> {
+    const viewer: ViewerIdentity = userId ? { authorId: userId } : { guestId };
+    return this.repliesRepository.countMineByDay(viewer, range);
   }
 
   findPublicByAuthor(

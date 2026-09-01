@@ -8,6 +8,7 @@ import {
   gte,
   isNull,
   lt,
+  sql,
   type SQL,
 } from 'drizzle-orm';
 import { DRIZZLE } from '../database/database.constants';
@@ -15,6 +16,7 @@ import type { Database } from '../database/database.types';
 import { replies, requests } from '../database/schema';
 import type {
   DateRange,
+  DayCount,
   PagedResult,
   Pagination,
   RequestRecord,
@@ -160,6 +162,30 @@ export class RepliesRepository {
       .offset((pagination.page - 1) * pagination.pageSize);
 
     return { items, totalItems };
+  }
+
+  // HeatmapCalendar for /records' 내가 남긴 답변 tab: per-KST-day count of
+  // this viewer's own replies, unfiltered by hidden/deletedAt — mirrors
+  // findMine's "viewer's own content shown unfiltered" policy. Same
+  // authorId-or-guestId identity as findMine since guests can reply too.
+  async countMineByDay(
+    viewer: ViewerIdentity,
+    range: DateRange,
+  ): Promise<DayCount[]> {
+    const dayBucket = sql<string>`to_char(${replies.createdAt} at time zone 'Asia/Seoul', 'YYYY-MM-DD')`;
+    const identityCondition = viewer.authorId
+      ? eq(replies.authorId, viewer.authorId)
+      : eq(replies.guestId, viewer.guestId!);
+    const whereClause = and(
+      identityCondition,
+      dateRangeCondition(replies.createdAt, range),
+    );
+    const rows = await this.db
+      .select({ date: dayBucket, count: count(replies.id) })
+      .from(replies)
+      .where(whereClause)
+      .groupBy(dayBucket);
+    return rows;
   }
 
   // Public profile page: only replies this member chose to reveal

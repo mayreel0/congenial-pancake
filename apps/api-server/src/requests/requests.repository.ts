@@ -14,6 +14,7 @@ import {
   ne,
   notInArray,
   or,
+  sql,
   type SQL,
 } from 'drizzle-orm';
 import { DRIZZLE } from '../database/database.constants';
@@ -50,6 +51,15 @@ function dateRangeCondition(
   if (range.start) conditions.push(gte(column, range.start));
   if (range.end) conditions.push(lt(column, range.end));
   return conditions.length > 0 ? and(...conditions) : undefined;
+}
+
+// Shifts a timestamptz column to KST wall-clock time before truncating to a
+// day string, so grouping lines up with the KST calendar day (not the UTC
+// one) — same boundary as kstDayRange, expressed in SQL instead of Date
+// arithmetic since this needs to run inside a GROUP BY.
+export type DayCount = { date: string; count: number };
+function kstDayBucket(column: typeof requests.createdAt) {
+  return sql<string>`to_char(${column} at time zone 'Asia/Seoul', 'YYYY-MM-DD')`;
 }
 
 @Injectable()
@@ -235,6 +245,52 @@ export class RequestsRepository {
       })),
       totalItems,
     };
+  }
+
+  // HeatmapCalendar for /read: per-KST-day count of feed items (requests
+  // with at least one visible reply) — same "at least one reply" join
+  // requirement as findFeed, just grouped by day instead of paginated.
+  async countFeedByDay(range: DateRange): Promise<DayCount[]> {
+    const dayBucket = kstDayBucket(requests.createdAt);
+    const whereClause = and(
+      eq(requests.hidden, false),
+      isNull(requests.deletedAt),
+      dateRangeCondition(requests.createdAt, range),
+    );
+    const rows = await this.db
+      .select({ date: dayBucket, count: countDistinct(requests.id) })
+      .from(requests)
+      .innerJoin(
+        replies,
+        and(
+          eq(replies.requestId, requests.id),
+          eq(replies.hidden, false),
+          isNull(replies.deletedAt),
+        ),
+      )
+      .where(whereClause)
+      .groupBy(dayBucket);
+    return rows;
+  }
+
+  // HeatmapCalendar for /records' 내가 남긴 고민 tab: per-KST-day count of
+  // this member's own requests, unfiltered by hidden/deletedAt — matches
+  // findMine's "viewer's own content shown unfiltered" policy.
+  async countMineByDay(
+    authorId: string,
+    range: DateRange,
+  ): Promise<DayCount[]> {
+    const dayBucket = kstDayBucket(requests.createdAt);
+    const whereClause = and(
+      eq(requests.authorId, authorId),
+      dateRangeCondition(requests.createdAt, range),
+    );
+    const rows = await this.db
+      .select({ date: dayBucket, count: count(requests.id) })
+      .from(requests)
+      .where(whereClause)
+      .groupBy(dayBucket);
+    return rows;
   }
 
   // Public profile page: only requests this member chose to reveal
