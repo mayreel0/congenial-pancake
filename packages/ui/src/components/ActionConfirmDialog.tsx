@@ -1,4 +1,4 @@
-import { useDismissOnOutsideClick } from "./useDismissOnOutsideClick";
+import { useDismissOnOutsideClick } from "../hooks/useDismissOnOutsideClick";
 
 type ActionConfirmDialogProps = {
   open: boolean;
