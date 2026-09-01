@@ -1,9 +1,18 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { ZodResponse } from 'nestjs-zod';
 import { GuestId } from '../common/decorators/guest-id.decorator';
 import { OptionalCurrentUser } from '../auth/optional-current-user.decorator';
 import { OptionalSessionGuard } from '../auth/optional-session.guard';
-import { isValidDateString, kstDateRange } from '../common/kst-date';
+import {
+  isValidDateString,
+  kstDateRange,
+  resolveDayCountsRange,
+} from '../common/kst-date';
+import {
+  toDayCountsResponseDto,
+  DayCountsResponseDto,
+} from '../common/dto/day-counts-response.dto';
 import {
   parsePageParam,
   parsePageSizeParam,
@@ -66,5 +75,25 @@ export class RepliesMineController {
       totalItems,
       pageSize,
     );
+  }
+
+  // HeatmapCalendar day counts for /records' 내가 남긴 답변 tab — same
+  // guest-or-member scope as mine() above.
+  @Get('mine/counts')
+  @UseGuards(OptionalSessionGuard)
+  @ZodResponse({ type: DayCountsResponseDto })
+  async mineCounts(
+    @OptionalCurrentUser() userId: string | undefined,
+    @GuestId() guestId: string,
+    @Query('from') fromParam: string | undefined,
+    @Query('to') toParam: string | undefined,
+  ): Promise<DayCountsResponseDto> {
+    const { from, to } = resolveDayCountsRange(fromParam, toParam);
+    const rows = await this.repliesService.countMineByDay(
+      userId,
+      guestId,
+      kstDateRange(from, to),
+    );
+    return toDayCountsResponseDto(from, to, rows);
   }
 }

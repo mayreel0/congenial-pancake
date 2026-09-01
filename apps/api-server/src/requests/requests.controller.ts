@@ -21,8 +21,13 @@ import {
   isValidDateString,
   kstDateRange,
   kstDayRange,
+  resolveDayCountsRange,
   yesterdayKstDateString,
 } from '../common/kst-date';
+import {
+  toDayCountsResponseDto,
+  DayCountsResponseDto,
+} from '../common/dto/day-counts-response.dto';
 import {
   parsePageParam,
   parsePageSizeParam,
@@ -126,6 +131,22 @@ export class RequestsController {
     };
   }
 
+  // HeatmapCalendar day counts for /read — same "at least one reply"
+  // definition as feed() above, just grouped by day instead of paginated.
+  // from/to default to the current KST month when missing/invalid.
+  @Get('feed/counts')
+  @ZodResponse({ type: DayCountsResponseDto })
+  async feedCounts(
+    @Query('from') fromParam: string | undefined,
+    @Query('to') toParam: string | undefined,
+  ): Promise<DayCountsResponseDto> {
+    const { from, to } = resolveDayCountsRange(fromParam, toParam);
+    const rows = await this.requestsService.countFeedByDay(
+      kstDateRange(from, to),
+    );
+    return toDayCountsResponseDto(from, to, rows);
+  }
+
   // "내 기록" → 내가 작성한 고민: every request this member posted in the
   // given KST date range (default: unbounded — full history), each with
   // its full reply thread — member-only since a guest has no persistent
@@ -163,6 +184,24 @@ export class RequestsController {
       totalItems,
       pageSize,
     );
+  }
+
+  // HeatmapCalendar day counts for /records' 내가 남긴 고민 tab — same
+  // member-only, unfiltered-own-content scope as mine() above.
+  @Get('mine/counts')
+  @UseGuards(SessionGuard)
+  @ZodResponse({ type: DayCountsResponseDto })
+  async mineCounts(
+    @CurrentUser() userId: string,
+    @Query('from') fromParam: string | undefined,
+    @Query('to') toParam: string | undefined,
+  ): Promise<DayCountsResponseDto> {
+    const { from, to } = resolveDayCountsRange(fromParam, toParam);
+    const rows = await this.requestsService.countMineByDay(
+      userId,
+      kstDateRange(from, to),
+    );
+    return toDayCountsResponseDto(from, to, rows);
   }
 
   // The single next request this viewer should answer — see

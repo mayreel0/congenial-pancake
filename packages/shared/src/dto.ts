@@ -328,3 +328,15 @@ export const sampleExchangesResponseSchema = z.object({
 export type SampleExchangesResponseDto = z.infer<
   typeof sampleExchangesResponseSchema
 >;
+
+// GET /requests/feed/counts, /requests/mine/counts, /replies/mine/counts —
+// per-KST-day post counts for the HeatmapCalendar date picker (/read,
+// /records). `days` always covers every date in [from, to] inclusive, zero-
+// filled for dates with no posts, so the frontend never has to enumerate the
+// range itself.
+export const dayCountsResponseSchema = z.object({
+  from: z.string(),
+  to: z.string(),
+  days: z.array(z.object({ date: z.string(), count: z.number() })),
+});
+export type DayCountsResponseDto = z.infer<typeof dayCountsResponseSchema>;
