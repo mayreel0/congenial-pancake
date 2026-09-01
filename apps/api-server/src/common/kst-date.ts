@@ -33,3 +33,8 @@ export function kstDateRange(
     : undefined;
   return { start, end };
 }
+
+export function todayKstDateString(now: Date = new Date()): string {
+  const kstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  return kstNow.toISOString().slice(0, 10);
+}
