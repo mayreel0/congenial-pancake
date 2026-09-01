@@ -11,6 +11,7 @@ import { requestKeys } from "../requests/queries";
 import {
   createReply,
   fetchMyAnswerLog,
+  fetchMyReplyDayCounts,
   fetchSavedReplyIds,
   saveReply,
   unsaveReply,
@@ -26,6 +27,9 @@ export const replyKeys = {
     page: number,
     pageSize: number,
   ) => ["replies", "mine", from ?? null, to ?? null, page, pageSize] as const,
+  // HeatmapCalendar day counts — keyed by the visible month's from/to.
+  mineCounts: (from: string, to: string) =>
+    ["replies", "mineCounts", from, to] as const,
   saved: ["replies", "saved"] as const,
 };
 
@@ -38,6 +42,14 @@ export function useMyAnswerLogQuery(
   return useQuery({
     queryKey: replyKeys.mine(from, to, page, pageSize),
     queryFn: () => fetchMyAnswerLog(from, to, page, pageSize),
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useMyReplyDayCountsQuery(from: string, to: string) {
+  return useQuery({
+    queryKey: replyKeys.mineCounts(from, to),
+    queryFn: () => fetchMyReplyDayCounts(from, to),
     placeholderData: keepPreviousData,
   });
 }

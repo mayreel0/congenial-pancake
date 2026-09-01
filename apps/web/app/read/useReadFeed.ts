@@ -1,15 +1,17 @@
 "use client";
 
+import { useState } from "react";
 import { useAuth } from "../lib/auth/useAuth";
 import {
-  addDaysToDateString,
+  daysInMonthAnchor,
   isValidDateString,
+  monthAnchorOf,
   yesterdayKstDateString,
 } from "../lib/kst-date";
 import { parsePageParam, parsePageSizeParam } from "../lib/pagination";
 import { useUrlState } from "../lib/useUrlState";
 import type { FeedItemDto } from "../lib/requests/api";
-import { useFeedQuery } from "../lib/requests/queries";
+import { useFeedDayCountsQuery, useFeedQuery } from "../lib/requests/queries";
 import {
   useSavedReplyIdsQuery,
   useSaveReplyMutation,
@@ -24,9 +26,14 @@ type UseReadFeedResult = {
   // yesterday) and becomes concrete once the response comes back, so day
   // nav has a real date to shift from even before the first response.
   currentDate: string;
-  canGoToNextDay: boolean;
-  goToPreviousDay(): void;
-  goToNextDay(): void;
+  maxSelectableDate: string;
+  goToDate(date: string): void;
+  // HeatmapCalendar's own month view — independent of currentDate so
+  // browsing to a different month doesn't itself change which day is
+  // selected.
+  calendarMonth: string;
+  setCalendarMonth(month: string): void;
+  dayCounts: { date: string; count: number }[];
   page: number;
   totalPages: number;
   setPage(page: number): void;
@@ -68,21 +75,19 @@ export function useReadFeed(): UseReadFeedResult {
 
   const savedReplyIds = savedQuery.data ?? [];
   const currentDate = feedQuery.data?.date ?? date ?? yesterdayKstDateString();
-  const canGoToNextDay = currentDate < yesterdayKstDateString();
+  const maxSelectableDate = yesterdayKstDateString();
 
-  function goToPreviousDay(): void {
-    updateUrlState({
-      date: addDaysToDateString(currentDate, -1),
-      page: undefined,
-    });
-  }
+  const [calendarMonth, setCalendarMonth] = useState(() =>
+    monthAnchorOf(currentDate),
+  );
+  const monthDays = daysInMonthAnchor(calendarMonth);
+  const dayCountsQuery = useFeedDayCountsQuery(
+    monthDays[0],
+    monthDays[monthDays.length - 1],
+  );
 
-  function goToNextDay(): void {
-    if (!canGoToNextDay) return;
-    updateUrlState({
-      date: addDaysToDateString(currentDate, 1),
-      page: undefined,
-    });
+  function goToDate(nextDate: string): void {
+    updateUrlState({ date: nextDate, page: undefined });
   }
 
   function setPage(nextPage: number): void {
@@ -119,9 +124,11 @@ export function useReadFeed(): UseReadFeedResult {
     readFeed: feedQuery.data?.items ?? [],
     isLoading: feedQuery.isPending || feedQuery.isLoading,
     currentDate,
-    canGoToNextDay,
-    goToPreviousDay,
-    goToNextDay,
+    maxSelectableDate,
+    goToDate,
+    calendarMonth,
+    setCalendarMonth,
+    dayCounts: dayCountsQuery.data?.days ?? [],
     page,
     totalPages: feedQuery.data?.totalPages ?? 1,
     setPage,

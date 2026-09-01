@@ -1,11 +1,15 @@
 import { Button } from "ui/Button";
+import { HeatmapCalendar } from "ui/HeatmapCalendar";
 import { Pagination } from "ui/Pagination";
 import { Skeleton } from "ui/Skeleton";
+import { daysInMonthAnchor } from "../../lib/kst-date";
 import { PAGE_SIZE_OPTIONS } from "../../lib/pagination";
 import type { MyRequestLogEntryDto } from "../../lib/requests/api";
-import { useMyRequestLogQuery } from "../../lib/requests/queries";
+import {
+  useMyRequestDayCountsQuery,
+  useMyRequestLogQuery,
+} from "../../lib/requests/queries";
 import { useDateRangePage } from "../useDateRangePage";
-import { DateRangeFilter } from "./DateRangeFilter";
 import { RequestLogCard } from "./RequestLogCard";
 
 type RequestLogBodyProps = {
@@ -54,10 +58,24 @@ function RequestLogBody({ loading, entries }: RequestLogBodyProps) {
 }
 
 export function MyRequestLogSection() {
-  const { from, to, page, pageSize, setFrom, setTo, setPage, setPageSize } =
-    useDateRangePage("req");
+  const {
+    from,
+    to,
+    page,
+    pageSize,
+    setRange,
+    setPage,
+    setPageSize,
+    calendarMonth,
+    setCalendarMonth,
+  } = useDateRangePage("req");
   const requestLog = useMyRequestLogQuery(from, to, page, pageSize);
   const data = requestLog.data;
+  const monthDays = daysInMonthAnchor(calendarMonth);
+  const dayCounts = useMyRequestDayCountsQuery(
+    monthDays[0],
+    monthDays[monthDays.length - 1],
+  );
 
   return (
     <section className="space-y-4" aria-labelledby="my-request-log-heading">
@@ -72,12 +90,14 @@ export function MyRequestLogSection() {
           내가 남긴 고민과 거기 달린 답변을 모아봤어요.
         </p>
       </div>
-      <DateRangeFilter
+      <HeatmapCalendar
+        counts={dayCounts.data?.days ?? []}
         from={from}
-        idPrefix="request-log"
+        mode="range"
+        month={calendarMonth}
         to={to}
-        onFromChange={setFrom}
-        onToChange={setTo}
+        onMonthChange={setCalendarMonth}
+        onRangeChange={setRange}
       />
       <RequestLogBody
         entries={data?.items ?? []}

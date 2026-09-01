@@ -9,7 +9,9 @@ import {
 import {
   createRequest,
   fetchFeed,
+  fetchFeedDayCounts,
   fetchHeldRequests,
+  fetchMyRequestDayCounts,
   fetchMyRequestLog,
   fetchQueueCandidate,
   holdRequest,
@@ -33,6 +35,11 @@ export const requestKeys = {
     page: number,
     pageSize: number,
   ) => ["requests", "mine", from ?? null, to ?? null, page, pageSize] as const,
+  // HeatmapCalendar day counts — keyed by the visible month's from/to.
+  feedCounts: (from: string, to: string) =>
+    ["requests", "feedCounts", from, to] as const,
+  mineCounts: (from: string, to: string) =>
+    ["requests", "mineCounts", from, to] as const,
 };
 
 export function useRequestsQuery() {
@@ -96,6 +103,22 @@ export function useFeedQuery(
   return useQuery({
     queryKey: requestKeys.feed(date, page, pageSize),
     queryFn: () => fetchFeed(date, page, pageSize),
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useFeedDayCountsQuery(from: string, to: string) {
+  return useQuery({
+    queryKey: requestKeys.feedCounts(from, to),
+    queryFn: () => fetchFeedDayCounts(from, to),
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useMyRequestDayCountsQuery(from: string, to: string) {
+  return useQuery({
+    queryKey: requestKeys.mineCounts(from, to),
+    queryFn: () => fetchMyRequestDayCounts(from, to),
     placeholderData: keepPreviousData,
   });
 }

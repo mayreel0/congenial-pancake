@@ -8,6 +8,7 @@
   },
   "exports": {
     "./ActionConfirmDialog": "./src/components/ActionConfirmDialog.tsx",
+    "./HeatmapCalendar": "./src/components/HeatmapCalendar.tsx",
     "./MoreMenu": "./src/components/MoreMenu.tsx",
     "./QueryProvider": "./src/providers/QueryProvider.tsx",
     "./Button": "./src/components/Button.tsx",

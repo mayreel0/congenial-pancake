@@ -1,10 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from "../lib/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  addDaysToDateString,
-  formatKoreanDate,
-  yesterdayKstDateString,
-} from "../lib/kst-date";
+import { formatKoreanDate, yesterdayKstDateString } from "../lib/kst-date";
 import type { FeedItemDto } from "../lib/requests/api";
 import { ReadFeed } from "./ReadFeed";
 
@@ -60,6 +56,16 @@ function installFakeBackend(initialFeed: FeedItemDto[], loggedIn = true) {
             id: "user-1",
             email: "member@example.com",
             createdAt: "2026-08-22T00:00:00.000Z",
+          }),
+        );
+      }
+      if (url.includes("/requests/feed/counts") && method === "GET") {
+        const params = new URL(url).searchParams;
+        return Promise.resolve(
+          jsonResponse(200, {
+            from: params.get("from"),
+            to: params.get("to"),
+            days: [],
           }),
         );
       }
@@ -126,6 +132,7 @@ function installFakeBackend(initialFeed: FeedItemDto[], loggedIn = true) {
 describe("ReadFeed", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.useRealTimers();
   });
 
   it("renders every thread returned by the feed", async () => {
@@ -275,31 +282,33 @@ describe("ReadFeed", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("browses by KST day: previous day re-fetches an earlier date, and 다음 날 is disabled at yesterday", async () => {
-    // canGoToNextDay compares the shown date against the real "yesterday"
-    // (yesterdayKstDateString() with no argument, evaluated at whatever
-    // moment this test actually runs) — computing the expected labels the
-    // same way, rather than hardcoding a date, keeps this test correct
-    // regardless of which real day it runs on.
-    const yesterday = yesterdayKstDateString();
-    const dayBeforeYesterday = addDaysToDateString(yesterday, -1);
+  it("browses by KST day via the calendar: clicking an earlier day re-fetches it, and today's cell is disabled", async () => {
+    // Fixed mid-month "now" so yesterday/day-before-yesterday/today all
+    // fall in the same calendar month regardless of which real day this
+    // test runs on (HeatmapCalendar is month-bounded, unlike the old
+    // arrow-based DayNav which had no such constraint).
+    vi.setSystemTime(new Date("2026-09-15T10:00:00.000Z")); // 2026-09-15 19:00 KST
+    const yesterday = "2026-09-14";
+    const dayBeforeYesterday = "2026-09-13";
+    const today = "2026-09-15";
 
     const fetchMock = installFakeBackend([]);
     render(<ReadFeed />);
 
     // Defaults to yesterday (mocked by installFakeBackend).
     await screen.findByText(formatKoreanDate(yesterday));
-    expect(screen.getByRole("button", { name: "다음 날" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: new RegExp(`^${today} `) }),
+    ).toBeDisabled();
 
-    fireEvent.click(screen.getByRole("button", { name: "이전 날" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: new RegExp(`^${dayBeforeYesterday} `) }),
+    );
 
     await screen.findByText(formatKoreanDate(dayBeforeYesterday));
-    expect(
-      screen.getByRole("button", { name: "다음 날" }),
-    ).not.toBeDisabled();
     const feedCalls = fetchMock.mock.calls.filter(([input]) =>
       (typeof input === "string" ? input : input.toString()).includes(
-        "/requests/feed",
+        "/requests/feed?",
       ),
     );
     const lastFeedCall = feedCalls.at(-1);

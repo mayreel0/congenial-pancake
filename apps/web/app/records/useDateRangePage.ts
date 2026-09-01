@@ -1,5 +1,11 @@
 "use client";
 
+import { useState } from "react";
+import {
+  addDaysToDateString,
+  monthAnchorOf,
+  yesterdayKstDateString,
+} from "../lib/kst-date";
 import { parsePageParam, parsePageSizeParam } from "../lib/pagination";
 import { useUrlState } from "../lib/useUrlState";
 
@@ -8,10 +14,16 @@ export type UseDateRangePageResult = {
   to: string | undefined;
   page: number;
   pageSize: number;
-  setFrom(value: string | undefined): void;
-  setTo(value: string | undefined): void;
+  // Both bounds set together (HeatmapCalendar's click-twice range select) —
+  // a single update() call so the two keys land in the URL atomically, same
+  // reasoning as useUrlState's own "one combined replace()" doc comment.
+  setRange(from: string | undefined, to: string | undefined): void;
   setPage(page: number): void;
   setPageSize(pageSize: number): void;
+  // HeatmapCalendar's own month view — not URL-synced, resets to the
+  // current KST month on every fresh page load.
+  calendarMonth: string;
+  setCalendarMonth(month: string): void;
 };
 
 type RangeUrlState = Record<string, string | undefined>;
@@ -48,12 +60,15 @@ export function useDateRangePage(prefix: "req" | "rep"): UseDateRangePageResult 
   const page = parsePageParam(urlState[pageKey]);
   const pageSize = parsePageSizeParam(urlState[pageSizeKey]);
 
-  function setFrom(value: string | undefined): void {
-    updateUrlState({ [fromKey]: value, [pageKey]: undefined });
-  }
+  const [calendarMonth, setCalendarMonth] = useState(() =>
+    monthAnchorOf(addDaysToDateString(yesterdayKstDateString(), 1)),
+  );
 
-  function setTo(value: string | undefined): void {
-    updateUrlState({ [toKey]: value, [pageKey]: undefined });
+  function setRange(
+    nextFrom: string | undefined,
+    nextTo: string | undefined,
+  ): void {
+    updateUrlState({ [fromKey]: nextFrom, [toKey]: nextTo, [pageKey]: undefined });
   }
 
   function setPage(nextPage: number): void {
@@ -64,5 +79,15 @@ export function useDateRangePage(prefix: "req" | "rep"): UseDateRangePageResult 
     updateUrlState({ [pageSizeKey]: String(size), [pageKey]: undefined });
   }
 
-  return { from, to, page, pageSize, setFrom, setTo, setPage, setPageSize };
+  return {
+    from,
+    to,
+    page,
+    pageSize,
+    setRange,
+    setPage,
+    setPageSize,
+    calendarMonth,
+    setCalendarMonth,
+  };
 }

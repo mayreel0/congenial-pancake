@@ -1,12 +1,16 @@
 import { Button } from "ui/Button";
+import { HeatmapCalendar } from "ui/HeatmapCalendar";
 import { Pagination } from "ui/Pagination";
 import { Skeleton } from "ui/Skeleton";
+import { daysInMonthAnchor } from "../../lib/kst-date";
 import { PAGE_SIZE_OPTIONS } from "../../lib/pagination";
 import type { MyAnswerLogEntryDto } from "../../lib/replies/api";
-import { useMyAnswerLogQuery } from "../../lib/replies/queries";
+import {
+  useMyAnswerLogQuery,
+  useMyReplyDayCountsQuery,
+} from "../../lib/replies/queries";
 import { useDateRangePage } from "../useDateRangePage";
 import { AnswerLogCard } from "./AnswerLogCard";
-import { DateRangeFilter } from "./DateRangeFilter";
 
 type AnswerLogBodyProps = {
   loading: boolean;
@@ -54,10 +58,24 @@ function AnswerLogBody({ loading, entries }: AnswerLogBodyProps) {
 }
 
 export function MyAnswerLogSection() {
-  const { from, to, page, pageSize, setFrom, setTo, setPage, setPageSize } =
-    useDateRangePage("rep");
+  const {
+    from,
+    to,
+    page,
+    pageSize,
+    setRange,
+    setPage,
+    setPageSize,
+    calendarMonth,
+    setCalendarMonth,
+  } = useDateRangePage("rep");
   const answerLog = useMyAnswerLogQuery(from, to, page, pageSize);
   const data = answerLog.data;
+  const monthDays = daysInMonthAnchor(calendarMonth);
+  const dayCounts = useMyReplyDayCountsQuery(
+    monthDays[0],
+    monthDays[monthDays.length - 1],
+  );
 
   return (
     <section className="space-y-4" aria-labelledby="my-answer-log-heading">
@@ -72,12 +90,14 @@ export function MyAnswerLogSection() {
           내가 어떤 온설에 어떤 답을 남겼는지 모아봤어요.
         </p>
       </div>
-      <DateRangeFilter
+      <HeatmapCalendar
+        counts={dayCounts.data?.days ?? []}
         from={from}
-        idPrefix="answer-log"
+        mode="range"
+        month={calendarMonth}
         to={to}
-        onFromChange={setFrom}
-        onToChange={setTo}
+        onMonthChange={setCalendarMonth}
+        onRangeChange={setRange}
       />
       <AnswerLogBody
         entries={data?.items ?? []}
