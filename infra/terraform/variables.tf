@@ -17,9 +17,8 @@ variable "api_subdomain" {
 }
 
 variable "admin_subdomain" {
-  description = "Subdomain apps/admin is reachable at, deliberately not a guessable name like 'admin' — see apps/admin/AGENTS.md. Deployed on Vercel, not this AWS stack; only needed here so the API's CORS_ORIGIN allows it."
+  description = "Subdomain apps/admin is reachable at, deliberately not a guessable name like 'admin' — see apps/admin/AGENTS.md. Deployed on Vercel, not this AWS stack; only needed here so the API's CORS_ORIGIN allows it. No default on purpose — this repo is public, so the actual value must only ever live in the gitignored terraform.tfvars (or TF_VAR_admin_subdomain), never in a tracked file. (A previous version of this file did default to a real value — that value is burned, already in git history on a public repo, and should not be reused.)"
   type        = string
-  default     = "rn929nney"
 }
 
 variable "vpc_cidr" {

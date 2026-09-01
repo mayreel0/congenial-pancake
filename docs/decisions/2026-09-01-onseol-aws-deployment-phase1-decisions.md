@@ -19,7 +19,7 @@ Railway/Render 같은 매니지드 플랫폼을 먼저 추천했으나(git push 
 - **RDS 마스터 비밀번호는 Terraform이 아니라 AWS(Secrets Manager)가 관리**(`manage_master_user_password = true`) — 로컬 state 파일(아직 S3 원격 백엔드 없음)에 비밀번호 평문이 남는 걸 피하려는 선택. EC2는 부팅 시 `aws secretsmanager get-secret-value`로 가져옴.
 - **앱 시크릿(OAuth 클라이언트 등)은 SSM Parameter Store SecureString**, Terraform은 `CHANGE_ME` 플레이스홀더만 생성(`ignore_changes`로 이후 수동 값이 다음 apply에 안 덮어써지게 함) — 같은 이유로 실제 시크릿 값이 Terraform state에 안 남게.
 - **Docker + ECR 사용** — 처음 계획엔 없었는데 사용자가 "배포를 위해 도커파일을 활용하거나 하지는 않습니까?"라고 직접 지적해서 반영. `.nvmrc`로 Node 24.14.0을 고정한 이 repo 특성상 EC2에 매번 nvm/pnpm 셋업하는 것보다 고정 런타임 이미지가 안정적이고, 나중에 ECS/Fargate로 넘어갈 발판도 됨.
-- **관리자 서브도메인은 `admin`이 아니라 임의 문자열**(`rn929nney`) — `apps/admin/AGENTS.md`에 이미 있는 "추측 어려운 경로" 방침과 동일선상.
+- **관리자 서브도메인은 `admin`이 아니라 임의 문자열** — `apps/admin/AGENTS.md`에 이미 있는 "추측 어려운 경로" 방침과 동일선상. 이 레포가 퍼블릭이라 실제 값은 어떤 커밋된 파일에도 넣지 않고 `terraform.tfvars`(gitignored)에만 둔다 — 처음엔 `variables.tf`의 `default`로 넣었다가 퍼블릭 레포에 그대로 노출된 걸 뒤늦게 발견해 되돌리고 값도 새로 교체함(git 히스토리에 남은 옛 값은 이미 노출된 것으로 간주, 재사용 안 함).
 - **단계 분리**: Phase 1(EC2 1대 + ALB + RDS, 이번 라운드) → Phase 2(Auto Scaling Group, 미착수) — 한 번에 다 만들지 말고 나누자는 사용자 확인("쪼개서 가는게 이해가 쉽겠지").
 - **관리 방식**: Terraform으로 작성하되 콘솔에서 직접 클릭하며 만들지는 않음 — "만들어진 리소스가 어떻게 생겼는지 정도만 확인해도 될 것 같습니다." 대신 로컬 state로 시작(S3 원격 백엔드는 나중에).
 
@@ -32,6 +32,7 @@ Railway/Render 같은 매니지드 플랫폼을 먼저 추천했으나(git push 
 3. ECR 리포지토리 생성 성공 (`Apply complete! Resources: 1 added`).
 4. 이미지 빌드 시도 중 `infra/terraform` 디렉토리에서 `docker build` 실행 → 빌드 컨텍스트/Dockerfile 경로가 다 어긋남. 원인: Dockerfile의 빌드 컨텍스트는 반드시 저장소 루트여야 함(`packages/shared`가 `apps/api-server` 바깥에 있어서 `COPY`하려면 그 경로가 컨텍스트 안에 있어야 함) — `-f apps/api-server/Dockerfile`은 Dockerfile *위치*만 지정할 뿐, 실제 범위는 마지막 `.`(컨텍스트)이 결정한다는 걸 명확히 함. 저장소 루트로 이동 후 재시도해서 해결.
 5. `docker build --platform linux/amd64 ...` + `docker push` 완료.
+6. 전체 `terraform apply` 진행 중 사용자가 "이 레포 퍼블릭인데 괜찮은 정보임?"이라고 질문 → 점검해보니 이 레포가 실제로 퍼블릭이고, 관리자 서브도메인 값을 `variables.tf`의 `default`와 이 문서에 그대로 커밋해뒀던 게 문제로 확인됨. 진짜 시크릿(DB 비밀번호/OAuth 시크릿/AWS 자격증명)은 원래부터 git에 안 들어가게 설계돼 있어서 그건 문제없었음 — 레포 전체를 프라이빗으로 바꿀 필요는 없다고 판단, 이 값만 새로 교체하고 `variables.tf`의 `default`를 제거해 `terraform.tfvars`(gitignored)로만 공급하도록 수정.
 
 ## 남은 일
 

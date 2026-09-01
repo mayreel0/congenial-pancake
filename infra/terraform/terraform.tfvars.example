@@ -1,8 +1,12 @@
-# Copy to terraform.tfvars (gitignored) and adjust if the defaults in
-# variables.tf don't fit — most fields already have sensible defaults and
+# Copy to terraform.tfvars (gitignored) and fill in the values below.
+# Most other variables in variables.tf already have sensible defaults and
 # don't need to be repeated here.
 
-# aws_region      = "ap-northeast-2"
-# domain_name     = "onseol.com"
-# api_subdomain   = "api"
-# admin_subdomain = "rn929nney"
+# admin_subdomain has NO default (see variables.tf) — this repo is public,
+# and the whole point of this value is that it's not guessable, so it must
+# only ever live here (gitignored), never in a tracked file.
+admin_subdomain = "REPLACE_WITH_A_RANDOM_STRING"
+
+# aws_region    = "ap-northeast-2"
+# domain_name   = "onseol.com"
+# api_subdomain = "api"
