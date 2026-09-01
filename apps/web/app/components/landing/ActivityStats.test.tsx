@@ -11,22 +11,21 @@ function mockStats(body: unknown) {
 }
 
 describe("ActivityStats", () => {
-  it("shows today/month/total counts for requests and replies, plus waiting-for-reply", async () => {
+  it("shows today/total counts for requests and replies, plus waiting-for-reply", async () => {
     mockStats({
-      requests: { today: 1, month: 5, total: 42 },
-      replies: { today: 2, month: 9, total: 88 },
+      requests: { today: 1, total: 42 },
+      replies: { today: 2, total: 88 },
       waitingForReply: 3,
     });
 
     render(<ActivityStats />);
 
-    expect(await screen.findByText("1")).toBeInTheDocument();
-    expect(screen.getByText("5")).toBeInTheDocument();
-    expect(screen.getByText("42")).toBeInTheDocument();
-    expect(screen.getByText("2")).toBeInTheDocument();
-    expect(screen.getByText("9")).toBeInTheDocument();
+    expect(await screen.findByText("42")).toBeInTheDocument();
     expect(screen.getByText("88")).toBeInTheDocument();
-    expect(screen.getByText("답변을 기다리는 글 3개")).toBeInTheDocument();
+    expect(screen.getByText("1")).toBeInTheDocument();
+    expect(screen.getByText("2")).toBeInTheDocument();
+    expect(screen.getByText("3")).toBeInTheDocument();
+    expect(screen.getByText("답변을 기다리는 글")).toBeInTheDocument();
   });
 
   it("renders nothing when the fetch fails, instead of an error state", async () => {

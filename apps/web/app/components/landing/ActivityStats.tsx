@@ -28,6 +28,10 @@ function StatCellSkeleton() {
 
 // A public marketing section — a failed fetch just hides this rather than
 // showing an error, so a network hiccup never breaks the landing page.
+// Five cells total, grouped as two rows (cumulative totals, then today's
+// activity + the current waiting-for-reply count) — a "이번 달" middle
+// tier used to sit between these but felt like empty filler without a
+// caption under each cell, so it was dropped rather than re-adding copy.
 export function ActivityStats() {
   const { data, isPending, isError } = useLandingStatsQuery();
 
@@ -35,12 +39,22 @@ export function ActivityStats() {
 
   return (
     <div className="space-y-3">
-      <dl className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <dl className="grid grid-cols-2 gap-3">
         {isPending ? (
           <>
             <StatCellSkeleton />
             <StatCellSkeleton />
-            <StatCellSkeleton />
+          </>
+        ) : (
+          <>
+            <StatCell label="누적 위로 요청" value={data.requests.total} />
+            <StatCell label="누적 답장" value={data.replies.total} />
+          </>
+        )}
+      </dl>
+      <dl className="grid grid-cols-3 gap-3">
+        {isPending ? (
+          <>
             <StatCellSkeleton />
             <StatCellSkeleton />
             <StatCellSkeleton />
@@ -48,19 +62,11 @@ export function ActivityStats() {
         ) : (
           <>
             <StatCell label="오늘의 위로 요청" value={data.requests.today} />
-            <StatCell label="이번 달 위로 요청" value={data.requests.month} />
-            <StatCell label="누적 위로 요청" value={data.requests.total} />
             <StatCell label="오늘의 답장" value={data.replies.today} />
-            <StatCell label="이번 달 답장" value={data.replies.month} />
-            <StatCell label="누적 답장" value={data.replies.total} />
+            <StatCell label="답변을 기다리는 글" value={data.waitingForReply} />
           </>
         )}
       </dl>
-      {!isPending && (
-        <p className="text-sm text-muted">
-          답변을 기다리는 글 {data.waitingForReply}개
-        </p>
-      )}
     </div>
   );
 }
