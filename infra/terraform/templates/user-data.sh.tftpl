@@ -1,0 +1,45 @@
+#!/bin/bash
+set -euo pipefail
+
+dnf install -y docker
+systemctl enable --now docker
+
+REGION="${aws_region}"
+ECR_HOST="${ecr_host}"
+ECR_REPO_URL="${ecr_repo_url}"
+
+aws ecr get-login-password --region "$REGION" | docker login --username AWS --password-stdin "$ECR_HOST"
+
+# RDS master password — AWS-managed (manage_master_user_password), never
+# a Terraform variable/state value. See infra/terraform/rds.tf.
+DB_SECRET=$(aws secretsmanager get-secret-value --region "$REGION" --secret-id "${db_secret_arn}" --query SecretString --output text)
+DB_PASSWORD=$(echo "$DB_SECRET" | python3 -c "import sys,json,urllib.parse;print(urllib.parse.quote(json.load(sys.stdin)['password'], safe=''))")
+
+fetch_param() {
+  aws ssm get-parameter --region "$REGION" --name "${ssm_parameter_prefix}/$1" --with-decryption --query Parameter.Value --output text
+}
+
+cat > /etc/onseol-api.env <<EOF
+NODE_ENV=production
+PORT=${app_port}
+DATABASE_URL=postgres://${db_username}:$DB_PASSWORD@${db_endpoint}/${db_name}
+CORS_ORIGIN=${cors_origin}
+API_PUBLIC_URL=https://${api_domain}
+WEB_PUBLIC_URL=${web_public_url}
+GOOGLE_CLIENT_ID=$(fetch_param google_client_id)
+GOOGLE_CLIENT_SECRET=$(fetch_param google_client_secret)
+KAKAO_CLIENT_ID=$(fetch_param kakao_client_id)
+KAKAO_CLIENT_SECRET=$(fetch_param kakao_client_secret)
+NAVER_CLIENT_ID=$(fetch_param naver_client_id)
+NAVER_CLIENT_SECRET=$(fetch_param naver_client_secret)
+ADMIN_USER_IDS=$(fetch_param admin_user_ids)
+EOF
+chmod 600 /etc/onseol-api.env
+
+docker pull "$ECR_REPO_URL:latest"
+docker run -d \
+  --name onseol-api \
+  --restart unless-stopped \
+  --env-file /etc/onseol-api.env \
+  -p ${app_port}:${app_port} \
+  "$ECR_REPO_URL:latest"

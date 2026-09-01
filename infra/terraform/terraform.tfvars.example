@@ -1,0 +1,8 @@
+# Copy to terraform.tfvars (gitignored) and adjust if the defaults in
+# variables.tf don't fit — most fields already have sensible defaults and
+# don't need to be repeated here.
+
+# aws_region      = "ap-northeast-2"
+# domain_name     = "onseol.com"
+# api_subdomain   = "api"
+# admin_subdomain = "rn929nney"
