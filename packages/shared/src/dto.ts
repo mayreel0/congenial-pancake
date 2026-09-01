@@ -299,7 +299,6 @@ export type AdminReplyResponseDto = z.infer<typeof adminReplyResponseSchema>;
 // author-identifying.
 const landingCountsSchema = z.object({
   today: z.number(),
-  month: z.number(),
   total: z.number(),
 });
 export type LandingCountsDto = z.infer<typeof landingCountsSchema>;

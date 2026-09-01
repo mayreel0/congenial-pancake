@@ -1,9 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import {
-  kstMonthToDateRange,
-  todayKstDateString,
-  kstDayRange,
-} from '../common/kst-date';
+import { todayKstDateString, kstDayRange } from '../common/kst-date';
 import { LandingRepository } from './landing.repository';
 import type { LandingStatsResponseDto } from './dto/landing-stats-response.dto';
 import type { SampleExchangesResponseDto } from './dto/sample-exchanges-response.dto';
@@ -17,9 +13,8 @@ export class LandingService {
 
   async getStats(): Promise<LandingStatsResponseDto> {
     const now = new Date();
-    const { start: monthStart } = kstMonthToDateRange(now);
     const { start: todayStart } = kstDayRange(todayKstDateString(now));
-    const boundaries = { todayStart, monthStart };
+    const boundaries = { todayStart };
 
     const [requestCounts, replyCounts, waitingForReply] = await Promise.all([
       this.landingRepository.countRequests(boundaries),

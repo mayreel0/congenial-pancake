@@ -5,10 +5,8 @@ function makeRepository(
   overrides: Partial<LandingRepository> = {},
 ): LandingRepository {
   return {
-    countRequests: jest
-      .fn()
-      .mockResolvedValue({ today: 0, month: 0, total: 0 }),
-    countReplies: jest.fn().mockResolvedValue({ today: 0, month: 0, total: 0 }),
+    countRequests: jest.fn().mockResolvedValue({ today: 0, total: 0 }),
+    countReplies: jest.fn().mockResolvedValue({ today: 0, total: 0 }),
     countWaitingForReply: jest.fn().mockResolvedValue(0),
     findSampleExchanges: jest.fn().mockResolvedValue([]),
     ...overrides,

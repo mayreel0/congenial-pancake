@@ -4,9 +4,9 @@ import { DRIZZLE } from '../database/database.constants';
 import type { Database } from '../database/database.types';
 import { replies, requests } from '../database/schema';
 
-export type LandingCounts = { today: number; month: number; total: number };
+export type LandingCounts = { today: number; total: number };
 
-export type DateBoundaries = { todayStart: Date; monthStart: Date };
+export type DateBoundaries = { todayStart: Date };
 
 export type SampleExchangeRow = {
   request: { body: string; createdAt: Date };
@@ -29,15 +29,11 @@ export class LandingRepository {
   // exact same hidden/deletedAt/createdAt shape for this purpose.
   private async countRows(
     table: typeof requests | typeof replies,
-    { todayStart, monthStart }: DateBoundaries,
+    { todayStart }: DateBoundaries,
   ): Promise<LandingCounts> {
     const visible = and(eq(table.hidden, false), isNull(table.deletedAt));
-    const [totalRow, monthRow, todayRow] = await Promise.all([
+    const [totalRow, todayRow] = await Promise.all([
       this.db.select({ value: count() }).from(table).where(visible),
-      this.db
-        .select({ value: count() })
-        .from(table)
-        .where(and(visible, gte(table.createdAt, monthStart))),
       this.db
         .select({ value: count() })
         .from(table)
@@ -45,7 +41,6 @@ export class LandingRepository {
     ]);
     return {
       today: todayRow[0]?.value ?? 0,
-      month: monthRow[0]?.value ?? 0,
       total: totalRow[0]?.value ?? 0,
     };
   }

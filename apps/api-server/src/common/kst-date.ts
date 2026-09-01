@@ -38,14 +38,3 @@ export function todayKstDateString(now: Date = new Date()): string {
   const kstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
   return kstNow.toISOString().slice(0, 10);
 }
-
-// [start, now) UTC instant range covering the current KST calendar month
-// so far — landing-page "이번 달" counts, not a full closed range.
-export function kstMonthToDateRange(now: Date = new Date()): {
-  start: Date;
-  end: Date;
-} {
-  const kstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
-  const monthStartKstString = `${kstNow.getUTCFullYear()}-${String(kstNow.getUTCMonth() + 1).padStart(2, '0')}-01`;
-  return { start: kstDayStart(monthStartKstString), end: now };
-}
