@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from './config/config.module';
 import { DatabaseModule } from './database/database.module';
 import { HealthModule } from './health/health.module';
+import { LandingModule } from './landing/landing.module';
 import { ModerationModule } from './moderation/moderation.module';
 import { ProfileModule } from './profile/profile.module';
 import { RepliesModule } from './replies/replies.module';
@@ -34,6 +35,7 @@ import { ZodValidationPipe } from './common/zod-validation';
     ModerationModule,
     AdminModule,
     ProfileModule,
+    LandingModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
