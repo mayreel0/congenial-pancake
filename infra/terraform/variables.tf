@@ -59,7 +59,7 @@ variable "db_instance_class" {
 variable "db_engine_version" {
   description = "Postgres major version on RDS."
   type        = string
-  default     = "16.4"
+  default     = "16.15"
 }
 
 variable "db_name" {

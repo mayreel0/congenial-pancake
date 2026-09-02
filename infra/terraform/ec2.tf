@@ -2,9 +2,15 @@ data "aws_ami" "al2023" {
   most_recent = true
   owners      = ["amazon"]
 
+  # "al2023-ami-*-x86_64" also matches the "minimal" variant
+  # (al2023-ami-minimal-...), which doesn't ship SSM Agent preinstalled —
+  # the standard AMI's name has the version right after "al2023-ami-", so
+  # anchoring on "2023." there excludes minimal. Found the hard way: an
+  # instance built from the minimal AMI never registered with SSM even
+  # though its IAM role/network path were correct (2026-09-02).
   filter {
     name   = "name"
-    values = ["al2023-ami-*-x86_64"]
+    values = ["al2023-ami-2023.*-x86_64"]
   }
 
   filter {
@@ -120,6 +126,17 @@ resource "aws_instance" "api" {
   # after editing the deploy script actually re-runs it, instead of
   # silently doing nothing to the already-running instance.
   user_data_replace_on_change = true
+
+  # AL2023's default root volume (8GB) isn't enough to pull the app's
+  # Docker image (a pnpm-workspace monorepo build, node_modules included)
+  # — the first real deploy failed mid-`docker pull` with "no space left
+  # on device", which also broke cloud-final's other final-stage steps
+  # (SSM Agent registration included, since it couldn't write its own
+  # state to a full disk).
+  root_block_device {
+    volume_size = 30
+    volume_type = "gp3"
+  }
 
   tags = { Name = "onseol-api" }
 }

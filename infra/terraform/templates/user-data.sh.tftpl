@@ -22,7 +22,7 @@ fetch_param() {
 cat > /etc/onseol-api.env <<EOF
 NODE_ENV=production
 PORT=${app_port}
-DATABASE_URL=postgres://${db_username}:$DB_PASSWORD@${db_endpoint}/${db_name}
+DATABASE_URL=postgres://${db_username}:$DB_PASSWORD@${db_endpoint}/${db_name}?sslmode=require
 CORS_ORIGIN=${cors_origin}
 API_PUBLIC_URL=https://${api_domain}
 WEB_PUBLIC_URL=${web_public_url}

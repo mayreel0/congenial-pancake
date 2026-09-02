@@ -31,7 +31,7 @@ resource "aws_security_group" "alb" {
 
 resource "aws_security_group" "ec2" {
   name        = "onseol-ec2-sg"
-  description = "App port from the ALB only — no SSH port, access is via SSM Session Manager"
+  description = "App port from the ALB only - no SSH port, access is via SSM Session Manager"
   vpc_id      = aws_vpc.main.id
 
   ingress {
