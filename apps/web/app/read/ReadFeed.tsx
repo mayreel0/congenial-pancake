@@ -167,7 +167,6 @@ export function ReadFeed() {
           formatDate={formatKoreanDate}
           label="날짜"
           maxDate={feed.maxSelectableDate}
-          mode="single"
           month={feed.calendarMonth}
           placeholder="날짜를 선택하세요"
           selected={feed.currentDate}

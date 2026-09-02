@@ -14,10 +14,11 @@ export type UseDateRangePageResult = {
   to: string | undefined;
   page: number;
   pageSize: number;
-  // Both bounds set together (HeatmapCalendar's click-twice range select) —
-  // a single update() call so the two keys land in the URL atomically, same
-  // reasoning as useUrlState's own "one combined replace()" doc comment.
-  setRange(from: string | undefined, to: string | undefined): void;
+  // Independent — 시작일/종료일 are two separate HeatmapCalendarFields
+  // (2026-09-02: a single combined range field wrapped to two lines and
+  // couldn't adjust just one end without resetting both).
+  setFrom(value: string | undefined): void;
+  setTo(value: string | undefined): void;
   setPage(page: number): void;
   setPageSize(pageSize: number): void;
   // HeatmapCalendar's own month view — not URL-synced, resets to the
@@ -64,11 +65,12 @@ export function useDateRangePage(prefix: "req" | "rep"): UseDateRangePageResult 
     monthAnchorOf(addDaysToDateString(yesterdayKstDateString(), 1)),
   );
 
-  function setRange(
-    nextFrom: string | undefined,
-    nextTo: string | undefined,
-  ): void {
-    updateUrlState({ [fromKey]: nextFrom, [toKey]: nextTo, [pageKey]: undefined });
+  function setFrom(value: string | undefined): void {
+    updateUrlState({ [fromKey]: value, [pageKey]: undefined });
+  }
+
+  function setTo(value: string | undefined): void {
+    updateUrlState({ [toKey]: value, [pageKey]: undefined });
   }
 
   function setPage(nextPage: number): void {
@@ -84,7 +86,8 @@ export function useDateRangePage(prefix: "req" | "rep"): UseDateRangePageResult 
     to,
     page,
     pageSize,
-    setRange,
+    setFrom,
+    setTo,
     setPage,
     setPageSize,
     calendarMonth,

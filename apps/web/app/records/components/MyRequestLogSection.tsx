@@ -63,7 +63,8 @@ export function MyRequestLogSection() {
     to,
     page,
     pageSize,
-    setRange,
+    setFrom,
+    setTo,
     setPage,
     setPageSize,
     calendarMonth,
@@ -90,18 +91,30 @@ export function MyRequestLogSection() {
           내가 남긴 고민과 거기 달린 답변을 모아봤어요.
         </p>
       </div>
-      <HeatmapCalendarField
-        counts={dayCounts.data?.days ?? []}
-        formatDate={formatKoreanDate}
-        from={from}
-        label="기간"
-        mode="range"
-        month={calendarMonth}
-        placeholder="기간을 선택하세요"
-        to={to}
-        onMonthChange={setCalendarMonth}
-        onRangeChange={setRange}
-      />
+      <div className="flex flex-wrap gap-3">
+        <HeatmapCalendarField
+          counts={dayCounts.data?.days ?? []}
+          formatDate={formatKoreanDate}
+          label="시작일"
+          maxDate={to}
+          month={calendarMonth}
+          placeholder="시작일을 선택하세요"
+          selected={from}
+          onMonthChange={setCalendarMonth}
+          onSelect={setFrom}
+        />
+        <HeatmapCalendarField
+          counts={dayCounts.data?.days ?? []}
+          formatDate={formatKoreanDate}
+          label="종료일"
+          minDate={from}
+          month={calendarMonth}
+          placeholder="종료일을 선택하세요"
+          selected={to}
+          onMonthChange={setCalendarMonth}
+          onSelect={setTo}
+        />
+      </div>
       <RequestLogBody
         entries={data?.items ?? []}
         loading={requestLog.isPending || requestLog.isLoading}

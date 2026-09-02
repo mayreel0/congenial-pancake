@@ -20,12 +20,9 @@ const SAMPLE_COUNTS = [
   { date: "2026-09-14", count: 7 },
 ];
 
-function ControlledSingle(
+function Controlled(
   props: Omit<
-    Extract<
-      React.ComponentProps<typeof HeatmapCalendarField>,
-      { mode: "single" }
-    >,
+    React.ComponentProps<typeof HeatmapCalendarField>,
     "onSelect" | "onMonthChange"
   >,
 ) {
@@ -42,42 +39,13 @@ function ControlledSingle(
   );
 }
 
-function ControlledRange(
-  props: Omit<
-    Extract<
-      React.ComponentProps<typeof HeatmapCalendarField>,
-      { mode: "range" }
-    >,
-    "onRangeChange" | "onMonthChange"
-  >,
-) {
-  const [month, setMonth] = useState(props.month);
-  const [from, setFrom] = useState(props.from);
-  const [to, setTo] = useState(props.to);
-  return (
-    <HeatmapCalendarField
-      {...props}
-      from={from}
-      month={month}
-      to={to}
-      onMonthChange={setMonth}
-      onRangeChange={(nextFrom, nextTo) => {
-        setFrom(nextFrom);
-        setTo(nextTo);
-      }}
-    />
-  );
-}
-
-// /read's usage — a compact field that opens the calendar on click and
-// closes it again as soon as a day is picked.
+// /read's usage — opens on click, closes as soon as a day is picked.
 export const SingleSelect: Story = {
   render: () => (
-    <ControlledSingle
+    <Controlled
       counts={SAMPLE_COUNTS}
       label="날짜"
       maxDate="2026-09-20"
-      mode="single"
       month={MONTH}
       placeholder="날짜를 선택하세요"
       selected="2026-09-14"
@@ -85,18 +53,40 @@ export const SingleSelect: Story = {
   ),
 };
 
-// /records' usage — click a start day then an end day; the popover stays
-// open until both ends are set.
-export const RangeSelect: Story = {
-  render: () => (
-    <ControlledRange
-      counts={SAMPLE_COUNTS}
-      from={undefined}
-      label="기간"
-      mode="range"
-      month={MONTH}
-      placeholder="기간을 선택하세요"
-      to={undefined}
-    />
-  ),
+// /records' usage — two of these side by side, cross-constrained via
+// minDate/maxDate (시작일's maxDate is 종료일's value and vice versa) so a
+// backwards range can't be picked. This story shows the pair together.
+export const RangePair: Story = {
+  render: () => {
+    function RangePairDemo() {
+      const [month, setMonth] = useState(MONTH);
+      const [from, setFrom] = useState<string | undefined>("2026-09-05");
+      const [to, setTo] = useState<string | undefined>("2026-09-14");
+      return (
+        <div className="flex flex-wrap gap-3">
+          <HeatmapCalendarField
+            counts={SAMPLE_COUNTS}
+            label="시작일"
+            maxDate={to}
+            month={month}
+            placeholder="시작일을 선택하세요"
+            selected={from}
+            onMonthChange={setMonth}
+            onSelect={setFrom}
+          />
+          <HeatmapCalendarField
+            counts={SAMPLE_COUNTS}
+            label="종료일"
+            minDate={from}
+            month={month}
+            placeholder="종료일을 선택하세요"
+            selected={to}
+            onMonthChange={setMonth}
+            onSelect={setTo}
+          />
+        </div>
+      );
+    }
+    return <RangePairDemo />;
+  },
 };

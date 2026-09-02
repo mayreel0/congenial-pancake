@@ -24,9 +24,9 @@ const SAMPLE_COUNTS = [
   { date: "2026-09-20", count: 1 },
 ];
 
-function ControlledSingle(
+function Controlled(
   props: Omit<
-    Extract<React.ComponentProps<typeof HeatmapCalendar>, { mode: "single" }>,
+    React.ComponentProps<typeof HeatmapCalendar>,
     "onSelect" | "onMonthChange"
   >,
 ) {
@@ -43,63 +43,34 @@ function ControlledSingle(
   );
 }
 
-function ControlledRange(
-  props: Omit<
-    Extract<React.ComponentProps<typeof HeatmapCalendar>, { mode: "range" }>,
-    "onRangeChange" | "onMonthChange"
-  >,
-) {
-  const [month, setMonth] = useState(props.month);
-  const [from, setFrom] = useState(props.from);
-  const [to, setTo] = useState(props.to);
-  return (
-    <HeatmapCalendar
-      {...props}
-      from={from}
-      month={month}
-      to={to}
-      onMonthChange={setMonth}
-      onRangeChange={(nextFrom, nextTo) => {
-        setFrom(nextFrom);
-        setTo(nextTo);
-      }}
-    />
-  );
-}
-
 // /read's usage — one selected day, days after maxDate (today) disabled.
 export const SingleSelect: Story = {
   render: () => (
-    <ControlledSingle
+    <Controlled
       counts={SAMPLE_COUNTS}
       maxDate="2026-09-20"
-      mode="single"
       month={MONTH}
       selected="2026-09-14"
     />
   ),
 };
 
-// /records' usage — click a start day then an end day to select a range.
-export const RangeSelect: Story = {
+// /records' 시작일/종료일 pair — each field constrains the other via
+// minDate/maxDate so a range can't be picked backwards. This story shows
+// just the 종료일 side (minDate set to a chosen 시작일).
+export const RangeEndWithMinDate: Story = {
   render: () => (
-    <ControlledRange
+    <Controlled
       counts={SAMPLE_COUNTS}
-      from="2026-09-05"
-      mode="range"
+      minDate="2026-09-05"
       month={MONTH}
-      to="2026-09-14"
+      selected={undefined}
     />
   ),
 };
 
 export const NoActivity: Story = {
   render: () => (
-    <ControlledSingle
-      counts={[]}
-      mode="single"
-      month={MONTH}
-      selected={undefined}
-    />
+    <Controlled counts={[]} month={MONTH} selected={undefined} />
   ),
 };

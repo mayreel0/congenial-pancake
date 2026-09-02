@@ -2,7 +2,13 @@
 
 type DayCount = { date: string; count: number };
 
-type HeatmapCalendarBaseProps = {
+// Single-date picker only — an earlier revision also supported a click-
+// twice range-select mode, but /records' two-field (시작일/종료일) design
+// replaced that entirely (2026-09-02 feedback: a single range-mode field's
+// display text wrapped to two lines, and re-selecting either end always
+// discarded the other). Two of these, cross-constrained via minDate/
+// maxDate, cover the range case instead — see HeatmapCalendarField.
+export type HeatmapCalendarProps = {
   // "YYYY-MM" — the month currently displayed.
   month: string;
   onMonthChange(month: string): void;
@@ -10,26 +16,15 @@ type HeatmapCalendarBaseProps = {
   // only entries matching a rendered cell's date are used). Days with no
   // matching entry render as count 0.
   counts: DayCount[];
-};
-
-type SingleModeProps = HeatmapCalendarBaseProps & {
-  mode: "single";
   selected: string | undefined;
   onSelect(date: string): void;
-  // Cells after this date (inclusive of neither/exclusive semantics: dates
-  // > maxDate) render disabled and unclickable — /read never browses today
-  // or a future day, since today's list is still accumulating.
+  // Cells outside [minDate, maxDate] (either bound optional) render
+  // disabled and unclickable — /read uses maxDate alone (never browse
+  // today/future), /records' two fields use each other's value as the
+  // other's bound so a range can't be picked backwards.
+  minDate?: string;
   maxDate?: string;
 };
-
-type RangeModeProps = HeatmapCalendarBaseProps & {
-  mode: "range";
-  from: string | undefined;
-  to: string | undefined;
-  onRangeChange(from: string | undefined, to: string | undefined): void;
-};
-
-export type HeatmapCalendarProps = SingleModeProps | RangeModeProps;
 
 const WEEKDAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -79,41 +74,24 @@ function intensityClassNames(count: number, maxCount: number): string {
 const navButtonClassName =
   "inline-flex h-9 w-9 items-center justify-center rounded-lg text-lg text-muted transition hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-40";
 
-export function HeatmapCalendar(props: HeatmapCalendarProps) {
-  const { month, onMonthChange, counts } = props;
+export function HeatmapCalendar({
+  month,
+  onMonthChange,
+  counts,
+  selected,
+  onSelect,
+  minDate,
+  maxDate,
+}: HeatmapCalendarProps) {
   const countByDate = new Map(counts.map((entry) => [entry.date, entry.count]));
   const maxCount = Math.max(0, ...counts.map((entry) => entry.count));
   const dates = daysInMonth(month);
   const leadingBlanks = weekdayOf(dates[0]);
 
-  function isSelected(date: string): boolean {
-    if (props.mode === "single") return date === props.selected;
-    if (!props.from) return false;
-    if (!props.to) return date === props.from;
-    return date >= props.from && date <= props.to;
-  }
-
   function isDisabled(date: string): boolean {
-    return props.mode === "single" && props.maxDate !== undefined && date > props.maxDate;
-  }
-
-  function handleClick(date: string): void {
-    if (props.mode === "single") {
-      props.onSelect(date);
-      return;
-    }
-    // A complete range (or no range yet) starts a fresh selection; a
-    // pending from-only selection completes it (swapping if the second
-    // click lands before the first).
-    if (!props.from || props.to) {
-      props.onRangeChange(date, undefined);
-      return;
-    }
-    if (date < props.from) {
-      props.onRangeChange(date, props.from);
-    } else {
-      props.onRangeChange(props.from, date);
-    }
+    if (minDate !== undefined && date < minDate) return true;
+    if (maxDate !== undefined && date > maxDate) return true;
+    return false;
   }
 
   return (
@@ -153,21 +131,21 @@ export function HeatmapCalendar(props: HeatmapCalendarProps) {
         {dates.map((date) => {
           const count = countByDate.get(date) ?? 0;
           const disabled = isDisabled(date);
-          const selected = isSelected(date);
+          const isSelected = date === selected;
           const day = Number(date.slice(-2));
           return (
             <button
-              aria-current={selected ? "date" : undefined}
+              aria-current={isSelected ? "date" : undefined}
               aria-label={`${date} (${count}개)`}
               className={`aspect-square rounded-md text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-30 ${intensityClassNames(count, maxCount)} ${
-                selected
+                isSelected
                   ? "ring-2 ring-primary ring-offset-1 ring-offset-surface"
                   : "hover:ring-1 hover:ring-primary"
               }`}
               disabled={disabled}
               key={date}
               type="button"
-              onClick={() => handleClick(date)}
+              onClick={() => onSelect(date)}
             >
               {day}
             </button>
