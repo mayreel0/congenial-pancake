@@ -1,4 +1,5 @@
 import type {
+  DayCountsResponseDto,
   MyAnswerLogEntryDto as SharedMyAnswerLogEntryDto,
   ReplyResponseDto,
 } from "shared/dto";
@@ -53,4 +54,15 @@ export function unsaveReply(replyId: string): Promise<void> {
 
 export function fetchSavedReplyIds(): Promise<string[]> {
   return apiFetch<string[]>("/replies/saved");
+}
+
+// HeatmapCalendar day counts — see requests/api.ts's fetchFeedDayCounts.
+export type DayCountsDto = DayCountsResponseDto;
+
+export function fetchMyReplyDayCounts(
+  from: string,
+  to: string,
+): Promise<DayCountsDto> {
+  const params = new URLSearchParams({ from, to });
+  return apiFetch<DayCountsDto>(`/replies/mine/counts?${params.toString()}`);
 }

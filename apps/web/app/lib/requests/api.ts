@@ -1,5 +1,6 @@
 import type {
   AuthorDisplayDto,
+  DayCountsResponseDto,
   FeedItemResponseDto,
   FeedReplyResponseDto,
   MyRequestLogEntryDto as SharedMyRequestLogEntryDto,
@@ -107,4 +108,24 @@ export function fetchMyRequestLog(
   return apiFetch<PaginatedDto<MyRequestLogEntryDto>>(
     `/requests/mine${query ? `?${query}` : ""}`,
   );
+}
+
+// HeatmapCalendar day counts — from/to are always given (the visible month's
+// bounds), unlike fetchFeed/fetchMyRequestLog's optional range.
+export type DayCountsDto = DayCountsResponseDto;
+
+export function fetchFeedDayCounts(
+  from: string,
+  to: string,
+): Promise<DayCountsDto> {
+  const params = new URLSearchParams({ from, to });
+  return apiFetch<DayCountsDto>(`/requests/feed/counts?${params.toString()}`);
+}
+
+export function fetchMyRequestDayCounts(
+  from: string,
+  to: string,
+): Promise<DayCountsDto> {
+  const params = new URLSearchParams({ from, to });
+  return apiFetch<DayCountsDto>(`/requests/mine/counts?${params.toString()}`);
 }

@@ -1,5 +1,11 @@
 "use client";
 
+import { useState } from "react";
+import {
+  addDaysToDateString,
+  monthAnchorOf,
+  yesterdayKstDateString,
+} from "../lib/kst-date";
 import { parsePageParam, parsePageSizeParam } from "../lib/pagination";
 import { useUrlState } from "../lib/useUrlState";
 
@@ -8,10 +14,17 @@ export type UseDateRangePageResult = {
   to: string | undefined;
   page: number;
   pageSize: number;
+  // Independent — 시작일/종료일 are two separate HeatmapCalendarFields
+  // (2026-09-02: a single combined range field wrapped to two lines and
+  // couldn't adjust just one end without resetting both).
   setFrom(value: string | undefined): void;
   setTo(value: string | undefined): void;
   setPage(page: number): void;
   setPageSize(pageSize: number): void;
+  // HeatmapCalendar's own month view — not URL-synced, resets to the
+  // current KST month on every fresh page load.
+  calendarMonth: string;
+  setCalendarMonth(month: string): void;
 };
 
 type RangeUrlState = Record<string, string | undefined>;
@@ -48,6 +61,10 @@ export function useDateRangePage(prefix: "req" | "rep"): UseDateRangePageResult 
   const page = parsePageParam(urlState[pageKey]);
   const pageSize = parsePageSizeParam(urlState[pageSizeKey]);
 
+  const [calendarMonth, setCalendarMonth] = useState(() =>
+    monthAnchorOf(addDaysToDateString(yesterdayKstDateString(), 1)),
+  );
+
   function setFrom(value: string | undefined): void {
     updateUrlState({ [fromKey]: value, [pageKey]: undefined });
   }
@@ -64,5 +81,16 @@ export function useDateRangePage(prefix: "req" | "rep"): UseDateRangePageResult 
     updateUrlState({ [pageSizeKey]: String(size), [pageKey]: undefined });
   }
 
-  return { from, to, page, pageSize, setFrom, setTo, setPage, setPageSize };
+  return {
+    from,
+    to,
+    page,
+    pageSize,
+    setFrom,
+    setTo,
+    setPage,
+    setPageSize,
+    calendarMonth,
+    setCalendarMonth,
+  };
 }

@@ -1,11 +1,15 @@
 import { Button } from "ui/Button";
+import { HeatmapCalendarField } from "ui/HeatmapCalendarField";
 import { Pagination } from "ui/Pagination";
 import { Skeleton } from "ui/Skeleton";
+import { daysInMonthAnchor, formatKoreanDate } from "../../lib/kst-date";
 import { PAGE_SIZE_OPTIONS } from "../../lib/pagination";
 import type { MyRequestLogEntryDto } from "../../lib/requests/api";
-import { useMyRequestLogQuery } from "../../lib/requests/queries";
+import {
+  useMyRequestDayCountsQuery,
+  useMyRequestLogQuery,
+} from "../../lib/requests/queries";
 import { useDateRangePage } from "../useDateRangePage";
-import { DateRangeFilter } from "./DateRangeFilter";
 import { RequestLogCard } from "./RequestLogCard";
 
 type RequestLogBodyProps = {
@@ -54,10 +58,25 @@ function RequestLogBody({ loading, entries }: RequestLogBodyProps) {
 }
 
 export function MyRequestLogSection() {
-  const { from, to, page, pageSize, setFrom, setTo, setPage, setPageSize } =
-    useDateRangePage("req");
+  const {
+    from,
+    to,
+    page,
+    pageSize,
+    setFrom,
+    setTo,
+    setPage,
+    setPageSize,
+    calendarMonth,
+    setCalendarMonth,
+  } = useDateRangePage("req");
   const requestLog = useMyRequestLogQuery(from, to, page, pageSize);
   const data = requestLog.data;
+  const monthDays = daysInMonthAnchor(calendarMonth);
+  const dayCounts = useMyRequestDayCountsQuery(
+    monthDays[0],
+    monthDays[monthDays.length - 1],
+  );
 
   return (
     <section className="space-y-4" aria-labelledby="my-request-log-heading">
@@ -72,13 +91,30 @@ export function MyRequestLogSection() {
           내가 남긴 고민과 거기 달린 답변을 모아봤어요.
         </p>
       </div>
-      <DateRangeFilter
-        from={from}
-        idPrefix="request-log"
-        to={to}
-        onFromChange={setFrom}
-        onToChange={setTo}
-      />
+      <div className="flex flex-wrap gap-3">
+        <HeatmapCalendarField
+          counts={dayCounts.data?.days ?? []}
+          formatDate={formatKoreanDate}
+          label="시작일"
+          maxDate={to}
+          month={calendarMonth}
+          placeholder="시작일을 선택하세요"
+          selected={from}
+          onMonthChange={setCalendarMonth}
+          onSelect={setFrom}
+        />
+        <HeatmapCalendarField
+          counts={dayCounts.data?.days ?? []}
+          formatDate={formatKoreanDate}
+          label="종료일"
+          minDate={from}
+          month={calendarMonth}
+          placeholder="종료일을 선택하세요"
+          selected={to}
+          onMonthChange={setCalendarMonth}
+          onSelect={setTo}
+        />
+      </div>
       <RequestLogBody
         entries={data?.items ?? []}
         loading={requestLog.isPending || requestLog.isLoading}
