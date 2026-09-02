@@ -1,8 +1,8 @@
 import { Button } from "ui/Button";
-import { HeatmapCalendar } from "ui/HeatmapCalendar";
+import { HeatmapCalendarField } from "ui/HeatmapCalendarField";
 import { Pagination } from "ui/Pagination";
 import { Skeleton } from "ui/Skeleton";
-import { daysInMonthAnchor } from "../../lib/kst-date";
+import { daysInMonthAnchor, formatKoreanDate } from "../../lib/kst-date";
 import { PAGE_SIZE_OPTIONS } from "../../lib/pagination";
 import type { MyAnswerLogEntryDto } from "../../lib/replies/api";
 import {
@@ -90,11 +90,14 @@ export function MyAnswerLogSection() {
           내가 어떤 온설에 어떤 답을 남겼는지 모아봤어요.
         </p>
       </div>
-      <HeatmapCalendar
+      <HeatmapCalendarField
         counts={dayCounts.data?.days ?? []}
+        formatDate={formatKoreanDate}
         from={from}
+        label="기간"
         mode="range"
         month={calendarMonth}
+        placeholder="기간을 선택하세요"
         to={to}
         onMonthChange={setCalendarMonth}
         onRangeChange={setRange}

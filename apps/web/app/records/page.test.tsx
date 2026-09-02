@@ -331,6 +331,10 @@ describe("RecordsPage", () => {
 
     expect(await screen.findByText("페이지 1의 고민")).toBeInTheDocument();
 
+    // The calendar grid only renders once the "기간" field is opened —
+    // selecting the first day (from-only) keeps it open for the second
+    // click, so only one open is needed here.
+    fireEvent.click(screen.getByRole("button", { name: "기간" }));
     fireEvent.click(
       screen.getByRole("button", { name: /^2026-08-01 / }),
     );

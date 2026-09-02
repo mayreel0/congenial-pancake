@@ -29,7 +29,7 @@ type RangeModeProps = HeatmapCalendarBaseProps & {
   onRangeChange(from: string | undefined, to: string | undefined): void;
 };
 
-type HeatmapCalendarProps = SingleModeProps | RangeModeProps;
+export type HeatmapCalendarProps = SingleModeProps | RangeModeProps;
 
 const WEEKDAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
 

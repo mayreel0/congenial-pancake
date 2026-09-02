@@ -295,8 +295,12 @@ describe("ReadFeed", () => {
     const fetchMock = installFakeBackend([]);
     render(<ReadFeed />);
 
-    // Defaults to yesterday (mocked by installFakeBackend).
+    // Defaults to yesterday (mocked by installFakeBackend) — shown as the
+    // closed field's own label text.
     await screen.findByText(formatKoreanDate(yesterday));
+
+    // The calendar grid itself only renders once the field is opened.
+    fireEvent.click(screen.getByRole("button", { name: "날짜" }));
     expect(
       screen.getByRole("button", { name: new RegExp(`^${today} `) }),
     ).toBeDisabled();
@@ -305,6 +309,7 @@ describe("ReadFeed", () => {
       screen.getByRole("button", { name: new RegExp(`^${dayBeforeYesterday} `) }),
     );
 
+    // Selecting a day closes the popover and updates the field's label.
     await screen.findByText(formatKoreanDate(dayBeforeYesterday));
     const feedCalls = fetchMock.mock.calls.filter(([input]) =>
       (typeof input === "string" ? input : input.toString()).includes(

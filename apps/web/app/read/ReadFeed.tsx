@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { ApiError } from "../lib/api";
 import { ServiceNav } from "../components/navigation/ServiceNav";
 import { ActionConfirmDialog } from "ui/ActionConfirmDialog";
-import { HeatmapCalendar } from "ui/HeatmapCalendar";
+import { HeatmapCalendarField } from "ui/HeatmapCalendarField";
 import { Pagination } from "ui/Pagination";
 import { Skeleton } from "ui/Skeleton";
 import { buildFeedItemLabels } from "../lib/feed-item-labels";
@@ -162,20 +162,18 @@ export function ReadFeed() {
             온설 읽기
           </h1>
         </section>
-        <div className="space-y-3">
-          <p className="text-center text-sm font-semibold text-foreground">
-            {formatKoreanDate(feed.currentDate)}
-          </p>
-          <HeatmapCalendar
-            counts={feed.dayCounts}
-            maxDate={feed.maxSelectableDate}
-            mode="single"
-            month={feed.calendarMonth}
-            selected={feed.currentDate}
-            onMonthChange={feed.setCalendarMonth}
-            onSelect={feed.goToDate}
-          />
-        </div>
+        <HeatmapCalendarField
+          counts={feed.dayCounts}
+          formatDate={formatKoreanDate}
+          label="날짜"
+          maxDate={feed.maxSelectableDate}
+          mode="single"
+          month={feed.calendarMonth}
+          placeholder="날짜를 선택하세요"
+          selected={feed.currentDate}
+          onMonthChange={feed.setCalendarMonth}
+          onSelect={feed.goToDate}
+        />
         <ReadFeedBody
           feed={feed}
           savedSet={savedSet}
