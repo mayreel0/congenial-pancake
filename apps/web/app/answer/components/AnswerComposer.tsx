@@ -1,7 +1,9 @@
 "use client";
 
 import { useLayoutEffect, useRef } from "react";
+import { createReplySchema } from "shared/dto";
 import { Toggle } from "ui/Toggle";
+import { parseFieldErrors } from "../../lib/zod-form";
 
 const MIN_TEXTAREA_HEIGHT = 44;
 const MAX_TEXTAREA_HEIGHT = 128;
@@ -35,6 +37,12 @@ export function AnswerComposer({
 }: AnswerComposerProps) {
   const fieldDisabled = disabled || pending;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  // Just gates the button (no visible per-field error text) — an empty
+  // composer isn't a mistake worth calling out, it's just the resting
+  // state, and the disabled button already says "type something."
+  const fieldErrors = parseFieldErrors(createReplySchema, {
+    body: value.trim(),
+  });
 
   useLayoutEffect(() => {
     const textarea = textareaRef.current;
@@ -52,7 +60,7 @@ export function AnswerComposer({
       className="border-t border-line bg-background px-5 py-4 sm:px-8"
       onSubmit={(event) => {
         event.preventDefault();
-        onSubmit();
+        if (Object.keys(fieldErrors).length === 0) onSubmit();
       }}
     >
       <div className="mx-auto w-full max-w-6xl">
@@ -98,7 +106,7 @@ export function AnswerComposer({
           />
           <button
             className="inline-flex h-10 shrink-0 items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={fieldDisabled || !value.trim()}
+            disabled={fieldDisabled || Object.keys(fieldErrors).length > 0}
             type="submit"
           >
             {pending ? "답하는 중" : "답변하기"}

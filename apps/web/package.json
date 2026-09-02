@@ -19,7 +19,8 @@
     "react-dom": "19.2.8",
     "shared": "workspace:*",
     "ui": "workspace:*",
-    "utils": "workspace:*"
+    "utils": "workspace:*",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@storybook/nextjs-vite": "10.5.9",
