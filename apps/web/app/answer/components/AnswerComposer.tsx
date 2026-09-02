@@ -3,13 +3,10 @@
 import { useLayoutEffect, useRef } from "react";
 import { createReplySchema } from "shared/dto";
 import { Toggle } from "ui/Toggle";
-import { useFieldValidation } from "../../lib/useFieldValidation";
 import { parseFieldErrors } from "../../lib/zod-form";
 
 const MIN_TEXTAREA_HEIGHT = 44;
 const MAX_TEXTAREA_HEIGHT = 128;
-
-type Field = "body";
 
 type AnswerComposerProps = {
   value: string;
@@ -40,11 +37,12 @@ export function AnswerComposer({
 }: AnswerComposerProps) {
   const fieldDisabled = disabled || pending;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const { touch, touchAll, visibleError } = useFieldValidation<Field>();
+  // Just gates the button (no visible per-field error text) — an empty
+  // composer isn't a mistake worth calling out, it's just the resting
+  // state, and the disabled button already says "type something."
   const fieldErrors = parseFieldErrors(createReplySchema, {
     body: value.trim(),
   });
-  const error = visibleError("body", fieldErrors);
 
   useLayoutEffect(() => {
     const textarea = textareaRef.current;
@@ -62,7 +60,6 @@ export function AnswerComposer({
       className="border-t border-line bg-background px-5 py-4 sm:px-8"
       onSubmit={(event) => {
         event.preventDefault();
-        touchAll(["body"]);
         if (Object.keys(fieldErrors).length === 0) onSubmit();
       }}
     >
@@ -105,7 +102,6 @@ export function AnswerComposer({
             ref={textareaRef}
             rows={1}
             value={value}
-            onBlur={() => touch("body")}
             onChange={(event) => onChange(event.target.value)}
           />
           <button
@@ -116,7 +112,6 @@ export function AnswerComposer({
             {pending ? "답하는 중" : "답변하기"}
           </button>
         </div>
-        {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
       </div>
     </form>
   );

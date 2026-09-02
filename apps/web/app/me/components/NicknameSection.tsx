@@ -40,7 +40,7 @@ export function NicknameSection() {
   const [draft, setDraft] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { touch, touchAll, visibleError } = useFieldValidation<Field>();
+  const { touchAll, visibleError } = useFieldValidation<Field>();
   const fieldErrors = parseFieldErrors(updateNicknameSchema, {
     nickname: draft.trim(),
   });
@@ -100,7 +100,6 @@ export function NicknameSection() {
             maxLength={20}
             value={draft}
             width="compact"
-            onBlur={() => touch("nickname")}
             onChange={(event) => setDraft(event.currentTarget.value)}
           />
           {error && <p className="text-xs text-red-600">{error}</p>}

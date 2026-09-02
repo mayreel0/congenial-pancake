@@ -44,7 +44,7 @@ export default function LoginPage() {
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>("idle");
   const [error, setError] = useState<string | null>(null);
   const lastProvider = useLastOAuthProvider();
-  const { touch, touchAll, visibleError } = useFieldValidation<Field>();
+  const { touchAll, visibleError } = useFieldValidation<Field>();
 
   useEffect(() => {
     if (status === "authenticated") router.replace("/today");
@@ -92,7 +92,6 @@ export default function LoginPage() {
             required
             type="email"
             value={email}
-            onBlur={() => touch("email")}
             onChange={(event) => setEmail(event.currentTarget.value)}
           />
           <TextField
@@ -103,7 +102,6 @@ export default function LoginPage() {
             required
             type="password"
             value={password}
-            onBlur={() => touch("password")}
             onChange={(event) => setPassword(event.currentTarget.value)}
           />
 

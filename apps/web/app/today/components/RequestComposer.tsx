@@ -3,13 +3,10 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { createRequestSchema } from "shared/dto";
 import { Toggle } from "ui/Toggle";
-import { useFieldValidation } from "../../lib/useFieldValidation";
 import { parseFieldErrors } from "../../lib/zod-form";
 
 const MIN_TEXTAREA_HEIGHT = 44;
 const MAX_TEXTAREA_HEIGHT = 128;
-
-type Field = "body";
 
 type RequestComposerProps = {
   value: string;
@@ -46,7 +43,9 @@ export function RequestComposer({
   }
 
   const isPending = status === "pending";
-  const { touch, touchAll, visibleError } = useFieldValidation<Field>();
+  // Just gates the button (no visible per-field error text) — an empty
+  // composer isn't a mistake worth calling out, it's just the resting
+  // state, and the disabled button already says "type something."
   const fieldErrors = parseFieldErrors(createRequestSchema, {
     body: localValue.trim(),
   });
@@ -68,7 +67,6 @@ export function RequestComposer({
       className="mx-auto w-full max-w-2xl"
       onSubmit={(event) => {
         event.preventDefault();
-        touchAll(["body"]);
         if (canSubmit) void onSubmit(localValue.trim());
       }}
     >
@@ -94,7 +92,6 @@ export function RequestComposer({
           ref={textareaRef}
           rows={1}
           value={localValue}
-          onBlur={() => touch("body")}
           onChange={(event) => {
             const nextValue = event.currentTarget.value;
             setDraftState({ propValue: value, localValue: nextValue });
@@ -109,11 +106,6 @@ export function RequestComposer({
           {isPending ? "남기는 중" : "보내기"}
         </button>
       </div>
-      {visibleError("body", fieldErrors) && (
-        <p className="mt-1 text-xs text-red-600">
-          {visibleError("body", fieldErrors)}
-        </p>
-      )}
     </form>
   );
 }

@@ -21,7 +21,7 @@ export function ResetPasswordForm() {
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState<ResetPasswordStatus>("idle");
   const [error, setError] = useState<string | null>(null);
-  const { touch, touchAll, visibleError } = useFieldValidation<Field>();
+  const { touchAll, visibleError } = useFieldValidation<Field>();
   const fieldErrors = parseFieldErrors(resetPasswordSchema, {
     token: token ?? "",
     password,
@@ -60,7 +60,6 @@ export function ResetPasswordForm() {
           password={password}
           status={status}
           token={token}
-          onPasswordBlur={() => touch("password")}
           onPasswordChange={setPassword}
           onSubmit={(event) => void handleSubmit(event)}
         />

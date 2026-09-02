@@ -11,7 +11,6 @@ type ResetPasswordBodyProps = {
   error: string | null;
   fieldError: string | undefined;
   onPasswordChange(value: string): void;
-  onPasswordBlur(): void;
   onSubmit(event: React.FormEvent): void;
 };
 
@@ -25,7 +24,6 @@ export function ResetPasswordBody({
   error,
   fieldError,
   onPasswordChange,
-  onPasswordBlur,
   onSubmit,
 }: ResetPasswordBodyProps) {
   if (!token) {
@@ -56,7 +54,6 @@ export function ResetPasswordBody({
         required
         type="password"
         value={password}
-        onBlur={onPasswordBlur}
         onChange={(event) => onPasswordChange(event.currentTarget.value)}
       />
 

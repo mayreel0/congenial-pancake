@@ -1,7 +1,6 @@
 "use client";
 
 import { createReplySchema } from "shared/dto";
-import { useFieldValidation } from "../../lib/useFieldValidation";
 import { parseFieldErrors } from "../../lib/zod-form";
 
 type ReplyComposerProps = {
@@ -11,8 +10,6 @@ type ReplyComposerProps = {
   onSubmit(): void;
 };
 
-type Field = "body";
-
 export function ReplyComposer({
   value,
   disabled,
@@ -20,18 +17,18 @@ export function ReplyComposer({
   onSubmit,
 }: ReplyComposerProps) {
   const remaining = 180 - value.length;
-  const { touch, touchAll, visibleError } = useFieldValidation<Field>();
+  // Just gates the button (no visible per-field error text) — an empty
+  // composer isn't a mistake worth calling out, it's just the resting
+  // state, and the disabled button already says "type something."
   const fieldErrors = parseFieldErrors(createReplySchema, {
     body: value.trim(),
   });
-  const error = visibleError("body", fieldErrors);
 
   return (
     <form
       className="rounded-lg border border-line bg-surface-muted p-4"
       onSubmit={(event) => {
         event.preventDefault();
-        touchAll(["body"]);
         if (Object.keys(fieldErrors).length === 0) onSubmit();
       }}
     >
@@ -49,10 +46,8 @@ export function ReplyComposer({
             : "과하지 않게, 현실적인 한마디를 남겨주세요."
         }
         value={value}
-        onBlur={() => touch("body")}
         onChange={(event) => onChange(event.target.value)}
       />
-      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
       <div className="mt-3 flex items-center justify-between gap-3">
         <span className="text-xs text-muted">{remaining}자</span>
         <button
