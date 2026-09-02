@@ -34,11 +34,31 @@ Railway/Render 같은 매니지드 플랫폼을 먼저 추천했으나(git push 
 5. `docker build --platform linux/amd64 ...` + `docker push` 완료.
 6. 전체 `terraform apply` 진행 중 사용자가 "이 레포 퍼블릭인데 괜찮은 정보임?"이라고 질문 → 점검해보니 이 레포가 실제로 퍼블릭이고, 관리자 서브도메인 값을 `variables.tf`의 `default`와 이 문서에 그대로 커밋해뒀던 게 문제로 확인됨. 진짜 시크릿(DB 비밀번호/OAuth 시크릿/AWS 자격증명)은 원래부터 git에 안 들어가게 설계돼 있어서 그건 문제없었음 — 레포 전체를 프라이빗으로 바꿀 필요는 없다고 판단, 이 값만 새로 교체하고 `variables.tf`의 `default`를 제거해 `terraform.tfvars`(gitignored)로만 공급하도록 수정.
 
+## 실행 로그 (2026-09-02/03) — 네임서버 전파부터 실제 서비스 기동까지
+
+가비아→Route 53 네임서버 위임이 며칠째 전파 안 되던 문제(2026-09-01부터 대기)가, 알고 보니 가비아 관리 화면의 "네임서버 목록 보기" 옆에 별도로 숨어있는 "설정" 버튼을 안 눌러서 실제 변경이 저장 안 된 상태였음 — 화면에 목록은 보이는데 실제 등록 신청이 안 된 것. 그 버튼을 누르고 나서 `.com` 레지스트리(`dig @a.gtld-servers.net`으로 직접 확인, 캐시 영향 없음)에 정상 반영됨을 확인.
+
+이후 `terraform apply` 진행 과정에서 **실제 자원 생성/앱 기동까지 총 7개의 진짜 버그**를 발견해 그때그때 고치며 진행함(전부 `infra/terraform` 코드 자체의 문제, 사용자 조작 실수 아님):
+
+1. **`terraform.tfstate`에 없는 자원들** — ALB/타겟그룹/ECR/IAM 역할·인스턴스 프로파일/DB 서브넷 그룹/SSM 파라미터 7개가 이미 AWS에 존재하는데 이 로컬 state엔 기록이 없어 `apply`가 전부 "already exists"로 실패. 다른 시점/경로로 한 번 apply가 됐던 흔적으로 추정. `terraform import`로 12개 자원을 전부 state에 편입시켜 해결.
+2. **`aws_security_group.ec2`의 `description`에 em dash(`—`) 포함** — AWS EC2 보안그룹 설명은 순수 ASCII만 허용하는데 이 문자 때문에 `CreateSecurityGroup`이 400으로 거부됨. ASCII 하이픈(`-`)으로 교체.
+3. **예전 VPC에 남아있던 ALB/DB 서브넷 그룹** — 한 번 VPC가 재생성된 적이 있었던 듯, ALB/DB 서브넷 그룹이 옛날 VPC(`vpc-0782...`)의 서브넷/보안그룹을 계속 참조하고 있었음. AWS API가 "다른 VPC로의 서브넷 교체"를 in-place로 허용하지 않아 `terraform apply -replace=...`로 강제 재생성.
+4. **RDS Postgres 16.4가 단종됨** — `variables.tf`의 `db_engine_version` 기본값이 더 이상 AWS RDS에 없는 마이너 버전이라 `CreateDBInstance` 실패. 현재 제공되는 16.x 중 최신인 16.15로 교체.
+5. **EC2 루트 볼륨이 실제로는 2GB뿐** — `aws_instance.api`에 `root_block_device`를 명시 안 해서 AMI 기본값(매우 작음)을 그대로 씀. Docker 이미지(pnpm 모노레포 `node_modules` 포함) pull 도중 디스크가 꽉 차 `cloud-final.service` 자체가 실패 — 이게 SSM 에이전트 미등록의 원인이기도 했음(에이전트가 자기 상태를 디스크에 못 씀). `root_block_device { volume_size = 30, volume_type = "gp3" }`로 명시.
+6. **AMI 필터가 "minimal" 변종까지 매칭** — `data "aws_ami" "al2023"`의 이름 필터 `"al2023-ami-*-x86_64"`가 표준판과 `al2023-ami-minimal-*-x86_64`(SSM 에이전트 기본 미탑재)를 둘 다 매칭, 실제론 minimal이 선택되고 있었음. 디스크 문제(5번)를 고친 뒤에도 SSM 등록이 계속 안 돼서 발견 — 필터를 `"al2023-ami-2023.*-x86_64"`로 좁혀 표준판만 매칭되게 수정.
+7. **RDS가 SSL 연결을 요구하는데 커넥션 스트링에 옵션이 없음** — `drizzle-kit migrate`가 `no pg_hba.conf entry ... no encryption`으로 실패(`psql`은 기본적으로 SSL을 시도해서 문제없이 접속됐던 것과 대비). 마이그레이션용 스크립트와 `templates/user-data.sh.tftpl`이 만드는 실제 배포 앱의 `DATABASE_URL` 둘 다에 `?sslmode=require` 추가 — 실제 배포 앱도 똑같이 겪었을 문제라 함께 고침.
+
+이 7개를 고치는 동안 EC2는 총 5번 재생성됨(state 정리 → VPC 불일치 → AMI/디스크 → SSL 커넥션스트링 → `admin_user_ids` 반영, 매번 스테이트리스라 안전). 이후 순서대로 완료:
+
+- **DB 마이그레이션**: SSM 포트포워딩(`aws ssm start-session --document-name AWS-StartPortForwardingSessionToRemoteHost`)으로 프라이빗 RDS에 터널 연결 후 `drizzle-kit migrate` 실행 완료. 로컬에 `session-manager-plugin`이 없어서 먼저 설치(`brew install --cask session-manager-plugin`, 관리자 비번 필요해 사용자가 직접 설치).
+- **SSM Parameter Store 실값**: OAuth 6개(`google`/`kakao`/`naver` × `client_id`/`client_secret`) 사용자가 직접 `aws ssm put-parameter`로 입력.
+- **`admin_user_ids`**: DB가 UUID를 `defaultRandom()`으로 생성해서 로컬 개발 DB에서 쓰던 ID는 프로덕션 DB와 전혀 무관 — 실제 프로덕션 도메인(`onseol.com`, 이때 이미 Vercel 커스텀 도메인 연결까지 끝난 상태)에서 회원가입해서 얻은 진짜 UUID(`1b553582-0d9f-477b-af02-fb04635db4a2`)로 설정.
+- **Vercel 커스텀 도메인**: `apps/web`→`onseol.com`(A 레코드), `apps/admin`→admin 서브도메인(CNAME) 둘 다 Route 53에 등록 완료. `api.onseol.com`을 실수로 Vercel 도메인으로 등록할 뻔한 걸 사전에 확인해서 막음(그 서브도메인은 AWS ALB 것, Vercel 것이 아님).
+- 최종 확인: `https://api.onseol.com/health` → `200 {"status":"ok"}`, `/requests`(실제 DB 쿼리) → `200 []`.
+
 ## 남은 일
 
-- `terraform apply`(전체) — VPC/ALB/RDS/EC2 생성, 아직 미실행.
-- apply 후: SSM Parameter Store에 실제 OAuth 시크릿 값 채우기, 각 OAuth 프로바이더 콘솔에 프로덕션 redirect URI 등록.
-- DB 마이그레이션(SSM 포트포워딩으로 프라이빗 RDS 접근 — `infra/terraform/README.md` 참고).
-- `apps/web`/`apps/admin`의 Vercel 프로젝트 설정 + 커스텀 도메인 연결(이번 라운드 스코프 밖, 이 AWS 스택과 별개).
+- **각 OAuth 프로바이더(카카오/네이버/구글) 콘솔에 프로덕션 redirect URI 등록** — `https://api.onseol.com/auth/<provider>/callback`. 각 플랫폼 로그인이 필요해 사용자가 직접 해야 함.
+- 위 7개 버그 수정 사항(`infra/terraform/{ec2,security_groups,variables}.tf`, `templates/user-data.sh.tftpl`)은 아직 `infra/aws-api-deploy` 브랜치(PR #121)에 **커밋 안 된 상태** — 실제 AWS에는 이미 반영/적용됐지만 코드로는 아직 커밋 전.
 - Phase 2: Auto Scaling Group.
 - (아이디어 단계, 미스코프) 개인 서버(`effective-doodle`)에 상태 페이지/Swagger/Storybook 호스팅.
