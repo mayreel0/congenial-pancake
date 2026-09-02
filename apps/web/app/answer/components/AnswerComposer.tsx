@@ -1,10 +1,15 @@
 "use client";
 
 import { useLayoutEffect, useRef } from "react";
+import { createReplySchema } from "shared/dto";
 import { Toggle } from "ui/Toggle";
+import { useFieldValidation } from "../../lib/useFieldValidation";
+import { parseFieldErrors } from "../../lib/zod-form";
 
 const MIN_TEXTAREA_HEIGHT = 44;
 const MAX_TEXTAREA_HEIGHT = 128;
+
+type Field = "body";
 
 type AnswerComposerProps = {
   value: string;
@@ -35,6 +40,11 @@ export function AnswerComposer({
 }: AnswerComposerProps) {
   const fieldDisabled = disabled || pending;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { touch, touchAll, visibleError } = useFieldValidation<Field>();
+  const fieldErrors = parseFieldErrors(createReplySchema, {
+    body: value.trim(),
+  });
+  const error = visibleError("body", fieldErrors);
 
   useLayoutEffect(() => {
     const textarea = textareaRef.current;
@@ -52,7 +62,8 @@ export function AnswerComposer({
       className="border-t border-line bg-background px-5 py-4 sm:px-8"
       onSubmit={(event) => {
         event.preventDefault();
-        onSubmit();
+        touchAll(["body"]);
+        if (Object.keys(fieldErrors).length === 0) onSubmit();
       }}
     >
       <div className="mx-auto w-full max-w-6xl">
@@ -94,16 +105,18 @@ export function AnswerComposer({
             ref={textareaRef}
             rows={1}
             value={value}
+            onBlur={() => touch("body")}
             onChange={(event) => onChange(event.target.value)}
           />
           <button
             className="inline-flex h-10 shrink-0 items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={fieldDisabled || !value.trim()}
+            disabled={fieldDisabled || Object.keys(fieldErrors).length > 0}
             type="submit"
           >
             {pending ? "답하는 중" : "답변하기"}
           </button>
         </div>
+        {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
       </div>
     </form>
   );

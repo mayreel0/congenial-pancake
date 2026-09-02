@@ -294,6 +294,9 @@ importers:
       utils:
         specifier: workspace:*
         version: link:../../packages/utils
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@storybook/nextjs-vite':
         specifier: 10.5.9

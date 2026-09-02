@@ -1,10 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { updateNicknameSchema } from "shared/dto";
 import { Button } from "ui/Button";
 import { TextField } from "ui/TextField";
 import { ApiError } from "../../lib/api";
 import { useAuth } from "../../lib/auth/useAuth";
+import { useFieldValidation } from "../../lib/useFieldValidation";
+import { parseFieldErrors } from "../../lib/zod-form";
+
+type Field = "nickname";
 
 function errorMessage(error: unknown): string {
   if (error instanceof ApiError) return error.message;
@@ -35,6 +40,10 @@ export function NicknameSection() {
   const [draft, setDraft] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { touch, touchAll, visibleError } = useFieldValidation<Field>();
+  const fieldErrors = parseFieldErrors(updateNicknameSchema, {
+    nickname: draft.trim(),
+  });
 
   if (!user) return null;
 
@@ -57,6 +66,9 @@ export function NicknameSection() {
 
   async function handleSubmit(event: React.FormEvent): Promise<void> {
     event.preventDefault();
+    touchAll(["nickname"]);
+    if (Object.keys(fieldErrors).length > 0) return;
+
     setPending(true);
     setError(null);
     try {
@@ -82,16 +94,22 @@ export function NicknameSection() {
       {editing ? (
         <form className="space-y-3" onSubmit={(event) => void handleSubmit(event)}>
           <TextField
+            error={visibleError("nickname", fieldErrors)}
             id="nickname"
             label="닉네임"
             maxLength={20}
             value={draft}
             width="compact"
+            onBlur={() => touch("nickname")}
             onChange={(event) => setDraft(event.currentTarget.value)}
           />
           {error && <p className="text-xs text-red-600">{error}</p>}
           <div className="flex gap-2">
-            <Button disabled={pending || !draft.trim()} size="sm" type="submit">
+            <Button
+              disabled={pending || Object.keys(fieldErrors).length > 0}
+              size="sm"
+              type="submit"
+            >
               {pending ? "저장하는 중" : "저장"}
             </Button>
             <Button

@@ -155,6 +155,39 @@ describe("RequestComposer", () => {
     expect(textarea).toHaveStyle({ height: "128px", overflowY: "auto" });
   });
 
+  it("shows a field error after blurring an empty textarea, and it clears once fixed", () => {
+    const { rerender } = render(
+      <RequestComposer
+        status="idle"
+        nickname={null}
+        anonymous={false}
+        onToggleAnonymous={vi.fn()}
+        value=""
+        onChange={vi.fn()}
+        onSubmit={vi.fn()}
+      />,
+    );
+    const textarea = screen.getByLabelText("오늘 어떤 말을 듣고 싶나요?");
+
+    expect(screen.queryByText("내용을 입력해주세요.")).not.toBeInTheDocument();
+    fireEvent.blur(textarea);
+    expect(screen.getByText("내용을 입력해주세요.")).toBeInTheDocument();
+
+    rerender(
+      <RequestComposer
+        status="idle"
+        nickname={null}
+        anonymous={false}
+        onToggleAnonymous={vi.fn()}
+        value="이제 채웠어요."
+        onChange={vi.fn()}
+        onSubmit={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByText("내용을 입력해주세요.")).not.toBeInTheDocument();
+  });
+
   it("shows pending without adding inline success copy", () => {
     const { rerender } = render(
       <RequestComposer

@@ -18,6 +18,7 @@ type TextFieldProps = {
   hint?: string;
   id: string;
   width?: TextFieldWidth;
+  error?: string;
 } & Omit<InputHTMLAttributes<HTMLInputElement>, "id">;
 
 export function TextField({
@@ -25,8 +26,10 @@ export function TextField({
   hint,
   id,
   width = "full",
+  error,
   ...rest
 }: TextFieldProps) {
+  const errorId = `${id}-error`;
   return (
     <div className="space-y-1">
       <label
@@ -41,10 +44,21 @@ export function TextField({
       </label>
       {hint && <p className="text-xs text-muted">{hint}</p>}
       <input
-        className={`${WIDTH_CLASSES[width]} rounded-lg border border-line bg-surface px-3 py-2 text-base text-foreground outline-none focus:border-primary`}
+        aria-describedby={error ? errorId : undefined}
+        aria-invalid={error ? true : undefined}
+        className={`${WIDTH_CLASSES[width]} rounded-lg border bg-surface px-3 py-2 text-base text-foreground outline-none ${
+          error
+            ? "border-red-600 focus:border-red-600"
+            : "border-line focus:border-primary"
+        }`}
         id={id}
         {...rest}
       />
+      {error && (
+        <p className="text-xs text-red-600" id={errorId}>
+          {error}
+        </p>
+      )}
     </div>
   );
 }
