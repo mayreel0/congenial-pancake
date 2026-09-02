@@ -56,9 +56,15 @@ Railway/Render 같은 매니지드 플랫폼을 먼저 추천했으나(git push 
 - **Vercel 커스텀 도메인**: `apps/web`→`onseol.com`(A 레코드), `apps/admin`→admin 서브도메인(CNAME) 둘 다 Route 53에 등록 완료. `api.onseol.com`을 실수로 Vercel 도메인으로 등록할 뻔한 걸 사전에 확인해서 막음(그 서브도메인은 AWS ALB 것, Vercel 것이 아님).
 - 최종 확인: `https://api.onseol.com/health` → `200 {"status":"ok"}`, `/requests`(실제 DB 쿼리) → `200 []`.
 
+## 완료 (2026-09-03)
+
+카카오/네이버/구글 세 곳 다 `https://api.onseol.com/auth/<provider>/callback` redirect URI 등록 완료(`localhost`도 그대로 유지 — 로컬/프로덕션이 같은 client_id를 쓰고, 등록만 해두는 건 실질적 보안 비용이 없어서). 위 7개 버그 수정 사항도 `fix:`/`docs:` 커밋으로 `infra/aws-api-deploy`(PR #121)에 반영 완료.
+
+추가로 재배포 한 번 더 진행: PR #121이 `v1`에서 갈라진 이후 `v1`에 38개 커밋이 쌓인 상태였고(`Dockerfile`은 이 브랜치에만 있고 `v1`엔 아직 머지 안 됨), `v1`을 이 브랜치로 머지해서 최신 앱 코드 + Dockerfile을 한 트리에서 빌드 → 재배포. `/public/stats`(첫 배포 이미지엔 없던 엔드포인트) 정상 응답 확인.
+
 ## 남은 일
 
-- **각 OAuth 프로바이더(카카오/네이버/구글) 콘솔에 프로덕션 redirect URI 등록** — `https://api.onseol.com/auth/<provider>/callback`. 각 플랫폼 로그인이 필요해 사용자가 직접 해야 함.
-- 위 7개 버그 수정 사항(`infra/terraform/{ec2,security_groups,variables}.tf`, `templates/user-data.sh.tftpl`)은 아직 `infra/aws-api-deploy` 브랜치(PR #121)에 **커밋 안 된 상태** — 실제 AWS에는 이미 반영/적용됐지만 코드로는 아직 커밋 전.
+- **PR #121을 `v1`에 머지할지 결정** — 지금 인프라 전체가 실제로 동작 확인됐으니 머지 여부/시점은 별도로 사용자 확인 필요. 이 문서 자체도 PR #121 브랜치에만 있어서, 머지 전까지는 `v1`에서 안 보임.
 - Phase 2: Auto Scaling Group.
 - (아이디어 단계, 미스코프) 개인 서버(`effective-doodle`)에 상태 페이지/Swagger/Storybook 호스팅.
+- **향후 재배포 시 주의**: `Dockerfile`이 `v1`이 아니라 PR #121 브랜치에만 있으므로, PR #121이 머지되기 전까지는 재배포할 때마다 `v1`을 이 브랜치로 먼저 머지해야 함(이번처럼).
