@@ -2,8 +2,13 @@
 
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
+import { resetPasswordSchema } from "shared/dto";
 import { ApiError, resetPassword } from "../lib/api";
+import { useFieldValidation } from "../lib/useFieldValidation";
+import { parseFieldErrors } from "../lib/zod-form";
 import { ResetPasswordBody, type ResetPasswordStatus } from "./ResetPasswordBody";
+
+type Field = "password";
 
 function errorMessage(error: unknown): string {
   if (error instanceof ApiError) return error.message;
@@ -16,10 +21,18 @@ export function ResetPasswordForm() {
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState<ResetPasswordStatus>("idle");
   const [error, setError] = useState<string | null>(null);
+  const { touchAll, visibleError } = useFieldValidation<Field>();
+  const fieldErrors = parseFieldErrors(resetPasswordSchema, {
+    token: token ?? "",
+    password,
+  });
 
   async function handleSubmit(event: React.FormEvent): Promise<void> {
     event.preventDefault();
     if (!token) return;
+    touchAll(["password"]);
+    if (Object.keys(fieldErrors).length > 0) return;
+
     setError(null);
     setStatus("pending");
     try {
@@ -43,6 +56,7 @@ export function ResetPasswordForm() {
 
         <ResetPasswordBody
           error={error}
+          fieldError={visibleError("password", fieldErrors)}
           password={password}
           status={status}
           token={token}

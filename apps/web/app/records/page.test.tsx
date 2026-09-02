@@ -73,6 +73,7 @@ async function switchToRepliesTab() {
 describe("RecordsPage", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.useRealTimers();
   });
 
   it("shows the login prompt to anonymous visitors", async () => {
@@ -269,6 +270,11 @@ describe("RecordsPage", () => {
   });
 
   it("filters 내가 남긴 고민 by date range (resetting to page 1) and paginates via 번호 페이지", async () => {
+    // Fixed "now" so HeatmapCalendar's default month view is August 2026 —
+    // otherwise it'd default to whichever real month the test happens to
+    // run in, and the range clicked below wouldn't be visible without also
+    // navigating months first.
+    vi.setSystemTime(new Date("2026-08-15T00:00:00.000Z"));
     const requestedParams: URLSearchParams[] = [];
     const fetchMock = vi.fn((input: RequestInfo | URL): Promise<MockResponse> => {
       const url = typeof input === "string" ? input : input.toString();
@@ -325,12 +331,16 @@ describe("RecordsPage", () => {
 
     expect(await screen.findByText("페이지 1의 고민")).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText("시작일"), {
-      target: { value: "2026-08-01" },
-    });
-    fireEvent.change(screen.getByLabelText("종료일"), {
-      target: { value: "2026-08-31" },
-    });
+    // 시작일/종료일 are two independent fields, each with its own popover
+    // — open one, pick a day (closes it), then the other.
+    fireEvent.click(screen.getByRole("button", { name: "시작일" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /^2026-08-01 / }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "종료일" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /^2026-08-31 / }),
+    );
 
     await screen.findByText("페이지 1의 고민");
     const rangeCall = requestedParams.at(-1);

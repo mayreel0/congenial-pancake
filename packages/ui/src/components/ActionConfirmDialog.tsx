@@ -1,3 +1,5 @@
+import { useDismissOnOutsideClick } from "../hooks/useDismissOnOutsideClick";
+
 type ActionConfirmDialogProps = {
   open: boolean;
   message: string;
@@ -13,6 +15,8 @@ export function ActionConfirmDialog({
   onCancel,
   onConfirm,
 }: ActionConfirmDialogProps) {
+  const boxRef = useDismissOnOutsideClick<HTMLDivElement>(open, onCancel);
+
   if (!open) return null;
 
   return (
@@ -21,7 +25,10 @@ export function ActionConfirmDialog({
       className="fixed inset-0 z-30 flex items-center justify-center bg-black/40 px-5"
       role="dialog"
     >
-      <div className="w-full max-w-sm space-y-4 rounded-lg border border-line bg-surface p-5 shadow-sm">
+      <div
+        className="w-full max-w-sm space-y-4 rounded-lg border border-line bg-surface p-5 shadow-sm"
+        ref={boxRef}
+      >
         <p className="text-sm leading-6 text-foreground">{message}</p>
         <div className="flex justify-end gap-2">
           <button

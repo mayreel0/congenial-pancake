@@ -9,6 +9,7 @@ type ResetPasswordBodyProps = {
   status: ResetPasswordStatus;
   password: string;
   error: string | null;
+  fieldError: string | undefined;
   onPasswordChange(value: string): void;
   onSubmit(event: React.FormEvent): void;
 };
@@ -21,6 +22,7 @@ export function ResetPasswordBody({
   status,
   password,
   error,
+  fieldError,
   onPasswordChange,
   onSubmit,
 }: ResetPasswordBodyProps) {
@@ -46,9 +48,9 @@ export function ResetPasswordBody({
     <form className="space-y-3" onSubmit={onSubmit}>
       <TextField
         autoComplete="new-password"
+        error={fieldError}
         id="password"
         label="새 비밀번호"
-        minLength={8}
         required
         type="password"
         value={password}

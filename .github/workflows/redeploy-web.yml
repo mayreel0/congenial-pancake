@@ -1,0 +1,21 @@
+name: Redeploy apps/web on Vercel
+
+# Manual button in the Actions tab — triggers a fresh Vercel deployment via
+# a Deploy Hook, so a redeploy can be kicked off without opening Vercel's
+# own dashboard. Doesn't force-skip Vercel's build cache the way the
+# dashboard's "Redeploy without existing Build Cache" button does — this
+# is just "push a new deployment," same as any git push already triggers.
+on:
+  workflow_dispatch:
+
+jobs:
+  redeploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call Vercel Deploy Hook
+        run: |
+          if [ -z "${{ secrets.VERCEL_WEB_DEPLOY_HOOK }}" ]; then
+            echo "::error::VERCEL_WEB_DEPLOY_HOOK secret이 설정돼있지 않습니다. Vercel 프로젝트 Settings → Git → Deploy Hooks에서 만들고, 저장소 Settings → Secrets and variables → Actions에 등록해주세요."
+            exit 1
+          fi
+          curl -fsS -X POST "${{ secrets.VERCEL_WEB_DEPLOY_HOOK }}"

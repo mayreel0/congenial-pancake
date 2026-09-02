@@ -1,7 +1,9 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState } from "react";
+import { createRequestSchema } from "shared/dto";
 import { Toggle } from "ui/Toggle";
+import { parseFieldErrors } from "../../lib/zod-form";
 
 const MIN_TEXTAREA_HEIGHT = 44;
 const MAX_TEXTAREA_HEIGHT = 128;
@@ -41,7 +43,13 @@ export function RequestComposer({
   }
 
   const isPending = status === "pending";
-  const canSubmit = Boolean(localValue.trim()) && !isPending;
+  // Just gates the button (no visible per-field error text) — an empty
+  // composer isn't a mistake worth calling out, it's just the resting
+  // state, and the disabled button already says "type something."
+  const fieldErrors = parseFieldErrors(createRequestSchema, {
+    body: localValue.trim(),
+  });
+  const canSubmit = Object.keys(fieldErrors).length === 0 && !isPending;
 
   useLayoutEffect(() => {
     const textarea = textareaRef.current;

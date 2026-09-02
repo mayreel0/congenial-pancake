@@ -294,3 +294,49 @@ export const adminReplyResponseSchema = z.object({
   reportCount: z.number(),
 });
 export type AdminReplyResponseDto = z.infer<typeof adminReplyResponseSchema>;
+
+// GET /public/stats (landing page) — no auth, counts only, never anything
+// author-identifying.
+const landingCountsSchema = z.object({
+  today: z.number(),
+  total: z.number(),
+});
+export type LandingCountsDto = z.infer<typeof landingCountsSchema>;
+
+export const landingStatsResponseSchema = z.object({
+  requests: landingCountsSchema,
+  replies: landingCountsSchema,
+  // Snapshot, not a time-windowed count — requests with zero replies right
+  // now, not "opened in this period."
+  waitingForReply: z.number(),
+});
+export type LandingStatsResponseDto = z.infer<typeof landingStatsResponseSchema>;
+
+// GET /public/samples (landing page) — a handful of real, already-public
+// (non-hidden, non-deleted) request+reply pairs to show as examples.
+// authorId/guestId never crossed this boundary to begin with, so there's
+// nothing extra to strip here beyond the usual response shape.
+export const sampleExchangeResponseSchema = z.object({
+  request: z.object({ body: z.string(), createdAt: z.string() }),
+  reply: z.object({ body: z.string(), createdAt: z.string() }),
+});
+export type SampleExchangeResponseDto = z.infer<typeof sampleExchangeResponseSchema>;
+
+export const sampleExchangesResponseSchema = z.object({
+  samples: z.array(sampleExchangeResponseSchema),
+});
+export type SampleExchangesResponseDto = z.infer<
+  typeof sampleExchangesResponseSchema
+>;
+
+// GET /requests/feed/counts, /requests/mine/counts, /replies/mine/counts —
+// per-KST-day post counts for the HeatmapCalendar date picker (/read,
+// /records). `days` always covers every date in [from, to] inclusive, zero-
+// filled for dates with no posts, so the frontend never has to enumerate the
+// range itself.
+export const dayCountsResponseSchema = z.object({
+  from: z.string(),
+  to: z.string(),
+  days: z.array(z.object({ date: z.string(), count: z.number() })),
+});
+export type DayCountsResponseDto = z.infer<typeof dayCountsResponseSchema>;

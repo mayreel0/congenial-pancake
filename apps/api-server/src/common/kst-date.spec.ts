@@ -1,7 +1,10 @@
 import {
+  currentKstMonthRange,
   isValidDateString,
   kstDateRange,
+  kstDateStringsInRange,
   kstDayRange,
+  resolveDayCountsRange,
   yesterdayKstDateString,
 } from './kst-date';
 
@@ -73,5 +76,64 @@ describe('yesterdayKstDateString', () => {
   it('rolls over a KST month boundary correctly', () => {
     const kstSep1Morning = new Date('2026-08-31T20:00:00.000Z'); // 2026-09-01 05:00 KST
     expect(yesterdayKstDateString(kstSep1Morning)).toBe('2026-08-31');
+  });
+});
+
+describe('kstDateStringsInRange', () => {
+  it('is inclusive of both endpoints', () => {
+    expect(kstDateStringsInRange('2026-08-30', '2026-09-02')).toEqual([
+      '2026-08-30',
+      '2026-08-31',
+      '2026-09-01',
+      '2026-09-02',
+    ]);
+  });
+
+  it('returns a single-element array when from equals to', () => {
+    expect(kstDateStringsInRange('2026-08-31', '2026-08-31')).toEqual([
+      '2026-08-31',
+    ]);
+  });
+
+  it('returns an empty array when to is before from', () => {
+    expect(kstDateStringsInRange('2026-09-02', '2026-08-30')).toEqual([]);
+  });
+});
+
+describe('currentKstMonthRange', () => {
+  it('spans the 1st of the KST month through today (KST)', () => {
+    // 2026-09-01 05:00 KST
+    const now = new Date('2026-08-31T20:00:00.000Z');
+    expect(currentKstMonthRange(now)).toEqual({
+      from: '2026-09-01',
+      to: '2026-09-01',
+    });
+  });
+});
+
+describe('resolveDayCountsRange', () => {
+  it('falls back to the current KST month when from/to are missing', () => {
+    expect(resolveDayCountsRange(undefined, undefined)).toEqual(
+      currentKstMonthRange(),
+    );
+  });
+
+  it('falls back to the current KST month when from/to are malformed', () => {
+    expect(resolveDayCountsRange('not-a-date', '2026-09-02')).toEqual(
+      currentKstMonthRange(),
+    );
+  });
+
+  it('passes through a valid explicit range unchanged', () => {
+    expect(resolveDayCountsRange('2026-08-01', '2026-08-31')).toEqual({
+      from: '2026-08-01',
+      to: '2026-08-31',
+    });
+  });
+
+  it('clamps a span longer than 100 days down to 100 days', () => {
+    const { from, to } = resolveDayCountsRange('2020-01-01', '2030-01-01');
+    expect(from).toBe('2020-01-01');
+    expect(kstDateStringsInRange(from, to)).toHaveLength(100);
   });
 });

@@ -3,15 +3,19 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { loginSchema, signupSchema } from "shared/dto";
 import { Button } from "ui/Button";
 import { TextField } from "ui/TextField";
 import { ApiError, oauthLoginUrl } from "../lib/api";
 import { useAuth } from "../lib/auth/useAuth";
+import { useFieldValidation } from "../lib/useFieldValidation";
+import { parseFieldErrors } from "../lib/zod-form";
 import { OAuthButton } from "./components/OAuthButton";
 import { useLastOAuthProvider } from "./lib/lastOAuthProvider";
 
 type Mode = "login" | "signup";
 type SubmitStatus = "idle" | "pending";
+type Field = "email" | "password";
 
 const ERROR_MESSAGES: Record<string, string> = {
   AUTH_EMAIL_TAKEN: "이미 등록된 이메일입니다.",
@@ -40,13 +44,20 @@ export default function LoginPage() {
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>("idle");
   const [error, setError] = useState<string | null>(null);
   const lastProvider = useLastOAuthProvider();
+  const { touchAll, visibleError } = useFieldValidation<Field>();
 
   useEffect(() => {
     if (status === "authenticated") router.replace("/today");
   }, [status, router]);
 
+  const schema = mode === "login" ? loginSchema : signupSchema;
+  const fieldErrors = parseFieldErrors(schema, { email, password });
+
   async function handleSubmit(event: React.FormEvent): Promise<void> {
     event.preventDefault();
+    touchAll(["email", "password"]);
+    if (Object.keys(fieldErrors).length > 0) return;
+
     setError(null);
     setSubmitStatus("pending");
     try {
@@ -75,6 +86,7 @@ export default function LoginPage() {
         <form className="space-y-3" onSubmit={handleSubmit}>
           <TextField
             autoComplete="email"
+            error={visibleError("email", fieldErrors)}
             id="email"
             label="이메일"
             required
@@ -84,9 +96,9 @@ export default function LoginPage() {
           />
           <TextField
             autoComplete={mode === "login" ? "current-password" : "new-password"}
+            error={visibleError("password", fieldErrors)}
             id="password"
             label="비밀번호"
-            minLength={8}
             required
             type="password"
             value={password}

@@ -9,6 +9,7 @@ import type { CreateRequestDto } from './dto/create-request.dto';
 import {
   RequestsRepository,
   type DateRange,
+  type DayCount,
   type FeedItem,
   type PagedResult,
   type Pagination,
@@ -71,6 +72,14 @@ export class RequestsService {
     pagination: Pagination,
   ): Promise<PagedResult<FeedItem>> {
     return this.requestsRepository.findMine(authorId, range, pagination);
+  }
+
+  countFeedByDay(range: DateRange): Promise<DayCount[]> {
+    return this.requestsRepository.countFeedByDay(range);
+  }
+
+  countMineByDay(authorId: string, range: DateRange): Promise<DayCount[]> {
+    return this.requestsRepository.countMineByDay(authorId, range);
   }
 
   findPublicByAuthor(

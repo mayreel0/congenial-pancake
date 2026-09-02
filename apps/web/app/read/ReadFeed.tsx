@@ -4,11 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import { ApiError } from "../lib/api";
 import { ServiceNav } from "../components/navigation/ServiceNav";
 import { ActionConfirmDialog } from "ui/ActionConfirmDialog";
+import { HeatmapCalendarField } from "ui/HeatmapCalendarField";
 import { Pagination } from "ui/Pagination";
 import { Skeleton } from "ui/Skeleton";
 import { buildFeedItemLabels } from "../lib/feed-item-labels";
+import { formatKoreanDate } from "../lib/kst-date";
 import { PAGE_SIZE_OPTIONS } from "../lib/pagination";
-import { DayNav } from "./components/DayNav";
 import { ReadThread } from "./components/ReadThread";
 import { useReadFeed } from "./useReadFeed";
 
@@ -161,11 +162,16 @@ export function ReadFeed() {
             온설 읽기
           </h1>
         </section>
-        <DayNav
-          canGoNext={feed.canGoToNextDay}
-          date={feed.currentDate}
-          onNext={feed.goToNextDay}
-          onPrevious={feed.goToPreviousDay}
+        <HeatmapCalendarField
+          counts={feed.dayCounts}
+          formatDate={formatKoreanDate}
+          label="날짜"
+          maxDate={feed.maxSelectableDate}
+          month={feed.calendarMonth}
+          placeholder="날짜를 선택하세요"
+          selected={feed.currentDate}
+          onMonthChange={feed.setCalendarMonth}
+          onSelect={feed.goToDate}
         />
         <ReadFeedBody
           feed={feed}

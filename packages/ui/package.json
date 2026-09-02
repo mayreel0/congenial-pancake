@@ -7,15 +7,17 @@
     "typecheck": "tsc --noEmit"
   },
   "exports": {
-    "./ActionConfirmDialog": "./src/ActionConfirmDialog.tsx",
-    "./MoreMenu": "./src/MoreMenu.tsx",
-    "./QueryProvider": "./src/QueryProvider.tsx",
-    "./Button": "./src/Button.tsx",
-    "./Pagination": "./src/Pagination.tsx",
-    "./Skeleton": "./src/Skeleton.tsx",
-    "./TextField": "./src/TextField.tsx",
-    "./Toggle": "./src/Toggle.tsx",
-    "./useDismissOnOutsideClick": "./src/useDismissOnOutsideClick.ts"
+    "./ActionConfirmDialog": "./src/components/ActionConfirmDialog.tsx",
+    "./HeatmapCalendar": "./src/components/HeatmapCalendar.tsx",
+    "./HeatmapCalendarField": "./src/components/HeatmapCalendarField.tsx",
+    "./MoreMenu": "./src/components/MoreMenu.tsx",
+    "./QueryProvider": "./src/providers/QueryProvider.tsx",
+    "./Button": "./src/components/Button.tsx",
+    "./Pagination": "./src/components/Pagination.tsx",
+    "./Skeleton": "./src/components/Skeleton.tsx",
+    "./TextField": "./src/components/TextField.tsx",
+    "./Toggle": "./src/components/Toggle.tsx",
+    "./useDismissOnOutsideClick": "./src/hooks/useDismissOnOutsideClick.ts"
   },
   "peerDependencies": {
     "@tanstack/react-query": "^5.101.4",
