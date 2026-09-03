@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import type { Request } from 'express';
 import { ZodSerializerInterceptor } from 'nestjs-zod';
 import { AdminModule } from './admin/admin.module';
 import { AuthModule } from './auth/auth.module';
@@ -22,7 +23,27 @@ import { ZodValidationPipe } from './common/zod-validation';
     // Default budget for every route: 100 req/60s per IP. Auth's
     // signup/login override this to a tighter limit (see auth.controller.ts)
     // since those are the classic brute-force/spam-signup targets.
-    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60_000,
+        limit: 100,
+        // Load-test escape hatch (see load-test/README.md and
+        // docs/decisions/2026-09-04-onseol-load-test-scope-decisions.md) —
+        // without this, every k6 VU shares one real source IP and the
+        // throttle caps the whole test at 100 req/60s regardless of how
+        // much the app/DB could actually handle. Double-gated: never
+        // active when NODE_ENV is production, and even outside production
+        // requires a secret the operator sets by hand (empty by default,
+        // so plain `NODE_ENV=development` alone never enables this).
+        skipIf: (context) => {
+          if (process.env.NODE_ENV === 'production') return false;
+          const token = process.env.LOAD_TEST_BYPASS_TOKEN;
+          if (!token) return false;
+          const request = context.switchToHttp().getRequest<Request>();
+          return request.headers['x-load-test-bypass'] === token;
+        },
+      },
+    ]),
     ConfigModule,
     DatabaseModule,
     AuthModule,
