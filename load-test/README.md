@@ -1,0 +1,92 @@
+# load-test — apps/api-server 부하테스트
+
+`docs/decisions/`의 관례를 아직 안 따르는 순수 도구 디렉토리. 결정 배경은
+`docs/decisions/2026-09-04-onseol-load-test-scope-decisions.md` 참고.
+
+## 대상 환경
+
+**절대 실제 프로덕션(`api.onseol.com`)에 직접 부하를 걸지 말 것.** EC2
+t3.micro / RDS db.t4g.micro는 버스터블 크레딧 기반이라 실제로 뻗거나
+과금이 튈 수 있음. 로컬(`apps/api-server` + 로컬 Postgres)에서 돌리는 걸
+기본으로 하고, 실제 인프라 캐파가 필요해지면 `infra/terraform`으로 같은
+스펙의 임시 스택을 하나 더 띄워서 쓰고 끝나면 지운다 — 이 디렉토리의
+스크립트/시나리오는 `BASE_URL` 하나만 바꾸면 그 스택에도 그대로 재사용
+가능.
+
+## 준비물
+
+- `nvm use` (Node 24.14.0 — `seed.ts`가 빌드 없이 `node seed.ts`로
+  바로 돌아가는 이유가 이 버전의 네이티브 TS type-stripping)
+- `k6` (`brew install k6`) — CLI 자체는 완전 무료/오픈소스. 유료 요금제는
+  분산 실행/대시보드를 대신 해주는 k6 Cloud 얘기고 이 규모에선 불필요.
+- 로컬 `apps/api-server`가 마이그레이션까지 적용된 Postgres를 보고 있을 것
+  (`pnpm --filter api-server db:migrate`)
+- `cd load-test && pnpm install` (postgres 드라이버만 설치)
+
+## 1. 픽스처 시딩
+
+```bash
+DATABASE_URL=postgres://user:password@localhost:5432/onseol node load-test/seed.ts
+# 옵션: --users=100 --requests=300 --queue-pool=15 (기본값)
+```
+
+`/auth/signup`·`/auth/login`·게스트 쿠키 발급 절차를 전부 건너뛰고
+`users`/`sessions`/`requests`/`replies` 테이블에 직접 insert한다 —
+그래서 이메일 인증이 나중에 붙어도(또는 세션이 JWT로 바뀌어도) 이 방식
+자체는 안 바뀐다. 세션 토큰은 `load-test/.output/tokens.json`에 저장되고
+`scenarios/*.js`가 이걸 읽어서 `Authorization: Bearer <token>`으로 씀.
+
+모든 픽스처는 `loadtest-`로 태그돼있음(이메일 로컬파트, guest_id 전부) —
+시나리오가 실행 중에 만드는 guest_id도 반드시 이 접두사를 유지해야
+`--cleanup`이 찾아서 지울 수 있다.
+
+같은 계정으로 재시딩하면 이메일 unique 제약에 걸리므로, 재시딩 전엔 항상
+먼저 정리한다:
+
+```bash
+node load-test/seed.ts --cleanup
+```
+
+## 2. 시나리오 실행
+
+| 파일 | 무엇을 보는가 | 종류 |
+|---|---|---|
+| `scenarios/logged-in-read-write.js` | 로그인 유저 대량 read/write | 캐파("얼마나 버티나") |
+| `scenarios/anonymous-read.js` | 비로그인 읽기 트래픽(가장 흔한 패턴) | 캐파 |
+| `scenarios/ip-throttle.js` | IP 기준 rate limit(전역 100/60s, auth 5/60s)이 실제로 작동하는가 | 정합성 |
+| `scenarios/guest-reply-abuse.js` | guest_id 쿠키 회전으로 `guestReplyLimit` 우회되는가 | 정합성/어뷰징 확인 |
+| `scenarios/queue-concurrency.js` | 좁은 큐 풀에 동시 요청 시 큐 랭킹 로직이 안 깨지는가 | 정합성/레이스컨디션 |
+
+```bash
+k6 run load-test/scenarios/logged-in-read-write.js
+k6 run load-test/scenarios/anonymous-read.js
+k6 run load-test/scenarios/ip-throttle.js
+GUEST_REPLY_LIMIT=5 k6 run load-test/scenarios/guest-reply-abuse.js
+k6 run load-test/scenarios/queue-concurrency.js
+```
+
+`BASE_URL` 환경변수로 대상 변경 가능(기본 `http://localhost:3001`).
+
+### 결과 해석 시 주의
+
+- `logged-in-read-write`/`anonymous-read`: 일반적인 k6 threshold(에러율,
+  p95 지연시간)로 pass/fail 판단. 숫자는 첫 로컬 실행 결과 보고 조정.
+- `ip-throttle`: **429가 나오는 게 정상이자 성공 조건**이다(스로틀이 실제로
+  걸리는지 확인하는 거라서). `throttled_429_total` 카운터가 0이면 오히려
+  스로틀이 작동을 안 하고 있다는 뜻 — threshold가 그 경우 자동으로
+  fail 처리함.
+- `guest-reply-abuse`: 마지막 두 체크(limit 초과 시 409, guest_id 바꾸면
+  다시 201)는 버그를 찾는 게 아니라 **이미 알려진 구멍을 재현/문서화**하는
+  목적. 이 결과 자체를 "고쳐야 할 버그"로 보고하지 말 것 — 별도로
+  IP 기반 한도까지 얹을지는 제품 판단이 필요한 별개 논의.
+- `queue-concurrency`: 개별 reply의 409는 정상(레이스에서 진 것). 5xx가
+  하나라도 나오면(`queue_5xx_total`) 그건 진짜 버그.
+
+## 3. 정리
+
+```bash
+node load-test/seed.ts --cleanup
+```
+
+`queue-concurrency`/`guest-reply-abuse` 시나리오가 실행 중에 만든
+요청/답장도 전부 `loadtest-` 태그를 달고 있어서 같이 정리된다.

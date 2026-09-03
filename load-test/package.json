@@ -1,0 +1,12 @@
+{
+  "name": "load-test",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "seed": "node seed.ts",
+    "cleanup": "node seed.ts --cleanup"
+  },
+  "dependencies": {
+    "postgres": "^3.4.9"
+  }
+}
