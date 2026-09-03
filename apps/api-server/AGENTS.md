@@ -10,6 +10,10 @@ App-specific rules only. Project-wide rules (branching policy, decision-confirma
 - `pnpm --filter api-server db:generate` — generate migration SQL from schema (`src/database/schema/*.schema.ts`) changes.
 - `pnpm --filter api-server db:migrate` — apply generated migrations to the DB at `DATABASE_URL`.
 
+## Deployment
+
+`Dockerfile` (this directory) is a multi-stage build — `deps`/`build` stages run `pnpm install --filter api-server...` + `nest build` (needs `packages/shared`'s `package.json`/source too, since it's a real workspace dependency, not just a type import), `runtime` copies only `dist/`, `node_modules`, and `packages/shared` into a fresh `node:24.14.0-slim` image. Build context is the **repo root**, not this directory: `docker build -f apps/api-server/Dockerfile -t onseol-api .` from the repo root. `nest build`'s actual output is `dist/src/main.js`, not `dist/main.js` (no `rootDir` set in `tsconfig.json`, so TypeScript infers it from the full set of included files rather than just `src/`) — `start:prod`'s script and the Dockerfile's `CMD` both account for this; don't "fix" either back to `dist/main` without checking `dist/`'s real layout first (verify with `find apps/api-server/dist -maxdepth 2`, easy to get this wrong from intuition alone). See `infra/terraform/README.md` for how this image actually gets to AWS.
+
 ## Architecture boundary
 
 Services depend only on repository/provider interfaces, never on the Drizzle client (`DRIZZLE` token) directly — the Drizzle client is only referenced inside `*.repository.ts` files. Example: `src/auth/sessions.repository.ts` injects `DRIZZLE`, and `src/auth/session.service.ts` depends only on `SessionsRepository`.

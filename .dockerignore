@@ -1,0 +1,12 @@
+**/node_modules
+**/.next
+**/out
+**/dist
+**/storybook-static
+.git
+.turbo
+infra/terraform/.terraform
+infra/terraform/*.tfstate*
+apps/web
+apps/admin
+apps/storybook-app
