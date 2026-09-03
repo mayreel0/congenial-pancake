@@ -52,7 +52,7 @@ Railway/Render 같은 매니지드 플랫폼을 먼저 추천했으나(git push 
 
 - **DB 마이그레이션**: SSM 포트포워딩(`aws ssm start-session --document-name AWS-StartPortForwardingSessionToRemoteHost`)으로 프라이빗 RDS에 터널 연결 후 `drizzle-kit migrate` 실행 완료. 로컬에 `session-manager-plugin`이 없어서 먼저 설치(`brew install --cask session-manager-plugin`, 관리자 비번 필요해 사용자가 직접 설치).
 - **SSM Parameter Store 실값**: OAuth 6개(`google`/`kakao`/`naver` × `client_id`/`client_secret`) 사용자가 직접 `aws ssm put-parameter`로 입력.
-- **`admin_user_ids`**: DB가 UUID를 `defaultRandom()`으로 생성해서 로컬 개발 DB에서 쓰던 ID는 프로덕션 DB와 전혀 무관 — 실제 프로덕션 도메인(`onseol.com`, 이때 이미 Vercel 커스텀 도메인 연결까지 끝난 상태)에서 회원가입해서 얻은 진짜 UUID(`1b553582-0d9f-477b-af02-fb04635db4a2`)로 설정.
+- **`admin_user_ids`**: DB가 UUID를 `defaultRandom()`으로 생성해서 로컬 개발 DB에서 쓰던 ID는 프로덕션 DB와 전혀 무관 — 실제 프로덕션 도메인(`onseol.com`, 이때 이미 Vercel 커스텀 도메인 연결까지 끝난 상태)에서 회원가입해서 얻은 진짜 UUID로 설정(값 자체는 퍼블릭 레포에 남길 이유가 없어 여기 안 적음 — SSM Parameter Store에서 확인 가능).
 - **Vercel 커스텀 도메인**: `apps/web`→`onseol.com`(A 레코드), `apps/admin`→admin 서브도메인(CNAME) 둘 다 Route 53에 등록 완료. `api.onseol.com`을 실수로 Vercel 도메인으로 등록할 뻔한 걸 사전에 확인해서 막음(그 서브도메인은 AWS ALB 것, Vercel 것이 아님).
 - 최종 확인: `https://api.onseol.com/health` → `200 {"status":"ok"}`, `/requests`(실제 DB 쿼리) → `200 []`.
 
