@@ -1,7 +1,17 @@
+import { existsSync } from 'node:fs';
 import { Module } from '@nestjs/common';
 import { APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import type { Request } from 'express';
 import { ZodSerializerInterceptor } from 'nestjs-zod';
+
+// @nestjs/config's ConfigModule keeps .env values in its own ConfigService
+// store rather than writing them back to process.env, so a raw
+// process.env.X read (like skipIf below) never sees them. Node's native
+// loader populates process.env directly instead — a no-op in production,
+// which has no .env file at all (real values come from SSM Parameter
+// Store as real env vars there).
+if (existsSync('.env')) process.loadEnvFile('.env');
 import { AdminModule } from './admin/admin.module';
 import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from './config/config.module';
@@ -22,7 +32,27 @@ import { ZodValidationPipe } from './common/zod-validation';
     // Default budget for every route: 100 req/60s per IP. Auth's
     // signup/login override this to a tighter limit (see auth.controller.ts)
     // since those are the classic brute-force/spam-signup targets.
-    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60_000,
+        limit: 100,
+        // Load-test escape hatch (see tools/load-test/README.md and
+        // docs/decisions/2026-09-04-onseol-load-test-scope-decisions.md) —
+        // without this, every k6 VU shares one real source IP and the
+        // throttle caps the whole test at 100 req/60s regardless of how
+        // much the app/DB could actually handle. Double-gated: never
+        // active when NODE_ENV is production, and even outside production
+        // requires a secret the operator sets by hand (empty by default,
+        // so plain `NODE_ENV=development` alone never enables this).
+        skipIf: (context) => {
+          if (process.env.NODE_ENV === 'production') return false;
+          const token = process.env.LOAD_TEST_BYPASS_TOKEN;
+          if (!token) return false;
+          const request = context.switchToHttp().getRequest<Request>();
+          return request.headers['x-load-test-bypass'] === token;
+        },
+      },
+    ]),
     ConfigModule,
     DatabaseModule,
     AuthModule,
