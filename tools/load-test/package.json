@@ -5,11 +5,11 @@
   "scripts": {
     "seed": "node seed.ts",
     "cleanup": "node seed.ts --cleanup",
-    "scenario:logged-in-read-write": "if [ -f .env ]; then set -a; . ./.env; set +a; fi; k6 run --summary-export=.output/results/logged-in-read-write.json scenarios/logged-in-read-write.js",
-    "scenario:anonymous-read": "if [ -f .env ]; then set -a; . ./.env; set +a; fi; k6 run --summary-export=.output/results/anonymous-read.json scenarios/anonymous-read.js",
-    "scenario:ip-throttle": "if [ -f .env ]; then set -a; . ./.env; set +a; fi; k6 run --summary-export=.output/results/ip-throttle.json scenarios/ip-throttle.js",
-    "scenario:guest-reply-abuse": "if [ -f .env ]; then set -a; . ./.env; set +a; fi; k6 run --summary-export=.output/results/guest-reply-abuse.json scenarios/guest-reply-abuse.js",
-    "scenario:queue-concurrency": "if [ -f .env ]; then set -a; . ./.env; set +a; fi; k6 run --summary-export=.output/results/queue-concurrency.json scenarios/queue-concurrency.js"
+    "scenario:logged-in-read-write": "if [ -f .env ]; then set -a; . ./.env; set +a; fi; k6 run --summary-export=.output/results/logged-in-read-write.json scenarios/logged-in-read-write.js; RC=$?; node record-result.ts logged-in-read-write .output/results/logged-in-read-write.json; exit $RC",
+    "scenario:anonymous-read": "if [ -f .env ]; then set -a; . ./.env; set +a; fi; k6 run --summary-export=.output/results/anonymous-read.json scenarios/anonymous-read.js; RC=$?; node record-result.ts anonymous-read .output/results/anonymous-read.json; exit $RC",
+    "scenario:ip-throttle": "if [ -f .env ]; then set -a; . ./.env; set +a; fi; k6 run --summary-export=.output/results/ip-throttle.json scenarios/ip-throttle.js; RC=$?; node record-result.ts ip-throttle .output/results/ip-throttle.json; exit $RC",
+    "scenario:guest-reply-abuse": "if [ -f .env ]; then set -a; . ./.env; set +a; fi; k6 run --summary-export=.output/results/guest-reply-abuse.json scenarios/guest-reply-abuse.js; RC=$?; node record-result.ts guest-reply-abuse .output/results/guest-reply-abuse.json; exit $RC",
+    "scenario:queue-concurrency": "if [ -f .env ]; then set -a; . ./.env; set +a; fi; k6 run --summary-export=.output/results/queue-concurrency.json scenarios/queue-concurrency.js; RC=$?; node record-result.ts queue-concurrency .output/results/queue-concurrency.json; exit $RC"
   },
   "dependencies": {
     "postgres": "^3.4.9"

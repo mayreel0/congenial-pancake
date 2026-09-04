@@ -101,7 +101,13 @@ pnpm run scenario:queue-concurrency
 `--summary-export`는 k6 내장 옵션 — 터미널에 찍히는 컬러 요약은 그대로
 유지하면서, 같은 내용을 JSON으로 파일에도 남긴다(추가 스크립트/외부
 라이브러리 없음). `tools/load-test/.output/`은 `.gitignore`에 있어서
-**깃허브엔 절대 안 올라감** — 로컬에만 남는 실행 기록.
+**깃허브엔 절대 안 올라감** — 로컬에만 남는 직전 1회 실행의 상세 원본.
+
+`pnpm run scenario:*`는 그 뒤에 `record-result.ts`를 자동으로 체이닝해서,
+실행할 때마다 핵심 지표(체크 통과/실패, p95, 에러율, 커스텀 메트릭 등)
+한 줄을 `results/<시나리오>.jsonl`에 append한다 — 이건 **git 추적 대상**
+(누적 실행 기록). 사람이 손으로 옮겨 적지 않고 항상 자동으로 쌓인다.
+렌더링/시각화는 별도 스코프, 아직 없음.
 
 ### `logged-in-read-write`/`anonymous-read`의 한계치 찾기
 
