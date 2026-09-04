@@ -30,27 +30,25 @@ t3.micro / RDS db.t4g.micro는 버스터블 크레딧 기반이라 실제로 뻗
 - `cp load-test/.env.example load-test/.env`, 값 채우기(각 변수 설명은
   `.env.example` 주석 참고). `.env`는 gitignore 대상 — 실제 값은 커밋 금지.
 
-## 설정 한 번에 로드
+## `.env`는 자동으로 읽힘 — 매번 source할 필요 없음
 
-매 명령마다 환경변수를 앞에 붙이는 대신, 터미널 세션당 한 번만 로드하면
-`node`/`k6` 둘 다 알아서 읽는다 — Node는 로드된 실제 쉘 환경변수를 그대로
-보고, k6도 `--include-system-env-vars`(기본 활성화)로 실제 시스템
-환경변수를 `__ENV.*`로 그대로 넘겨받기 때문(별도 dotenv 라이브러리나
-`-e`/`--env-file` 플래그 없이 둘 다 동작 — 직접 확인함):
-
-```bash
-cd load-test
-set -a && source .env && set +a
-```
-
-이후 이 터미널에서 실행하는 `node seed.ts`/`k6 run ...` 전부 `.env`의
-값을 자동으로 씀. (새 터미널을 열면 다시 source해야 함.)
+- `seed.ts`는 시작할 때 `process.loadEnvFile('.env')`(Node 24 내장, 별도
+  dotenv 라이브러리 없음)로 알아서 읽는다. `.env`가 없으면 조용히 넘어감
+  (에러 안 남).
+- `pnpm run scenario:*`는 각 스크립트 안에 `.env`가 있으면 source하는
+  구문이 이미 들어있다(`package.json` 참고) — 새 터미널을 열든 뭘 하든
+  매번 자동으로 반영됨.
+- 직접 `k6 run scenarios/xxx.js`처럼 `pnpm run` 없이 돌릴 때만 예외 —
+  이땐 k6 자체엔 `.env` 로더가 없어서(`--include-system-env-vars`로 진짜
+  시스템 환경변수만 읽음) 그 경우에 한해 `set -a && . .env && set +a`를
+  먼저 해줘야 함. 기본은 `pnpm run scenario:*` 쓰는 걸 추천 — 이게 그
+  번거로움이 없는 경로.
 
 ## 1. 픽스처 시딩
 
 ```bash
-node seed.ts
-# 옵션: --users=100 --requests=300 --queue-pool=15 (기본값)
+pnpm run seed
+# 옵션: pnpm run seed -- --users=100 --requests=300 --queue-pool=15 (기본값)
 ```
 
 `/auth/signup`·`/auth/login`·게스트 쿠키 발급 절차를 전부 건너뛰고
@@ -67,7 +65,7 @@ node seed.ts
 먼저 정리한다:
 
 ```bash
-node seed.ts --cleanup
+pnpm run cleanup
 ```
 
 ## 2. 시나리오 실행
@@ -80,23 +78,12 @@ node seed.ts --cleanup
 | `scenarios/guest-reply-abuse.js` | guest_id 쿠키 회전으로 `guestReplyLimit` 우회되는가 | 정합성/어뷰징 확인 |
 | `scenarios/queue-concurrency.js` | 좁은 큐 풀에 동시 요청 시 큐 랭킹 로직이 안 깨지는가 | 정합성/레이스컨디션 |
 
-(모두 `.env`가 source된 상태로, `load-test/` 안에서 실행한다고 가정.)
-
 ```bash
-k6 run --summary-export=.output/results/logged-in-read-write.json \
-  scenarios/logged-in-read-write.js
-
-k6 run --summary-export=.output/results/anonymous-read.json \
-  scenarios/anonymous-read.js
-
-k6 run --summary-export=.output/results/ip-throttle.json \
-  scenarios/ip-throttle.js
-
-k6 run --summary-export=.output/results/guest-reply-abuse.json \
-  scenarios/guest-reply-abuse.js
-
-k6 run --summary-export=.output/results/queue-concurrency.json \
-  scenarios/queue-concurrency.js
+pnpm run scenario:logged-in-read-write
+pnpm run scenario:anonymous-read
+pnpm run scenario:ip-throttle
+pnpm run scenario:guest-reply-abuse
+pnpm run scenario:queue-concurrency
 ```
 
 **`①④`(캠파 시나리오, `logged-in-read-write`/`anonymous-read`)는
@@ -133,7 +120,7 @@ k6 run --summary-export=.output/results/queue-concurrency.json \
 ## 3. 정리
 
 ```bash
-node seed.ts --cleanup
+pnpm run cleanup
 ```
 
 `queue-concurrency`/`guest-reply-abuse` 시나리오가 실행 중에 만든

@@ -18,12 +18,20 @@
 // is what lets this run as `node seed.ts` with no build step, same as
 // packages/shared elsewhere in this repo).
 import { randomBytes } from 'node:crypto';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import postgres from 'postgres';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// Auto-loads load-test/.env if present (Node 24's native support, no
+// dotenv dependency) — so DATABASE_URL etc. never has to be exported by
+// hand or re-sourced per terminal session. Silently does nothing if the
+// file doesn't exist (e.g. running seed.ts before ever copying
+// .env.example) rather than throwing.
+const dotenvPath = join(__dirname, '.env');
+if (existsSync(dotenvPath)) process.loadEnvFile(dotenvPath);
 
 const EMAIL_DOMAIN = 'loadtest.onseol.internal';
 const GUEST_PREFIX = 'loadtest-';

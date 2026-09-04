@@ -4,7 +4,12 @@
   "type": "module",
   "scripts": {
     "seed": "node seed.ts",
-    "cleanup": "node seed.ts --cleanup"
+    "cleanup": "node seed.ts --cleanup",
+    "scenario:logged-in-read-write": "if [ -f .env ]; then set -a; . ./.env; set +a; fi; k6 run --summary-export=.output/results/logged-in-read-write.json scenarios/logged-in-read-write.js",
+    "scenario:anonymous-read": "if [ -f .env ]; then set -a; . ./.env; set +a; fi; k6 run --summary-export=.output/results/anonymous-read.json scenarios/anonymous-read.js",
+    "scenario:ip-throttle": "if [ -f .env ]; then set -a; . ./.env; set +a; fi; k6 run --summary-export=.output/results/ip-throttle.json scenarios/ip-throttle.js",
+    "scenario:guest-reply-abuse": "if [ -f .env ]; then set -a; . ./.env; set +a; fi; k6 run --summary-export=.output/results/guest-reply-abuse.json scenarios/guest-reply-abuse.js",
+    "scenario:queue-concurrency": "if [ -f .env ]; then set -a; . ./.env; set +a; fi; k6 run --summary-export=.output/results/queue-concurrency.json scenarios/queue-concurrency.js"
   },
   "dependencies": {
     "postgres": "^3.4.9"
