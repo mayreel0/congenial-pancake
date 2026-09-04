@@ -27,7 +27,7 @@ import { ZodValidationPipe } from './common/zod-validation';
       {
         ttl: 60_000,
         limit: 100,
-        // Load-test escape hatch (see load-test/README.md and
+        // Load-test escape hatch (see tools/load-test/README.md and
         // docs/decisions/2026-09-04-onseol-load-test-scope-decisions.md) —
         // without this, every k6 VU shares one real source IP and the
         // throttle caps the whole test at 100 req/60s regardless of how

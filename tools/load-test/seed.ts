@@ -25,7 +25,7 @@ import postgres from 'postgres';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// Auto-loads load-test/.env if present (Node 24's native support, no
+// Auto-loads tools/load-test/.env if present (Node 24's native support, no
 // dotenv dependency) — so DATABASE_URL etc. never has to be exported by
 // hand or re-sourced per terminal session. Silently does nothing if the
 // file doesn't exist (e.g. running seed.ts before ever copying

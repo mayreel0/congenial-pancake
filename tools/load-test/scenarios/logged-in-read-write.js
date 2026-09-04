@@ -8,7 +8,7 @@
 // 429'd, which only re-tests scenario 2's throttle, not real capacity. Set
 // LOAD_TEST_BYPASS_TOKEN to the same value as apps/api-server/.env's
 // LOAD_TEST_BYPASS_TOKEN to actually exercise the app/DB at these volumes
-// — see load-test/README.md and apps/api-server/src/app.module.ts.
+// — see tools/load-test/README.md and apps/api-server/src/app.module.ts.
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { SharedArray } from 'k6/data';

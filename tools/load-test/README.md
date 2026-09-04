@@ -1,4 +1,4 @@
-# load-test — apps/api-server 부하테스트
+# tools/load-test — apps/api-server 부하테스트
 
 `docs/decisions/`의 관례를 아직 안 따르는 순수 도구 디렉토리. 결정 배경은
 `docs/decisions/2026-09-04-onseol-load-test-scope-decisions.md` 참고.
@@ -23,12 +23,13 @@ t3.micro / RDS db.t4g.micro는 버스터블 크레딧 기반이라 실제로 뻗
   분산 실행/대시보드를 대신 해주는 k6 Cloud 얘기고 이 규모에선 불필요.
 - 로컬 `apps/api-server`가 마이그레이션까지 적용된 Postgres를 보고 있을 것
   (`pnpm --filter api-server db:migrate`)
-- `cd load-test && pnpm install` (런타임 의존성은 `postgres` 드라이버 하나뿐.
-  `@types/node`는 에디터 자동완성/타입 힌트용 devDependency일 뿐 —
+- `cd tools/load-test && pnpm install` (런타임 의존성은 `postgres` 드라이버
+  하나뿐. `@types/node`는 에디터 자동완성/타입 힌트용 devDependency일 뿐 —
   `seed.ts` 실행 자체엔 필요 없음, Node의 네이티브 TS 지원은 타입을
   검사가 아니라 제거만 하기 때문)
-- `cp load-test/.env.example load-test/.env`, 값 채우기(각 변수 설명은
-  `.env.example` 주석 참고). `.env`는 gitignore 대상 — 실제 값은 커밋 금지.
+- `cp .env.example .env`(`tools/load-test/` 안에서), 값 채우기(각 변수
+  설명은 `.env.example` 주석 참고). `.env`는 gitignore 대상 — 실제 값은
+  커밋 금지.
 
 ## `.env`는 자동으로 읽힘 — 매번 source할 필요 없음
 
@@ -54,7 +55,7 @@ pnpm run seed
 `/auth/signup`·`/auth/login`·게스트 쿠키 발급 절차를 전부 건너뛰고
 `users`/`sessions`/`requests`/`replies` 테이블에 직접 insert한다 —
 그래서 이메일 인증이 나중에 붙어도(또는 세션이 JWT로 바뀌어도) 이 방식
-자체는 안 바뀐다. 세션 토큰은 `load-test/.output/tokens.json`에 저장되고
+자체는 안 바뀐다. 세션 토큰은 `tools/load-test/.output/tokens.json`에 저장되고
 `scenarios/*.js`가 이걸 읽어서 `Authorization: Bearer <token>`으로 씀.
 
 모든 픽스처는 `loadtest-`로 태그돼있음(이메일 로컬파트, guest_id 전부) —
@@ -99,7 +100,7 @@ pnpm run scenario:queue-concurrency
 
 `--summary-export`는 k6 내장 옵션 — 터미널에 찍히는 컬러 요약은 그대로
 유지하면서, 같은 내용을 JSON으로 파일에도 남긴다(추가 스크립트/외부
-라이브러리 없음). `load-test/.output/`은 `.gitignore`에 있어서
+라이브러리 없음). `tools/load-test/.output/`은 `.gitignore`에 있어서
 **깃허브엔 절대 안 올라감** — 로컬에만 남는 실행 기록.
 
 ### 결과 해석 시 주의
