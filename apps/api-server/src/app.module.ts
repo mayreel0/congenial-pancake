@@ -1,8 +1,17 @@
+import { existsSync } from 'node:fs';
 import { Module } from '@nestjs/common';
 import { APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import type { Request } from 'express';
 import { ZodSerializerInterceptor } from 'nestjs-zod';
+
+// @nestjs/config's ConfigModule keeps .env values in its own ConfigService
+// store rather than writing them back to process.env, so a raw
+// process.env.X read (like skipIf below) never sees them. Node's native
+// loader populates process.env directly instead — a no-op in production,
+// which has no .env file at all (real values come from SSM Parameter
+// Store as real env vars there).
+if (existsSync('.env')) process.loadEnvFile('.env');
 import { AdminModule } from './admin/admin.module';
 import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from './config/config.module';
