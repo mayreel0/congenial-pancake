@@ -8,5 +8,8 @@
   },
   "dependencies": {
     "postgres": "^3.4.9"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0"
   }
 }

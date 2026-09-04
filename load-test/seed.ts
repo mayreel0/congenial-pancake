@@ -28,6 +28,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const EMAIL_DOMAIN = 'loadtest.onseol.internal';
 const GUEST_PREFIX = 'loadtest-';
 const TOKENS_OUT_PATH = join(__dirname, '.output', 'tokens.json');
+// k6's --summary-export doesn't create its target directory itself, so
+// seeding (which always runs before any scenario anyway) creates it here.
+const RESULTS_DIR = join(__dirname, '.output', 'results');
 
 function argNumber(name: string, fallback: number): number {
   const match = process.argv.find((arg) => arg.startsWith(`--${name}=`));
@@ -212,6 +215,7 @@ async function seed(): Promise<void> {
   }
 
   mkdirSync(dirname(TOKENS_OUT_PATH), { recursive: true });
+  mkdirSync(RESULTS_DIR, { recursive: true });
   writeFileSync(TOKENS_OUT_PATH, JSON.stringify(tokens, null, 2));
   console.log(`Done. ${tokens.length} session tokens written to ${TOKENS_OUT_PATH}.`);
 }

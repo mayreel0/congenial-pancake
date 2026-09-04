@@ -21,7 +21,10 @@ t3.micro / RDS db.t4g.micro는 버스터블 크레딧 기반이라 실제로 뻗
   분산 실행/대시보드를 대신 해주는 k6 Cloud 얘기고 이 규모에선 불필요.
 - 로컬 `apps/api-server`가 마이그레이션까지 적용된 Postgres를 보고 있을 것
   (`pnpm --filter api-server db:migrate`)
-- `cd load-test && pnpm install` (postgres 드라이버만 설치)
+- `cd load-test && pnpm install` (런타임 의존성은 `postgres` 드라이버 하나뿐.
+  `@types/node`는 에디터 자동완성/타입 힌트용 devDependency일 뿐 —
+  `seed.ts` 실행 자체엔 필요 없음, Node의 네이티브 TS 지원은 타입을
+  검사가 아니라 제거만 하기 때문)
 
 ## 1. 픽스처 시딩
 
@@ -58,14 +61,41 @@ node load-test/seed.ts --cleanup
 | `scenarios/queue-concurrency.js` | 좁은 큐 풀에 동시 요청 시 큐 랭킹 로직이 안 깨지는가 | 정합성/레이스컨디션 |
 
 ```bash
-k6 run load-test/scenarios/logged-in-read-write.js
-k6 run load-test/scenarios/anonymous-read.js
-k6 run load-test/scenarios/ip-throttle.js
-GUEST_REPLY_LIMIT=5 k6 run load-test/scenarios/guest-reply-abuse.js
-k6 run load-test/scenarios/queue-concurrency.js
+BASE_URL=http://localhost:8080 LOAD_TEST_BYPASS_TOKEN=<apps/api-server/.env의 값> \
+  k6 run --summary-export=load-test/.output/results/logged-in-read-write.json \
+  load-test/scenarios/logged-in-read-write.js
+
+BASE_URL=http://localhost:8080 LOAD_TEST_BYPASS_TOKEN=<apps/api-server/.env의 값> \
+  k6 run --summary-export=load-test/.output/results/anonymous-read.json \
+  load-test/scenarios/anonymous-read.js
+
+k6 run --summary-export=load-test/.output/results/ip-throttle.json \
+  load-test/scenarios/ip-throttle.js
+
+GUEST_REPLY_LIMIT=5 k6 run --summary-export=load-test/.output/results/guest-reply-abuse.json \
+  load-test/scenarios/guest-reply-abuse.js
+
+k6 run --summary-export=load-test/.output/results/queue-concurrency.json \
+  load-test/scenarios/queue-concurrency.js
 ```
 
-`BASE_URL` 환경변수로 대상 변경 가능(기본 `http://localhost:3001`).
+`BASE_URL` 환경변수로 대상 변경 가능(기본 `http://localhost:3001`, 로컬에서
+`.env`의 `PORT`가 다르면 맞춰서 override).
+
+**`①④`(캠파 시나리오, `logged-in-read-write`/`anonymous-read`)는
+`LOAD_TEST_BYPASS_TOKEN`을 반드시 넘겨야 의미 있는 숫자가 나온다** — 안
+넘기면 k6 VU가 몇 개든 이 머신의 실제 IP 하나로 몰려서 앱의 전역
+`ThrottlerGuard`(100req/60s/IP)에 거의 다 막히고, 결과가 "처리량"이
+아니라 "스로틀이 걸렸다"만 보여준다(측정값: 우회 없이 ~93% 실패). 값은
+`apps/api-server/.env`의 `LOAD_TEST_BYPASS_TOKEN`과 정확히 같아야 하고,
+그 환경변수 자체가 비어있으면(기본값) 우회는 절대 동작하지 않는다 —
+로컬에서만 쓸 임의의 문자열을 직접 채워넣을 것, 프로덕션 `.env`/SSM엔
+이 값을 넣지 말 것(어차피 `NODE_ENV=production`이면 무시되긴 하지만).
+
+`--summary-export`는 k6 내장 옵션 — 터미널에 찍히는 컬러 요약은 그대로
+유지하면서, 같은 내용을 JSON으로 파일에도 남긴다(추가 스크립트/외부
+라이브러리 없음). `load-test/.output/`은 `.gitignore`에 있어서
+**깃허브엔 절대 안 올라감** — 로컬에만 남는 실행 기록.
 
 ### 결과 해석 시 주의
 
