@@ -15,6 +15,9 @@ import { check, sleep } from 'k6';
 
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:3001';
 const LOAD_TEST_BYPASS_TOKEN = __ENV.LOAD_TEST_BYPASS_TOKEN || '';
+// Peak concurrent VUs for the ramp — override to push past the default
+// baseline and look for where it actually breaks (e.g. MAX_VUS=500).
+const MAX_VUS = Number(__ENV.MAX_VUS || 150);
 
 function requestParams() {
   return LOAD_TEST_BYPASS_TOKEN
@@ -28,8 +31,8 @@ export const options = {
       executor: 'ramping-vus',
       startVUs: 0,
       stages: [
-        { duration: '30s', target: 50 },
-        { duration: '1m', target: 150 },
+        { duration: '30s', target: Math.round(MAX_VUS * 0.33) },
+        { duration: '1m', target: MAX_VUS },
         { duration: '30s', target: 0 },
       ],
     },

@@ -15,6 +15,9 @@ import { SharedArray } from 'k6/data';
 
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:3001';
 const LOAD_TEST_BYPASS_TOKEN = __ENV.LOAD_TEST_BYPASS_TOKEN || '';
+// Peak concurrent VUs for the ramp — override to push past the default
+// baseline and look for where it actually breaks (e.g. MAX_VUS=500).
+const MAX_VUS = Number(__ENV.MAX_VUS || 100);
 
 // Session tokens minted by ../seed.ts, straight into the sessions table —
 // bypasses /auth/login (and its 5 req/60s throttle) entirely.
@@ -28,9 +31,9 @@ export const options = {
       executor: 'ramping-vus',
       startVUs: 0,
       stages: [
-        { duration: '30s', target: 20 },
-        { duration: '1m', target: 50 },
-        { duration: '1m', target: 100 },
+        { duration: '30s', target: Math.round(MAX_VUS * 0.2) },
+        { duration: '1m', target: Math.round(MAX_VUS * 0.5) },
+        { duration: '1m', target: MAX_VUS },
         { duration: '30s', target: 0 },
       ],
     },

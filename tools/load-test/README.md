@@ -103,6 +103,15 @@ pnpm run scenario:queue-concurrency
 라이브러리 없음). `tools/load-test/.output/`은 `.gitignore`에 있어서
 **깃허브엔 절대 안 올라감** — 로컬에만 남는 실행 기록.
 
+### `logged-in-read-write`/`anonymous-read`의 한계치 찾기
+
+`MAX_VUS`로 목표 동시 VU 수를 조정 가능(기본값은 각각 100/150, 스테이지
+비율은 유지된 채 목표치만 커짐):
+
+```bash
+MAX_VUS=500 pnpm run scenario:logged-in-read-write
+```
+
 ### 결과 해석 시 주의
 
 - `logged-in-read-write`/`anonymous-read`: 일반적인 k6 threshold(에러율,
