@@ -16,7 +16,9 @@ t3.micro / RDS db.t4g.micro는 버스터블 크레딧 기반이라 실제로 뻗
 ## 준비물
 
 - `nvm use` (Node 24.14.0 — `seed.ts`가 빌드 없이 `node seed.ts`로
-  바로 돌아가는 이유가 이 버전의 네이티브 TS type-stripping)
+  바로 돌아가는 이유가 이 버전의 네이티브 TS type-stripping). 안 하고
+  돌리면 `TypeError [ERR_UNKNOWN_FILE_EXTENSION]: Unknown file extension
+  ".ts"`로 바로 실패함 — 이 에러 보이면 `nvm use` 안 한 것.
 - `k6` (`brew install k6`) — CLI 자체는 완전 무료/오픈소스. 유료 요금제는
   분산 실행/대시보드를 대신 해주는 k6 Cloud 얘기고 이 규모에선 불필요.
 - 로컬 `apps/api-server`가 마이그레이션까지 적용된 Postgres를 보고 있을 것
@@ -25,11 +27,29 @@ t3.micro / RDS db.t4g.micro는 버스터블 크레딧 기반이라 실제로 뻗
   `@types/node`는 에디터 자동완성/타입 힌트용 devDependency일 뿐 —
   `seed.ts` 실행 자체엔 필요 없음, Node의 네이티브 TS 지원은 타입을
   검사가 아니라 제거만 하기 때문)
+- `cp load-test/.env.example load-test/.env`, 값 채우기(각 변수 설명은
+  `.env.example` 주석 참고). `.env`는 gitignore 대상 — 실제 값은 커밋 금지.
+
+## 설정 한 번에 로드
+
+매 명령마다 환경변수를 앞에 붙이는 대신, 터미널 세션당 한 번만 로드하면
+`node`/`k6` 둘 다 알아서 읽는다 — Node는 로드된 실제 쉘 환경변수를 그대로
+보고, k6도 `--include-system-env-vars`(기본 활성화)로 실제 시스템
+환경변수를 `__ENV.*`로 그대로 넘겨받기 때문(별도 dotenv 라이브러리나
+`-e`/`--env-file` 플래그 없이 둘 다 동작 — 직접 확인함):
+
+```bash
+cd load-test
+set -a && source .env && set +a
+```
+
+이후 이 터미널에서 실행하는 `node seed.ts`/`k6 run ...` 전부 `.env`의
+값을 자동으로 씀. (새 터미널을 열면 다시 source해야 함.)
 
 ## 1. 픽스처 시딩
 
 ```bash
-DATABASE_URL=postgres://user:password@localhost:5432/onseol node load-test/seed.ts
+node seed.ts
 # 옵션: --users=100 --requests=300 --queue-pool=15 (기본값)
 ```
 
@@ -47,7 +67,7 @@ DATABASE_URL=postgres://user:password@localhost:5432/onseol node load-test/seed.
 먼저 정리한다:
 
 ```bash
-node load-test/seed.ts --cleanup
+node seed.ts --cleanup
 ```
 
 ## 2. 시나리오 실행
@@ -60,37 +80,35 @@ node load-test/seed.ts --cleanup
 | `scenarios/guest-reply-abuse.js` | guest_id 쿠키 회전으로 `guestReplyLimit` 우회되는가 | 정합성/어뷰징 확인 |
 | `scenarios/queue-concurrency.js` | 좁은 큐 풀에 동시 요청 시 큐 랭킹 로직이 안 깨지는가 | 정합성/레이스컨디션 |
 
+(모두 `.env`가 source된 상태로, `load-test/` 안에서 실행한다고 가정.)
+
 ```bash
-BASE_URL=http://localhost:8080 LOAD_TEST_BYPASS_TOKEN=<apps/api-server/.env의 값> \
-  k6 run --summary-export=load-test/.output/results/logged-in-read-write.json \
-  load-test/scenarios/logged-in-read-write.js
+k6 run --summary-export=.output/results/logged-in-read-write.json \
+  scenarios/logged-in-read-write.js
 
-BASE_URL=http://localhost:8080 LOAD_TEST_BYPASS_TOKEN=<apps/api-server/.env의 값> \
-  k6 run --summary-export=load-test/.output/results/anonymous-read.json \
-  load-test/scenarios/anonymous-read.js
+k6 run --summary-export=.output/results/anonymous-read.json \
+  scenarios/anonymous-read.js
 
-k6 run --summary-export=load-test/.output/results/ip-throttle.json \
-  load-test/scenarios/ip-throttle.js
+k6 run --summary-export=.output/results/ip-throttle.json \
+  scenarios/ip-throttle.js
 
-GUEST_REPLY_LIMIT=5 k6 run --summary-export=load-test/.output/results/guest-reply-abuse.json \
-  load-test/scenarios/guest-reply-abuse.js
+k6 run --summary-export=.output/results/guest-reply-abuse.json \
+  scenarios/guest-reply-abuse.js
 
-k6 run --summary-export=load-test/.output/results/queue-concurrency.json \
-  load-test/scenarios/queue-concurrency.js
+k6 run --summary-export=.output/results/queue-concurrency.json \
+  scenarios/queue-concurrency.js
 ```
 
-`BASE_URL` 환경변수로 대상 변경 가능(기본 `http://localhost:3001`, 로컬에서
-`.env`의 `PORT`가 다르면 맞춰서 override).
-
 **`①④`(캠파 시나리오, `logged-in-read-write`/`anonymous-read`)는
-`LOAD_TEST_BYPASS_TOKEN`을 반드시 넘겨야 의미 있는 숫자가 나온다** — 안
-넘기면 k6 VU가 몇 개든 이 머신의 실제 IP 하나로 몰려서 앱의 전역
-`ThrottlerGuard`(100req/60s/IP)에 거의 다 막히고, 결과가 "처리량"이
-아니라 "스로틀이 걸렸다"만 보여준다(측정값: 우회 없이 ~93% 실패). 값은
-`apps/api-server/.env`의 `LOAD_TEST_BYPASS_TOKEN`과 정확히 같아야 하고,
-그 환경변수 자체가 비어있으면(기본값) 우회는 절대 동작하지 않는다 —
-로컬에서만 쓸 임의의 문자열을 직접 채워넣을 것, 프로덕션 `.env`/SSM엔
-이 값을 넣지 말 것(어차피 `NODE_ENV=production`이면 무시되긴 하지만).
+`.env`의 `LOAD_TEST_BYPASS_TOKEN`이 채워져 있어야 의미 있는 숫자가
+나온다** — 비어있으면(기본값) k6 VU가 몇 개든 이 머신의 실제 IP 하나로
+몰려서 앱의 전역 `ThrottlerGuard`(100req/60s/IP)에 거의 다 막히고,
+결과가 "처리량"이 아니라 "스로틀이 걸렸다"만 보여준다(측정값: 토큰 없이
+~93% 실패). `apps/api-server/.env`의 `LOAD_TEST_BYPASS_TOKEN`과 정확히
+같은 값이어야 함. ②③⑤는 이 값을 아예 안 쓰므로, 이 셋만 돌릴 거면
+비워둬도 무방(스크립트 자체가 이 변수를 읽지 않음). 로컬에서만 쓸
+임의의 문자열이면 충분 — 프로덕션 `.env`/SSM엔 이 값을 절대 넣지 말 것
+(어차피 `NODE_ENV=production`이면 무시되긴 하지만).
 
 `--summary-export`는 k6 내장 옵션 — 터미널에 찍히는 컬러 요약은 그대로
 유지하면서, 같은 내용을 JSON으로 파일에도 남긴다(추가 스크립트/외부
@@ -115,7 +133,7 @@ k6 run --summary-export=load-test/.output/results/queue-concurrency.json \
 ## 3. 정리
 
 ```bash
-node load-test/seed.ts --cleanup
+node seed.ts --cleanup
 ```
 
 `queue-concurrency`/`guest-reply-abuse` 시나리오가 실행 중에 만든
