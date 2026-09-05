@@ -107,7 +107,14 @@ pnpm run scenario:queue-concurrency
 실행할 때마다 핵심 지표(체크 통과/실패, p95, 에러율, 커스텀 메트릭 등)
 한 줄을 `results/<시나리오>.jsonl`에 append한다 — 이건 **git 추적 대상**
 (누적 실행 기록). 사람이 손으로 옮겨 적지 않고 항상 자동으로 쌓인다.
-렌더링/시각화는 별도 스코프, 아직 없음.
+
+```bash
+pnpm run report
+```
+
+쌓인 `results/*.jsonl`을 시나리오별로 최신순 표로 콘솔에 출력한다.
+**출력 자체는 저장/커밋되지 않음** — 실행할 때마다 jsonl에서 다시
+생성되는 뷰일 뿐.
 
 ### `logged-in-read-write`/`anonymous-read`의 한계치 찾기
 
