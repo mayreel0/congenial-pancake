@@ -8,5 +8,5 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["seed.ts", "record-result.ts"]
+  "include": ["seed.ts", "record-result.ts", "report.ts"]
 }

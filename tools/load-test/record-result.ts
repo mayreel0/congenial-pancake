@@ -16,11 +16,17 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const dotenvPath = join(__dirname, '.env');
 if (existsSync(dotenvPath)) process.loadEnvFile(dotenvPath);
 
-const [, , scenario, summaryPath] = process.argv;
+const [, , scenario, summaryPath, relevantParamsArg] = process.argv;
 if (!scenario || !summaryPath) {
-  console.error('usage: node record-result.ts <scenario> <summary-export-json-path>');
+  console.error(
+    'usage: node record-result.ts <scenario> <summary-export-json-path> [comma,separated,env,var,names]',
+  );
   process.exit(1);
 }
+// Only record the env vars a scenario actually reads — otherwise whatever
+// happens to be set in .env (e.g. GUEST_REPLY_LIMIT, only meaningful for
+// guest-reply-abuse) would show up as a "param" on every scenario's rows.
+const relevantParamNames = relevantParamsArg ? relevantParamsArg.split(',') : [];
 
 type K6Check = { passes: number; fails: number };
 type K6CounterOrRate = { count?: number; rate?: number };
@@ -64,8 +70,10 @@ for (const [name, value] of Object.entries(metrics)) {
 }
 
 const params: Record<string, number> = {};
-if (process.env.MAX_VUS) params.MAX_VUS = Number(process.env.MAX_VUS);
-if (process.env.GUEST_REPLY_LIMIT) params.GUEST_REPLY_LIMIT = Number(process.env.GUEST_REPLY_LIMIT);
+for (const name of relevantParamNames) {
+  const value = process.env[name];
+  if (value) params[name] = Number(value);
+}
 
 const record = {
   timestamp: new Date().toISOString(),
