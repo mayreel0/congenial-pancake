@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { MoreMenu } from "ui/MoreMenu";
+import { AuthorLabel } from "../../components/shared/AuthorLabel";
 import { formatTimestamp } from "../../lib/format";
 import { ArchiveIcon, FlagIcon } from "../../components/shared/icons";
 
@@ -32,16 +32,7 @@ export function RequestBubble({
       ].join(" ")}
     >
       <div className="flex items-center justify-between gap-3">
-        {authorHref ? (
-          <Link
-            className="text-xs font-semibold text-foreground hover:underline"
-            href={authorHref}
-          >
-            {authorLabel}
-          </Link>
-        ) : (
-          <p className="text-xs font-semibold text-foreground">{authorLabel}</p>
-        )}
+        <AuthorLabel href={authorHref} label={authorLabel} />
         {showActions && (
           <MoreMenu
             ariaLabel="답하기 도구"
