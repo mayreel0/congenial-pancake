@@ -96,10 +96,13 @@ export function TodayPrototype() {
             data-testid="today-entry-composer"
           >
             <RequestComposer
+              anonymous={prototype.anonymous}
+              nickname={prototype.nickname}
               status={prototype.requestSubmitStatus}
               value={prototype.requestDraft}
               onChange={prototype.updateRequestDraft}
               onSubmit={submitRequest}
+              onToggleAnonymous={prototype.toggleAnonymous}
             />
           </div>
 
@@ -109,7 +112,7 @@ export function TodayPrototype() {
           </p>
         </section>
       </main>
-      {toast ? (
+      {toast && (
         <div
           className="fixed bottom-5 left-1/2 z-10 flex w-[calc(100%-2.5rem)] max-w-sm -translate-x-1/2 items-center justify-between gap-3 rounded-lg border border-line bg-surface px-4 py-3 text-sm shadow-sm sm:bottom-8 sm:w-auto sm:min-w-64"
           role="status"
@@ -126,7 +129,7 @@ export function TodayPrototype() {
             ×
           </button>
         </div>
-      ) : null}
+      )}
     </div>
   );
 }

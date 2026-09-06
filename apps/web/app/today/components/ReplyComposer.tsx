@@ -1,3 +1,8 @@
+"use client";
+
+import { createReplySchema } from "shared/dto";
+import { parseFieldErrors } from "../../lib/zod-form";
+
 type ReplyComposerProps = {
   value: string;
   disabled: boolean;
@@ -12,13 +17,19 @@ export function ReplyComposer({
   onSubmit,
 }: ReplyComposerProps) {
   const remaining = 180 - value.length;
+  // Just gates the button (no visible per-field error text) — an empty
+  // composer isn't a mistake worth calling out, it's just the resting
+  // state, and the disabled button already says "type something."
+  const fieldErrors = parseFieldErrors(createReplySchema, {
+    body: value.trim(),
+  });
 
   return (
     <form
       className="rounded-lg border border-line bg-surface-muted p-4"
       onSubmit={(event) => {
         event.preventDefault();
-        onSubmit();
+        if (Object.keys(fieldErrors).length === 0) onSubmit();
       }}
     >
       <label className="text-sm font-semibold text-foreground" htmlFor="reply">
@@ -42,7 +53,7 @@ export function ReplyComposer({
         <button
           className="inline-flex h-11 items-center justify-center rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           type="submit"
-          disabled={disabled || !value.trim()}
+          disabled={disabled || Object.keys(fieldErrors).length > 0}
         >
           답변하기
         </button>

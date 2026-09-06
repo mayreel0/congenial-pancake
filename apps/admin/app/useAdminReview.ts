@@ -2,7 +2,7 @@
 
 import { ApiError } from "./lib/api";
 import { useAuth } from "./lib/auth/useAuth";
-import type { AdminReplyDto, AdminRequestDto } from "./lib/admin/api";
+import type { AdminReplyResponseDto, AdminRequestResponseDto } from "shared/dto";
 import {
   useDeleteReplyMutation,
   useDeleteRequestMutation,
@@ -13,8 +13,8 @@ import {
 
 type UseAdminReviewResult = {
   status: "loading" | "signedOut" | "forbidden" | "ready";
-  hiddenRequests: AdminRequestDto[];
-  hiddenReplies: AdminReplyDto[];
+  hiddenRequests: AdminRequestResponseDto[];
+  hiddenReplies: AdminReplyResponseDto[];
   restoreRequest(id: string): Promise<void>;
   deleteRequest(id: string): Promise<void>;
   restoreReply(id: string): Promise<void>;

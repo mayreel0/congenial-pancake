@@ -3,15 +3,19 @@ import {
   and,
   asc,
   count,
+  countDistinct,
   desc,
   eq,
   gt,
+  gte,
   inArray,
   isNull,
   lt,
   ne,
   notInArray,
   or,
+  sql,
+  type SQL,
 } from 'drizzle-orm';
 import { DRIZZLE } from '../database/database.constants';
 import type { Database } from '../database/database.types';
@@ -21,6 +25,7 @@ export type CreateRequestInput = {
   body: string;
   authorId?: string;
   guestId?: string;
+  anonymous?: boolean;
 };
 
 export type RequestRecord = typeof requests.$inferSelect;
@@ -28,10 +33,34 @@ export type RequestWithReplyCount = RequestRecord & { replyCount: number };
 export type ViewerIdentity = { authorId?: string; guestId?: string };
 export type ReplyRecord = typeof replies.$inferSelect;
 export type FeedItem = { request: RequestRecord; replies: ReplyRecord[] };
+export type PagedResult<T> = { items: T[]; totalItems: number };
+export type DateRange = { start?: Date; end?: Date };
+export type Pagination = { page: number; pageSize: number };
 export type QueueCandidateLimits = {
   freshnessHours: number;
   replyCap: number;
 };
+
+// `start`/`end` are both optional (/records' date range defaults to
+// unbounded) — undefined here means "no filter", not "match nothing".
+function dateRangeCondition(
+  column: typeof requests.createdAt,
+  range: DateRange,
+) {
+  const conditions: SQL[] = [];
+  if (range.start) conditions.push(gte(column, range.start));
+  if (range.end) conditions.push(lt(column, range.end));
+  return conditions.length > 0 ? and(...conditions) : undefined;
+}
+
+// Shifts a timestamptz column to KST wall-clock time before truncating to a
+// day string, so grouping lines up with the KST calendar day (not the UTC
+// one) — same boundary as kstDayRange, expressed in SQL instead of Date
+// arithmetic since this needs to run inside a GROUP BY.
+export type DayCount = { date: string; count: number };
+function kstDayBucket(column: typeof requests.createdAt) {
+  return sql<string>`to_char(${column} at time zone 'Asia/Seoul', 'YYYY-MM-DD')`;
+}
 
 @Injectable()
 export class RequestsRepository {
@@ -63,6 +92,7 @@ export class RequestsRepository {
         hidden: requests.hidden,
         deletedAt: requests.deletedAt,
         reviewedAt: requests.reviewedAt,
+        anonymous: requests.anonymous,
         replyCount: count(replies.id),
       })
       .from(requests)
@@ -83,7 +113,29 @@ export class RequestsRepository {
   // request first, each with its full (visible) reply list oldest-first.
   // Two queries rather than one join-and-group-into-JSON query — same
   // clarity-over-cleverness call as findQueueCandidate below.
-  async findFeed(): Promise<FeedItem[]> {
+  async findFeed(
+    range: DateRange,
+    pagination: Pagination,
+  ): Promise<PagedResult<FeedItem>> {
+    const whereClause = and(
+      eq(requests.hidden, false),
+      isNull(requests.deletedAt),
+      dateRangeCondition(requests.createdAt, range),
+    );
+    const replyJoinCondition = and(
+      eq(replies.requestId, requests.id),
+      eq(replies.hidden, false),
+      isNull(replies.deletedAt),
+    );
+
+    const [{ value: totalItems }] = await this.db
+      .select({ value: countDistinct(requests.id) })
+      .from(requests)
+      .innerJoin(replies, replyJoinCondition)
+      .where(whereClause);
+
+    if (totalItems === 0) return { items: [], totalItems: 0 };
+
     const requestRows = await this.db
       .select({
         id: requests.id,
@@ -94,21 +146,17 @@ export class RequestsRepository {
         hidden: requests.hidden,
         deletedAt: requests.deletedAt,
         reviewedAt: requests.reviewedAt,
+        anonymous: requests.anonymous,
       })
       .from(requests)
-      .innerJoin(
-        replies,
-        and(
-          eq(replies.requestId, requests.id),
-          eq(replies.hidden, false),
-          isNull(replies.deletedAt),
-        ),
-      )
-      .where(and(eq(requests.hidden, false), isNull(requests.deletedAt)))
+      .innerJoin(replies, replyJoinCondition)
+      .where(whereClause)
       .groupBy(requests.id)
-      .orderBy(desc(requests.createdAt));
+      .orderBy(desc(requests.createdAt))
+      .limit(pagination.pageSize)
+      .offset((pagination.page - 1) * pagination.pageSize);
 
-    if (requestRows.length === 0) return [];
+    if (requestRows.length === 0) return { items: [], totalItems };
 
     const requestIds = requestRows.map((row) => row.id);
     const replyRows = await this.db.query.replies.findMany({
@@ -127,10 +175,178 @@ export class RequestsRepository {
       repliesByRequestId.set(reply.requestId, list);
     }
 
-    return requestRows.map((request) => ({
-      request,
-      replies: repliesByRequestId.get(request.id) ?? [],
-    }));
+    return {
+      items: requestRows.map((request) => ({
+        request,
+        replies: repliesByRequestId.get(request.id) ?? [],
+      })),
+      totalItems,
+    };
+  }
+
+  // "내 기록" → 내가 작성한 고민: every request this member posted, newest
+  // first, with every reply nested oldest-first — no hidden/deletedAt
+  // filtering on either side, matching RepliesRepository.findMine()'s
+  // precedent that a viewer's own content is shown to them unfiltered.
+  async findMine(
+    authorId: string,
+    range: DateRange,
+    pagination: Pagination,
+  ): Promise<PagedResult<FeedItem>> {
+    const whereClause = and(
+      eq(requests.authorId, authorId),
+      dateRangeCondition(requests.createdAt, range),
+    );
+
+    const [{ value: totalItems }] = await this.db
+      .select({ value: count(requests.id) })
+      .from(requests)
+      .where(whereClause);
+
+    if (totalItems === 0) return { items: [], totalItems: 0 };
+
+    const requestRows = await this.db
+      .select({
+        id: requests.id,
+        body: requests.body,
+        authorId: requests.authorId,
+        guestId: requests.guestId,
+        createdAt: requests.createdAt,
+        hidden: requests.hidden,
+        deletedAt: requests.deletedAt,
+        reviewedAt: requests.reviewedAt,
+        anonymous: requests.anonymous,
+      })
+      .from(requests)
+      .where(whereClause)
+      .orderBy(desc(requests.createdAt))
+      .limit(pagination.pageSize)
+      .offset((pagination.page - 1) * pagination.pageSize);
+
+    if (requestRows.length === 0) return { items: [], totalItems };
+
+    const requestIds = requestRows.map((row) => row.id);
+    const replyRows = await this.db.query.replies.findMany({
+      where: inArray(replies.requestId, requestIds),
+      orderBy: asc(replies.createdAt),
+    });
+
+    const repliesByRequestId = new Map<string, ReplyRecord[]>();
+    for (const reply of replyRows) {
+      const list = repliesByRequestId.get(reply.requestId) ?? [];
+      list.push(reply);
+      repliesByRequestId.set(reply.requestId, list);
+    }
+
+    return {
+      items: requestRows.map((request) => ({
+        request,
+        replies: repliesByRequestId.get(request.id) ?? [],
+      })),
+      totalItems,
+    };
+  }
+
+  // HeatmapCalendar for /read: per-KST-day count of feed items (requests
+  // with at least one visible reply) — same "at least one reply" join
+  // requirement as findFeed, just grouped by day instead of paginated.
+  async countFeedByDay(range: DateRange): Promise<DayCount[]> {
+    const dayBucket = kstDayBucket(requests.createdAt);
+    const whereClause = and(
+      eq(requests.hidden, false),
+      isNull(requests.deletedAt),
+      dateRangeCondition(requests.createdAt, range),
+    );
+    const rows = await this.db
+      .select({ date: dayBucket, count: countDistinct(requests.id) })
+      .from(requests)
+      .innerJoin(
+        replies,
+        and(
+          eq(replies.requestId, requests.id),
+          eq(replies.hidden, false),
+          isNull(replies.deletedAt),
+        ),
+      )
+      .where(whereClause)
+      .groupBy(dayBucket);
+    return rows;
+  }
+
+  // HeatmapCalendar for /records' 내가 남긴 고민 tab: per-KST-day count of
+  // this member's own requests, unfiltered by hidden/deletedAt — matches
+  // findMine's "viewer's own content shown unfiltered" policy.
+  async countMineByDay(
+    authorId: string,
+    range: DateRange,
+  ): Promise<DayCount[]> {
+    const dayBucket = kstDayBucket(requests.createdAt);
+    const whereClause = and(
+      eq(requests.authorId, authorId),
+      dateRangeCondition(requests.createdAt, range),
+    );
+    const rows = await this.db
+      .select({ date: dayBucket, count: count(requests.id) })
+      .from(requests)
+      .where(whereClause)
+      .groupBy(dayBucket);
+    return rows;
+  }
+
+  // Public profile page: only requests this member chose to reveal
+  // (anonymous: false) and that are still visible — mirrors findVisible's
+  // hidden/deletedAt filtering (shown to *other* viewers, unlike findMine
+  // which is the author's own unfiltered view). Paginated — the main
+  // profile endpoint uses page 1 of a small pageSize as a preview and still
+  // needs the real totalItems for its "(N)" count, the dedicated list
+  // endpoint uses the caller's own page/pageSize.
+  async findPublicByAuthor(
+    authorId: string,
+    pagination: Pagination,
+  ): Promise<PagedResult<RequestRecord>> {
+    const whereClause = and(
+      eq(requests.authorId, authorId),
+      eq(requests.anonymous, false),
+      eq(requests.hidden, false),
+      isNull(requests.deletedAt),
+    );
+
+    const [{ value: totalItems }] = await this.db
+      .select({ value: count() })
+      .from(requests)
+      .where(whereClause);
+
+    if (totalItems === 0) return { items: [], totalItems: 0 };
+
+    const items = await this.db.query.requests.findMany({
+      where: whereClause,
+      orderBy: desc(requests.createdAt),
+      limit: pagination.pageSize,
+      offset: (pagination.page - 1) * pagination.pageSize,
+    });
+
+    return { items, totalItems };
+  }
+
+  // Single-thread version of findFeed/findMine's shape, for the public
+  // profile detail pages — one visible request plus all its visible
+  // replies (oldest first), with no "must have at least one reply"
+  // requirement unlike findFeed (a profile owner's own request with zero
+  // replies yet should still open, just showing an empty reply list).
+  async findFeedItemById(requestId: string): Promise<FeedItem | undefined> {
+    const request = await this.findVisibleById(requestId);
+    if (!request) return undefined;
+
+    const visibleReplies = await this.db.query.replies.findMany({
+      where: and(
+        eq(replies.requestId, requestId),
+        eq(replies.hidden, false),
+        isNull(replies.deletedAt),
+      ),
+      orderBy: asc(replies.createdAt),
+    });
+
+    return { request, replies: visibleReplies };
   }
 
   findByGuestId(guestId: string): Promise<RequestRecord | undefined> {
@@ -255,6 +471,7 @@ export class RequestsRepository {
         hidden: requests.hidden,
         deletedAt: requests.deletedAt,
         reviewedAt: requests.reviewedAt,
+        anonymous: requests.anonymous,
         replyCount,
       })
       .from(requests)

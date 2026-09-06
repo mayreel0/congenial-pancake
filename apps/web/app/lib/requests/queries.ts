@@ -1,10 +1,18 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   createRequest,
   fetchFeed,
+  fetchFeedDayCounts,
   fetchHeldRequests,
+  fetchMyRequestDayCounts,
+  fetchMyRequestLog,
   fetchQueueCandidate,
   holdRequest,
   listRequests,
@@ -15,7 +23,23 @@ export const requestKeys = {
   list: ["requests", "list"] as const,
   queue: ["requests", "queue"] as const,
   held: ["requests", "held"] as const,
-  feed: ["requests", "feed"] as const,
+  // Prefix keys — pass to invalidateQueries to match every feed(...)/
+  // mine(...) variant regardless of its date/page/pageSize args.
+  feedAll: ["requests", "feed"] as const,
+  feed: (date: string | undefined, page: number, pageSize: number) =>
+    ["requests", "feed", date ?? null, page, pageSize] as const,
+  mineAll: ["requests", "mine"] as const,
+  mine: (
+    from: string | undefined,
+    to: string | undefined,
+    page: number,
+    pageSize: number,
+  ) => ["requests", "mine", from ?? null, to ?? null, page, pageSize] as const,
+  // HeatmapCalendar day counts — keyed by the visible month's from/to.
+  feedCounts: (from: string, to: string) =>
+    ["requests", "feedCounts", from, to] as const,
+  mineCounts: (from: string, to: string) =>
+    ["requests", "mineCounts", from, to] as const,
 };
 
 export function useRequestsQuery() {
@@ -29,9 +53,11 @@ export function useCreateRequestMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (body: string) => createRequest(body),
+    mutationFn: ({ body, anonymous }: { body: string; anonymous?: boolean }) =>
+      createRequest(body, anonymous),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: requestKeys.list });
+      void queryClient.invalidateQueries({ queryKey: requestKeys.mineAll });
     },
   });
 }
@@ -66,10 +92,47 @@ export function useSkipMutation() {
   });
 }
 
-export function useFeedQuery() {
+// keepPreviousData avoids a full loading-state flash on page change — the
+// previous page's items stay on screen (still tagged isPlaceholderData)
+// until the new page resolves.
+export function useFeedQuery(
+  date: string | undefined,
+  page: number,
+  pageSize: number,
+) {
   return useQuery({
-    queryKey: requestKeys.feed,
-    queryFn: fetchFeed,
+    queryKey: requestKeys.feed(date, page, pageSize),
+    queryFn: () => fetchFeed(date, page, pageSize),
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useFeedDayCountsQuery(from: string, to: string) {
+  return useQuery({
+    queryKey: requestKeys.feedCounts(from, to),
+    queryFn: () => fetchFeedDayCounts(from, to),
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useMyRequestDayCountsQuery(from: string, to: string) {
+  return useQuery({
+    queryKey: requestKeys.mineCounts(from, to),
+    queryFn: () => fetchMyRequestDayCounts(from, to),
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useMyRequestLogQuery(
+  from: string | undefined,
+  to: string | undefined,
+  page: number,
+  pageSize: number,
+) {
+  return useQuery({
+    queryKey: requestKeys.mine(from, to, page, pageSize),
+    queryFn: () => fetchMyRequestLog(from, to, page, pageSize),
+    placeholderData: keepPreviousData,
   });
 }
 

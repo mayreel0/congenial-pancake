@@ -1,3 +1,5 @@
+import type { UserResponseDto } from "shared/dto";
+
 // Shared between apps/web and apps/admin — see
 // docs/decisions/2026-08-25-onseol-shared-ui-package-decisions.md. Each
 // consuming app supplies its own NEXT_PUBLIC_API_BASE_URL; Next.js inlines
@@ -42,11 +44,10 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
   return body as T;
 }
 
-export type CurrentUser = {
-  id: string;
-  email: string;
-  createdAt: string;
-};
+// Exactly apps/api-server's UserResponseDto — apps/admin doesn't surface
+// the profile-visibility switches today, but the response shape (and thus
+// the type) is the same for both apps.
+export type CurrentUser = UserResponseDto;
 
 // Present in both apps as-is. Signup and Google OAuth are apps/web-only
 // (apps/admin has no signup, no OAuth) and stay defined there.

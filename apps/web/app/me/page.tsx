@@ -4,7 +4,10 @@ import { Button } from "ui/Button";
 import { ServiceNav } from "../components/navigation/ServiceNav";
 import { formatJoinedDate } from "../lib/format";
 import { useAuth } from "../lib/auth/useAuth";
-import { MyAnswerLogSection } from "./components/MyAnswerLogSection";
+import { NicknameSection } from "./components/NicknameSection";
+import { NicknameVisibilitySection } from "./components/NicknameVisibilitySection";
+import { ProfileVisibilitySection } from "./components/ProfileVisibilitySection";
+import { VisibilityDraftProvider } from "./components/VisibilityDraftProvider";
 
 type MeContentProps = {
   status: ReturnType<typeof useAuth>["status"];
@@ -18,16 +21,20 @@ function MeContent({ status, user }: MeContentProps) {
     return (
       <>
         <section className="space-y-3">
-          <p className="text-sm text-muted">내 정보</p>
+          <p className="text-sm text-muted">온설</p>
           <h1 className="text-2xl font-semibold tracking-normal sm:text-4xl">
-            내 기록
+            내 정보
           </h1>
           <div className="space-y-1 text-muted">
             <p>{user.email}</p>
             <p className="text-sm">{formatJoinedDate(user.createdAt)} 가입</p>
           </div>
         </section>
-        <MyAnswerLogSection />
+        <NicknameSection />
+        <VisibilityDraftProvider user={user}>
+          <NicknameVisibilitySection />
+          <ProfileVisibilitySection />
+        </VisibilityDraftProvider>
       </>
     );
   }
@@ -35,12 +42,12 @@ function MeContent({ status, user }: MeContentProps) {
   if (status === "anonymous") {
     return (
       <section className="space-y-3">
-        <p className="text-sm text-muted">내 정보</p>
+        <p className="text-sm text-muted">온설</p>
         <h1 className="text-2xl font-semibold tracking-normal sm:text-4xl">
-          내 기록
+          내 정보
         </h1>
         <p className="max-w-xl leading-7 text-muted">
-          로그인하면 내 기록을 볼 수 있습니다.
+          로그인하면 내 정보를 볼 수 있습니다.
         </p>
         <Button href="/login">로그인</Button>
       </section>

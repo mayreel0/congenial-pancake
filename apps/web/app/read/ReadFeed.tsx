@@ -4,8 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import { ApiError } from "../lib/api";
 import { ServiceNav } from "../components/navigation/ServiceNav";
 import { ActionConfirmDialog } from "ui/ActionConfirmDialog";
+import { HeatmapCalendarField } from "ui/HeatmapCalendarField";
+import { Pagination } from "ui/Pagination";
+import { Skeleton } from "ui/Skeleton";
+import { buildFeedItemLabels } from "../lib/feed-item-labels";
+import { formatKoreanDate } from "../lib/kst-date";
+import { PAGE_SIZE_OPTIONS } from "../lib/pagination";
 import { ReadThread } from "./components/ReadThread";
-import { buildFeedItemLabels } from "./labels";
 import { useReadFeed } from "./useReadFeed";
 
 type PendingReport =
@@ -23,6 +28,66 @@ function errorMessage(error: unknown): string {
     return ERROR_MESSAGES[error.code] ?? "요청을 처리하지 못했어요. 잠시 후 다시 시도해주세요.";
   }
   return "요청을 처리하지 못했어요. 잠시 후 다시 시도해주세요.";
+}
+
+type ReadFeedBodyProps = {
+  feed: ReturnType<typeof useReadFeed>;
+  savedSet: Set<string>;
+  onReportRequest(requestId: string): void;
+  onReportReply(requestId: string, replyId: string): void;
+  onToggleSaveReply(replyId: string): void;
+};
+
+// Early return instead of a nested ternary — matches
+// apps/admin/app/components/AdminStatusGate.tsx's pattern.
+function ReadFeedBody({
+  feed,
+  savedSet,
+  onReportRequest,
+  onReportReply,
+  onToggleSaveReply,
+}: ReadFeedBodyProps) {
+  if (feed.isLoading) {
+    return (
+      <div className="space-y-4">
+        {[0, 1, 2].map((key) => (
+          <div
+            className="space-y-3 rounded-lg border border-line bg-surface px-4 py-5 shadow-sm"
+            key={key}
+          >
+            <Skeleton className="h-4 w-2/3" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-1/3" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (feed.readFeed.length === 0) {
+    return (
+      <p className="py-16 text-center text-sm text-muted">
+        이 날 읽을 수 있는 온설이 없어요.
+      </p>
+    );
+  }
+
+  return (
+    <>
+      {feed.readFeed.map((item) => (
+        <ReadThread
+          authorLabels={buildFeedItemLabels(item)}
+          item={item}
+          key={item.request.id}
+          savedReplyIds={savedSet}
+          showActions={feed.canManage}
+          onReportReply={(replyId) => onReportReply(item.request.id, replyId)}
+          onReportRequest={() => onReportRequest(item.request.id)}
+          onToggleSaveReply={onToggleSaveReply}
+        />
+      ))}
+    </>
+  );
 }
 
 export function ReadFeed() {
@@ -91,32 +156,42 @@ export function ReadFeed() {
     <div className="min-h-dvh bg-background text-foreground">
       <ServiceNav activePath="/read" />
       <main className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-5 py-10 sm:px-8">
-        {feed.readFeed.length === 0 ? (
-          <p className="py-16 text-center text-sm text-muted">
-            아직 읽을 수 있는 온설이 없어요.
-          </p>
-        ) : (
-          feed.readFeed.map((item) => (
-            <ReadThread
-              authorLabels={buildFeedItemLabels(item)}
-              item={item}
-              key={item.request.id}
-              savedReplyIds={savedSet}
-              showActions={feed.canManage}
-              onReportReply={(replyId) =>
-                setPendingReport({
-                  kind: "reply",
-                  requestId: item.request.id,
-                  replyId,
-                })
-              }
-              onReportRequest={() =>
-                setPendingReport({ kind: "request", requestId: item.request.id })
-              }
-              onToggleSaveReply={(replyId) => void toggleSavedReply(replyId)}
-            />
-          ))
-        )}
+        <section className="space-y-3">
+          <p className="text-sm text-muted">온설</p>
+          <h1 className="text-2xl font-semibold tracking-normal sm:text-4xl">
+            온설 읽기
+          </h1>
+        </section>
+        <HeatmapCalendarField
+          counts={feed.dayCounts}
+          formatDate={formatKoreanDate}
+          label="날짜"
+          maxDate={feed.maxSelectableDate}
+          month={feed.calendarMonth}
+          placeholder="날짜를 선택하세요"
+          selected={feed.currentDate}
+          onMonthChange={feed.setCalendarMonth}
+          onSelect={feed.goToDate}
+        />
+        <ReadFeedBody
+          feed={feed}
+          savedSet={savedSet}
+          onReportReply={(requestId, replyId) =>
+            setPendingReport({ kind: "reply", requestId, replyId })
+          }
+          onReportRequest={(requestId) =>
+            setPendingReport({ kind: "request", requestId })
+          }
+          onToggleSaveReply={(replyId) => void toggleSavedReply(replyId)}
+        />
+        <Pagination
+          page={feed.page}
+          pageSize={feed.pageSize}
+          pageSizeOptions={PAGE_SIZE_OPTIONS}
+          totalPages={feed.totalPages}
+          onPageChange={feed.setPage}
+          onPageSizeChange={feed.setPageSize}
+        />
       </main>
       <ActionConfirmDialog
         confirmLabel="신고하기"
@@ -129,7 +204,7 @@ export function ReadFeed() {
         onCancel={() => setPendingReport(null)}
         onConfirm={() => void confirmPendingReport()}
       />
-      {toastMessage ? (
+      {toastMessage && (
         <div
           className="fixed bottom-5 left-1/2 z-10 flex w-[calc(100%-2.5rem)] max-w-sm -translate-x-1/2 items-center justify-between gap-3 rounded-lg border border-line bg-surface px-4 py-3 text-sm shadow-sm sm:bottom-8 sm:w-auto sm:min-w-64"
           role="status"
@@ -144,7 +219,7 @@ export function ReadFeed() {
             ×
           </button>
         </div>
-      ) : null}
+      )}
     </div>
   );
 }

@@ -65,7 +65,7 @@ export function LoginForm({ login }: LoginFormProps) {
         onChange={(event) => setPassword(event.currentTarget.value)}
       />
 
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {error && <p className="text-sm text-red-600">{error}</p>}
 
       <Button disabled={pending} fullWidth type="submit">
         {pending ? "로그인 중" : "로그인"}

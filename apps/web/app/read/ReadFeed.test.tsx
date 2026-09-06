@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from "../lib/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { formatKoreanDate, yesterdayKstDateString } from "../lib/kst-date";
 import type { FeedItemDto } from "../lib/requests/api";
 import { ReadFeed } from "./ReadFeed";
 
@@ -17,6 +18,7 @@ function makeItem(overrides: Partial<FeedItemDto> = {}): FeedItemDto {
       createdAt: new Date().toISOString(),
       replyCount: 1,
       authorSlot: 0,
+      author: { anonymous: true },
     },
     replies: [
       {
@@ -25,6 +27,7 @@ function makeItem(overrides: Partial<FeedItemDto> = {}): FeedItemDto {
         body: "답변",
         createdAt: new Date().toISOString(),
         authorSlot: 1,
+        author: { anonymous: true },
       },
     ],
     ...overrides,
@@ -56,8 +59,30 @@ function installFakeBackend(initialFeed: FeedItemDto[], loggedIn = true) {
           }),
         );
       }
-      if (url.endsWith("/requests/feed") && method === "GET") {
-        return Promise.resolve(jsonResponse(200, feed));
+      if (url.includes("/requests/feed/counts") && method === "GET") {
+        const params = new URL(url).searchParams;
+        return Promise.resolve(
+          jsonResponse(200, {
+            from: params.get("from"),
+            to: params.get("to"),
+            days: [],
+          }),
+        );
+      }
+      if (url.includes("/requests/feed") && method === "GET") {
+        const params = new URL(url).searchParams;
+        const requestedDate = params.get("date");
+        const requestedPageSize = Number(params.get("pageSize") ?? "10");
+        return Promise.resolve(
+          jsonResponse(200, {
+            items: feed,
+            page: 1,
+            pageSize: requestedPageSize,
+            totalItems: feed.length,
+            totalPages: 1,
+            date: requestedDate ?? yesterdayKstDateString(),
+          }),
+        );
       }
       if (url.endsWith("/replies/saved") && method === "GET") {
         return Promise.resolve(jsonResponse(200, savedReplyIds));
@@ -107,6 +132,7 @@ function installFakeBackend(initialFeed: FeedItemDto[], loggedIn = true) {
 describe("ReadFeed", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.useRealTimers();
   });
 
   it("renders every thread returned by the feed", async () => {
@@ -118,6 +144,7 @@ describe("ReadFeed", () => {
           createdAt: new Date().toISOString(),
           replyCount: 1,
           authorSlot: 0,
+          author: { anonymous: true },
         },
       }),
       makeItem({
@@ -127,6 +154,7 @@ describe("ReadFeed", () => {
           createdAt: new Date().toISOString(),
           replyCount: 1,
           authorSlot: 0,
+          author: { anonymous: true },
         },
         replies: [
           {
@@ -135,6 +163,7 @@ describe("ReadFeed", () => {
             body: "두 번째 답변",
             createdAt: new Date().toISOString(),
             authorSlot: 1,
+            author: { anonymous: true },
           },
         ],
       }),
@@ -170,6 +199,7 @@ describe("ReadFeed", () => {
             body: "첫 번째 답변",
             createdAt: "2026-08-19T09:00:00.000Z",
             authorSlot: 1,
+            author: { anonymous: true },
           },
           {
             id: "reply-2",
@@ -177,6 +207,7 @@ describe("ReadFeed", () => {
             body: "두 번째 답변",
             createdAt: "2026-08-19T10:00:00.000Z",
             authorSlot: 2,
+            author: { anonymous: true },
           },
         ],
       }),
@@ -234,7 +265,7 @@ describe("ReadFeed", () => {
     render(<ReadFeed />);
 
     expect(
-      await screen.findByText("아직 읽을 수 있는 온설이 없어요."),
+      await screen.findByText("이 날 읽을 수 있는 온설이 없어요."),
     ).toBeInTheDocument();
   });
 
@@ -249,5 +280,74 @@ describe("ReadFeed", () => {
     expect(
       screen.queryByRole("button", { name: "더보기" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("browses by KST day via the calendar: clicking an earlier day re-fetches it, and today's cell is disabled", async () => {
+    // Fixed mid-month "now" so yesterday/day-before-yesterday/today all
+    // fall in the same calendar month regardless of which real day this
+    // test runs on (HeatmapCalendar is month-bounded, unlike the old
+    // arrow-based DayNav which had no such constraint).
+    vi.setSystemTime(new Date("2026-09-15T10:00:00.000Z")); // 2026-09-15 19:00 KST
+    const yesterday = "2026-09-14";
+    const dayBeforeYesterday = "2026-09-13";
+    const today = "2026-09-15";
+
+    const fetchMock = installFakeBackend([]);
+    render(<ReadFeed />);
+
+    // Defaults to yesterday (mocked by installFakeBackend) — shown as the
+    // closed field's own label text.
+    await screen.findByText(formatKoreanDate(yesterday));
+
+    // The calendar grid itself only renders once the field is opened.
+    fireEvent.click(screen.getByRole("button", { name: "날짜" }));
+    expect(
+      screen.getByRole("button", { name: new RegExp(`^${today} `) }),
+    ).toBeDisabled();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: new RegExp(`^${dayBeforeYesterday} `) }),
+    );
+
+    // Selecting a day closes the popover and updates the field's label.
+    await screen.findByText(formatKoreanDate(dayBeforeYesterday));
+    const feedCalls = fetchMock.mock.calls.filter(([input]) =>
+      (typeof input === "string" ? input : input.toString()).includes(
+        "/requests/feed?",
+      ),
+    );
+    const lastFeedCall = feedCalls.at(-1);
+    expect(lastFeedCall).toBeDefined();
+    const [input] = lastFeedCall!;
+    const requestedUrl = new URL(
+      typeof input === "string" ? input : input.toString(),
+    );
+    expect(requestedUrl.searchParams.get("date")).toBe(dayBeforeYesterday);
+  });
+
+  it("shows the pagination control even with a single page, and changing page size resets to page 1", async () => {
+    const fetchMock = installFakeBackend([]);
+    render(<ReadFeed />);
+
+    await screen.findByText(formatKoreanDate(yesterdayKstDateString()));
+    // Only one page of results, but the size selector must stay reachable.
+    expect(screen.getByRole("navigation", { name: "페이지" })).toBeInTheDocument();
+
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "50" } });
+
+    await waitFor(() => {
+      const feedCalls = fetchMock.mock.calls.filter(([input]) =>
+        (typeof input === "string" ? input : input.toString()).includes(
+          "/requests/feed",
+        ),
+      );
+      const lastCall = feedCalls.at(-1)!;
+      const [input] = lastCall;
+      const requestedUrl = new URL(
+        typeof input === "string" ? input : input.toString(),
+      );
+      expect(requestedUrl.searchParams.get("pageSize")).toBe("50");
+      expect(requestedUrl.searchParams.get("page")).toBe("1");
+    });
   });
 });

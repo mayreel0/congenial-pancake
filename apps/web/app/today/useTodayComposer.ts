@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useAuth } from "../lib/auth/useAuth";
 import {
   useCreateRequestMutation,
   useRequestsQuery,
@@ -32,13 +33,22 @@ type UseTodayComposerResult = {
   todayEntryMessages: string[];
   requestCount: number;
   replyCount: number;
+  // null when not logged in or the user hasn't set one yet — the composer
+  // hides the reveal toggle entirely in that case (see docs/decisions/
+  // 2026-08-28-onseol-nickname-post-reveal-decisions.md: a guest or a
+  // nicknameless member can never post non-anonymously).
+  nickname: string | null;
+  anonymous: boolean;
   updateRequestDraft(value: string): void;
+  toggleAnonymous(): void;
   submitRequest(bodyOverride?: string): Promise<void>;
 };
 
 export function useTodayComposer(): UseTodayComposerResult {
+  const { user } = useAuth();
   const [requestDraft, setRequestDraft] = useState("");
   const [justSubmitted, setJustSubmitted] = useState(false);
+  const [anonymous, setAnonymous] = useState(true);
   const requestSubmittingRef = useRef(false);
   const requestsQuery = useRequestsQuery();
   const createRequestMutation = useCreateRequestMutation();
@@ -54,6 +64,10 @@ export function useTodayComposer(): UseTodayComposerResult {
     setRequestDraft(value);
   }
 
+  function toggleAnonymous(): void {
+    setAnonymous((current) => !current);
+  }
+
   async function submitRequest(bodyOverride?: string): Promise<void> {
     if (requestSubmittingRef.current) return;
 
@@ -62,7 +76,10 @@ export function useTodayComposer(): UseTodayComposerResult {
 
     requestSubmittingRef.current = true;
     try {
-      await createRequestMutation.mutateAsync(body);
+      await createRequestMutation.mutateAsync({
+        body,
+        anonymous: user?.nickname ? anonymous : true,
+      });
       setRequestDraft("");
       setJustSubmitted(true);
     } finally {
@@ -81,7 +98,10 @@ export function useTodayComposer(): UseTodayComposerResult {
     todayEntryMessages,
     requestCount: requests.length,
     replyCount: requests.reduce((sum, request) => sum + request.replyCount, 0),
+    nickname: user?.nickname ?? null,
+    anonymous,
     updateRequestDraft,
+    toggleAnonymous,
     submitRequest,
   };
 }

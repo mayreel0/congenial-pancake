@@ -1,17 +1,22 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { Geist, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import { QueryProvider } from "ui/QueryProvider";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+// Pretendard, not next/font/google's Geist — Geist only ships a Latin
+// subset (no Hangul glyphs at all), so Korean text — the vast majority of
+// this app's content — was silently falling back to whatever font the
+// viewer's OS happens to default to, never actually rendering in Geist.
+// Self-hosted via the `pretendard` npm package's single variable woff2
+// (covers both Hangul and Latin, weights 45-920) since Pretendard isn't on
+// Google Fonts. No separate mono font — `--font-mono` isn't used anywhere
+// in this app, so it's just a plain system-monospace stack in globals.css.
+const pretendard = localFont({
+  src: "../node_modules/pretendard/dist/web/variable/woff2/PretendardVariable.woff2",
+  variable: "--font-pretendard",
+  weight: "45 920",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -25,10 +30,7 @@ type RootLayoutProps = {
 
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
-    <html
-      lang="ko"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
+    <html lang="ko" className={`${pretendard.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         <QueryProvider>{children}</QueryProvider>
       </body>

@@ -3,13 +3,14 @@
 import { useState, type FormEvent } from "react";
 import { Button } from "ui/Button";
 import { TextField } from "ui/TextField";
-import type { AdminSettingsDto } from "../lib/admin/settings-api";
+import type { SettingsResponseDto } from "shared/dto";
 import type { useAdminSettings } from "./useAdminSettings";
 
 type FormState = {
   queueFreshnessHours: string;
   queueReplyCap: string;
   guestReplyLimit: string;
+  nicknameCooldownDays: string;
 };
 
 const FIELDS: Array<{
@@ -40,18 +41,26 @@ const FIELDS: Array<{
     min: 1,
     max: 50,
   },
+  {
+    key: "nicknameCooldownDays",
+    label: "닉네임 변경 쿨타임 (일)",
+    hint: "이미 설정된 닉네임을 다시 바꾸려면 이만큼 기다려야 합니다. 최초 설정에는 적용되지 않습니다.",
+    min: 1,
+    max: 90,
+  },
 ];
 
-function toFormState(settings: AdminSettingsDto): FormState {
+function toFormState(settings: SettingsResponseDto): FormState {
   return {
     queueFreshnessHours: String(settings.queueFreshnessHours),
     queueReplyCap: String(settings.queueReplyCap),
     guestReplyLimit: String(settings.guestReplyLimit),
+    nicknameCooldownDays: String(settings.nicknameCooldownDays),
   };
 }
 
 type SettingsFormProps = {
-  settings: AdminSettingsDto;
+  settings: SettingsResponseDto;
   updating: boolean;
   updateError: string | null;
   update: ReturnType<typeof useAdminSettings>["update"];
@@ -82,6 +91,7 @@ export function SettingsForm({
       queueFreshnessHours: Number(form.queueFreshnessHours),
       queueReplyCap: Number(form.queueReplyCap),
       guestReplyLimit: Number(form.guestReplyLimit),
+      nicknameCooldownDays: Number(form.nicknameCooldownDays),
     });
     setSaved(true);
   }
@@ -112,12 +122,12 @@ export function SettingsForm({
           />
         ))}
 
-        {updateError ? (
+        {updateError && (
           <p className="text-sm text-red-600">{updateError}</p>
-        ) : null}
-        {!updateError && saved ? (
+        )}
+        {!updateError && saved && (
           <p className="text-sm text-primary">저장했어요.</p>
-        ) : null}
+        )}
 
         <Button disabled={updating} type="submit">
           {updating ? "저장 중" : "저장"}

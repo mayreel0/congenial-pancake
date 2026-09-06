@@ -11,6 +11,7 @@ function makeRequest(overrides: Partial<RequestDto>): RequestDto {
     body: "요청 본문",
     createdAt: "2026-08-15T09:00:00.000Z",
     replyCount: 1,
+    author: { anonymous: true },
     ...overrides,
   };
 }
@@ -21,6 +22,7 @@ function makeReply(overrides: Partial<ReplyDto>): ReplyDto {
     requestId: "request",
     body: "답변 본문",
     createdAt: "2026-08-15T09:00:00.000Z",
+    author: { anonymous: true },
     ...overrides,
   };
 }
@@ -97,7 +99,10 @@ describe("AnswerLog date dividers", () => {
         entries={entries}
         isTyping={false}
         leavingRequestId={null}
+        hasOlderEntries={false}
+        isLoadingOlderEntries={false}
         loadingNext={false}
+        onLoadOlderEntries={() => {}}
         onHold={noop}
         onReport={noop}
         onSkip={noop}
@@ -149,7 +154,10 @@ describe("AnswerLog date dividers", () => {
         entries={entries}
         isTyping={false}
         leavingRequestId={null}
+        hasOlderEntries={false}
+        isLoadingOlderEntries={false}
         loadingNext={false}
+        onLoadOlderEntries={() => {}}
         onHold={noop}
         onReport={noop}
         onSkip={noop}
@@ -171,7 +179,10 @@ describe("AnswerLog date dividers", () => {
         entries={[]}
         isTyping={false}
         leavingRequestId={null}
+        hasOlderEntries={false}
+        isLoadingOlderEntries={false}
         loadingNext={false}
+        onLoadOlderEntries={() => {}}
         onHold={noop}
         onReport={noop}
         onSkip={noop}

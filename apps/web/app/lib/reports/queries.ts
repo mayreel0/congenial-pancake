@@ -19,7 +19,7 @@ export function useCreateReportMutation() {
       // A reported request/reply may auto-hide (3 distinct reporters) —
       // refresh the feed either way, and the queue only for a reported
       // request (a hidden request shouldn't linger as the current target).
-      void queryClient.invalidateQueries({ queryKey: requestKeys.feed });
+      void queryClient.invalidateQueries({ queryKey: requestKeys.feedAll });
       if (variables.targetType === "request") {
         void queryClient.invalidateQueries({ queryKey: requestKeys.queue });
       }

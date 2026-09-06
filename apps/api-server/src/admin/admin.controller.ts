@@ -11,6 +11,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { ZodResponse } from 'nestjs-zod';
 import { PasswordResetService } from '../auth/password-reset/password-reset.service';
 import { SessionGuard } from '../auth/session.guard';
 import { UsersService } from '../users/users.service';
@@ -20,8 +21,8 @@ import { RequestsService } from '../requests/requests.service';
 import { SettingsService } from '../settings/settings.service';
 import { UpdateSettingsDto } from '../settings/dto/update-settings.dto';
 import {
+  SettingsResponseDto,
   toSettingsResponseDto,
-  type SettingsResponseDto,
 } from '../settings/dto/settings.dto';
 import { AdminGuard } from './admin.guard';
 import {
@@ -122,12 +123,14 @@ export class AdminController {
   }
 
   @Get('settings')
+  @ZodResponse({ type: SettingsResponseDto })
   async getSettings(): Promise<SettingsResponseDto> {
     const settings = await this.settingsService.get();
     return toSettingsResponseDto(settings);
   }
 
   @Patch('settings')
+  @ZodResponse({ type: SettingsResponseDto })
   async updateSettings(
     @Body() dto: UpdateSettingsDto,
   ): Promise<SettingsResponseDto> {

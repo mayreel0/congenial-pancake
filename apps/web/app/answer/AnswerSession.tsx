@@ -120,10 +120,13 @@ export function AnswerSession() {
           canManageCurrentRequest={prototype.canManageCurrentRequest}
           currentRequest={currentTarget}
           entries={prototype.answerLog}
+          hasOlderEntries={prototype.hasOlderAnswerLogEntries}
+          isLoadingOlderEntries={prototype.isLoadingOlderAnswerLogEntries}
           isTyping={isTyping}
           leavingRequestId={leavingRequestId}
           loadingNext={loadingNext}
           onHold={(requestId) => requestAction("hold", requestId)}
+          onLoadOlderEntries={prototype.loadOlderAnswerLogEntries}
           onReport={(requestId) => requestAction("report", requestId)}
           onSkip={(requestId) => requestAction("skip", requestId)}
         />
@@ -137,7 +140,7 @@ export function AnswerSession() {
               setHoldPanelOpen(false);
             }}
           />
-          {prototype.canManageCurrentRequest ? (
+          {prototype.canManageCurrentRequest && (
             <div className="mx-auto flex w-full max-w-6xl items-center justify-between">
               <button
                 className="text-xs font-medium text-muted transition hover:text-foreground"
@@ -147,11 +150,13 @@ export function AnswerSession() {
                 보류 중 ({prototype.heldRequests.length})
               </button>
             </div>
-          ) : null}
+          )}
         </div>
         <AnswerComposer
+          anonymous={prototype.anonymous}
           disabled={!currentTarget || loadingNext}
           isAnsweringHeldRequest={prototype.isAnsweringHeldRequest}
+          nickname={prototype.nickname}
           pending={answerSubmitStatus === "pending"}
           value={draft}
           onCancelHeld={prototype.closeHeldRequest}
@@ -159,6 +164,7 @@ export function AnswerSession() {
             currentTarget && prototype.updateReplyDraft(currentTarget.id, value)
           }
           onSubmit={handleSubmit}
+          onToggleAnonymous={prototype.toggleAnonymous}
         />
       </div>
       <ActionConfirmDialog

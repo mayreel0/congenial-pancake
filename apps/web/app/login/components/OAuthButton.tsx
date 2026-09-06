@@ -107,11 +107,11 @@ export function OAuthButton({ provider, href, lastUsed = false }: OAuthButtonPro
     >
       <Icon />
       {label}
-      {lastUsed ? (
+      {lastUsed && (
         <span className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-current/15 px-2 py-0.5 text-[11px] font-semibold">
           최근 로그인
         </span>
-      ) : null}
+      )}
     </a>
   );
 }

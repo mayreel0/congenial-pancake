@@ -26,6 +26,11 @@ function makeUser(overrides: Partial<User> = {}): User {
     passwordHash: 'hashed',
     nickname: null,
     emailVerifiedAt: new Date('2026-08-20T00:00:00.000Z'),
+    nicknameChangedAt: null,
+    showRequestsOnProfile: true,
+    showRepliesOnProfile: true,
+    showCountsOnProfile: true,
+    nicknameVisible: true,
     createdAt: new Date('2026-08-20T00:00:00.000Z'),
     ...overrides,
   };

@@ -9,6 +9,9 @@
   "exports": {
     ".": "./src/index.ts"
   },
+  "dependencies": {
+    "shared": "workspace:*"
+  },
   "devDependencies": {
     "@types/node": "^20",
     "eslint": "^9",

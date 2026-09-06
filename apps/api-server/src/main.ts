@@ -1,6 +1,5 @@
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
-import { ValidationPipe } from '@nestjs/common';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
@@ -25,11 +24,9 @@ async function bootstrap() {
     origin: config.get('CORS_ORIGIN', { infer: true }),
     credentials: true,
   });
-  // Every controller input is a DTO class (class-validator decorators);
-  // reject anything with fields a DTO doesn't declare. See apps/api/AGENTS.md.
-  app.useGlobalPipes(
-    new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }),
-  );
+  // Request validation/response serialization pipes are registered as
+  // APP_PIPE/APP_INTERCEPTOR providers in app.module.ts (nestjs-zod needs
+  // DI context) rather than here.
   app.useGlobalFilters(new AppExceptionFilter());
 
   await app.listen(config.get('PORT', { infer: true }));

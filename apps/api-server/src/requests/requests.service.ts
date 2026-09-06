@@ -1,10 +1,18 @@
 import { Injectable } from '@nestjs/common';
-import { RequestGuestLimitExceededException } from '../common/exceptions/app.exception';
+import {
+  NicknameRequiredException,
+  RequestGuestLimitExceededException,
+} from '../common/exceptions/app.exception';
 import { SettingsService } from '../settings/settings.service';
+import { UsersService } from '../users/users.service';
 import type { CreateRequestDto } from './dto/create-request.dto';
 import {
   RequestsRepository,
+  type DateRange,
+  type DayCount,
   type FeedItem,
+  type PagedResult,
+  type Pagination,
   type RequestRecord,
   type RequestWithReplyCount,
 } from './requests.repository';
@@ -14,6 +22,7 @@ export class RequestsService {
   constructor(
     private readonly requestsRepository: RequestsRepository,
     private readonly settingsService: SettingsService,
+    private readonly usersService: UsersService,
   ) {}
 
   async create(
@@ -22,9 +31,17 @@ export class RequestsService {
     guestId: string,
   ): Promise<RequestRecord> {
     if (userId) {
+      // A guest can never post non-anonymously — dto.anonymous is only
+      // meaningful here, on the member path.
+      const anonymous = dto.anonymous !== false;
+      if (!anonymous) {
+        const user = await this.usersService.findById(userId);
+        if (!user?.nickname) throw new NicknameRequiredException();
+      }
       return this.requestsRepository.create({
         body: dto.body,
         authorId: userId,
+        anonymous,
       });
     }
 
@@ -42,8 +59,38 @@ export class RequestsService {
     return this.requestsRepository.findVisibleById(id);
   }
 
-  findFeed(): Promise<FeedItem[]> {
-    return this.requestsRepository.findFeed();
+  findFeed(
+    range: DateRange,
+    pagination: Pagination,
+  ): Promise<PagedResult<FeedItem>> {
+    return this.requestsRepository.findFeed(range, pagination);
+  }
+
+  findMine(
+    authorId: string,
+    range: DateRange,
+    pagination: Pagination,
+  ): Promise<PagedResult<FeedItem>> {
+    return this.requestsRepository.findMine(authorId, range, pagination);
+  }
+
+  countFeedByDay(range: DateRange): Promise<DayCount[]> {
+    return this.requestsRepository.countFeedByDay(range);
+  }
+
+  countMineByDay(authorId: string, range: DateRange): Promise<DayCount[]> {
+    return this.requestsRepository.countMineByDay(authorId, range);
+  }
+
+  findPublicByAuthor(
+    authorId: string,
+    pagination: Pagination,
+  ): Promise<PagedResult<RequestRecord>> {
+    return this.requestsRepository.findPublicByAuthor(authorId, pagination);
+  }
+
+  findFeedItemById(requestId: string): Promise<FeedItem | undefined> {
+    return this.requestsRepository.findFeedItemById(requestId);
   }
 
   async findQueueCandidate(

@@ -47,7 +47,7 @@ export function AdminReview() {
             </p>
           ) : (
             <>
-              {review.hiddenRequests.length > 0 ? (
+              {review.hiddenRequests.length > 0 && (
                 <section className="space-y-3">
                   <h2 className="text-sm font-semibold text-muted">
                     요청 ({review.hiddenRequests.length})
@@ -94,9 +94,9 @@ export function AdminReview() {
                     ))}
                   </ul>
                 </section>
-              ) : null}
+              )}
 
-              {review.hiddenReplies.length > 0 ? (
+              {review.hiddenReplies.length > 0 && (
                 <section className="space-y-3">
                   <h2 className="text-sm font-semibold text-muted">
                     답변 ({review.hiddenReplies.length})
@@ -141,7 +141,7 @@ export function AdminReview() {
                     ))}
                   </ul>
                 </section>
-              ) : null}
+              )}
             </>
           )}
         </AdminStatusGate>

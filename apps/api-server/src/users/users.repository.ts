@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { DRIZZLE } from '../database/database.constants';
 import type { Database } from '../database/database.types';
 import { users } from '../database/schema';
@@ -31,6 +31,24 @@ export class UsersRepository {
     });
   }
 
+  findByIds(ids: string[]): Promise<User[]> {
+    if (ids.length === 0) return Promise.resolve([]);
+    return this.db.query.users.findMany({
+      where: inArray(users.id, ids),
+    });
+  }
+
+  // Nickname isn't unique (see users.schema.ts) — callers resolve the
+  // specific user via nicknameDiscriminator(id) among these candidates.
+  // Nearly always 0-1 rows in practice; a table scan here is fine at this
+  // scale (no index on nickname, matching there being no uniqueness
+  // constraint to index against).
+  findByNickname(nickname: string): Promise<User[]> {
+    return this.db.query.users.findMany({
+      where: eq(users.nickname, nickname),
+    });
+  }
+
   async create(input: CreateUserInput): Promise<User> {
     const [user] = await this.db.insert(users).values(input).returning();
     return user;
@@ -43,7 +61,27 @@ export class UsersRepository {
   async updateNickname(id: string, nickname: string): Promise<User> {
     const [user] = await this.db
       .update(users)
-      .set({ nickname })
+      .set({ nickname, nicknameChangedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
+  async updateProfileVisibility(
+    id: string,
+    patch: Partial<
+      Pick<
+        User,
+        | 'showRequestsOnProfile'
+        | 'showRepliesOnProfile'
+        | 'showCountsOnProfile'
+        | 'nicknameVisible'
+      >
+    >,
+  ): Promise<User> {
+    const [user] = await this.db
+      .update(users)
+      .set(patch)
       .where(eq(users.id, id))
       .returning();
     return user;

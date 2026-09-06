@@ -1,11 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import { AnswerInteractionsService } from '../answer-interactions/answer-interactions.service';
 import {
+  NicknameRequiredException,
   ReplyAlreadySubmittedException,
   ReplyGuestLimitExceededException,
   ReplyUnverifiedLimitExceededException,
   RequestNotFoundException,
 } from '../common/exceptions/app.exception';
+import type {
+  DateRange,
+  DayCount,
+  PagedResult,
+  Pagination,
+  ViewerIdentity,
+} from '../requests/requests.repository';
 import { RequestsService } from '../requests/requests.service';
 import { SettingsService } from '../settings/settings.service';
 import { UsersService } from '../users/users.service';
@@ -42,10 +50,11 @@ export class RepliesService {
       );
       if (existing) throw new ReplyAlreadySubmittedException();
 
+      const user = await this.usersService.findById(userId);
+
       // An unverified member is capped the same as a guest — otherwise
       // hitting the guest cap is trivially bypassed by signing up with any
       // unverified email. Verified members stay uncapped.
-      const user = await this.usersService.findById(userId);
       if (!user?.emailVerifiedAt) {
         const [authorReplyCount, settings] = await Promise.all([
           this.repliesRepository.countByAuthor(userId),
@@ -58,10 +67,18 @@ export class RepliesService {
         }
       }
 
+      // A guest can never reply non-anonymously — dto.anonymous is only
+      // meaningful here, on the member path.
+      const anonymous = dto.anonymous !== false;
+      if (!anonymous) {
+        if (!user?.nickname) throw new NicknameRequiredException();
+      }
+
       const reply = await this.repliesRepository.create({
         requestId,
         body: dto.body,
         authorId: userId,
+        anonymous,
       });
       // Answering a held request resolves it — it shouldn't linger in the
       // hold panel once there's a reply for it.
@@ -107,10 +124,30 @@ export class RepliesService {
   findMine(
     userId: string | undefined,
     guestId: string,
-  ): Promise<ReplyWithRequest[]> {
+    range: DateRange,
+    pagination: Pagination,
+  ): Promise<PagedResult<ReplyWithRequest>> {
     return this.repliesRepository.findMine(
       userId ? { authorId: userId } : { guestId },
+      range,
+      pagination,
     );
+  }
+
+  countMineByDay(
+    userId: string | undefined,
+    guestId: string,
+    range: DateRange,
+  ): Promise<DayCount[]> {
+    const viewer: ViewerIdentity = userId ? { authorId: userId } : { guestId };
+    return this.repliesRepository.countMineByDay(viewer, range);
+  }
+
+  findPublicByAuthor(
+    authorId: string,
+    pagination: Pagination,
+  ): Promise<PagedResult<ReplyWithRequest>> {
+    return this.repliesRepository.findPublicByAuthor(authorId, pagination);
   }
 
   hide(id: string): Promise<void> {

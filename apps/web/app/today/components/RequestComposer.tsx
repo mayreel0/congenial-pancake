@@ -1,6 +1,9 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState } from "react";
+import { createRequestSchema } from "shared/dto";
+import { Toggle } from "ui/Toggle";
+import { parseFieldErrors } from "../../lib/zod-form";
 
 const MIN_TEXTAREA_HEIGHT = 44;
 const MAX_TEXTAREA_HEIGHT = 128;
@@ -8,14 +11,23 @@ const MAX_TEXTAREA_HEIGHT = 128;
 type RequestComposerProps = {
   value: string;
   status: "idle" | "pending" | "success";
+  // Reveal toggle only renders when the user has a nickname to reveal —
+  // guests and nicknameless members can never post non-anonymously (see
+  // docs/decisions/2026-08-28-onseol-nickname-post-reveal-decisions.md).
+  nickname: string | null;
+  anonymous: boolean;
   onChange(value: string): void;
+  onToggleAnonymous(): void;
   onSubmit(value: string): void | Promise<void>;
 };
 
 export function RequestComposer({
   value,
   status,
+  nickname,
+  anonymous,
   onChange,
+  onToggleAnonymous,
   onSubmit,
 }: RequestComposerProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -31,7 +43,13 @@ export function RequestComposer({
   }
 
   const isPending = status === "pending";
-  const canSubmit = Boolean(localValue.trim()) && !isPending;
+  // Just gates the button (no visible per-field error text) — an empty
+  // composer isn't a mistake worth calling out, it's just the resting
+  // state, and the disabled button already says "type something."
+  const fieldErrors = parseFieldErrors(createRequestSchema, {
+    body: localValue.trim(),
+  });
+  const canSubmit = Object.keys(fieldErrors).length === 0 && !isPending;
 
   useLayoutEffect(() => {
     const textarea = textareaRef.current;
@@ -52,6 +70,15 @@ export function RequestComposer({
         if (canSubmit) void onSubmit(localValue.trim());
       }}
     >
+      {nickname && (
+        <div className="mb-1.5">
+          <Toggle
+            checked={!anonymous}
+            label={`닉네임(${nickname})으로 남기기`}
+            onChange={() => onToggleAnonymous()}
+          />
+        </div>
+      )}
       <label className="sr-only" htmlFor="request-body">
         오늘 어떤 말을 듣고 싶나요?
       </label>

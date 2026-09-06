@@ -20,6 +20,12 @@ export const settings = pgTable(
     queueFreshnessHours: integer('queue_freshness_hours').notNull().default(60),
     queueReplyCap: integer('queue_reply_cap').notNull().default(5),
     guestReplyLimit: integer('guest_reply_limit').notNull().default(5),
+    // See docs/decisions/2026-08-29-onseol-nickname-cooldown-decisions.md —
+    // originally a hardcoded 7, moved here so admin can tune it without a
+    // redeploy, same as the other three.
+    nicknameCooldownDays: integer('nickname_cooldown_days')
+      .notNull()
+      .default(7),
     updatedAt: timestamp('updated_at', { withTimezone: true })
       .notNull()
       .defaultNow(),

@@ -1,5 +1,6 @@
 import type { AnswerInteractionsService } from '../answer-interactions/answer-interactions.service';
 import {
+  NicknameRequiredException,
   ReplyAlreadySubmittedException,
   ReplyGuestLimitExceededException,
   ReplyUnverifiedLimitExceededException,
@@ -24,6 +25,7 @@ function makeRequest(overrides: Partial<RequestRecord> = {}): RequestRecord {
     hidden: false,
     deletedAt: null,
     reviewedAt: null,
+    anonymous: true,
     ...overrides,
   };
 }
@@ -39,6 +41,26 @@ function makeReply(overrides: Partial<ReplyRecord> = {}): ReplyRecord {
     hidden: false,
     deletedAt: null,
     reviewedAt: null,
+    anonymous: true,
+    ...overrides,
+  };
+}
+
+// Verified by default — most tests here aren't about the unverified reply
+// cap, so they shouldn't need to think about it.
+function makeUser(overrides: Partial<User> = {}): User {
+  return {
+    id: 'user-1',
+    email: 'user@example.com',
+    passwordHash: null,
+    nickname: null,
+    emailVerifiedAt: new Date('2026-08-21T00:00:00.000Z'),
+    nicknameChangedAt: null,
+    showRequestsOnProfile: true,
+    showRepliesOnProfile: true,
+    showCountsOnProfile: true,
+    nicknameVisible: true,
+    createdAt: new Date('2026-08-21T00:00:00.000Z'),
     ...overrides,
   };
 }
@@ -49,21 +71,8 @@ function makeSettings(overrides: Partial<SettingsRecord> = {}): SettingsRecord {
     queueFreshnessHours: 60,
     queueReplyCap: 5,
     guestReplyLimit: 5,
+    nicknameCooldownDays: 7,
     updatedAt: new Date('2026-08-21T00:00:00.000Z'),
-    ...overrides,
-  };
-}
-
-// Verified by default — most tests here aren't about the unverified reply
-// cap, so they shouldn't need to think about it.
-function makeUser(overrides: Partial<User> = {}): User {
-  return {
-    id: 'user-1',
-    email: 'test@example.com',
-    passwordHash: 'hashed',
-    nickname: null,
-    emailVerifiedAt: new Date('2026-08-21T00:00:00.000Z'),
-    createdAt: new Date('2026-08-21T00:00:00.000Z'),
     ...overrides,
   };
 }
@@ -154,6 +163,7 @@ describe('RepliesService', () => {
         requestId: 'request-1',
         body: '내용',
         authorId: 'user-1',
+        anonymous: true,
       });
       expect(result).toEqual(created);
       // Answering resolves any held/skipped state for this viewer+request.
@@ -199,6 +209,44 @@ describe('RepliesService', () => {
       expect(result).toEqual(created);
     });
 
+    it('creates a named reply when the user opts out of anonymity and has a nickname', async () => {
+      requestsService.findVisibleById.mockResolvedValue(makeRequest());
+      repliesRepository.findByRequestAndAuthor.mockResolvedValue(undefined);
+      usersService.findById.mockResolvedValue(makeUser({ nickname: '민들레' }));
+      const created = makeReply({ authorId: 'user-1', anonymous: false });
+      repliesRepository.create.mockResolvedValue(created);
+
+      const result = await repliesService.create(
+        'request-1',
+        { body: '내용', anonymous: false },
+        'user-1',
+        'unused-guest-id',
+      );
+
+      expect(repliesRepository.create).toHaveBeenCalledWith({
+        requestId: 'request-1',
+        body: '내용',
+        authorId: 'user-1',
+        anonymous: false,
+      });
+      expect(result).toEqual(created);
+    });
+
+    it('throws when the user opts out of anonymity without a nickname set', async () => {
+      requestsService.findVisibleById.mockResolvedValue(makeRequest());
+      repliesRepository.findByRequestAndAuthor.mockResolvedValue(undefined);
+      usersService.findById.mockResolvedValue(makeUser({ nickname: null }));
+
+      await expect(
+        repliesService.create(
+          'request-1',
+          { body: '내용', anonymous: false },
+          'user-1',
+          'unused-guest-id',
+        ),
+      ).rejects.toBeInstanceOf(NicknameRequiredException);
+      expect(repliesRepository.create).not.toHaveBeenCalled();
+    });
     it('throws when the guest already replied 5 times total, across any requests', async () => {
       requestsService.findVisibleById.mockResolvedValue(makeRequest());
       repliesRepository.countByGuest.mockResolvedValue(5);
@@ -267,23 +315,43 @@ describe('RepliesService', () => {
 
   describe('findMine', () => {
     it('resolves the viewer identity for a logged-in user', async () => {
-      repliesRepository.findMine.mockResolvedValue([]);
-
-      await repliesService.findMine('user-1', 'unused-guest-id');
-
-      expect(repliesRepository.findMine).toHaveBeenCalledWith({
-        authorId: 'user-1',
+      repliesRepository.findMine.mockResolvedValue({
+        items: [],
+        totalItems: 0,
       });
+
+      await repliesService.findMine(
+        'user-1',
+        'unused-guest-id',
+        {},
+        { page: 1, pageSize: 20 },
+      );
+
+      expect(repliesRepository.findMine).toHaveBeenCalledWith(
+        { authorId: 'user-1' },
+        {},
+        { page: 1, pageSize: 20 },
+      );
     });
 
     it('resolves the viewer identity for a guest', async () => {
-      repliesRepository.findMine.mockResolvedValue([]);
-
-      await repliesService.findMine(undefined, 'guest-1');
-
-      expect(repliesRepository.findMine).toHaveBeenCalledWith({
-        guestId: 'guest-1',
+      repliesRepository.findMine.mockResolvedValue({
+        items: [],
+        totalItems: 0,
       });
+
+      await repliesService.findMine(
+        undefined,
+        'guest-1',
+        {},
+        { page: 1, pageSize: 20 },
+      );
+
+      expect(repliesRepository.findMine).toHaveBeenCalledWith(
+        { guestId: 'guest-1' },
+        {},
+        { page: 1, pageSize: 20 },
+      );
     });
   });
 });

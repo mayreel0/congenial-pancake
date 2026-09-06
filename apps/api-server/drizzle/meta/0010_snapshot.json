@@ -1,5 +1,5 @@
 {
-  "id": "0bf2f743-ef48-4c02-b20e-25e8bd2f098f",
+  "id": "eae93307-40e8-498b-9282-78a9510add3f",
   "prevId": "99673c5c-385d-475f-9bf4-367d34b29844",
   "version": "7",
   "dialect": "postgresql",
@@ -30,12 +30,6 @@
         "nickname": {
           "name": "nickname",
           "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "email_verified_at": {
-          "name": "email_verified_at",
-          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
         },
@@ -190,6 +184,13 @@
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
+        },
+        "anonymous": {
+          "name": "anonymous",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
         }
       },
       "indexes": {},
@@ -223,6 +224,10 @@
         "requests_author_or_guest": {
           "name": "requests_author_or_guest",
           "value": "\"requests\".\"author_id\" is not null or \"requests\".\"guest_id\" is not null"
+        },
+        "requests_guest_must_be_anonymous": {
+          "name": "requests_guest_must_be_anonymous",
+          "value": "\"requests\".\"author_id\" is not null or \"requests\".\"anonymous\" = true"
         }
       },
       "isRLSEnabled": false
@@ -287,6 +292,13 @@
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
+        },
+        "anonymous": {
+          "name": "anonymous",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
         }
       },
       "indexes": {},
@@ -334,6 +346,10 @@
         "replies_author_or_guest": {
           "name": "replies_author_or_guest",
           "value": "\"replies\".\"author_id\" is not null or \"replies\".\"guest_id\" is not null"
+        },
+        "replies_guest_must_be_anonymous": {
+          "name": "replies_guest_must_be_anonymous",
+          "value": "\"replies\".\"author_id\" is not null or \"replies\".\"anonymous\" = true"
         }
       },
       "isRLSEnabled": false
@@ -773,79 +789,6 @@
       "uniqueConstraints": {
         "password_reset_tokens_token_hash_unique": {
           "name": "password_reset_tokens_token_hash_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "token_hash"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.email_verification_tokens": {
-      "name": "email_verification_tokens",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "token_hash": {
-          "name": "token_hash",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "expires_at": {
-          "name": "expires_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "used_at": {
-          "name": "used_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "email_verification_tokens_user_id_users_id_fk": {
-          "name": "email_verification_tokens_user_id_users_id_fk",
-          "tableFrom": "email_verification_tokens",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "email_verification_tokens_token_hash_unique": {
-          "name": "email_verification_tokens_token_hash_unique",
           "nullsNotDistinct": false,
           "columns": [
             "token_hash"

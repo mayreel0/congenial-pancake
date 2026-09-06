@@ -1,6 +1,29 @@
 import "@testing-library/jest-dom/vitest";
 import { afterEach, beforeEach, vi } from "vitest";
 
+// jsdom has no real IntersectionObserver — AnswerLog's reverse-infinite-
+// scroll (and anything else using this pattern later) needs one to exist so
+// construction doesn't throw. Exported so a test can grab the most recent
+// instance and manually invoke its callback to simulate a sentinel
+// scrolling into view.
+export class MockIntersectionObserver implements IntersectionObserver {
+  static instances: MockIntersectionObserver[] = [];
+  readonly root = null;
+  readonly rootMargin = "";
+  readonly thresholds: ReadonlyArray<number> = [];
+  callback: IntersectionObserverCallback;
+
+  constructor(callback: IntersectionObserverCallback) {
+    this.callback = callback;
+    MockIntersectionObserver.instances.push(this);
+  }
+
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
+  takeRecords = vi.fn(() => [] as IntersectionObserverEntry[]);
+}
+
 // AuthContext (and /login) call useRouter() — there's no real Next.js App
 // Router in a plain RTL render, so every component that renders AuthProvider
 // (effectively the whole app) needs this mocked.
@@ -15,6 +38,11 @@ vi.mock("next/navigation", () => ({
   }),
   usePathname: () => "/",
   useSearchParams: () => new URLSearchParams(),
+  // vi.fn() (not a plain arrow fn) so a test that needs a specific dynamic
+  // route param (e.g. /u/[slug]) can override it per-test via
+  // vi.mocked(useParams).mockReturnValue({ slug: "..." }) — other mocks
+  // above don't need this since nothing currently overrides them per-test.
+  useParams: vi.fn(() => ({})),
 }));
 
 // AuthProvider calls /auth/me on mount, and useRequestsQuery calls
@@ -23,6 +51,8 @@ vi.mock("next/navigation", () => ({
 // logged in" / "no requests yet" so components don't need real network
 // access. Tests that care about either override with mockResolvedValueOnce.
 beforeEach(() => {
+  MockIntersectionObserver.instances = [];
+  vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
   vi.stubGlobal(
     "fetch",
     vi.fn((input: RequestInfo | URL) => {
@@ -33,6 +63,27 @@ beforeEach(() => {
           ok: true,
           status: 200,
           json: () => Promise.resolve([]),
+        });
+      }
+
+      if (url.includes("/public/stats")) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () =>
+            Promise.resolve({
+              requests: { today: 0, month: 0, total: 0 },
+              replies: { today: 0, month: 0, total: 0 },
+              waitingForReply: 0,
+            }),
+        });
+      }
+
+      if (url.includes("/public/samples")) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({ samples: [] }),
         });
       }
 

@@ -85,15 +85,33 @@ describe("useTodayComposer", () => {
 
   it("shows pending, blocks duplicate submission, then clears the draft on success", async () => {
     const postDeferred = makeDeferred<FetchResponse>();
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(jsonResponse(200, []))
-      .mockReturnValueOnce(postDeferred.promise)
-      .mockResolvedValueOnce(
-        jsonResponse(200, [
-          { id: "r1", body: "오늘은 조금 지쳤어요.", createdAt: "2026-08-22T00:00:00.000Z", replyCount: 0 },
-        ]),
-      );
+    let getRequestsCallCount = 0;
+    // URL/method-branched instead of positional mockResolvedValueOnce
+    // chaining — useTodayComposer also queries /auth/me now (for the
+    // nickname reveal toggle), so a fixed call-order assumption would break
+    // depending on which of /auth/me and /requests happens to fire first.
+    const fetchMock = vi.fn(
+      (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = typeof input === "string" ? input : input.toString();
+        const method = init?.method ?? "GET";
+
+        if (url.endsWith("/auth/me")) {
+          return Promise.resolve(jsonResponse(401, { code: "UNAUTHORIZED" }));
+        }
+        if (url.endsWith("/requests") && method === "POST") {
+          return postDeferred.promise;
+        }
+        if (url.endsWith("/requests") && getRequestsCallCount === 0) {
+          getRequestsCallCount += 1;
+          return Promise.resolve(jsonResponse(200, []));
+        }
+        return Promise.resolve(
+          jsonResponse(200, [
+            { id: "r1", body: "오늘은 조금 지쳤어요.", createdAt: "2026-08-22T00:00:00.000Z", replyCount: 0 },
+          ]),
+        );
+      },
+    );
     vi.stubGlobal("fetch", fetchMock);
 
     render(<Harness />);
@@ -136,18 +154,27 @@ describe("useTodayComposer", () => {
   });
 
   it("returns success status to idle when the user starts a new draft", async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(jsonResponse(200, []))
-      .mockResolvedValueOnce(
-        jsonResponse(201, {
-          id: "r1",
-          body: "칭찬이 필요한 하루였어요.",
-          createdAt: "2026-08-22T00:00:00.000Z",
-          replyCount: 0,
-        }),
-      )
-      .mockResolvedValueOnce(jsonResponse(200, []));
+    const fetchMock = vi.fn(
+      (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = typeof input === "string" ? input : input.toString();
+        const method = init?.method ?? "GET";
+
+        if (url.endsWith("/auth/me")) {
+          return Promise.resolve(jsonResponse(401, { code: "UNAUTHORIZED" }));
+        }
+        if (url.endsWith("/requests") && method === "POST") {
+          return Promise.resolve(
+            jsonResponse(201, {
+              id: "r1",
+              body: "칭찬이 필요한 하루였어요.",
+              createdAt: "2026-08-22T00:00:00.000Z",
+              replyCount: 0,
+            }),
+          );
+        }
+        return Promise.resolve(jsonResponse(200, []));
+      },
+    );
     vi.stubGlobal("fetch", fetchMock);
 
     render(<Harness />);

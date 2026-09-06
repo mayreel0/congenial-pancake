@@ -44,7 +44,7 @@ export function AdminNav({ activePath }: AdminNavProps) {
           ))}
         </nav>
       </div>
-      {auth.status === "authenticated" ? (
+      {auth.status === "authenticated" && (
         <button
           className="text-sm text-muted transition hover:text-foreground"
           type="button"
@@ -52,7 +52,7 @@ export function AdminNav({ activePath }: AdminNavProps) {
         >
           로그아웃
         </button>
-      ) : null}
+      )}
     </header>
   );
 }

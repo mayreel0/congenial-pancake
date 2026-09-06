@@ -1,6 +1,7 @@
 packages:
   - "apps/*"
   - "packages/*"
+  - "tools/*"
 overrides:
   # storybook@10.5.9 bundles @testing-library/jest-dom@6.x as a transitive
   # dependency, which duplicates apps/web's own 7.0.1 and collides on the

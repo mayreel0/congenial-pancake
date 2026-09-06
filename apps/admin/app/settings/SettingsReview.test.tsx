@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "../lib/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { AdminSettingsDto } from "../lib/admin/settings-api";
+import type { SettingsResponseDto } from "shared/dto";
 import { SettingsReview } from "./SettingsReview";
 
 type MockResponse = { ok: boolean; status: number; json: () => Promise<unknown> };
@@ -10,12 +10,13 @@ function jsonResponse(status: number, body: unknown): MockResponse {
 }
 
 function makeSettings(
-  overrides: Partial<AdminSettingsDto> = {},
-): AdminSettingsDto {
+  overrides: Partial<SettingsResponseDto> = {},
+): SettingsResponseDto {
   return {
     queueFreshnessHours: 60,
     queueReplyCap: 5,
     guestReplyLimit: 5,
+    nicknameCooldownDays: 7,
     updatedAt: "2026-08-26T00:00:00.000Z",
     ...overrides,
   };
@@ -23,7 +24,7 @@ function makeSettings(
 
 // Same fake-backend pattern as AdminReview.test.tsx.
 function installFakeBackend(
-  settings: AdminSettingsDto,
+  settings: SettingsResponseDto,
   {
     loggedIn = true,
     isAdmin = true,

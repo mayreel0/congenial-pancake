@@ -6,7 +6,10 @@ import {
   login as apiLogin,
   logout as apiLogout,
   signup as apiSignup,
+  updateNickname as apiUpdateNickname,
+  updateProfileVisibility as apiUpdateProfileVisibility,
   type CurrentUser,
+  type ProfileVisibilityPatch,
 } from "../api";
 
 export const authKeys = {
@@ -41,6 +44,29 @@ export function useSignupMutation() {
   return useMutation({
     mutationFn: ({ email, password }: { email: string; password: string }) =>
       apiSignup(email, password),
+    onSuccess: (user: CurrentUser) => {
+      queryClient.setQueryData(authKeys.me, user);
+    },
+  });
+}
+
+export function useUpdateNicknameMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (nickname: string) => apiUpdateNickname(nickname),
+    onSuccess: (user: CurrentUser) => {
+      queryClient.setQueryData(authKeys.me, user);
+    },
+  });
+}
+
+export function useUpdateProfileVisibilityMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (patch: ProfileVisibilityPatch) =>
+      apiUpdateProfileVisibility(patch),
     onSuccess: (user: CurrentUser) => {
       queryClient.setQueryData(authKeys.me, user);
     },

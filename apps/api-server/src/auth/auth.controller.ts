@@ -8,6 +8,7 @@ import {
   InternalServerErrorException,
   NotFoundException,
   Param,
+  Patch,
   Post,
   Req,
   Res,
@@ -16,6 +17,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Throttle } from '@nestjs/throttler';
 import { ApiTags } from '@nestjs/swagger';
+import { ZodResponse } from 'nestjs-zod';
 import type { Request, Response } from 'express';
 import type { Env } from '../config/env.schema';
 import {
@@ -27,16 +29,14 @@ import type { AuthenticatedRequest } from './authenticated-request';
 import { CurrentUser } from './current-user.decorator';
 import { LoginDto } from './dto/login.dto';
 import { SignupDto } from './dto/signup.dto';
-import {
-  toUserResponseDto,
-  type UserResponseDto,
-} from './dto/user-response.dto';
+import { UserResponseDto, toUserResponseDto } from './dto/user-response.dto';
 import { EmailVerificationService } from './email-verification/email-verification.service';
 import { OAuthProviderRegistry } from './oauth/oauth-provider-registry';
 import { PasswordResetService } from './password-reset/password-reset.service';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { UpdateNicknameDto } from './dto/update-nickname.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
+import { UpdateProfileVisibilityDto } from './dto/update-profile-visibility.dto';
 import { clearSessionCookie, setSessionCookie } from './session-cookie';
 import { SessionGuard } from './session.guard';
 import { SessionService } from './session.service';
@@ -64,6 +64,7 @@ export class AuthController {
   @Throttle({ default: { ttl: 60_000, limit: 5 } })
   @Post('signup')
   @HttpCode(HttpStatus.CREATED)
+  @ZodResponse({ status: HttpStatus.CREATED, type: UserResponseDto })
   async signup(
     @Body() dto: SignupDto,
     @Req() req: Request,
@@ -74,12 +75,15 @@ export class AuthController {
       req.headers['user-agent'],
     );
     setSessionCookie(res, this.config, session.token, session.expiresAt);
-    return toUserResponseDto(user);
+    const nicknameChangeAvailableAt =
+      await this.usersService.nicknameChangeAvailableAt(user);
+    return toUserResponseDto(user, nicknameChangeAvailableAt);
   }
 
   @Throttle({ default: { ttl: 60_000, limit: 5 } })
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @ZodResponse({ type: UserResponseDto })
   async login(
     @Body() dto: LoginDto,
     @Req() req: Request,
@@ -90,7 +94,9 @@ export class AuthController {
       req.headers['user-agent'],
     );
     setSessionCookie(res, this.config, session.token, session.expiresAt);
-    return toUserResponseDto(user);
+    const nicknameChangeAvailableAt =
+      await this.usersService.nicknameChangeAvailableAt(user);
+    return toUserResponseDto(user, nicknameChangeAvailableAt);
   }
 
   // Public — the token itself (not a session) is the proof of authorization,
@@ -155,6 +161,7 @@ export class AuthController {
 
   @Get('me')
   @UseGuards(SessionGuard)
+  @ZodResponse({ type: UserResponseDto })
   async me(@CurrentUser() userId: string): Promise<UserResponseDto> {
     const user = await this.usersService.findById(userId);
     if (!user) {
@@ -162,7 +169,9 @@ export class AuthController {
         'Session references a missing user.',
       );
     }
-    return toUserResponseDto(user);
+    const nicknameChangeAvailableAt =
+      await this.usersService.nicknameChangeAvailableAt(user);
+    return toUserResponseDto(user, nicknameChangeAvailableAt);
   }
 
   // No reveal/anonymity behavior yet — this only lets a signed-in user set
@@ -171,12 +180,33 @@ export class AuthController {
   @Post('nickname')
   @UseGuards(SessionGuard)
   @HttpCode(HttpStatus.OK)
+  @ZodResponse({ type: UserResponseDto })
   async updateNickname(
     @CurrentUser() userId: string,
     @Body() dto: UpdateNicknameDto,
   ): Promise<UserResponseDto> {
     const user = await this.usersService.updateNickname(userId, dto.nickname);
-    return toUserResponseDto(user);
+    const nicknameChangeAvailableAt =
+      await this.usersService.nicknameChangeAvailableAt(user);
+    return toUserResponseDto(user, nicknameChangeAvailableAt);
+  }
+
+  // Independent per-field switches — three for the public profile
+  // (/u/[slug]) itself, plus nicknameVisible (whether the nickname shows up
+  // anywhere at all, including past posts) — see users.schema.ts and
+  // ProfileService.findProfile.
+  @Patch('profile-visibility')
+  @UseGuards(SessionGuard)
+  @HttpCode(HttpStatus.OK)
+  @ZodResponse({ type: UserResponseDto })
+  async updateProfileVisibility(
+    @CurrentUser() userId: string,
+    @Body() dto: UpdateProfileVisibilityDto,
+  ): Promise<UserResponseDto> {
+    const user = await this.usersService.updateProfileVisibility(userId, dto);
+    const nicknameChangeAvailableAt =
+      await this.usersService.nicknameChangeAvailableAt(user);
+    return toUserResponseDto(user, nicknameChangeAvailableAt);
   }
 
   // One pair of routes for every provider (google/kakao/naver) instead of

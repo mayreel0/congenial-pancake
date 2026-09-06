@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { boolean, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -7,9 +7,10 @@ export const users = pgTable('users', {
   passwordHash: text('password_hash'),
   // Self-chosen, NOT unique (see docs/decisions/2026-08-28-onseol-nickname-
   // decisions.md) — deliberately not derived from email/real name/OAuth
-  // profile, and never shown unless the author opts in per-post (a future
-  // round; unused by anything yet). Duplicates are told apart in the UI by
-  // a discriminator derived from `id` (see users/nickname-discriminator.ts)
+  // profile, shown only on posts where the author opted in for that
+  // specific post (see docs/decisions/2026-08-28-onseol-nickname-post-
+  // reveal-decisions.md). Duplicates are told apart in the UI by a
+  // discriminator derived from `id` (see users/nickname-discriminator.ts)
   // rather than by forcing global uniqueness.
   nickname: text('nickname'),
   // Null = unverified. OAuth signups get this stamped immediately (the
@@ -17,6 +18,36 @@ export const users = pgTable('users', {
   // and verify via email_verification_tokens. An unverified member is
   // capped the same as a guest for replies — see RepliesService.
   emailVerifiedAt: timestamp('email_verified_at', { withTimezone: true }),
+  // Null until the first time nickname is set. Setting a nickname for the
+  // first time (from null) is always free; every change after that is
+  // rate-limited against this timestamp — see UsersService.updateNickname
+  // and docs/decisions/2026-08-29-onseol-nickname-cooldown-decisions.md.
+  nicknameChangedAt: timestamp('nickname_changed_at', { withTimezone: true }),
+  // Independent public-profile (/u/[slug]) visibility switches — all
+  // default true (opt-out, not opt-in) since a member who's already
+  // revealing their nickname per-post has implicitly signaled they're okay
+  // being found. showCountsOnProfile is deliberately separate from the two
+  // list toggles (not derived from them) — a member can show activity
+  // counts as a trust signal while keeping the actual content hidden, or
+  // vice versa. See docs/decisions/2026-08-30-onseol-profile-privacy-
+  // decisions.md.
+  showRequestsOnProfile: boolean('show_requests_on_profile')
+    .notNull()
+    .default(true),
+  showRepliesOnProfile: boolean('show_replies_on_profile')
+    .notNull()
+    .default(true),
+  showCountsOnProfile: boolean('show_counts_on_profile')
+    .notNull()
+    .default(true),
+  // Whether the nickname is shown to anyone but the owner — a pure
+  // visibility switch, deliberately NOT the same as clearing/changing the
+  // nickname text. Toggling this doesn't touch `nickname` or
+  // `nicknameChangedAt`, so it never resets or bypasses the change
+  // cooldown; the underlying nickname (and its cooldown clock) is exactly
+  // as if this toggle didn't exist. See UsersService.nicknameMapFor and
+  // docs/decisions/2026-08-30-onseol-profile-privacy-decisions.md.
+  nicknameVisible: boolean('nickname_visible').notNull().default(true),
   createdAt: timestamp('created_at', { withTimezone: true })
     .notNull()
     .defaultNow(),

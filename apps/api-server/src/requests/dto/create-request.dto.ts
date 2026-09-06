@@ -1,8 +1,4 @@
-import { IsString, MaxLength, MinLength } from 'class-validator';
+import { createZodDto } from 'nestjs-zod';
+import { createRequestSchema } from 'shared/dto';
 
-export class CreateRequestDto {
-  @IsString()
-  @MinLength(1, { message: '내용을 입력해주세요.' })
-  @MaxLength(500, { message: '500자 이하로 입력해주세요.' })
-  body!: string;
-}
+export class CreateRequestDto extends createZodDto(createRequestSchema) {}

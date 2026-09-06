@@ -81,6 +81,22 @@ Do not default to writing wiki documents into the current repository.
 Before making a product, UX, technical stack, backend, infrastructure, deployment, moderation, or workflow decision, present the recommended choice with rationale and ask the user to confirm.
 Do not silently finalize meaningful tradeoffs.
 
+Record each confirmed decision as its own file in `docs/decisions/`, named `YYYY-MM-DD-onseol-<topic>-decisions.md` (one file per decision session, real calendar date). Follow the shape already used by every existing file in that folder: 배경(context) → the decision(s) with rationale ("근거") → 산출물(what was actually built) → 검증(how it was verified) → 남은 일(what's left/deferred). Check `docs/decisions/` before proposing a design that touches auth, DB schema, moderation, or anonymous/guest access — several of these are already decided and documented; re-deciding from scratch risks contradicting a real prior decision instead of building on it. This is the default even outside Project Wiki Mode — Project Wiki Mode (above) is for promoting this into an Obsidian vault, not a substitute for it.
+
+## Git & PR Conventions
+
+- Never push directly to `main` or `v1` — every change goes through a work branch and a PR. This is enforced, not just prose: `.claude/hooks/block-main-push.py` (registered in `.claude/settings.json`) blocks a `git push` targeting either branch, explicit or implicit.
+- Commit messages and PR titles both use a `<type>: <설명>` prefix (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, ...), and the two must match for the same change. Before writing either, check the existing convention rather than assuming — `git log --oneline -10` for commit style, `gh pr list --state all --limit 10` for PR title style. Do not title a PR without doing this check, even if the commit message already has a prefix. PR titles are also checked by CI (`.github/workflows/pr-title.yml`) before merge.
+- Prefer several small, single-concern PRs over one large bundled one. This repo's history deliberately splits backend and frontend for the same feature into separate rounds — default to proposing that split rather than bundling.
+
+## Verification Standard
+
+Passing lint/typecheck/tests is necessary but not sufficient before calling a change done. Verify backend changes against a real local server with `curl` (not just unit tests); verify frontend changes by clicking through them in a real browser against a live dev server. This has been the bar for every round in this project so far — treat it as a requirement, not an optional extra.
+
+## Local Dev Server Hygiene
+
+If you start a background dev server (`pnpm --filter <app> dev` / `start:dev`) to verify a change, stop it yourself once verification is done — don't leave it running for the user to find and kill later. Ports that recur in this project: `apps/web` 3000, `apps/api-server` 8080, `apps/admin` 3002, `apps/storybook-app` 6006, `apps/api-server`'s Swagger-only process 8081.
+
 ## Knowledge Capture Purpose
 
 The applied `effective-doodle` system is the project's LLM wiki workflow.
@@ -110,5 +126,7 @@ This is a pnpm workspace (`packages: apps/*`, `packages/*`). Each app/package ke
 - `packages/ui` — React components genuinely shared between `apps/web` and `apps/admin` (a confirm dialog, a query provider, a primary button, a labeled text field) — see `packages/ui/AGENTS.md` and `docs/decisions/2026-08-25-onseol-shared-ui-package-decisions.md`. Not a general dumping ground: only things identical in both apps with no reason to diverge belong here.
 - `packages/api` — shared fetch wrapper + auth calls (`apiFetch`, `login`/`logout`/`fetchCurrentUser`). Can use the plain name `api` because the backend is `apps/api-server`, not `apps/api` — see `packages/api/AGENTS.md`.
 - `packages/utils` — shared plain-TS helpers (currently just `formatTimestamp`). Named `utils`, not `util`, to avoid colliding with Node's built-in `util` module — see `packages/utils/AGENTS.md`.
+- `packages/shared` — plain-TS helpers shared across the frontend/backend boundary specifically (`apps/web` **and** `apps/api-server`, unlike `packages/ui`/`api`/`utils` which only ever cross `apps/web`/`apps/admin`) — currently pagination envelope/parsing and the KST date-string subset genuinely identical on both sides. Works with no build step the same way the other `packages/*` do, but relies on Node's native TypeScript stripping (not a bundler) for `apps/api-server` to consume it — see `packages/shared/AGENTS.md` for the constraint that follows from that (erasable syntax only) and `docs/decisions/2026-09-01-onseol-shared-package-spike-decisions.md`.
 - `apps/storybook-app` — runs Storybook only; owns no components itself. Its `stories` glob scans component-adjacent story files wherever they actually live (`apps/web/app/**/*.stories.tsx`, `packages/ui/src/**/*.stories.tsx`) rather than requiring them to move here — see `apps/storybook-app/AGENTS.md` and `docs/decisions/2026-08-26-onseol-storybook-app-decisions.md`. Directory is `apps/storybook-app` (not `apps/storybook`) to match its own `package.json` name `storybook-app` — that name predates this note and was chosen to avoid a pnpm workspace collision with the real `storybook` npm package (a devDependency here and in `apps/web`/`apps/admin`/`packages/ui` for story-file typechecking).
 - `apps/api-server` — Nest.js backend. Run scripts via `pnpm --filter api-server <script>`. See `apps/api-server/AGENTS.md` for Nest-specific conventions (auth, DB, module boundaries). Named `api-server`, not `api`, so `packages/api` (the frontend fetch-client package) could have the more natural short name instead.
+- `infra/terraform` — AWS deployment for `apps/api-server` only (VPC/EC2/ALB/RDS/ECR at `api.onseol.com`) — not part of the pnpm workspace. `apps/web`/`apps/admin` deploy on Vercel instead, outside this directory. See `infra/terraform/README.md` for the full apply order, secrets setup, and migration/redeploy runbook — real AWS resources with real cost, don't `terraform apply` without the user's explicit go-ahead each time.

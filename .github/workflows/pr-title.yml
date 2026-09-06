@@ -1,0 +1,19 @@
+name: PR title lint
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+jobs:
+  check-title:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR title convention
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          echo "PR title: $TITLE"
+          if ! echo "$TITLE" | grep -Eq '^(feat|fix|chore|docs|refactor|test|perf|style|ci|build)(\([a-z0-9_-]+\))?: .+'; then
+            echo "::error::PR 제목은 'feat:', 'fix:', 'chore:', 'docs:', 'refactor:' 등 '<type>: <설명>' 형식을 따라야 합니다. 현재 제목: $TITLE"
+            exit 1
+          fi
