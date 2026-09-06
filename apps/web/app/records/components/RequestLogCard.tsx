@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { AuthorLabel } from "../../components/shared/AuthorLabel";
 import { authorDisplayLabel, authorProfileHref } from "../../lib/author-label";
 import { formatTimestamp } from "../../lib/format";
 import type { MyRequestLogEntryDto } from "../../lib/requests/api";
@@ -24,18 +24,10 @@ export function RequestLogCard({ entry }: { entry: MyRequestLogEntryDto }) {
           {entry.replies.map((reply) => (
             <li className="flex justify-end" key={reply.id}>
               <article className="max-w-[85%] space-y-1.5 rounded-lg bg-primary/10 px-4 py-3 sm:max-w-[70%]">
-                {authorProfileHref(reply.author) ? (
-                  <Link
-                    className="text-xs font-semibold text-muted hover:underline"
-                    href={authorProfileHref(reply.author)!}
-                  >
-                    {authorDisplayLabel(reply.author, "익명")}
-                  </Link>
-                ) : (
-                  <p className="text-xs font-semibold text-muted">
-                    {authorDisplayLabel(reply.author, "익명")}
-                  </p>
-                )}
+                <AuthorLabel
+                  href={authorProfileHref(reply.author)}
+                  label={authorDisplayLabel(reply.author, "익명")}
+                />
                 <p className="text-sm leading-6 text-foreground">{reply.body}</p>
                 <time
                   className="block text-xs text-muted"
