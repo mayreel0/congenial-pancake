@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
 import { EmailService } from './email.service';
-import { NaverCloudMailerProvider } from './providers/naver-cloud-mailer.provider';
 import { ResendEmailProvider } from './providers/resend-email.provider';
+import { SesEmailProvider } from './providers/ses-email.provider';
 
 @Module({
-  providers: [ResendEmailProvider, NaverCloudMailerProvider, EmailService],
+  providers: [ResendEmailProvider, SesEmailProvider, EmailService],
   exports: [EmailService],
 })
 export class EmailModule {}

@@ -46,3 +46,16 @@ Naver Cloud Mailer의 HMAC 서명 구현은 NCP API Gateway의 공통 서명 규
 - 프론트엔드는 이번 라운드 범위 밖(백엔드 우선 원칙) — `/verify-email?token=...` 소비 페이지, 가입 직후 "메일함을 확인하세요" 안내, `/me`에 미인증 배지/재발송 버튼 등은 다음 라운드.
 - 사용자가 Resend/Naver Cloud Mailer 계정을 만들고 실제 자격증명(`RESEND_API_KEY`/`RESEND_FROM_EMAIL`/`NAVER_CLOUD_MAILER_*`)을 발급받아야 실제 이메일이 나간다 — 계정 생성은 어시스턴트가 대행할 수 없는 영역. Naver Cloud Mailer는 특히 발신 주소를 콘솔에서 사전 인증해야 발송이 성공한다.
 - 답글 상한을 "총량"이 아니라 "몰아쓰기 감지"(짧은 시간 창 기반)로 바꾸는 논의는 여전히 보류 — 이메일 인증이 근본 원인(계정 생성 비용 0)을 얼마나 해결하는지 지켜본 뒤 재논의하기로 함.
+
+## 추가 (2026-09-07): fallback을 Naver Cloud Mailer → SES로 교체
+
+PR #91을 머지 전 rebase하던 중, 사용자가 실제로 NCP 메일러 이용 신청을 시도하다가 **사업자 등록이 없으면 API 이용 신청 자체가 막힌다**는 걸 확인 — 개인/비사업자 계정으로는 애초에 설정할 수 없는 provider였다는 뜻이라 대체가 불가피했다.
+
+대안으로 Amazon SES, Mailgun, "Resend 단일 운영(무료 한도 안에서는 fallback 자체가 불필요)", "Mailgun+SES 병행(무료 한도 소진 시 로테이션)"을 놓고 추천과 함께 확인 요청. 결정: **Resend + SES(추천안)**. 근거:
+- SES는 Lambda 발신이 아닌 이상 사실상 첫 통부터 유료(1,000통당 $0.10)지만, 그만큼 매우 저렴 — Mailgun은 예전과 달리 지금은 영구 무료 플랜이 아니라 기간제 체험판이라 "무료 한도 로테이션"의 전제 자체가 불안정.
+- 이 프로젝트는 아직 실사용자가 없는 단계라 Resend 무료 한도(월 3,000통)를 채울 일이 당분간 없음 — 3벤더 로테이션은 아직 존재하지 않는 스케일 문제를 미리 푸는 과도한 설계.
+- SES는 이미 있는 AWS 계정/EC2 인스턴스 프로파일(`infra/terraform/ec2.tf`)에 `ses:SendEmail`/`ses:SendRawEmail` 권한만 추가하면 되어 새 벤더 관계·새 자격증명 관리가 필요 없음 — `NAVER_CLOUD_MAILER_ACCESS_KEY`/`SECRET_KEY`류 env var가 통째로 사라지고 `AWS_REGION`/`SES_FROM_EMAIL`만 남음.
+
+구현: `NaverCloudMailerProvider` 삭제, `SesEmailProvider`(`@aws-sdk/client-ses`) 신설 — AWS SDK 기본 자격증명 체인을 그대로 사용(로컬은 `~/.aws` 프로필/env var, 프로덕션은 EC2 인스턴스 role). `EmailService`의 provider 배열은 `[resend, ses]`로 교체. 이 fallback은 여전히 quota 로테이션이 아니라 "Resend 자체 장애 시" 대비 목적 — 결정 1의 원래 취지(모든 실패를 fallback 트리거로 취급)는 그대로 유지.
+
+프로덕션 배포용 `terraform.tfvars`/SSM 시크릿/`user-data.sh.tftpl`에 `RESEND_API_KEY`/`RESEND_FROM_EMAIL`/`SES_FROM_EMAIL` 실제 값을 배선하는 작업은 여전히 보류 — 이미 합의된 대로 프론트엔드 라운드와 함께 한 번에 처리(SES는 인스턴스 role 기반이라 이 중 SSM 시크릿 관리 대상이 아님, IAM 권한 자체는 이번에 미리 부여해둠).

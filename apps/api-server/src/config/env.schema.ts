@@ -41,20 +41,24 @@ export const envSchema = z.object({
   NAVER_CLIENT_ID: z.string().default(''),
   NAVER_CLIENT_SECRET: z.string().default(''),
   // Email verification — EmailService tries providers in this order
-  // (Resend first, Naver Cloud Mailer as fallback), so both sets of
-  // credentials are optional the same way Kakao/Naver's are: the app boots
-  // without them, a provider whose credentials are empty just fails its
-  // send attempt (falling through to the next provider, or throwing if
-  // it's the last one) rather than the whole app refusing to start.
+  // (Resend first, SES as outage fallback), so both sets of credentials
+  // are optional the same way Kakao/Naver's are: the app boots without
+  // them, a provider whose credentials/verified-sender are missing just
+  // fails its send attempt (falling through to the next provider, or
+  // throwing if it's the last one) rather than the whole app refusing to
+  // start.
   RESEND_API_KEY: z.string().default(''),
   // Must be a verified sending domain in Resend for anything beyond their
   // own onboarding@resend.dev test address — see resend.com/domains.
   RESEND_FROM_EMAIL: z.string().default(''),
-  NAVER_CLOUD_MAILER_ACCESS_KEY: z.string().default(''),
-  NAVER_CLOUD_MAILER_SECRET_KEY: z.string().default(''),
-  // Must be a sender address pre-verified in the NCP Cloud Outbound Mailer
-  // console — the API rejects sends from an unverified address.
-  NAVER_CLOUD_MAILER_FROM_EMAIL: z.string().default(''),
+  // SES has no separate access-key/secret env vars — the AWS SDK resolves
+  // credentials itself (the EC2 instance role in production, a local AWS
+  // profile in development). See infra/terraform/ec2.tf.
+  AWS_REGION: z.string().default('ap-northeast-2'),
+  // Must be a verified identity (domain or address) in SES — sending from
+  // an unverified address fails, and while the account is in SES sandbox
+  // mode the recipient address must also be verified.
+  SES_FROM_EMAIL: z.string().default(''),
   ADMIN_USER_IDS: z
     .string()
     .default('')
