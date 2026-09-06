@@ -1,6 +1,6 @@
 import type { Preview } from "@storybook/nextjs-vite";
 import { withThemeByDataAttribute } from "@storybook/addon-themes";
-import { Geist, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import { useEffect } from "react";
 // Design tokens (--background/--primary/etc.) aren't extracted to
 // packages/ui yet, so this imports apps/web's copy specifically — both
@@ -12,16 +12,16 @@ import { useEffect } from "react";
 // apps/web's globals.css — see that file's comment.)
 import "./globals.css";
 
-// apps/web/app/layout.tsx loads these the same way — Storybook never
-// renders that layout (it only renders one component in isolation), so
-// without this every story silently fell back to the system font stack
-// instead of Geist. Missed for a long time because Korean text (which
-// Geist doesn't cover glyphs for anyway) looks nearly identical either
-// way — Latin-heavy/numeric UI is where the gap actually shows.
-const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+// apps/web/app/layout.tsx loads this the same way (Pretendard, self-hosted
+// via the npm package's variable woff2 — see that file's comment for why
+// not Geist) — Storybook never renders that layout (it only renders one
+// component in isolation), so without this every story would silently
+// fall back to the system font stack instead.
+const pretendard = localFont({
+  src: "../node_modules/pretendard/dist/web/variable/woff2/PretendardVariable.woff2",
+  variable: "--font-pretendard",
+  weight: "45 920",
+  display: "swap",
 });
 
 const preview: Preview = {
@@ -47,10 +47,10 @@ const preview: Preview = {
     }),
     (Story) => {
       // Must land on <html>, not a wrapper div: globals.css's `@theme
-      // inline` declares `--font-sans: var(--font-geist-sans)` at :root,
+      // inline` declares `--font-sans: var(--font-pretendard)` at :root,
       // and a var() reference inside another custom property's value
       // resolves against the cascade at ITS OWN declaration site (:root),
-      // not wherever --font-geist-sans later gets defined deeper in the
+      // not wherever --font-pretendard later gets defined deeper in the
       // tree. A wrapper div here silently produces no font at all —
       // apps/web/app/layout.tsx puts these classes on <html> for the same
       // reason.
@@ -63,8 +63,7 @@ const preview: Preview = {
       // computed correctly.
       useEffect(() => {
         document.documentElement.classList.add(
-          geistSans.variable,
-          geistMono.variable,
+          pretendard.variable,
           "h-full",
           "antialiased",
         );
