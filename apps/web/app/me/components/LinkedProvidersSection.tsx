@@ -1,18 +1,35 @@
-import { Button } from "ui/Button";
+import {
+  OAUTH_PROVIDER_NAMES_KO,
+  OAUTH_PROVIDER_STYLES,
+} from "../../components/shared/oauthProviders";
 import { oauthLoginUrl, type OAuthProviderName } from "../../lib/api";
 
-const PROVIDERS: { name: OAuthProviderName; label: string }[] = [
-  { name: "google", label: "Google" },
-  { name: "kakao", label: "카카오" },
-  { name: "naver", label: "네이버" },
-];
+const PROVIDERS: OAuthProviderName[] = ["google", "kakao", "naver"];
+
+function CheckIcon() {
+  return (
+    <svg aria-hidden="true" height="10" viewBox="0 0 16 16" width="10">
+      <path
+        d="M3 8.5L6.5 12L13 4.5"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2.5"
+      />
+    </svg>
+  );
+}
 
 type LinkedProvidersSectionProps = {
   linkedProviders: OAuthProviderName[];
 };
 
-// Link only — no "연동 해제" yet (deliberately out of scope for now, see
-// docs/decisions for the OAuth/email collision round this shipped with).
+// One fixed-size tile per provider regardless of linked state — a linked
+// tile shows a checkmark badge instead of swapping to a differently-sized
+// "연동됨" label/button, so the row never reflows when a provider gets
+// linked. No "연동 해제" yet (deliberately out of scope, see docs/
+// decisions for the OAuth/email collision round this shipped with).
 // Visiting the same /auth/:provider URL used for login here works because
 // the backend tells the two cases apart by whether a session cookie is
 // already present, not by the URL — see AuthController.oauthRedirect.
@@ -30,26 +47,40 @@ export function LinkedProvidersSection({
         </p>
       </div>
 
-      <ul className="space-y-2">
-        {PROVIDERS.map(({ name, label }) => {
+      <div className="flex gap-3">
+        {PROVIDERS.map((name) => {
           const linked = linkedProviders.includes(name);
+          const { className, Icon } = OAUTH_PROVIDER_STYLES[name];
+          const providerLabel = OAUTH_PROVIDER_NAMES_KO[name];
+          const tileClassName = `relative flex h-11 w-11 items-center justify-center rounded-lg transition ${className}`;
+
+          if (linked) {
+            return (
+              <div
+                aria-label={`${providerLabel} 연동됨`}
+                className={tileClassName}
+                key={name}
+              >
+                <Icon />
+                <span className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-background">
+                  <CheckIcon />
+                </span>
+              </div>
+            );
+          }
+
           return (
-            <li
-              className="flex items-center justify-between gap-3 text-sm"
+            <a
+              aria-label={`${providerLabel} 연동하기`}
+              className={`${tileClassName} hover:opacity-90`}
+              href={oauthLoginUrl(name)}
               key={name}
             >
-              <span className="text-foreground">{label}</span>
-              {linked ? (
-                <span className="text-xs text-muted">연동됨</span>
-              ) : (
-                <Button href={oauthLoginUrl(name)} size="sm" variant="secondary">
-                  연동하기
-                </Button>
-              )}
-            </li>
+              <Icon />
+            </a>
           );
         })}
-      </ul>
+      </div>
     </section>
   );
 }

@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import { Button } from "ui/Button";
 import { ServiceNav } from "../components/navigation/ServiceNav";
+import { OAUTH_PROVIDER_NAMES_KO } from "../components/shared/oauthProviders";
 import { formatJoinedDate } from "../lib/format";
 import { useAuth } from "../lib/auth/useAuth";
 import { LinkedProvidersSection } from "./components/LinkedProvidersSection";
@@ -35,8 +36,8 @@ function MeContent({ status, user, notice }: MeContentProps) {
           </div>
           {notice && <p className="text-sm text-primary">{notice}</p>}
         </section>
-        <NicknameSection />
         <LinkedProvidersSection linkedProviders={user.linkedProviders} />
+        <NicknameSection />
         <VisibilityDraftProvider user={user}>
           <NicknameVisibilitySection />
           <ProfileVisibilitySection />
@@ -63,16 +64,14 @@ function MeContent({ status, user, notice }: MeContentProps) {
   return null;
 }
 
-const PROVIDER_LABELS: Record<string, string> = {
-  google: "Google",
-  kakao: "카카오",
-  naver: "네이버",
-};
-
 function linkNotice(searchParams: URLSearchParams): string | null {
   const linked = searchParams.get("linked");
   if (linked) {
-    return `${PROVIDER_LABELS[linked] ?? linked} 계정을 연동했어요.`;
+    const label =
+      linked in OAUTH_PROVIDER_NAMES_KO
+        ? OAUTH_PROVIDER_NAMES_KO[linked as keyof typeof OAUTH_PROVIDER_NAMES_KO]
+        : linked;
+    return `${label} 계정을 연동했어요.`;
   }
   if (searchParams.get("merged") === "1") {
     return "이미 등록된 이메일이라 기존 계정으로 연결했어요.";
