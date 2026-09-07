@@ -54,6 +54,21 @@ export function resetPassword(token: string, password: string): Promise<void> {
   });
 }
 
+// Public — the token itself is the proof, same shape as resetPassword.
+// Issued automatically on signup and re-issuable via resendVerification.
+export function verifyEmail(token: string): Promise<void> {
+  return apiFetch<void>("/auth/verify-email", {
+    method: "POST",
+    body: JSON.stringify({ token }),
+  });
+}
+
+// Session-gated — re-issues a verification email for the logged-in
+// account. No-op server-side if already verified.
+export function resendVerification(): Promise<void> {
+  return apiFetch<void>("/auth/resend-verification", { method: "POST" });
+}
+
 export type OAuthProviderName = "google" | "kakao" | "naver";
 
 export function oauthLoginUrl(provider: OAuthProviderName): string {

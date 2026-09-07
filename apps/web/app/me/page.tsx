@@ -4,6 +4,7 @@ import { Button } from "ui/Button";
 import { ServiceNav } from "../components/navigation/ServiceNav";
 import { formatJoinedDate } from "../lib/format";
 import { useAuth } from "../lib/auth/useAuth";
+import { EmailVerificationBadge } from "./components/EmailVerificationBadge";
 import { NicknameSection } from "./components/NicknameSection";
 import { NicknameVisibilitySection } from "./components/NicknameVisibilitySection";
 import { ProfileVisibilitySection } from "./components/ProfileVisibilitySection";
@@ -28,6 +29,7 @@ function MeContent({ status, user }: MeContentProps) {
           <div className="space-y-1 text-muted">
             <p>{user.email}</p>
             <p className="text-sm">{formatJoinedDate(user.createdAt)} 가입</p>
+            {!user.emailVerified && <EmailVerificationBadge />}
           </div>
         </section>
         <NicknameSection />

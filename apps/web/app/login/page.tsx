@@ -43,12 +43,16 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>("idle");
   const [error, setError] = useState<string | null>(null);
+  // A password signup lands here authenticated-but-unverified — the
+  // "check your email" screen below needs to stay up instead of the
+  // authenticated-redirect effect immediately whisking it away.
+  const [signupDone, setSignupDone] = useState(false);
   const lastProvider = useLastOAuthProvider();
   const { touchAll, visibleError } = useFieldValidation<Field>();
 
   useEffect(() => {
-    if (status === "authenticated") router.replace("/today");
-  }, [status, router]);
+    if (status === "authenticated" && !signupDone) router.replace("/today");
+  }, [status, signupDone, router]);
 
   const schema = mode === "login" ? loginSchema : signupSchema;
   const fieldErrors = parseFieldErrors(schema, { email, password });
@@ -63,14 +67,36 @@ export default function LoginPage() {
     try {
       if (mode === "login") {
         await login(email, password);
+        router.push("/today");
       } else {
         await signup(email, password);
+        setSignupDone(true);
       }
-      router.push("/today");
     } catch (submitError) {
       setError(errorMessage(submitError));
       setSubmitStatus("idle");
     }
+  }
+
+  if (signupDone) {
+    return (
+      <main className="flex min-h-dvh items-center bg-background px-5 py-10 text-foreground sm:px-8">
+        <section className="mx-auto w-full max-w-sm space-y-6">
+          <div className="space-y-3">
+            <p className="text-sm text-muted">온설</p>
+            <h1 className="text-2xl font-semibold tracking-normal sm:text-4xl">
+              가입 완료
+            </h1>
+          </div>
+          <p className="text-sm text-primary">
+            메일함에서 인증 링크를 확인해주세요.
+          </p>
+          <Button fullWidth href="/today">
+            계속하기
+          </Button>
+        </section>
+      </main>
+    );
   }
 
   return (
