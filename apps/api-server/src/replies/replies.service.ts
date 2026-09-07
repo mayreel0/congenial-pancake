@@ -4,6 +4,7 @@ import {
   NicknameRequiredException,
   ReplyAlreadySubmittedException,
   ReplyGuestLimitExceededException,
+  ReplyUnverifiedLimitExceededException,
   RequestNotFoundException,
 } from '../common/exceptions/app.exception';
 import type {
@@ -49,11 +50,27 @@ export class RepliesService {
       );
       if (existing) throw new ReplyAlreadySubmittedException();
 
+      const user = await this.usersService.findById(userId);
+
+      // An unverified member is capped the same as a guest — otherwise
+      // hitting the guest cap is trivially bypassed by signing up with any
+      // unverified email. Verified members stay uncapped.
+      if (!user?.emailVerifiedAt) {
+        const [authorReplyCount, settings] = await Promise.all([
+          this.repliesRepository.countByAuthor(userId),
+          this.settingsService.get(),
+        ]);
+        if (authorReplyCount >= settings.guestReplyLimit) {
+          throw new ReplyUnverifiedLimitExceededException(
+            settings.guestReplyLimit,
+          );
+        }
+      }
+
       // A guest can never reply non-anonymously — dto.anonymous is only
       // meaningful here, on the member path.
       const anonymous = dto.anonymous !== false;
       if (!anonymous) {
-        const user = await this.usersService.findById(userId);
         if (!user?.nickname) throw new NicknameRequiredException();
       }
 
@@ -80,7 +97,7 @@ export class RepliesService {
       this.settingsService.get(),
     ]);
     if (guestReplyCount >= settings.guestReplyLimit) {
-      throw new ReplyGuestLimitExceededException();
+      throw new ReplyGuestLimitExceededException(settings.guestReplyLimit);
     }
 
     const reply = await this.repliesRepository.create({

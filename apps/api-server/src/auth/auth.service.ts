@@ -1,10 +1,15 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import {
   EmailAlreadyExistsException,
   InvalidCredentialsException,
 } from '../common/exceptions/app.exception';
 import { UsersService } from '../users/users.service';
 import type { User } from '../users/users.repository';
+import { EmailVerificationService } from './email-verification/email-verification.service';
 import type { LoginDto } from './dto/login.dto';
 import type { SignupDto } from './dto/signup.dto';
 import { OAuthIdentitiesRepository } from './oauth-identities.repository';
@@ -18,11 +23,14 @@ type AuthResult = { user: User; session: Session };
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly usersService: UsersService,
     private readonly oauthIdentitiesRepository: OAuthIdentitiesRepository,
     private readonly passwordHasher: PasswordHasherService,
     private readonly sessionService: SessionService,
+    private readonly emailVerificationService: EmailVerificationService,
   ) {}
 
   async signup(dto: SignupDto, userAgent?: string): Promise<AuthResult> {
@@ -34,6 +42,22 @@ export class AuthService {
       email: dto.email,
       passwordHash,
     });
+
+    // A flaky/unconfigured email provider shouldn't block account creation
+    // — the account is still fully usable, just unverified (capped like a
+    // guest for replies) until the email actually goes through, whether
+    // that's now or via a later resend.
+    try {
+      await this.emailVerificationService.sendVerificationEmail(
+        user.id,
+        user.email,
+      );
+    } catch (error) {
+      this.logger.warn(
+        `Failed to send verification email to ${user.email}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+
     const session = await this.sessionService.createSession(user.id, userAgent);
     return { user, session };
   }
@@ -73,17 +97,32 @@ export class AuthService {
       }
       user = found;
     } else {
-      // Link by verified email if this person already has a password
-      // account, or an account via a *different* OAuth provider that used
-      // the same email — either way, one 온설 account per email.
+      // Link by email if this person already has a password account, or an
+      // account via a *different* OAuth provider that used the same email
+      // — either way, one 온설 account per email.
+      const existingByEmail = await this.usersService.findByEmail(
+        profile.email,
+      );
       user =
-        (await this.usersService.findByEmail(profile.email)) ??
-        (await this.usersService.create({ email: profile.email }));
+        existingByEmail ??
+        (await this.usersService.create({
+          email: profile.email,
+          emailVerifiedAt: new Date(),
+        }));
       await this.oauthIdentitiesRepository.create(
         user.id,
         provider,
         profile.providerAccountId,
       );
+    }
+
+    // The provider vouches for this email regardless of whether the
+    // account is brand-new or an existing (possibly still-unverified)
+    // password account being linked — either way, this login is real proof
+    // of ownership, so the account should end up verified either way.
+    if (!user.emailVerifiedAt) {
+      await this.usersService.markEmailVerified(user.id);
+      user = { ...user, emailVerifiedAt: new Date() };
     }
 
     const session = await this.sessionService.createSession(user.id, userAgent);

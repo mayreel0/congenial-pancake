@@ -223,12 +223,16 @@ export const userResponseSchema = z.object({
   email: z.string(),
   createdAt: z.string(),
   nickname: z.string().nullable(),
+  // Always present regardless of whether nickname is set — cheap to
+  // compute, harmless unused, and the frontend needs it the moment a
+  // nickname exists without a second round trip.
   nicknameDiscriminator: z.string(),
   nicknameChangeAvailableAt: z.string().nullable(),
   showRequestsOnProfile: z.boolean(),
   showRepliesOnProfile: z.boolean(),
   showCountsOnProfile: z.boolean(),
   nicknameVisible: z.boolean(),
+  emailVerified: z.boolean(),
 });
 export type UserResponseDto = z.infer<typeof userResponseSchema>;
 

@@ -21,6 +21,7 @@ export function toUserResponseDto(
     createdAt: user.createdAt.toISOString(),
     nickname: user.nickname,
     nicknameDiscriminator: nicknameDiscriminator(user.id),
+    emailVerified: user.emailVerifiedAt !== null,
     nicknameChangeAvailableAt: nicknameChangeAvailableAt?.toISOString() ?? null,
     showRequestsOnProfile: user.showRequestsOnProfile,
     showRepliesOnProfile: user.showRepliesOnProfile,

@@ -93,6 +93,25 @@ resource "aws_iam_role_policy" "secrets_read" {
   })
 }
 
+# EmailService's SES fallback (see apps/api-server/src/email/) sends via
+# this role's credentials, not an access-key/secret pair — no SES-specific
+# secret to manage in Secrets Manager/SSM.
+resource "aws_iam_role_policy" "ses_send" {
+  name = "onseol-api-ses-send"
+  role = aws_iam_role.ec2.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["ses:SendEmail", "ses:SendRawEmail"]
+        Resource = "*"
+      },
+    ]
+  })
+}
+
 resource "aws_iam_instance_profile" "ec2" {
   name = "onseol-api-ec2-profile"
   role = aws_iam_role.ec2.name

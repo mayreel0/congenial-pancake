@@ -94,6 +94,10 @@ export class UsersService {
     return this.usersRepository.updateNickname(id, nickname);
   }
 
+  markEmailVerified(id: string): Promise<void> {
+    return this.usersRepository.markEmailVerified(id);
+  }
+
   // Toggling nicknameVisible (bundled in with the other profile-visibility
   // switches) never touches `nickname`/`nicknameChangedAt` — it's always
   // free, no cooldown check, unlike updateNickname above. Since

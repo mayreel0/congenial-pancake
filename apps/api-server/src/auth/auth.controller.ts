@@ -20,17 +20,22 @@ import { ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
 import type { Request, Response } from 'express';
 import type { Env } from '../config/env.schema';
-import { OAuthExchangeFailedException } from '../common/exceptions/app.exception';
+import {
+  EmailSendFailedException,
+  OAuthExchangeFailedException,
+} from '../common/exceptions/app.exception';
 import { AuthService } from './auth.service';
 import type { AuthenticatedRequest } from './authenticated-request';
 import { CurrentUser } from './current-user.decorator';
 import { LoginDto } from './dto/login.dto';
 import { SignupDto } from './dto/signup.dto';
 import { UserResponseDto, toUserResponseDto } from './dto/user-response.dto';
+import { EmailVerificationService } from './email-verification/email-verification.service';
 import { OAuthProviderRegistry } from './oauth/oauth-provider-registry';
 import { PasswordResetService } from './password-reset/password-reset.service';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { UpdateNicknameDto } from './dto/update-nickname.dto';
+import { VerifyEmailDto } from './dto/verify-email.dto';
 import { UpdateProfileVisibilityDto } from './dto/update-profile-visibility.dto';
 import { clearSessionCookie, setSessionCookie } from './session-cookie';
 import { SessionGuard } from './session.guard';
@@ -49,6 +54,7 @@ export class AuthController {
     private readonly usersService: UsersService,
     private readonly oauthProviders: OAuthProviderRegistry,
     private readonly passwordResetService: PasswordResetService,
+    private readonly emailVerificationService: EmailVerificationService,
     private readonly config: ConfigService<Env, true>,
   ) {}
 
@@ -101,6 +107,42 @@ export class AuthController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async resetPassword(@Body() dto: ResetPasswordDto): Promise<void> {
     await this.passwordResetService.resetPassword(dto.token, dto.password);
+  }
+
+  // Public — the token itself is the proof of authorization, same as
+  // reset-password. Issued automatically on signup (AuthService.signup)
+  // and re-issuable via resend-verification below.
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
+  @Post('verify-email')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async verifyEmail(@Body() dto: VerifyEmailDto): Promise<void> {
+    await this.emailVerificationService.verifyEmail(dto.token);
+  }
+
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
+  @Post('resend-verification')
+  @UseGuards(SessionGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async resendVerification(@CurrentUser() userId: string): Promise<void> {
+    const user = await this.usersService.findById(userId);
+    if (!user) {
+      throw new InternalServerErrorException(
+        'Session references a missing user.',
+      );
+    }
+    if (user.emailVerifiedAt) return;
+    // Unlike signup (which swallows the same underlying failure so a flaky
+    // provider never blocks account creation), a resend is a deliberate
+    // request the user is waiting on — they deserve real feedback if it
+    // didn't go out, not a silent no-op or a generic 500.
+    try {
+      await this.emailVerificationService.sendVerificationEmail(
+        user.id,
+        user.email,
+      );
+    } catch {
+      throw new EmailSendFailedException();
+    }
   }
 
   @Post('logout')

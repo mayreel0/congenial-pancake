@@ -3,14 +3,15 @@ import {
   NicknameRequiredException,
   ReplyAlreadySubmittedException,
   ReplyGuestLimitExceededException,
+  ReplyUnverifiedLimitExceededException,
   RequestNotFoundException,
 } from '../common/exceptions/app.exception';
 import type { RequestRecord } from '../requests/requests.repository';
 import type { RequestsService } from '../requests/requests.service';
 import type { SettingsService } from '../settings/settings.service';
 import type { SettingsRecord } from '../settings/settings.repository';
-import type { UsersService } from '../users/users.service';
 import type { User } from '../users/users.repository';
+import type { UsersService } from '../users/users.service';
 import type { ReplyRecord, RepliesRepository } from './replies.repository';
 import { RepliesService } from './replies.service';
 
@@ -45,12 +46,15 @@ function makeReply(overrides: Partial<ReplyRecord> = {}): ReplyRecord {
   };
 }
 
+// Verified by default — most tests here aren't about the unverified reply
+// cap, so they shouldn't need to think about it.
 function makeUser(overrides: Partial<User> = {}): User {
   return {
     id: 'user-1',
     email: 'user@example.com',
     passwordHash: null,
     nickname: null,
+    emailVerifiedAt: new Date('2026-08-21T00:00:00.000Z'),
     nicknameChangedAt: null,
     showRequestsOnProfile: true,
     showRepliesOnProfile: true,
@@ -88,6 +92,7 @@ describe('RepliesService', () => {
       findVisibleByRequestId: jest.fn(),
       findByRequestAndAuthor: jest.fn(),
       countByGuest: jest.fn(),
+      countByAuthor: jest.fn(),
       setHidden: jest.fn(),
       findMine: jest.fn(),
     } as unknown as jest.Mocked<RepliesRepository>;
@@ -101,7 +106,7 @@ describe('RepliesService', () => {
       get: jest.fn().mockResolvedValue(makeSettings()),
     } as unknown as jest.Mocked<SettingsService>;
     usersService = {
-      findById: jest.fn(),
+      findById: jest.fn().mockResolvedValue(makeUser()),
     } as unknown as jest.Mocked<UsersService>;
 
     repliesService = new RepliesService(
@@ -169,6 +174,41 @@ describe('RepliesService', () => {
       );
     });
 
+    it('throws when an unverified member already replied 5 times total, across any requests', async () => {
+      requestsService.findVisibleById.mockResolvedValue(makeRequest());
+      usersService.findById.mockResolvedValue(
+        makeUser({ emailVerifiedAt: null }),
+      );
+      repliesRepository.countByAuthor.mockResolvedValue(5);
+
+      await expect(
+        repliesService.create(
+          'request-1',
+          { body: '내용' },
+          'user-1',
+          'unused-guest-id',
+        ),
+      ).rejects.toBeInstanceOf(ReplyUnverifiedLimitExceededException);
+    });
+
+    it('does not cap a verified member even past the guest/unverified limit', async () => {
+      requestsService.findVisibleById.mockResolvedValue(makeRequest());
+      repliesRepository.findByRequestAndAuthor.mockResolvedValue(undefined);
+      usersService.findById.mockResolvedValue(makeUser());
+      const created = makeReply({ authorId: 'user-1' });
+      repliesRepository.create.mockResolvedValue(created);
+
+      const result = await repliesService.create(
+        'request-1',
+        { body: '내용' },
+        'user-1',
+        'unused-guest-id',
+      );
+
+      expect(repliesRepository.countByAuthor).not.toHaveBeenCalled();
+      expect(result).toEqual(created);
+    });
+
     it('creates a named reply when the user opts out of anonymity and has a nickname', async () => {
       requestsService.findVisibleById.mockResolvedValue(makeRequest());
       repliesRepository.findByRequestAndAuthor.mockResolvedValue(undefined);
@@ -207,7 +247,6 @@ describe('RepliesService', () => {
       ).rejects.toBeInstanceOf(NicknameRequiredException);
       expect(repliesRepository.create).not.toHaveBeenCalled();
     });
-
     it('throws when the guest already replied 5 times total, across any requests', async () => {
       requestsService.findVisibleById.mockResolvedValue(makeRequest());
       repliesRepository.countByGuest.mockResolvedValue(5);

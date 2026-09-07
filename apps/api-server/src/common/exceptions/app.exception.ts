@@ -73,10 +73,10 @@ export class ReplyAlreadySubmittedException extends AppException {
 }
 
 export class ReplyGuestLimitExceededException extends AppException {
-  constructor() {
+  constructor(limit: number) {
     super(
       'REPLY_GUEST_LIMIT_EXCEEDED',
-      'Guests may only reply 5 times in total. Log in to reply more.',
+      `Guests may only reply ${limit} times in total. Log in to reply more.`,
       HttpStatus.CONFLICT,
     );
   }
@@ -102,12 +102,46 @@ export class PasswordResetTokenInvalidException extends AppException {
   }
 }
 
+export class EmailVerificationTokenInvalidException extends AppException {
+  constructor() {
+    super(
+      'AUTH_EMAIL_VERIFICATION_TOKEN_INVALID',
+      'This verification link is invalid or expired.',
+      HttpStatus.BAD_REQUEST,
+    );
+  }
+}
+
 export class NicknameRequiredException extends AppException {
   constructor() {
     super(
       'NICKNAME_REQUIRED',
       'Set a nickname before posting under your name.',
       HttpStatus.BAD_REQUEST,
+    );
+  }
+}
+
+// Only used for a deliberate resend request — signup swallows the same
+// underlying EmailService failure instead (see AuthService.signup), since
+// a flaky provider shouldn't block account creation. A resend the user
+// explicitly asked for deserves real feedback, not a silent no-op.
+export class EmailSendFailedException extends AppException {
+  constructor() {
+    super(
+      'AUTH_EMAIL_SEND_FAILED',
+      'Failed to send the verification email. Please try again later.',
+      HttpStatus.BAD_GATEWAY,
+    );
+  }
+}
+
+export class ReplyUnverifiedLimitExceededException extends AppException {
+  constructor(limit: number) {
+    super(
+      'REPLY_UNVERIFIED_LIMIT_EXCEEDED',
+      `Unverified accounts may only reply ${limit} times in total. Verify your email to reply more.`,
+      HttpStatus.CONFLICT,
     );
   }
 }

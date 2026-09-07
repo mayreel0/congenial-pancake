@@ -13,6 +13,11 @@ export const users = pgTable('users', {
   // discriminator derived from `id` (see users/nickname-discriminator.ts)
   // rather than by forcing global uniqueness.
   nickname: text('nickname'),
+  // Null = unverified. OAuth signups get this stamped immediately (the
+  // provider already vouched for the email); password signups start null
+  // and verify via email_verification_tokens. An unverified member is
+  // capped the same as a guest for replies — see RepliesService.
+  emailVerifiedAt: timestamp('email_verified_at', { withTimezone: true }),
   // Null until the first time nickname is set. Setting a nickname for the
   // first time (from null) is always free; every change after that is
   // rate-limited against this timestamp — see UsersService.updateNickname
