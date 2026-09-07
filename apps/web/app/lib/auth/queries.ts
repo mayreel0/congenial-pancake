@@ -5,6 +5,7 @@ import {
   fetchCurrentUser,
   login as apiLogin,
   logout as apiLogout,
+  resendVerification as apiResendVerification,
   signup as apiSignup,
   updateNickname as apiUpdateNickname,
   updateProfileVisibility as apiUpdateProfileVisibility,
@@ -70,6 +71,12 @@ export function useUpdateProfileVisibilityMutation() {
     onSuccess: (user: CurrentUser) => {
       queryClient.setQueryData(authKeys.me, user);
     },
+  });
+}
+
+export function useResendVerificationMutation() {
+  return useMutation({
+    mutationFn: apiResendVerification,
   });
 }
 
