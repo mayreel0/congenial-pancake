@@ -131,13 +131,28 @@ const EMAIL_MESSAGE = "올바른 이메일 형식이 아닙니다.";
 const PASSWORD_MESSAGE = "비밀번호는 8자 이상이어야 합니다.";
 
 // POST /auth/signup, POST /auth/login bodies — identical shape.
+// POST /auth/signup body — email only. Nothing is created yet at this
+// point (see AuthService.requestSignup) — a password is only ever
+// collected once the emailed link is consumed (completeSignupSchema
+// below), so nobody can claim an email they don't control.
 export const signupSchema = z
   .object({
     email: z.string().email(EMAIL_MESSAGE),
-    password: z.string().min(8, PASSWORD_MESSAGE),
   })
   .strict();
 export type SignupInput = z.infer<typeof signupSchema>;
+
+// POST /auth/complete-signup body — same shape as resetPasswordSchema
+// (token proves authorization, then a password), but kept as its own
+// schema since the two represent different actions (creating a brand-new
+// account vs. changing an existing one).
+export const completeSignupSchema = z
+  .object({
+    token: z.string(),
+    password: z.string().min(8, PASSWORD_MESSAGE),
+  })
+  .strict();
+export type CompleteSignupInput = z.infer<typeof completeSignupSchema>;
 
 export const loginSchema = z
   .object({
@@ -233,6 +248,7 @@ export const userResponseSchema = z.object({
   showCountsOnProfile: z.boolean(),
   nicknameVisible: z.boolean(),
   emailVerified: z.boolean(),
+  linkedProviders: z.array(z.enum(['google', 'kakao', 'naver'])),
 });
 export type UserResponseDto = z.infer<typeof userResponseSchema>;
 

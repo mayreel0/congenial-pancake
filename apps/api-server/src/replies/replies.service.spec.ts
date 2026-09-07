@@ -3,7 +3,6 @@ import {
   NicknameRequiredException,
   ReplyAlreadySubmittedException,
   ReplyGuestLimitExceededException,
-  ReplyUnverifiedLimitExceededException,
   RequestNotFoundException,
 } from '../common/exceptions/app.exception';
 import type { RequestRecord } from '../requests/requests.repository';
@@ -92,7 +91,6 @@ describe('RepliesService', () => {
       findVisibleByRequestId: jest.fn(),
       findByRequestAndAuthor: jest.fn(),
       countByGuest: jest.fn(),
-      countByAuthor: jest.fn(),
       setHidden: jest.fn(),
       findMine: jest.fn(),
     } as unknown as jest.Mocked<RepliesRepository>;
@@ -172,41 +170,6 @@ describe('RepliesService', () => {
         'user-1',
         undefined,
       );
-    });
-
-    it('throws when an unverified member already replied 5 times total, across any requests', async () => {
-      requestsService.findVisibleById.mockResolvedValue(makeRequest());
-      usersService.findById.mockResolvedValue(
-        makeUser({ emailVerifiedAt: null }),
-      );
-      repliesRepository.countByAuthor.mockResolvedValue(5);
-
-      await expect(
-        repliesService.create(
-          'request-1',
-          { body: '내용' },
-          'user-1',
-          'unused-guest-id',
-        ),
-      ).rejects.toBeInstanceOf(ReplyUnverifiedLimitExceededException);
-    });
-
-    it('does not cap a verified member even past the guest/unverified limit', async () => {
-      requestsService.findVisibleById.mockResolvedValue(makeRequest());
-      repliesRepository.findByRequestAndAuthor.mockResolvedValue(undefined);
-      usersService.findById.mockResolvedValue(makeUser());
-      const created = makeReply({ authorId: 'user-1' });
-      repliesRepository.create.mockResolvedValue(created);
-
-      const result = await repliesService.create(
-        'request-1',
-        { body: '내용' },
-        'user-1',
-        'unused-guest-id',
-      );
-
-      expect(repliesRepository.countByAuthor).not.toHaveBeenCalled();
-      expect(result).toEqual(created);
     });
 
     it('creates a named reply when the user opts out of anonymity and has a nickname', async () => {

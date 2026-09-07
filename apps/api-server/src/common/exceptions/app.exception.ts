@@ -40,6 +40,20 @@ export class OAuthExchangeFailedException extends AppException {
   }
 }
 
+// Thrown when linking a social account to the current session's account
+// (not logging in with it) and that social account already belongs to a
+// *different* onseol account — linking must never silently switch the
+// caller onto someone else's account.
+export class OAuthAccountAlreadyLinkedException extends AppException {
+  constructor(provider: string) {
+    super(
+      'AUTH_OAUTH_ALREADY_LINKED',
+      `This ${provider} account is already linked to a different account.`,
+      HttpStatus.CONFLICT,
+    );
+  }
+}
+
 export class RequestNotFoundException extends AppException {
   constructor() {
     super('REQUEST_NOT_FOUND', 'Request not found.', HttpStatus.NOT_FOUND);
@@ -102,12 +116,30 @@ export class PasswordResetTokenInvalidException extends AppException {
   }
 }
 
+// Reused for both signup-completion links (AuthService.completeSignup)
+// and password-reset-style flows that consume a token — same "invalid or
+// expired" shape regardless of which flow issued it.
 export class EmailVerificationTokenInvalidException extends AppException {
   constructor() {
     super(
       'AUTH_EMAIL_VERIFICATION_TOKEN_INVALID',
       'This verification link is invalid or expired.',
       HttpStatus.BAD_REQUEST,
+    );
+  }
+}
+
+// Defensive only — every users row created going forward is verified by
+// construction (password accounts only ever get created inside
+// AuthService.completeSignup, which sets emailVerifiedAt in the same
+// step; OAuth accounts are always instantly verified). This guards
+// against pre-existing legacy rows from before that invariant existed.
+export class EmailNotVerifiedException extends AppException {
+  constructor() {
+    super(
+      'AUTH_EMAIL_NOT_VERIFIED',
+      'This account has not verified its email yet.',
+      HttpStatus.FORBIDDEN,
     );
   }
 }
@@ -122,26 +154,18 @@ export class NicknameRequiredException extends AppException {
   }
 }
 
-// Only used for a deliberate resend request — signup swallows the same
-// underlying EmailService failure instead (see AuthService.signup), since
-// a flaky provider shouldn't block account creation. A resend the user
-// explicitly asked for deserves real feedback, not a silent no-op.
+// AuthService.requestSignup's only delivery mechanism is this email — a
+// user requesting a "resend" is just calling signup again with the same
+// address, so there's no separate resend concept to swallow into. Unlike
+// the old design, this is never swallowed: nothing exists yet at this
+// point, so a silent failure would leave the caller with no way to know
+// they need to retry.
 export class EmailSendFailedException extends AppException {
   constructor() {
     super(
       'AUTH_EMAIL_SEND_FAILED',
       'Failed to send the verification email. Please try again later.',
       HttpStatus.BAD_GATEWAY,
-    );
-  }
-}
-
-export class ReplyUnverifiedLimitExceededException extends AppException {
-  constructor(limit: number) {
-    super(
-      'REPLY_UNVERIFIED_LIMIT_EXCEEDED',
-      `Unverified accounts may only reply ${limit} times in total. Verify your email to reply more.`,
-      HttpStatus.CONFLICT,
     );
   }
 }

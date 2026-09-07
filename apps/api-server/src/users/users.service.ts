@@ -74,6 +74,10 @@ export class UsersService {
     return this.usersRepository.updatePasswordHash(id, passwordHash);
   }
 
+  clearPasswordHash(id: string): Promise<void> {
+    return this.usersRepository.clearPasswordHash(id);
+  }
+
   // Setting a nickname for the first time (from null) is always free —
   // only a change to an already-set nickname is rate-limited, checked
   // against when it was last changed. Cooldown length is admin-tunable

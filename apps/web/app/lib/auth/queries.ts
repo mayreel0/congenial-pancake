@@ -2,10 +2,10 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  completeSignup as apiCompleteSignup,
   fetchCurrentUser,
   login as apiLogin,
   logout as apiLogout,
-  resendVerification as apiResendVerification,
   signup as apiSignup,
   updateNickname as apiUpdateNickname,
   updateProfileVisibility as apiUpdateProfileVisibility,
@@ -39,12 +39,22 @@ export function useLoginMutation() {
   });
 }
 
+// Just requests the signup email — no session/user results from this, so
+// nothing to cache. Calling it again for the same address is a "resend."
 export function useSignupMutation() {
+  return useMutation({
+    mutationFn: (email: string) => apiSignup(email),
+  });
+}
+
+// Consumes the emailed link — this is what actually creates the account
+// and logs it in, so this one does update the cache.
+export function useCompleteSignupMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ email, password }: { email: string; password: string }) =>
-      apiSignup(email, password),
+    mutationFn: ({ token, password }: { token: string; password: string }) =>
+      apiCompleteSignup(token, password),
     onSuccess: (user: CurrentUser) => {
       queryClient.setQueryData(authKeys.me, user);
     },
@@ -71,12 +81,6 @@ export function useUpdateProfileVisibilityMutation() {
     onSuccess: (user: CurrentUser) => {
       queryClient.setQueryData(authKeys.me, user);
     },
-  });
-}
-
-export function useResendVerificationMutation() {
-  return useMutation({
-    mutationFn: apiResendVerification,
   });
 }
 
