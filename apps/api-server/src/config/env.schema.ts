@@ -59,6 +59,11 @@ export const envSchema = z.object({
   // an unverified address fails, and while the account is in SES sandbox
   // mode the recipient address must also be verified.
   SES_FROM_EMAIL: z.string().default(''),
+  // Reply pre-submit moderation can run through OpenAI once it is wired into
+  // the reply flow. Keep credentials optional so this internal adapter does
+  // not make local/test boots depend on an external provider.
+  OPENAI_API_KEY: z.string().default(''),
+  OPENAI_MODERATION_MODEL: z.string().default('gpt-5-mini'),
   ADMIN_USER_IDS: z
     .string()
     .default('')
