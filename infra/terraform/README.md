@@ -74,19 +74,23 @@ Same tunnel works for `pnpm --filter api-server db:studio` if you want to inspec
 
 ## Redeploying after a code change
 
-No CI pipeline yet — build, push, and restart by hand:
+Automatic now — `.github/workflows/deploy-api.yml` runs on every push to `v1` that touches `apps/api-server/**` or `packages/shared/**`: builds the image, pushes it to ECR, and redeploys it on the EC2 instance over SSM (same commands as below, run remotely — no SSH). Requires two repo secrets set once (Settings → Secrets and variables → Actions): `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` for an IAM user that can push to ECR and call `ssm:SendCommand`/`ssm:GetCommandInvocation`/`ec2:DescribeInstances` (the same `AdministratorAccess` user used locally works, or a narrower one). A merge that doesn't touch those paths — or a first-time setup — won't trigger it; use the workflow's manual "Run workflow" button (Actions tab) for those.
+
+DB migrations run automatically too, as the container's own startup step (`drizzle-kit migrate` before `node dist/src/main` — see the `Dockerfile`'s runtime stage) — no separate SSM tunnel step needed for a routine deploy. The tunnel approach in the section above is still how you'd run migrations *without* a full deploy (e.g. inspecting or fixing something by hand).
+
+The equivalent manual sequence, if you ever need to redeploy without CI (e.g. debugging the pipeline itself):
 
 ```bash
 REPO_URL=$(terraform -chdir=infra/terraform output -raw ecr_repository_url)
 docker build --platform linux/amd64 -f apps/api-server/Dockerfile -t "$REPO_URL:latest" .
 docker push "$REPO_URL:latest"
 
-INSTANCE_ID=$(terraform -chdir=infra/terraform output -raw ec2_instance_id)
+INSTANCE_ID=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=onseol-api" "Name=instance-state-name,Values=running" --query "Reservations[0].Instances[0].InstanceId" --output text)
 aws ssm send-command --instance-ids "$INSTANCE_ID" --document-name "AWS-RunShellScript" \
   --parameters 'commands=["docker pull '"$REPO_URL"':latest","docker stop onseol-api","docker rm onseol-api","docker run -d --name onseol-api --restart unless-stopped --env-file /etc/onseol-api.env -p 3001:3001 '"$REPO_URL"':latest"]'
 ```
 
-Phase 2's Auto Scaling Group will replace this manual restart with an instance refresh.
+Phase 2's Auto Scaling Group will replace the SSM-based restart with an instance refresh — the build/push half of the pipeline stays the same.
 
 ## Tearing down the ALB to stop paying for it between sessions
 
