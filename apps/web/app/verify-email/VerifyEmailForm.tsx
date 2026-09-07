@@ -1,14 +1,20 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
-import { ApiError, verifyEmail } from "../lib/api";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react";
+import { completeSignupSchema } from "shared/dto";
+import { ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth/useAuth";
+import { useFieldValidation } from "../lib/useFieldValidation";
+import { parseFieldErrors } from "../lib/zod-form";
 import { VerifyEmailBody, type VerifyEmailStatus } from "./VerifyEmailBody";
+
+type Field = "password";
 
 const ERROR_MESSAGES: Record<string, string> = {
   AUTH_EMAIL_VERIFICATION_TOKEN_INVALID:
     "인증 링크가 유효하지 않거나 만료되었습니다.",
+  AUTH_EMAIL_TAKEN: "이미 가입이 완료된 이메일입니다. 로그인해주세요.",
 };
 
 function errorMessage(error: unknown): string {
@@ -19,31 +25,37 @@ function errorMessage(error: unknown): string {
 }
 
 export function VerifyEmailForm() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
-  const { refresh } = useAuth();
-  const [status, setStatus] = useState<VerifyEmailStatus>("pending");
+  const { completeSignup } = useAuth();
+  const [password, setPassword] = useState("");
+  const [status, setStatus] = useState<VerifyEmailStatus>("idle");
   const [error, setError] = useState<string | null>(null);
-  // A single-use token: guards against React StrictMode's dev-only double
-  // effect invocation actually sending the request twice, where the
-  // second call would fail with "already used" right after the first
-  // genuinely succeeded.
-  const hasRequested = useRef(false);
+  const { touchAll, visibleError } = useFieldValidation<Field>();
+  const fieldErrors = parseFieldErrors(completeSignupSchema, {
+    token: token ?? "",
+    password,
+  });
 
-  useEffect(() => {
-    if (!token || hasRequested.current) return;
-    hasRequested.current = true;
+  async function handleSubmit(event: React.FormEvent): Promise<void> {
+    event.preventDefault();
+    if (!token) return;
+    touchAll(["password"]);
+    if (Object.keys(fieldErrors).length > 0) return;
 
-    verifyEmail(token)
-      .then(() => {
-        setStatus("done");
-        void refresh();
-      })
-      .catch((submitError: unknown) => {
-        setError(errorMessage(submitError));
-        setStatus("error");
-      });
-  }, [token, refresh]);
+    setError(null);
+    setStatus("pending");
+    try {
+      await completeSignup(token, password);
+      // The token just proved this person owns the account — no reason to
+      // make them turn around and log in with what they just typed.
+      router.push("/today");
+    } catch (submitError) {
+      setError(errorMessage(submitError));
+      setStatus("idle");
+    }
+  }
 
   return (
     <main className="flex min-h-dvh items-center bg-background px-5 py-10 text-foreground sm:px-8">
@@ -55,7 +67,15 @@ export function VerifyEmailForm() {
           </h1>
         </div>
 
-        <VerifyEmailBody error={error} status={status} token={token} />
+        <VerifyEmailBody
+          error={error}
+          fieldError={visibleError("password", fieldErrors)}
+          password={password}
+          status={status}
+          token={token}
+          onPasswordChange={setPassword}
+          onSubmit={(event) => void handleSubmit(event)}
+        />
       </section>
     </main>
   );

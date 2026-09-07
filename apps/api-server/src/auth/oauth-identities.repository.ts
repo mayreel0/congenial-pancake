@@ -23,6 +23,12 @@ export class OAuthIdentitiesRepository {
     });
   }
 
+  findByUserId(userId: string): Promise<OAuthIdentity[]> {
+    return this.db.query.oauthIdentities.findMany({
+      where: eq(oauthIdentities.userId, userId),
+    });
+  }
+
   async create(
     userId: string,
     provider: Provider,

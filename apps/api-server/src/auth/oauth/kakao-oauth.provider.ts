@@ -66,6 +66,14 @@ export class KakaoOAuthProvider implements OAuthProvider {
     // rather than creating an account with no email.
     const email = profile.kakao_account?.email;
     if (!email) throw new OAuthExchangeFailedException('kakao');
+    // is_email_valid is Kakao's own signal for "this address is actually
+    // usable/confirmed," distinct from merely being present — trusting an
+    // address Kakao itself flags as invalid would let that email instantly
+    // verify a 온설 account (see AuthService.loginWithOAuth) on no real
+    // proof of ownership at all.
+    if (profile.kakao_account?.is_email_valid === false) {
+      throw new OAuthExchangeFailedException('kakao');
+    }
 
     return { providerAccountId: String(profile.id), email };
   }

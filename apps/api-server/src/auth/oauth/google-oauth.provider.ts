@@ -9,7 +9,11 @@ const TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const USERINFO_URL = 'https://www.googleapis.com/oauth2/v3/userinfo';
 
 type TokenResponse = { access_token: string };
-type UserinfoResponse = { sub: string; email?: string };
+type UserinfoResponse = {
+  sub: string;
+  email?: string;
+  email_verified?: boolean;
+};
 
 @Injectable()
 export class GoogleOAuthProvider implements OAuthProvider {
@@ -51,6 +55,11 @@ export class GoogleOAuthProvider implements OAuthProvider {
     if (!userinfoResponse.ok) throw new OAuthExchangeFailedException('google');
     const profile = (await userinfoResponse.json()) as UserinfoResponse;
     if (!profile.email) throw new OAuthExchangeFailedException('google');
+    // Google's own signal for "this address is actually confirmed" —
+    // same reasoning as Kakao's is_email_valid check (see that provider).
+    if (profile.email_verified === false) {
+      throw new OAuthExchangeFailedException('google');
+    }
 
     return { providerAccountId: profile.sub, email: profile.email };
   }

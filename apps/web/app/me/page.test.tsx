@@ -43,6 +43,8 @@ function installFakeBackend({
             showRepliesOnProfile,
             showCountsOnProfile,
             nicknameVisible,
+            emailVerified: true,
+            linkedProviders: [],
           }),
         );
       }
@@ -63,6 +65,8 @@ function installFakeBackend({
             showRepliesOnProfile,
             showCountsOnProfile,
             nicknameVisible,
+            emailVerified: true,
+            linkedProviders: [],
             ...patch,
           }),
         );

@@ -4,7 +4,6 @@ import {
   NicknameRequiredException,
   ReplyAlreadySubmittedException,
   ReplyGuestLimitExceededException,
-  ReplyUnverifiedLimitExceededException,
   RequestNotFoundException,
 } from '../common/exceptions/app.exception';
 import type {
@@ -50,22 +49,11 @@ export class RepliesService {
       );
       if (existing) throw new ReplyAlreadySubmittedException();
 
+      // A password account only ever gets created already-verified now
+      // (see AuthService.completeSignup), and OAuth accounts are always
+      // instantly verified — so a logged-in member is never unverified,
+      // and never needs the guest-level reply cap applied to it.
       const user = await this.usersService.findById(userId);
-
-      // An unverified member is capped the same as a guest — otherwise
-      // hitting the guest cap is trivially bypassed by signing up with any
-      // unverified email. Verified members stay uncapped.
-      if (!user?.emailVerifiedAt) {
-        const [authorReplyCount, settings] = await Promise.all([
-          this.repliesRepository.countByAuthor(userId),
-          this.settingsService.get(),
-        ]);
-        if (authorReplyCount >= settings.guestReplyLimit) {
-          throw new ReplyUnverifiedLimitExceededException(
-            settings.guestReplyLimit,
-          );
-        }
-      }
 
       // A guest can never reply non-anonymously — dto.anonymous is only
       // meaningful here, on the member path.

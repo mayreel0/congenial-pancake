@@ -7,10 +7,25 @@ import { apiFetch, API_BASE_URL, type CurrentUser } from "api";
 export { apiFetch, ApiError, login, logout, fetchCurrentUser } from "api";
 export type { CurrentUser } from "api";
 
-export function signup(email: string, password: string): Promise<CurrentUser> {
-  return apiFetch<CurrentUser>("/auth/signup", {
+// Requests a signup — creates nothing yet, just emails a link. Calling
+// this again for the same address (a "resend") is exactly the same
+// request; there's no separate resend concept.
+export function signup(email: string): Promise<void> {
+  return apiFetch<void>("/auth/signup", {
     method: "POST",
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email }),
+  });
+}
+
+// Consumes the link signup sent — this is what actually creates the
+// account (already verified) and logs it in.
+export function completeSignup(
+  token: string,
+  password: string,
+): Promise<CurrentUser> {
+  return apiFetch<CurrentUser>("/auth/complete-signup", {
+    method: "POST",
+    body: JSON.stringify({ token, password }),
   });
 }
 
@@ -52,21 +67,6 @@ export function resetPassword(token: string, password: string): Promise<void> {
     method: "POST",
     body: JSON.stringify({ token, password }),
   });
-}
-
-// Public — the token itself is the proof, same shape as resetPassword.
-// Issued automatically on signup and re-issuable via resendVerification.
-export function verifyEmail(token: string): Promise<void> {
-  return apiFetch<void>("/auth/verify-email", {
-    method: "POST",
-    body: JSON.stringify({ token }),
-  });
-}
-
-// Session-gated — re-issues a verification email for the logged-in
-// account. No-op server-side if already verified.
-export function resendVerification(): Promise<void> {
-  return apiFetch<void>("/auth/resend-verification", { method: "POST" });
 }
 
 export type OAuthProviderName = "google" | "kakao" | "naver";

@@ -58,6 +58,18 @@ export class UsersRepository {
     await this.db.update(users).set({ passwordHash }).where(eq(users.id, id));
   }
 
+  // Only ever called when an OAuth login takes over a still-unverified
+  // password account (see AuthService.loginWithOAuth) — the password on
+  // file was never actually proven to belong to whoever just showed up
+  // with real OAuth proof, so it's cleared rather than left as a
+  // lingering way back in for whoever originally set it.
+  async clearPasswordHash(id: string): Promise<void> {
+    await this.db
+      .update(users)
+      .set({ passwordHash: null })
+      .where(eq(users.id, id));
+  }
+
   async updateNickname(id: string, nickname: string): Promise<User> {
     const [user] = await this.db
       .update(users)

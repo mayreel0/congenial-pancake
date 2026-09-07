@@ -17,9 +17,12 @@ type Mode = "login" | "signup";
 type SubmitStatus = "idle" | "pending";
 type Field = "email" | "password";
 
+const EMAIL_NOT_VERIFIED_CODE = "AUTH_EMAIL_NOT_VERIFIED";
+
 const ERROR_MESSAGES: Record<string, string> = {
   AUTH_EMAIL_TAKEN: "이미 등록된 이메일입니다.",
   AUTH_INVALID_CREDENTIALS: "이메일 또는 비밀번호가 올바르지 않습니다.",
+  [EMAIL_NOT_VERIFIED_CODE]: "이메일 인증이 필요해요. 메일함을 확인해주세요.",
 };
 
 function errorMessage(error: unknown): string {
@@ -32,7 +35,7 @@ function errorMessage(error: unknown): string {
 function submitButtonLabel(submitStatus: SubmitStatus, mode: Mode): string {
   if (submitStatus === "pending") return "처리 중";
   if (mode === "login") return "로그인";
-  return "회원가입";
+  return "인증 메일 받기";
 }
 
 export default function LoginPage() {
@@ -43,57 +46,81 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>("idle");
   const [error, setError] = useState<string | null>(null);
-  // A password signup lands here authenticated-but-unverified — the
-  // "check your email" screen below needs to stay up instead of the
-  // authenticated-redirect effect immediately whisking it away.
-  const [signupDone, setSignupDone] = useState(false);
+  const [needsVerification, setNeedsVerification] = useState(false);
+  // A signup request never authenticates anything (nothing is created
+  // until the emailed link is consumed) — this just tracks whether to show
+  // the "check your email" screen in place of the form.
+  const [signupRequested, setSignupRequested] = useState(false);
   const lastProvider = useLastOAuthProvider();
   const { touchAll, visibleError } = useFieldValidation<Field>();
 
   useEffect(() => {
-    if (status === "authenticated" && !signupDone) router.replace("/today");
-  }, [status, signupDone, router]);
+    if (status === "authenticated") router.replace("/today");
+  }, [status, router]);
 
   const schema = mode === "login" ? loginSchema : signupSchema;
-  const fieldErrors = parseFieldErrors(schema, { email, password });
+  const fieldErrors = parseFieldErrors(
+    schema,
+    mode === "login" ? { email, password } : { email },
+  );
 
   async function handleSubmit(event: React.FormEvent): Promise<void> {
     event.preventDefault();
-    touchAll(["email", "password"]);
+    touchAll(mode === "login" ? ["email", "password"] : ["email"]);
     if (Object.keys(fieldErrors).length > 0) return;
 
     setError(null);
+    setNeedsVerification(false);
     setSubmitStatus("pending");
     try {
       if (mode === "login") {
         await login(email, password);
         router.push("/today");
       } else {
-        await signup(email, password);
-        setSignupDone(true);
+        await signup(email);
+        setSignupRequested(true);
       }
     } catch (submitError) {
       setError(errorMessage(submitError));
+      setNeedsVerification(
+        submitError instanceof ApiError &&
+          submitError.code === EMAIL_NOT_VERIFIED_CODE,
+      );
       setSubmitStatus("idle");
     }
   }
 
-  if (signupDone) {
+  async function handleResend(): Promise<void> {
+    setSubmitStatus("pending");
+    try {
+      await signup(email);
+      setSignupRequested(true);
+    } catch (submitError) {
+      setError(errorMessage(submitError));
+    } finally {
+      setSubmitStatus("idle");
+    }
+  }
+
+  if (signupRequested) {
     return (
       <main className="flex min-h-dvh items-center bg-background px-5 py-10 text-foreground sm:px-8">
         <section className="mx-auto w-full max-w-sm space-y-6">
           <div className="space-y-3">
             <p className="text-sm text-muted">온설</p>
             <h1 className="text-2xl font-semibold tracking-normal sm:text-4xl">
-              가입 완료
+              인증 메일을 보냈어요
             </h1>
           </div>
           <p className="text-sm text-primary">
-            메일함에서 인증 링크를 확인해주세요.
+            메일함에서 링크를 눌러 가입을 완료해주세요.
           </p>
-          <Button fullWidth href="/today">
-            계속하기
-          </Button>
+          <Link
+            className="block text-center text-sm text-muted underline-offset-2 hover:underline"
+            href="/today"
+          >
+            나중에 하기
+          </Link>
         </section>
       </main>
     );
@@ -120,18 +147,29 @@ export default function LoginPage() {
             value={email}
             onChange={(event) => setEmail(event.currentTarget.value)}
           />
-          <TextField
-            autoComplete={mode === "login" ? "current-password" : "new-password"}
-            error={visibleError("password", fieldErrors)}
-            id="password"
-            label="비밀번호"
-            required
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.currentTarget.value)}
-          />
+          {mode === "login" && (
+            <TextField
+              autoComplete="current-password"
+              error={visibleError("password", fieldErrors)}
+              id="password"
+              label="비밀번호"
+              required
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.currentTarget.value)}
+            />
+          )}
 
           {error && <p className="text-sm text-red-600">{error}</p>}
+          {needsVerification && (
+            <button
+              className="text-sm text-muted underline-offset-2 hover:underline"
+              type="button"
+              onClick={() => void handleResend()}
+            >
+              인증 메일 다시 받기
+            </button>
+          )}
 
           <Button
             disabled={submitStatus === "pending"}
@@ -148,6 +186,7 @@ export default function LoginPage() {
           onClick={() => {
             setMode((current) => (current === "login" ? "signup" : "login"));
             setError(null);
+            setNeedsVerification(false);
           }}
         >
           {mode === "login" ? "계정이 없으신가요? 회원가입" : "이미 계정이 있으신가요? 로그인"}
