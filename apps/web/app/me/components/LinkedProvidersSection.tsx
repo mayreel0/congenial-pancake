@@ -58,11 +58,11 @@ export function LinkedProvidersSection({
             return (
               <div
                 aria-label={`${providerLabel} 연동됨`}
-                className={tileClassName}
+                className={`${tileClassName} ring-2 ring-primary ring-offset-2 ring-offset-surface`}
                 key={name}
               >
                 <Icon />
-                <span className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-background">
+                <span className="absolute -bottom-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-background ring-2 ring-surface">
                   <CheckIcon />
                 </span>
               </div>
