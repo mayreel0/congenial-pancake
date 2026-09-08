@@ -16,6 +16,13 @@ Not from `infra/terraform` — `docker build`'s context has to be the repo root 
 
 ## First-time apply — order matters
 
+Copy `terraform.tfvars.example` to `terraform.tfvars` (gitignored — never commit this) and fill in `admin_subdomain`. It's the one variable with no default (see the comment on it in `variables.tf` for why: this repo is public, and a guessable admin URL defeats the point). Every other variable already has a sensible default.
+
+```bash
+cp infra/terraform/terraform.tfvars.example infra/terraform/terraform.tfvars
+# then edit infra/terraform/terraform.tfvars and set admin_subdomain
+```
+
 The EC2 instance's boot script (`templates/user-data.sh.tftpl`) `docker pull`s the app image on first boot. If nothing's been pushed to ECR yet, that pull fails and the instance comes up with no container running. So the ECR repo has to exist and hold an image *before* the EC2 instance is created:
 
 ```bash
@@ -52,6 +59,8 @@ aws ssm put-parameter --name /onseol/prod/ses_from_email        --type SecureStr
 Each OAuth provider's redirect URI also needs to be registered as `https://api.onseol.com/auth/<provider>/callback` in that provider's own developer console. `resend_api_key` should be a Resend key scoped to **Sending access** only (not Full access) — the API server only ever sends mail through it.
 
 After changing one, redeploy (see below) to pick it up — `deploy-api.yml`'s redeploy step re-fetches all 10 of these from SSM and rewrites them into the running container's env file before restarting, so a plain "Run workflow" (no code change needed) is enough to roll out a rotated secret. Everything else in the env file (`DATABASE_URL`, `CORS_ORIGIN`, etc.) is still only set at instance boot, since those only change via a Terraform-driven instance replacement anyway.
+
+**SES is still in sandbox mode** (`aws sesv2 get-account` → `ProductionAccessEnabled: false`) — it can only deliver to recipient addresses/domains that are themselves verified in SES. Resend is the primary provider and unaffected by this, but the SES fallback (`ses.tf`) will silently fail to reach real users' inboxes until [production access is requested](https://docs.aws.amazon.com/ses/latest/dg/request-production-access.html) through AWS Support.
 
 ## Running DB migrations
 
