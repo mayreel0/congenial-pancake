@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import { Button } from "ui/Button";
@@ -13,6 +12,7 @@ import { NicknameSection } from "./components/NicknameSection";
 import { NicknameVisibilitySection } from "./components/NicknameVisibilitySection";
 import { ProfileVisibilitySection } from "./components/ProfileVisibilitySection";
 import { VisibilityDraftProvider } from "./components/VisibilityDraftProvider";
+import { WithdrawalSection } from "./components/WithdrawalSection";
 
 type MeContentProps = {
   status: ReturnType<typeof useAuth>["status"];
@@ -43,12 +43,7 @@ function MeContent({ status, user, notice }: MeContentProps) {
           <NicknameVisibilitySection />
           <ProfileVisibilitySection />
         </VisibilityDraftProvider>
-        <Link
-          className="text-sm text-muted underline-offset-2 hover:underline"
-          href="/me/withdraw"
-        >
-          회원탈퇴
-        </Link>
+        <WithdrawalSection />
       </>
     );
   }
