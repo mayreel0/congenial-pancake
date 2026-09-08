@@ -42,6 +42,8 @@ function makeUser(overrides: Partial<User> = {}): User {
     showCountsOnProfile: true,
     nicknameVisible: true,
     createdAt: new Date('2026-08-20T00:00:00.000Z'),
+    deletionRequestedAt: null,
+    deletedAt: null,
     ...overrides,
   };
 }
@@ -89,11 +91,15 @@ describe('AuthService', () => {
       create: jest.fn(),
       markEmailVerified: jest.fn(),
       clearPasswordHash: jest.fn(),
+      requestDeletion: jest.fn(),
+      restoreAccount: jest.fn(),
+      scrubForDeletion: jest.fn(),
     } as unknown as jest.Mocked<UsersService>;
     oauthIdentitiesRepository = {
       findByProviderAccount: jest.fn(),
       findByUserId: jest.fn(),
       create: jest.fn(),
+      deleteAllForUser: jest.fn(),
     } as unknown as jest.Mocked<OAuthIdentitiesRepository>;
     pendingSignupsRepository = {
       create: jest.fn(),
@@ -107,6 +113,7 @@ describe('AuthService', () => {
     };
     sessionService = {
       createSession: jest.fn(),
+      revokeAllForUser: jest.fn(),
     } as unknown as jest.Mocked<SessionService>;
     emailService = {
       send: jest.fn(),
@@ -576,6 +583,51 @@ describe('AuthService', () => {
       const result = await authService.getLinkedProviders('user-1');
 
       expect(result).toEqual(['google', 'kakao']);
+    });
+  });
+
+  describe('requestWithdrawal', () => {
+    it('always revokes every session for the user', async () => {
+      await authService.requestWithdrawal('user-1', false);
+
+      expect(sessionService.revokeAllForUser).toHaveBeenCalledWith('user-1');
+    });
+
+    it('only stamps deletionRequestedAt when not immediate', async () => {
+      await authService.requestWithdrawal('user-1', false);
+
+      expect(usersService.requestDeletion).toHaveBeenCalledWith('user-1');
+      expect(usersService.scrubForDeletion).not.toHaveBeenCalled();
+      expect(oauthIdentitiesRepository.deleteAllForUser).not.toHaveBeenCalled();
+    });
+
+    it('scrubs the account and clears oauth identities immediately when immediate is true', async () => {
+      await authService.requestWithdrawal('user-1', true);
+
+      expect(usersService.scrubForDeletion).toHaveBeenCalledWith('user-1');
+      expect(oauthIdentitiesRepository.deleteAllForUser).toHaveBeenCalledWith(
+        'user-1',
+      );
+      expect(usersService.requestDeletion).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('finalizeAccountDeletion', () => {
+    it('scrubs the user row and clears its oauth identities', async () => {
+      await authService.finalizeAccountDeletion('user-1');
+
+      expect(usersService.scrubForDeletion).toHaveBeenCalledWith('user-1');
+      expect(oauthIdentitiesRepository.deleteAllForUser).toHaveBeenCalledWith(
+        'user-1',
+      );
+    });
+  });
+
+  describe('restoreAccount', () => {
+    it('clears deletionRequestedAt', async () => {
+      await authService.restoreAccount('user-1');
+
+      expect(usersService.restoreAccount).toHaveBeenCalledWith('user-1');
     });
   });
 });

@@ -16,6 +16,7 @@ export function toUserResponseDto(
   user: User,
   nicknameChangeAvailableAt: Date | null,
   linkedProviders: OAuthProviderName[],
+  deletionGracePeriodEndsAt: Date | null,
 ): UserResponseDto {
   return {
     id: user.id,
@@ -29,5 +30,6 @@ export function toUserResponseDto(
     showCountsOnProfile: user.showCountsOnProfile,
     nicknameVisible: user.nicknameVisible,
     linkedProviders,
+    deletionGracePeriodEndsAt: deletionGracePeriodEndsAt?.toISOString() ?? null,
   };
 }

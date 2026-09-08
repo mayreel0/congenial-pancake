@@ -55,4 +55,25 @@ export const users = pgTable('users', {
   createdAt: timestamp('created_at', { withTimezone: true })
     .notNull()
     .defaultNow(),
+  // Withdrawal (회원탈퇴). Null = active account. Set alone = pending
+  // deletion, a 30-day grace period during which login still succeeds
+  // normally (see AuthController.me) — the frontend gates on
+  // deletionGracePeriodEndsAt and blocks with a restore-or-log-out dialog
+  // rather than silently reactivating the account. Nothing is scrubbed
+  // yet at this point; email/nickname/password/oauth_identities are all
+  // still intact so a restore is a no-op besides clearing this column.
+  deletionRequestedAt: timestamp('deletion_requested_at', {
+    withTimezone: true,
+  }),
+  // Set once the account is actually finalized — either immediately
+  // (UsersService.scrubForDeletion called straight from the withdrawal
+  // request) or by AccountDeletionCronService once deletionRequestedAt is
+  // more than 30 days old. At that point email/nickname/passwordHash are
+  // scrubbed (see UsersService.scrubForDeletion) and oauth_identities rows
+  // are gone — requests/replies authored by this user are deliberately
+  // NOT touched (can't null author_id — see the requests_author_or_guest/
+  // replies_author_or_guest CHECK constraints — and don't need to: they
+  // already re-render as anonymous once nickname is null, via
+  // toAuthorDisplayDto's existing "opted in but nickname gone" fallback).
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
 });

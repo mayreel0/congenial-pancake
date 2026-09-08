@@ -33,6 +33,7 @@ import { PasswordResetService } from './password-reset/password-reset.service';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { UpdateNicknameDto } from './dto/update-nickname.dto';
 import { UpdateProfileVisibilityDto } from './dto/update-profile-visibility.dto';
+import { WithdrawDto } from './dto/withdraw.dto';
 import { clearSessionCookie, setSessionCookie } from './session-cookie';
 import { SessionGuard } from './session.guard';
 import { SessionService } from './session.service';
@@ -90,7 +91,14 @@ export class AuthController {
     const nicknameChangeAvailableAt =
       await this.usersService.nicknameChangeAvailableAt(user);
     const linkedProviders = await this.authService.getLinkedProviders(user.id);
-    return toUserResponseDto(user, nicknameChangeAvailableAt, linkedProviders);
+    const deletionGracePeriodEndsAt =
+      this.usersService.deletionGracePeriodEndsAt(user);
+    return toUserResponseDto(
+      user,
+      nicknameChangeAvailableAt,
+      linkedProviders,
+      deletionGracePeriodEndsAt,
+    );
   }
 
   @Throttle({ default: { ttl: 60_000, limit: 5 } })
@@ -110,7 +118,14 @@ export class AuthController {
     const nicknameChangeAvailableAt =
       await this.usersService.nicknameChangeAvailableAt(user);
     const linkedProviders = await this.authService.getLinkedProviders(user.id);
-    return toUserResponseDto(user, nicknameChangeAvailableAt, linkedProviders);
+    const deletionGracePeriodEndsAt =
+      this.usersService.deletionGracePeriodEndsAt(user);
+    return toUserResponseDto(
+      user,
+      nicknameChangeAvailableAt,
+      linkedProviders,
+      deletionGracePeriodEndsAt,
+    );
   }
 
   // Public — the token itself (not a session) is the proof of authorization,
@@ -137,6 +152,55 @@ export class AuthController {
     clearSessionCookie(res, this.config);
   }
 
+  // Always logs the caller out everywhere immediately (see
+  // AuthService.requestWithdrawal) — dto.immediate additionally scrubs
+  // the account right away instead of just starting the 30-day grace
+  // period. Either way there's nothing left in the response to return.
+  @Post('withdraw')
+  @UseGuards(SessionGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async withdraw(
+    @CurrentUser() userId: string,
+    @Body() dto: WithdrawDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<void> {
+    await this.authService.requestWithdrawal(userId, dto.immediate ?? false);
+    clearSessionCookie(res, this.config);
+  }
+
+  // Only reachable with a live session, which itself already proves the
+  // grace period hasn't been finalized yet (a scrubbed account's session
+  // was revoked the moment withdrawal — immediate or not — was
+  // requested). The frontend only calls this from the restore dialog
+  // GET /auth/me's deletionGracePeriodEndsAt triggers, but nothing here
+  // depends on that being true — see AuthService.restoreAccount.
+  @Post('restore-account')
+  @UseGuards(SessionGuard)
+  @HttpCode(HttpStatus.OK)
+  @ZodResponse({ type: UserResponseDto })
+  async restoreAccount(
+    @CurrentUser() userId: string,
+  ): Promise<UserResponseDto> {
+    await this.authService.restoreAccount(userId);
+    const user = await this.usersService.findById(userId);
+    if (!user) {
+      throw new InternalServerErrorException(
+        'Session references a missing user.',
+      );
+    }
+    const nicknameChangeAvailableAt =
+      await this.usersService.nicknameChangeAvailableAt(user);
+    const linkedProviders = await this.authService.getLinkedProviders(user.id);
+    const deletionGracePeriodEndsAt =
+      this.usersService.deletionGracePeriodEndsAt(user);
+    return toUserResponseDto(
+      user,
+      nicknameChangeAvailableAt,
+      linkedProviders,
+      deletionGracePeriodEndsAt,
+    );
+  }
+
   @Get('me')
   @UseGuards(SessionGuard)
   @ZodResponse({ type: UserResponseDto })
@@ -150,7 +214,14 @@ export class AuthController {
     const nicknameChangeAvailableAt =
       await this.usersService.nicknameChangeAvailableAt(user);
     const linkedProviders = await this.authService.getLinkedProviders(user.id);
-    return toUserResponseDto(user, nicknameChangeAvailableAt, linkedProviders);
+    const deletionGracePeriodEndsAt =
+      this.usersService.deletionGracePeriodEndsAt(user);
+    return toUserResponseDto(
+      user,
+      nicknameChangeAvailableAt,
+      linkedProviders,
+      deletionGracePeriodEndsAt,
+    );
   }
 
   // No reveal/anonymity behavior yet — this only lets a signed-in user set
@@ -168,7 +239,14 @@ export class AuthController {
     const nicknameChangeAvailableAt =
       await this.usersService.nicknameChangeAvailableAt(user);
     const linkedProviders = await this.authService.getLinkedProviders(user.id);
-    return toUserResponseDto(user, nicknameChangeAvailableAt, linkedProviders);
+    const deletionGracePeriodEndsAt =
+      this.usersService.deletionGracePeriodEndsAt(user);
+    return toUserResponseDto(
+      user,
+      nicknameChangeAvailableAt,
+      linkedProviders,
+      deletionGracePeriodEndsAt,
+    );
   }
 
   // Independent per-field switches — three for the public profile
@@ -187,7 +265,14 @@ export class AuthController {
     const nicknameChangeAvailableAt =
       await this.usersService.nicknameChangeAvailableAt(user);
     const linkedProviders = await this.authService.getLinkedProviders(user.id);
-    return toUserResponseDto(user, nicknameChangeAvailableAt, linkedProviders);
+    const deletionGracePeriodEndsAt =
+      this.usersService.deletionGracePeriodEndsAt(user);
+    return toUserResponseDto(
+      user,
+      nicknameChangeAvailableAt,
+      linkedProviders,
+      deletionGracePeriodEndsAt,
+    );
   }
 
   // One pair of routes for every provider (google/kakao/naver) instead of

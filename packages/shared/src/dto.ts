@@ -272,8 +272,20 @@ export const userResponseSchema = z.object({
   showCountsOnProfile: z.boolean(),
   nicknameVisible: z.boolean(),
   linkedProviders: z.array(z.enum(['google', 'kakao', 'naver'])),
+  // Null unless the account is mid-withdrawal grace period — the frontend
+  // treats a non-null value as "show the restore-or-log-out dialog",
+  // regardless of which page this response came back on.
+  deletionGracePeriodEndsAt: z.string().nullable(),
 });
 export type UserResponseDto = z.infer<typeof userResponseSchema>;
+
+// POST /auth/withdraw body.
+export const withdrawSchema = z
+  .object({
+    immediate: z.boolean().optional(),
+  })
+  .strict();
+export type WithdrawInput = z.infer<typeof withdrawSchema>;
 
 // GET/PATCH /admin/settings response.
 export const settingsResponseSchema = z.object({

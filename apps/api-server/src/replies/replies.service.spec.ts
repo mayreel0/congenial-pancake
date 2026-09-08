@@ -60,6 +60,8 @@ function makeUser(overrides: Partial<User> = {}): User {
     showCountsOnProfile: true,
     nicknameVisible: true,
     createdAt: new Date('2026-08-21T00:00:00.000Z'),
+    deletionRequestedAt: null,
+    deletedAt: null,
     ...overrides,
   };
 }
