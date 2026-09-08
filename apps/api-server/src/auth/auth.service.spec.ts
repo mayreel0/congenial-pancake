@@ -97,6 +97,7 @@ describe('AuthService', () => {
     } as unknown as jest.Mocked<OAuthIdentitiesRepository>;
     pendingSignupsRepository = {
       create: jest.fn(),
+      findMostRecentByEmail: jest.fn().mockResolvedValue(undefined),
       findValidByHash: jest.fn(),
       markUsed: jest.fn(),
     } as unknown as jest.Mocked<PendingSignupsRepository>;
@@ -159,6 +160,37 @@ describe('AuthService', () => {
       await expect(
         authService.requestSignup({ email: 'new@example.com' }),
       ).rejects.toBeInstanceOf(EmailSendFailedException);
+    });
+
+    it('silently no-ops within the 60s cooldown — same email, no new email sent', async () => {
+      usersService.findByEmail.mockResolvedValue(undefined);
+      pendingSignupsRepository.findMostRecentByEmail.mockResolvedValue(
+        makePendingSignup({
+          email: 'new@example.com',
+          createdAt: new Date(Date.now() - 1000),
+        }),
+      );
+
+      await authService.requestSignup({ email: 'new@example.com' });
+
+      expect(pendingSignupsRepository.create).not.toHaveBeenCalled();
+      expect(emailService.send).not.toHaveBeenCalled();
+    });
+
+    it('sends again once the cooldown has passed', async () => {
+      usersService.findByEmail.mockResolvedValue(undefined);
+      pendingSignupsRepository.findMostRecentByEmail.mockResolvedValue(
+        makePendingSignup({
+          email: 'new@example.com',
+          createdAt: new Date(Date.now() - 61_000),
+        }),
+      );
+      emailService.send.mockResolvedValue(undefined);
+
+      await authService.requestSignup({ email: 'new@example.com' });
+
+      expect(pendingSignupsRepository.create).toHaveBeenCalled();
+      expect(emailService.send).toHaveBeenCalled();
     });
   });
 
