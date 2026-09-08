@@ -122,7 +122,7 @@ jobs:
             --arg port "$APP_PORT" \
             '{commands: [
               ("aws ecr get-login-password --region " + $region + " | docker login --username AWS --password-stdin " + $registry),
-              ("for NAME in google_client_id google_client_secret kakao_client_id kakao_client_secret naver_client_id naver_client_secret admin_user_ids resend_api_key resend_from_email ses_from_email; do KEY=$(echo \"$NAME\" | tr a-z A-Z); VALUE=$(aws ssm get-parameter --region " + $region + " --name \"/onseol/prod/$NAME\" --with-decryption --query Parameter.Value --output text); awk -v k=\"$KEY\" -v v=\"$VALUE\" 'BEGIN{FS=OFS=\"=\"} $1==k{$0=k\"=\"v} 1' /etc/onseol-api.env > /etc/onseol-api.env.new && mv /etc/onseol-api.env.new /etc/onseol-api.env; done"),
+              ("for NAME in google_client_id google_client_secret kakao_client_id kakao_client_secret naver_client_id naver_client_secret admin_user_ids resend_api_key resend_from_email ses_from_email; do KEY=$(echo \"$NAME\" | tr a-z A-Z); VALUE=$(aws ssm get-parameter --region " + $region + " --name \"/onseol/prod/$NAME\" --with-decryption --query Parameter.Value --output text); awk -v k=\"$KEY\" -v v=\"$VALUE\" '\''BEGIN{FS=OFS=\"=\"} $1==k{$0=k\"=\"v} 1'\'' /etc/onseol-api.env > /etc/onseol-api.env.new && mv /etc/onseol-api.env.new /etc/onseol-api.env; done"),
               "chmod 600 /etc/onseol-api.env",
               ("docker pull " + $image),
               "docker stop onseol-api || true",
