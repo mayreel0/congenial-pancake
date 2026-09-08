@@ -11,7 +11,7 @@ import type {
 } from '../reply-content/reply-content-moderation.types';
 
 describe('runReplyContentModerationEval', () => {
-  it('compares actual moderation actions and category coverage against expected fixtures', async () => {
+  it('separates action failures from category drift warnings', async () => {
     const classifier: ReplyToneClassifier = {
       classify: (input) => {
         if (input.text.includes('예민')) {
@@ -21,6 +21,16 @@ describe('runReplyContentModerationEval', () => {
             categories: [],
             severity: 0,
             confidence: 0.7,
+          });
+        }
+
+        if (input.text.includes('비꼬')) {
+          return Promise.resolve({
+            action: 'suggest_rewrite',
+            reason: '수정 제안은 필요하지만 세부 라벨은 다르게 분류했습니다.',
+            categories: ['mockery'],
+            severity: 2,
+            confidence: 0.82,
           });
         }
 
@@ -51,6 +61,12 @@ describe('runReplyContentModerationEval', () => {
         expectedCategories: ['emotion_dismissal', 'judgmental'],
       },
       {
+        id: 'sarcasm-suggest',
+        text: '비꼬는 답장입니다.',
+        expectedAction: 'suggest_rewrite',
+        expectedCategories: ['sarcasm'],
+      },
+      {
         id: 'privacy-block',
         text: '카톡 아이디 줘.',
         expectedAction: 'block',
@@ -61,18 +77,19 @@ describe('runReplyContentModerationEval', () => {
     const report = await runReplyContentModerationEval(service, cases);
 
     expect(report.summary).toEqual({
-      total: 3,
+      total: 4,
       passed: 2,
+      warned: 1,
       failed: 1,
       byExpectedAction: {
         allow: 1,
-        suggest_rewrite: 1,
+        suggest_rewrite: 2,
         block: 1,
         uncertain: 0,
       },
       byActualAction: {
         allow: 2,
-        suggest_rewrite: 0,
+        suggest_rewrite: 1,
         block: 1,
         uncertain: 0,
       },
@@ -80,16 +97,26 @@ describe('runReplyContentModerationEval', () => {
     expect(report.results).toEqual([
       expect.objectContaining({
         id: 'kind-allow',
+        status: 'pass',
         matchedAction: true,
         missingExpectedCategories: [],
       }),
       expect.objectContaining({
         id: 'dismissive-suggest',
+        status: 'fail',
         matchedAction: false,
         missingExpectedCategories: ['emotion_dismissal', 'judgmental'],
       }),
       expect.objectContaining({
+        id: 'sarcasm-suggest',
+        status: 'warn',
+        matchedAction: true,
+        missingExpectedCategories: ['sarcasm'],
+        unexpectedCategories: ['mockery'],
+      }),
+      expect.objectContaining({
         id: 'privacy-block',
+        status: 'pass',
         matchedAction: true,
         missingExpectedCategories: [],
       }),
@@ -124,8 +151,8 @@ describe('formatReplyContentModerationEvalJsonl', () => {
 
     expect(formatReplyContentModerationEvalJsonl(report)).toBe(
       [
-        '{"type":"summary","total":1,"passed":1,"failed":0,"byExpectedAction":{"allow":1,"suggest_rewrite":0,"block":0,"uncertain":0},"byActualAction":{"allow":1,"suggest_rewrite":0,"block":0,"uncertain":0}}',
-        '{"type":"case","id":"kind-allow","expectedAction":"allow","actualAction":"allow","matchedAction":true,"missingExpectedCategories":[],"unexpectedCategories":[],"severity":0,"confidence":0.95,"reason":"온설의 답장 기준에 어긋나는 표현이 없습니다.","suggestionCount":0}',
+        '{"type":"summary","total":1,"passed":1,"warned":0,"failed":0,"byExpectedAction":{"allow":1,"suggest_rewrite":0,"block":0,"uncertain":0},"byActualAction":{"allow":1,"suggest_rewrite":0,"block":0,"uncertain":0}}',
+        '{"type":"case","id":"kind-allow","status":"pass","expectedAction":"allow","actualAction":"allow","matchedAction":true,"missingExpectedCategories":[],"unexpectedCategories":[],"severity":0,"confidence":0.95,"reason":"온설의 답장 기준에 어긋나는 표현이 없습니다.","suggestionCount":0}',
       ].join('\n'),
     );
   });
@@ -158,7 +185,7 @@ describe('formatReplyContentModerationEvalTable', () => {
 
     expect(formatReplyContentModerationEvalTable(report)).toBe(
       [
-        'total=1 passed=1 failed=0',
+        'total=1 passed=1 warned=0 failed=0',
         'status\tid\texpected\tactual\tcategories\tsuggestions\treason\terror',
         'PASS\tkind-allow\tallow\tallow\t-\t0\t짧고 담백한 공감 표현입니다.\t-',
       ].join('\n'),
