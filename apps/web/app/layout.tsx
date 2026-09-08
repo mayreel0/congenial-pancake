@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import localFont from "next/font/local";
 import { QueryProvider } from "ui/QueryProvider";
+import { AccountRestoreDialog } from "./components/AccountRestoreDialog";
 import "./globals.css";
 
 // Pretendard, not next/font/google's Geist — Geist only ships a Latin
@@ -32,7 +33,10 @@ export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="ko" className={`${pretendard.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
-        <QueryProvider>{children}</QueryProvider>
+        <QueryProvider>
+          <AccountRestoreDialog />
+          {children}
+        </QueryProvider>
       </body>
     </html>
   );

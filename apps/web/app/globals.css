@@ -15,6 +15,18 @@
   --primary-foreground: #ffffff;
   --accent: #7d5f4f;
   --muted: #676d63;
+  /* Only real use so far is the 회원탈퇴 button — see
+     docs/decisions/2026-09-09-onseol-account-withdrawal-decisions.md.
+     Light and dark deliberately use different treatments, not just a
+     lightened hue: a plain red outline reads as muddy/complementary-clash
+     against this palette's greenish dark surface, so dark additionally
+     carries a faint always-on background tint (destructive-bg) that a
+     bare color-mix()/opacity utility on one shared color couldn't express
+     — light's resting bg is transparent, dark's isn't. Confirmed via a
+     real-token visual comparison artifact before picking this pair. */
+  --destructive: #dc2626;
+  --destructive-bg: transparent;
+  --destructive-bg-hover: rgba(220, 38, 38, 0.1);
 }
 
 @theme inline {
@@ -27,6 +39,9 @@
   --color-primary-foreground: var(--primary-foreground);
   --color-accent: var(--accent);
   --color-muted: var(--muted);
+  --color-destructive: var(--destructive);
+  --color-destructive-bg: var(--destructive-bg);
+  --color-destructive-bg-hover: var(--destructive-bg-hover);
   --font-sans: var(--font-pretendard);
   --font-mono: ui-monospace, "SFMono-Regular", Menlo, monospace;
 }
@@ -42,6 +57,9 @@
     --primary-foreground: #101411;
     --accent: #d29a78;
     --muted: #b5beb2;
+    --destructive: #f87171;
+    --destructive-bg: rgba(248, 113, 113, 0.12);
+    --destructive-bg-hover: rgba(248, 113, 113, 0.2);
   }
 }
 
@@ -60,6 +78,9 @@
   --primary-foreground: #101411;
   --accent: #d29a78;
   --muted: #b5beb2;
+  --destructive: #f87171;
+  --destructive-bg: rgba(248, 113, 113, 0.12);
+  --destructive-bg-hover: rgba(248, 113, 113, 0.2);
 }
 
 :root[data-theme="light"] {
@@ -72,6 +93,9 @@
   --primary-foreground: #ffffff;
   --accent: #7d5f4f;
   --muted: #676d63;
+  --destructive: #dc2626;
+  --destructive-bg: transparent;
+  --destructive-bg-hover: rgba(220, 38, 38, 0.1);
 }
 
 body {

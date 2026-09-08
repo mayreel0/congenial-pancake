@@ -12,6 +12,7 @@ import { NicknameSection } from "./components/NicknameSection";
 import { NicknameVisibilitySection } from "./components/NicknameVisibilitySection";
 import { ProfileVisibilitySection } from "./components/ProfileVisibilitySection";
 import { VisibilityDraftProvider } from "./components/VisibilityDraftProvider";
+import { WithdrawalSection } from "./components/WithdrawalSection";
 
 type MeContentProps = {
   status: ReturnType<typeof useAuth>["status"];
@@ -42,6 +43,7 @@ function MeContent({ status, user, notice }: MeContentProps) {
           <NicknameVisibilitySection />
           <ProfileVisibilitySection />
         </VisibilityDraftProvider>
+        <WithdrawalSection />
       </>
     );
   }
