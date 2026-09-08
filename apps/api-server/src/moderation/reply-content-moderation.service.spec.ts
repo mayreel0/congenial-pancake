@@ -77,19 +77,23 @@ describe('ReplyContentModerationService', () => {
     const cases = [
       {
         text: '요즘 여자들은 다 그래.',
-        category: 'gender_conflict',
+        categories: ['gender_conflict'],
+      },
+      {
+        text: '그 정당 지지하는 사람들은 다 답이 없어.',
+        categories: ['politics', 'division'],
       },
       {
         text: '카톡 아이디 줘.',
-        category: 'privacy',
+        categories: ['privacy'],
       },
       {
         text: '제 서비스 한번 써보세요.',
-        category: 'promotion',
+        categories: ['promotion'],
       },
       {
         text: '약 끊고 그냥 쉬면 괜찮아.',
-        category: 'high_risk_advice',
+        categories: ['high_risk_advice'],
       },
     ] as const;
 
@@ -100,7 +104,9 @@ describe('ReplyContentModerationService', () => {
       });
 
       expect(result.action).toBe('block');
-      expect(result.categories).toContain(item.category);
+      expect(result.categories).toEqual(
+        expect.arrayContaining(item.categories),
+      );
       expect(result.suggestions).toEqual([]);
     }
     expect(classifier.classify).not.toHaveBeenCalled();
@@ -147,6 +153,23 @@ describe('ReplyContentModerationService', () => {
       telemetry: { shouldPersistForTraining: true },
     });
     expect(rewriter.rewrite).not.toHaveBeenCalled();
+  });
+
+  it('can include classifier errors in telemetry for eval diagnostics', async () => {
+    classifier.classify.mockRejectedValue(new Error('timeout'));
+    service = new ReplyContentModerationService(classifier, rewriter, {
+      captureErrors: true,
+    });
+
+    const result = await service.moderate({
+      text: '애매한 답장',
+      surface: 'reply',
+    });
+
+    expect(result.telemetry).toEqual({
+      shouldPersistForTraining: true,
+      errorReason: 'timeout',
+    });
   });
 
   it('keeps suggest_rewrite when rewrite generation fails', async () => {

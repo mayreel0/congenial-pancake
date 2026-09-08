@@ -12,6 +12,10 @@ import type {
   ToneClassification,
 } from './reply-content-moderation.types';
 
+export type ReplyContentModerationServiceOptions = {
+  captureErrors?: boolean;
+};
+
 export type {
   ModerationAction,
   ModerationCategory,
@@ -26,18 +30,27 @@ export type {
 function toResult(
   classification: ToneClassification,
   suggestions: string[] = [],
+  errorReason?: string,
 ): ModerationResult {
   return {
     ...classification,
     suggestions: normalizeSuggestions(suggestions),
-    telemetry: { shouldPersistForTraining: true },
+    telemetry: {
+      shouldPersistForTraining: true,
+      ...(errorReason ? { errorReason } : {}),
+    },
   };
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 export class ReplyContentModerationService {
   constructor(
     private readonly classifier: ReplyToneClassifier,
     private readonly rewriter: ReplyRewriter,
+    private readonly options: ReplyContentModerationServiceOptions = {},
   ) {}
 
   async moderate(input: ModerationInput): Promise<ModerationResult> {
@@ -50,7 +63,7 @@ export class ReplyContentModerationService {
     let classification: ToneClassification;
     try {
       classification = await this.classifier.classify(input);
-    } catch {
+    } catch (error) {
       return {
         action: 'uncertain',
         reason: '답장 안전도 판정에 실패했습니다.',
@@ -58,7 +71,12 @@ export class ReplyContentModerationService {
         severity: 0,
         confidence: 0,
         suggestions: [],
-        telemetry: { shouldPersistForTraining: true },
+        telemetry: {
+          shouldPersistForTraining: true,
+          ...(this.options.captureErrors
+            ? { errorReason: errorMessage(error) }
+            : {}),
+        },
       };
     }
 
@@ -71,8 +89,12 @@ export class ReplyContentModerationService {
 
     try {
       return toResult(classification, await this.rewriter.rewrite(input));
-    } catch {
-      return toResult(classification);
+    } catch (error) {
+      return toResult(
+        classification,
+        [],
+        this.options.captureErrors ? errorMessage(error) : undefined,
+      );
     }
   }
 }

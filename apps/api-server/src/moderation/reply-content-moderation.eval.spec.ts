@@ -1,5 +1,6 @@
 import {
   formatReplyContentModerationEvalJsonl,
+  formatReplyContentModerationEvalTable,
   runReplyContentModerationEval,
   type ReplyContentModerationEvalCase,
 } from './reply-content-moderation.eval';
@@ -124,7 +125,42 @@ describe('formatReplyContentModerationEvalJsonl', () => {
     expect(formatReplyContentModerationEvalJsonl(report)).toBe(
       [
         '{"type":"summary","total":1,"passed":1,"failed":0,"byExpectedAction":{"allow":1,"suggest_rewrite":0,"block":0,"uncertain":0},"byActualAction":{"allow":1,"suggest_rewrite":0,"block":0,"uncertain":0}}',
-        '{"type":"case","id":"kind-allow","expectedAction":"allow","actualAction":"allow","matchedAction":true,"missingExpectedCategories":[],"unexpectedCategories":[],"severity":0,"confidence":0.95,"suggestionCount":0}',
+        '{"type":"case","id":"kind-allow","expectedAction":"allow","actualAction":"allow","matchedAction":true,"missingExpectedCategories":[],"unexpectedCategories":[],"severity":0,"confidence":0.95,"reason":"온설의 답장 기준에 어긋나는 표현이 없습니다.","suggestionCount":0}',
+      ].join('\n'),
+    );
+  });
+});
+
+describe('formatReplyContentModerationEvalTable', () => {
+  it('prints the model reason for each case', async () => {
+    const classifier: ReplyToneClassifier = {
+      classify: () =>
+        Promise.resolve({
+          action: 'allow',
+          reason: '짧고 담백한 공감 표현입니다.',
+          categories: [],
+          severity: 0,
+          confidence: 0.95,
+        }),
+    };
+    const service = new ReplyContentModerationService(classifier, {
+      rewrite: () => Promise.resolve([]),
+    });
+
+    const report = await runReplyContentModerationEval(service, [
+      {
+        id: 'kind-allow',
+        text: '많이 힘들었겠어요.',
+        expectedAction: 'allow',
+        expectedCategories: [],
+      },
+    ]);
+
+    expect(formatReplyContentModerationEvalTable(report)).toBe(
+      [
+        'total=1 passed=1 failed=0',
+        'status\tid\texpected\tactual\tcategories\tsuggestions\treason\terror',
+        'PASS\tkind-allow\tallow\tallow\t-\t0\t짧고 담백한 공감 표현입니다.\t-',
       ].join('\n'),
     );
   });

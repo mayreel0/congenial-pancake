@@ -25,6 +25,7 @@ export type ReplyContentModerationEvalResult = {
   severity: ModerationResult['severity'];
   confidence: number;
   reason: string;
+  errorReason?: string;
   suggestions: string[];
 };
 
@@ -89,6 +90,7 @@ export async function runReplyContentModerationEval(
       severity: result.severity,
       confidence: result.confidence,
       reason: result.reason,
+      errorReason: result.telemetry.errorReason,
       suggestions: result.suggestions,
     });
   }
@@ -139,6 +141,8 @@ export function formatReplyContentModerationEvalJsonl(
         unexpectedCategories: result.unexpectedCategories,
         severity: result.severity,
         confidence: result.confidence,
+        reason: result.reason,
+        errorReason: result.errorReason,
         suggestionCount: result.suggestions.length,
       }),
     );
@@ -160,12 +164,14 @@ export function formatReplyContentModerationEvalTable(
       result.actualAction,
       result.actualCategories.join(',') || '-',
       result.suggestions.length.toString(),
+      result.reason,
+      result.errorReason ?? '-',
     ].join('\t'),
   );
 
   return [
     `total=${report.summary.total} passed=${report.summary.passed} failed=${report.summary.failed}`,
-    'status\tid\texpected\tactual\tcategories\tsuggestions',
+    'status\tid\texpected\tactual\tcategories\tsuggestions\treason\terror',
     ...rows,
   ].join('\n');
 }

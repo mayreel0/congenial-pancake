@@ -18,6 +18,20 @@ const HARD_BLOCK_RULES: HardBlockRule[] = [
     patterns: [/요즘\s*(여자|남자)들은\s*다\s*그래/u],
   },
   {
+    category: 'politics',
+    reason: '정치 성향에 따른 갈등을 조장하는 표현입니다.',
+    patterns: [
+      /(정당|진보|보수|좌파|우파|민주당|국민의힘).*(지지하는\s*사람|지지자|찍은\s*사람).*(답이\s*없|멍청|한심|쓰레기)/u,
+    ],
+  },
+  {
+    category: 'division',
+    reason: '집단을 나누어 비난하는 표현입니다.',
+    patterns: [
+      /(정당|진보|보수|좌파|우파|민주당|국민의힘).*(지지하는\s*사람|지지자|찍은\s*사람).*(답이\s*없|멍청|한심|쓰레기)/u,
+    ],
+  },
+  {
     category: 'privacy',
     reason: '개인 연락처 또는 신상 공개를 유도하는 표현입니다.',
     patterns: [

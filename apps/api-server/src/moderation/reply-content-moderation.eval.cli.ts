@@ -19,6 +19,9 @@ import type {
 
 type EvalFormat = 'jsonl' | 'table';
 
+const defaultClassifierTimeoutMs = 20_000;
+const defaultRewriteTimeoutMs = 20_000;
+
 class MissingOpenAIKeyClassifier implements ReplyToneClassifier {
   classify(): Promise<ToneClassification> {
     return Promise.reject(new Error('OPENAI_API_KEY is not set'));
@@ -38,6 +41,18 @@ function readArgValue(name: string): string | undefined {
     ?.slice(prefix.length);
 }
 
+function readPositiveIntegerArg(name: string, fallback: number): number {
+  const value = readArgValue(name);
+  if (value === undefined) return fallback;
+
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new Error(`Unsupported ${name}: ${value}`);
+  }
+
+  return parsed;
+}
+
 function readFormat(): EvalFormat {
   const value = readArgValue('format');
   if (value === undefined || value === 'jsonl') return 'jsonl';
@@ -48,22 +63,32 @@ function readFormat(): EvalFormat {
 
 async function main(): Promise<void> {
   const format = readFormat();
+  const classifierTimeoutMs = readPositiveIntegerArg(
+    'classifier-timeout-ms',
+    defaultClassifierTimeoutMs,
+  );
+  const rewriteTimeoutMs = readPositiveIntegerArg(
+    'rewrite-timeout-ms',
+    defaultRewriteTimeoutMs,
+  );
   const apiKey = process.env.OPENAI_API_KEY ?? '';
   const model = process.env.OPENAI_MODERATION_MODEL || 'gpt-5-mini';
   const service = apiKey
     ? new ReplyContentModerationService(
         new OpenAIReplyToneClassifier(createOpenAIResponsesClient(apiKey), {
           model,
-          timeoutMs: 3000,
+          timeoutMs: classifierTimeoutMs,
         }),
         new OpenAIReplyRewriter(createOpenAIResponsesClient(apiKey), {
           model,
-          timeoutMs: 5000,
+          timeoutMs: rewriteTimeoutMs,
         }),
+        { captureErrors: true },
       )
     : new ReplyContentModerationService(
         new MissingOpenAIKeyClassifier(),
         new EmptyRewriter(),
+        { captureErrors: true },
       );
 
   const report = await runReplyContentModerationEval(
