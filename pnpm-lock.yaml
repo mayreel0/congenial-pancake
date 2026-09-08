@@ -402,6 +402,10 @@ importers:
         version: 5.9.3
 
   packages/ui:
+    dependencies:
+      shared:
+        specifier: workspace:*
+        version: link:../shared
     devDependencies:
       '@storybook/nextjs-vite':
         specifier: 10.5.9

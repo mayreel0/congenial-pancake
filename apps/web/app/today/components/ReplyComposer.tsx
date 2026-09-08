@@ -1,7 +1,7 @@
 "use client";
 
 import { createReplySchema } from "shared/dto";
-import { parseFieldErrors } from "../../lib/zod-form";
+import { parseFieldErrors } from "shared/zod-form";
 
 type ReplyComposerProps = {
   value: string;

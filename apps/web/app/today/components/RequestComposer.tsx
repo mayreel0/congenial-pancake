@@ -3,7 +3,7 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { createRequestSchema } from "shared/dto";
 import { Toggle } from "ui/Toggle";
-import { parseFieldErrors } from "../../lib/zod-form";
+import { parseFieldErrors } from "shared/zod-form";
 
 const MIN_TEXTAREA_HEIGHT = 44;
 const MAX_TEXTAREA_HEIGHT = 128;

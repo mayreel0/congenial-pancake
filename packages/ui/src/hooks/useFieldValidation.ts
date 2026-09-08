@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { FieldErrors } from "./zod-form";
+import type { FieldErrors } from "shared/zod-form";
 
 // Tracks which fields have been "touched" — a submit attempt touches all
 // of them at once via touchAll(). An untouched field never shows its

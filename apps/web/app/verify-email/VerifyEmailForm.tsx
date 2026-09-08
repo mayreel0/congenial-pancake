@@ -5,8 +5,8 @@ import { useState } from "react";
 import { completeSignupSchema } from "shared/dto";
 import { ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth/useAuth";
-import { useFieldValidation } from "../lib/useFieldValidation";
-import { parseFieldErrors } from "../lib/zod-form";
+import { useFieldValidation } from "ui/useFieldValidation";
+import { parseFieldErrors } from "shared/zod-form";
 import { VerifyEmailBody, type VerifyEmailStatus } from "./VerifyEmailBody";
 
 type Field = "password";
