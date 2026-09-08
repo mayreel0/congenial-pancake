@@ -1,13 +1,13 @@
 import OpenAI from 'openai';
 import { z } from 'zod';
-import { normalizeSuggestions } from './reply-content-moderation.policy';
+import { normalizeSuggestions } from '../reply-content/reply-content-moderation.policy';
 import type {
   ModerationCategory,
   ModerationInput,
   ReplyRewriter,
   ReplyToneClassifier,
   ToneClassification,
-} from './reply-content-moderation.types';
+} from '../reply-content/reply-content-moderation.types';
 
 type OpenAIResponse = {
   output_text?: string | null;

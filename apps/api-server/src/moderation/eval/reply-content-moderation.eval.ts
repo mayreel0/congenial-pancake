@@ -2,8 +2,8 @@ import type {
   ModerationAction,
   ModerationCategory,
   ModerationResult,
-} from './reply-content-moderation.types';
-import type { ReplyContentModerationService } from './reply-content-moderation.service';
+} from '../reply-content/reply-content-moderation.types';
+import type { ReplyContentModerationService } from '../reply-content/reply-content-moderation.service';
 
 export type ReplyContentModerationEvalCase = {
   id: string;

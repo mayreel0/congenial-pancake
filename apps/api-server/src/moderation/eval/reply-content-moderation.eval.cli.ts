@@ -3,19 +3,19 @@ import {
   createOpenAIResponsesClient,
   OpenAIReplyRewriter,
   OpenAIReplyToneClassifier,
-} from './openai-reply-moderation.provider';
+} from '../openai/openai-reply-moderation.provider';
 import { replyContentModerationEvalCases } from './reply-content-moderation.eval-fixtures';
 import {
   formatReplyContentModerationEvalJsonl,
   formatReplyContentModerationEvalTable,
   runReplyContentModerationEval,
 } from './reply-content-moderation.eval';
-import { ReplyContentModerationService } from './reply-content-moderation.service';
+import { ReplyContentModerationService } from '../reply-content/reply-content-moderation.service';
 import type {
   ReplyRewriter,
   ReplyToneClassifier,
   ToneClassification,
-} from './reply-content-moderation.types';
+} from '../reply-content/reply-content-moderation.types';
 
 type EvalFormat = 'jsonl' | 'table';
 
