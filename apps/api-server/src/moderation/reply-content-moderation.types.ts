@@ -49,6 +49,7 @@ export type ModerationResult = ToneClassification & {
   telemetry: {
     shouldPersistForTraining: boolean;
     excludedReason?: ModerationExcludedReason;
+    errorReason?: string;
   };
 };
 

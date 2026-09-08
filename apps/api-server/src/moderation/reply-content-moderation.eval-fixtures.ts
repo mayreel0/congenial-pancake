@@ -22,7 +22,7 @@ export const replyContentModerationEvalCases: ReplyContentModerationEvalCase[] =
     },
     {
       id: 'suggest-unsolicited-solution-1',
-      text: '그냥 잊어.',
+      text: '일단 매일 아침 운동하고 계획표부터 만들어.',
       expectedAction: 'suggest_rewrite',
       expectedCategories: ['unsolicited_solution'],
     },
