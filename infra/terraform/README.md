@@ -90,7 +90,7 @@ Automatic now — `.github/workflows/deploy-api.yml` runs on every push to `v1` 
 
 DB migrations run automatically too, as the container's own startup step (`drizzle-kit migrate` before `node dist/src/main` — see the `Dockerfile`'s runtime stage) — no separate SSM tunnel step needed for a routine deploy. The tunnel approach in the section above is still how you'd run migrations *without* a full deploy (e.g. inspecting or fixing something by hand).
 
-The equivalent manual sequence, if you ever need to redeploy without CI (e.g. debugging the pipeline itself):
+The equivalent manual sequence, if you ever need to redeploy without CI (e.g. debugging the pipeline itself). Refreshes the same SSM-backed secrets `deploy-api.yml` does before restarting the container — skip that part only if you know the running container's env is already current:
 
 ```bash
 REPO_URL=$(terraform -chdir=infra/terraform output -raw ecr_repository_url)
@@ -98,8 +98,22 @@ docker build --platform linux/amd64 -f apps/api-server/Dockerfile -t "$REPO_URL:
 docker push "$REPO_URL:latest"
 
 INSTANCE_ID=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=onseol-api" "Name=instance-state-name,Values=running" --query "Reservations[0].Instances[0].InstanceId" --output text)
-aws ssm send-command --instance-ids "$INSTANCE_ID" --document-name "AWS-RunShellScript" \
-  --parameters 'commands=["docker pull '"$REPO_URL"':latest","docker stop onseol-api","docker rm onseol-api","docker run -d --name onseol-api --restart unless-stopped --env-file /etc/onseol-api.env -p 3001:3001 '"$REPO_URL"':latest"]'
+
+# jq rather than hand-escaped shell quoting — SSM's shorthand syntax
+# doesn't parse a bracketed JSON array.
+COMMANDS_JSON=$(jq -n \
+  --arg region "ap-northeast-2" \
+  --arg image "$REPO_URL:latest" \
+  '{commands: [
+    ("for NAME in google_client_id google_client_secret kakao_client_id kakao_client_secret naver_client_id naver_client_secret admin_user_ids resend_api_key resend_from_email ses_from_email; do KEY=$(echo \"$NAME\" | tr a-z A-Z); VALUE=$(aws ssm get-parameter --region " + $region + " --name \"/onseol/prod/$NAME\" --with-decryption --query Parameter.Value --output text); awk -v k=\"$KEY\" -v v=\"$VALUE\" '\''BEGIN{FS=OFS=\"=\"} $1==k{$0=k\"=\"v} 1'\'' /etc/onseol-api.env > /etc/onseol-api.env.new && mv /etc/onseol-api.env.new /etc/onseol-api.env; done"),
+    "chmod 600 /etc/onseol-api.env",
+    ("docker pull " + $image),
+    "docker stop onseol-api || true",
+    "docker rm onseol-api || true",
+    ("docker run -d --name onseol-api --restart unless-stopped --env-file /etc/onseol-api.env -p 3001:3001 " + $image)
+  ]}')
+
+aws ssm send-command --instance-ids "$INSTANCE_ID" --document-name "AWS-RunShellScript" --parameters "$COMMANDS_JSON"
 ```
 
 Phase 2's Auto Scaling Group will replace the SSM-based restart with an instance refresh — the build/push half of the pipeline stays the same.
