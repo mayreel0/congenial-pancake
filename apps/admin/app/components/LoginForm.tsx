@@ -70,6 +70,16 @@ export function LoginForm({ login }: LoginFormProps) {
       <Button disabled={pending} fullWidth type="submit">
         {pending ? "로그인 중" : "로그인"}
       </Button>
+
+      {/* OAuth-only 계정은 이메일/비밀번호가 없어 이 폼으로 로그인할 수
+          없다 — 여기서 새로 로그인할 방법을 만드는 대신, 온설 공개
+          사이트에서 로그인하면 세션 쿠키가 공유돼(api.onseol.com이
+          발급하는 쿠키라 어느 프론트에서 요청하든 그대로 전달됨) 이 앱도
+          이미 로그인된 상태가 된다는 걸 안내한다. */}
+      <p className="text-center text-xs text-neutral-500">
+        구글/카카오/네이버로 가입한 계정은 온설 공개 사이트에서 먼저
+        로그인한 뒤 이 페이지를 새로고침해주세요.
+      </p>
     </form>
   );
 }
