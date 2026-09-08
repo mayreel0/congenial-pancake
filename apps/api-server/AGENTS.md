@@ -62,8 +62,6 @@ A `users` row is never created until someone proves they own the email. `POST /a
 
 Linking a social account to an *already-authenticated* session (`AuthService.linkOAuth`, e.g. from `/me`'s "연동하기") is a separate, narrower operation — it never touches email matching at all, and only grants verification credit if the linked provider's email happens to exactly match the account's own (a mismatched-but-still-useful login method must not silently vouch for an email it never proved).
 
-An unverified member is capped the same as a guest for replies (`settings.guestReplyLimit`, see "DB-backed settings" below) — otherwise the guest cap is trivially bypassed by signing up with any never-verified email. `RepliesService.create()` checks `usersService.findById(userId).emailVerifiedAt` before the member branch's cap-free path. See `docs/decisions/2026-08-28-onseol-email-verification-decisions.md`.
-
 ## Nicknames (opt-in reveal, per-post)
 
 `users.nickname` (nullable, **not unique**) lets a member set a self-chosen display name — `POST /auth/nickname`, session-required, 1-20 chars, can't be whitespace-only. Two people can pick the same nickname on purpose (no username-hunting friction); they're told apart by a discriminator derived from `id` (`src/users/nickname-discriminator.ts` — last 4 hex chars of the UUID, uppercased, no separate column, always computed and returned even when `nickname` is null).
