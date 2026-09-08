@@ -16,6 +16,9 @@ locals {
     "naver_client_id",
     "naver_client_secret",
     "admin_user_ids",
+    "resend_api_key",
+    "resend_from_email",
+    "ses_from_email",
   ]
 }
 

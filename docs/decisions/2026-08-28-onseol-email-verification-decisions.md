@@ -59,3 +59,21 @@ PR #91을 머지 전 rebase하던 중, 사용자가 실제로 NCP 메일러 이�
 구현: `NaverCloudMailerProvider` 삭제, `SesEmailProvider`(`@aws-sdk/client-ses`) 신설 — AWS SDK 기본 자격증명 체인을 그대로 사용(로컬은 `~/.aws` 프로필/env var, 프로덕션은 EC2 인스턴스 role). `EmailService`의 provider 배열은 `[resend, ses]`로 교체. 이 fallback은 여전히 quota 로테이션이 아니라 "Resend 자체 장애 시" 대비 목적 — 결정 1의 원래 취지(모든 실패를 fallback 트리거로 취급)는 그대로 유지.
 
 프로덕션 배포용 `terraform.tfvars`/SSM 시크릿/`user-data.sh.tftpl`에 `RESEND_API_KEY`/`RESEND_FROM_EMAIL`/`SES_FROM_EMAIL` 실제 값을 배선하는 작업은 여전히 보류 — 이미 합의된 대로 프론트엔드 라운드와 함께 한 번에 처리(SES는 인스턴스 role 기반이라 이 중 SSM 시크릿 관리 대상이 아님, IAM 권한 자체는 이번에 미리 부여해둠).
+
+## 추가 (2026-09-08): 프로덕션 도메인 인증 + 실제 배선 완료, 배포 파이프라인의 시크릿 반영 공백 발견
+
+도메인(`onseol.com`)이 이번에 실제로 살아있는 상태(AWS Phase 1 배포 완료, 2026-09-01 결정 기록 참고)라 보류돼 있던 도메인 인증을 진행했다.
+
+**DNS/도메인 인증**: Resend 대시보드에서 안내한 DKIM(TXT)/SPF(`send`/`rsend` CNAME)/DMARC 레코드와, SES 자체 도메인 아이덴티티의 DKIM CNAME 3개를 각각 `infra/terraform/email-dns.tf`, `infra/terraform/ses.tf`로 추가해 Route53에 반영(PR #147). 실제 검증:
+- Resend: `dig`로 레코드 전파 확인 후 실제 발송 테스트(`test@onseol.com` → `delivered@resend.dev`) 성공.
+- SES: `aws sesv2 get-email-identity`로 `VerificationStatus: SUCCESS`, `DkimAttributes.Status: SUCCESS` 확인.
+
+`ses.tf`에서 `for_each = toset(...tokens)` 형태로 DKIM 레코드 3개를 만들려던 첫 시도는 "Invalid for_each argument"로 실패 — 토큰 값 자체가 apply 이후에만 알려지는데 `for_each`의 키는 plan 시점에 알려져야 해서다. 인덱스로 고정된 리소스 3개(`ses_dkim_0`/`_1`/`_2`)로 바꿔 해결.
+
+**SSM 배선**: `ssm.tf`의 `app_secret_names`에 `resend_api_key`/`resend_from_email`/`ses_from_email` 3개를 추가, `user-data.sh.tftpl`이 부팅 시 이 값들을 읽어 컨테이너 env로 주입하도록 배선. 실값 설정 순서를 한 번 실수함 — Terraform이 아직 만들지 않은 파라미터 이름으로 먼저 `put-parameter`를 실행해버려서(이 프로젝트의 기존 관례는 항상 "Terraform이 `CHANGE_ME` 플레이스홀더를 먼저 만들고, 그 다음에 실값을 덮어쓴다"인데 순서를 반대로 함) `terraform apply`가 이미 존재하는 파라미터를 새로 만들려다 실패할 뻔했다 — apply 전에 두 파라미터를 지워서 바로잡음.
+
+**배포 파이프라인의 공백 발견**: 실값을 다 넣고 `RESEND_API_KEY`까지 등록한 뒤 실제 회원가입으로 검증하니 `AUTH_EMAIL_SEND_FAILED`(502)가 남. 원인은 `/etc/onseol-api.env`가 EC2 인스턴스 **부팅 시점에 딱 한 번만** SSM에서 값을 읽어 만들어지고, `deploy-api.yml`의 재배포(컨테이너 재시작)는 그 파일을 그대로 재사용한다는 점 — SSM 파라미터를 바꿔도 실행 중인 컨테이너에는 반영되지 않았다(`docker logs`로 `RESEND_API_KEY=CHANGE_ME`였던 것을 직접 확인). 이번엔 인스턴스가 이미 `terraform apply`로 교체돼 있었는데도 그 교체 시점이 실값 설정보다 빨라서 같은 문제가 발생했다.
+
+수정: `deploy-api.yml`의 재배포 스텝이 컨테이너를 재시작하기 전에 `app_secret_names`의 10개 파라미터를 SSM에서 다시 읽어 env 파일의 해당 줄만 덮어쓰도록 변경(`DATABASE_URL`/`CORS_ORIGIN` 등 정적 값은 그대로 둠 — 이들은 인스턴스 교체가 있어야만 바뀌므로). 이제부터는 시크릿을 회전할 때 GitHub Actions의 수동 "Run workflow"만으로 반영 가능.
+
+**남은 일**: 이 수정을 적용한 뒤 실제 이메일 발송이 끝까지 성공하는지(회원가입 → 실제 수신함 도달) 아직 재검증 전.
