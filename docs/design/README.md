@@ -26,6 +26,6 @@
 
 ## 현재 단계
 
-현재 디자인 시스템은 문서 기준을 먼저 세우는 단계다.
+Storybook은 이미 도입돼 `apps/storybook-app`에서 운영 중이고(`05-storybook-strategy.md`의 2~3단계 완료 — 경위는 `docs/decisions/2026-08-26-onseol-storybook-app-decisions.md` 참고), 핵심 컴포넌트 story도 작성돼 있다.
 
-다음 단계 후보는 Storybook 도입과 핵심 컴포넌트 story 작성이다. 후보 컴포넌트는 `Button`, `NoteCard`, `ReplyCard`, `ActivityStat`, `LandingPreview`다.
+다음 단계 후보는 `05-storybook-strategy.md`의 4단계(render/interaction/accessibility/visual regression test 연결)다.

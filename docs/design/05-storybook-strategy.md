@@ -30,6 +30,8 @@ Storybook은 컴포넌트를 앱 화면과 분리해서 볼 수 있게 한다. �
 
 ### 2단계: Storybook 설치 (완료)
 
+> **업데이트**: 아래는 최초 설치 당시(`apps/web` 내부) 기록이다. 이후 `apps/storybook-app`이라는 별도 앱으로 분리됐다 — 경위는 `docs/decisions/2026-08-26-onseol-storybook-app-decisions.md` 참고. 지금 실행 명령은 `pnpm --filter storybook-app storybook`(`:6006`)이고, story 파일 자체는 여전히 각 앱의 컴포넌트 옆에 콜로케이션된다(러너/설정만 빠져나갔다).
+
 `apps/web`에 설치했다(`@storybook/nextjs-vite`, Next 16 + React 19 공식 지원 버전 확인 후 진행).
 
 - `pnpm --filter web storybook`, `pnpm --filter web build-storybook` 스크립트 추가.
