@@ -96,6 +96,25 @@ jobs:
           # bracketed JSON array, and manually escaping quotes through
           # two more layers (YAML block scalar, then bash) is exactly
           # the kind of thing that silently breaks.
+          #
+          # /etc/onseol-api.env is written once by the EC2 user-data
+          # script at instance boot and otherwise just sits on disk — a
+          # plain restart reuses whatever was baked in at boot, so
+          # rotating an SSM parameter (e.g. RESEND_API_KEY) had no way to
+          # reach a running instance short of replacing it via `terraform
+          # apply`. Found the hard way: RESEND_API_KEY/SES_FROM_EMAIL
+          # were set to their real values in SSM but the container kept
+          # sending with the CHANGE_ME placeholder from boot. The refresh
+          # loop below re-fetches every app_secret (ssm.tf's
+          # app_secret_names — each name uppercases exactly to its env
+          # var name, e.g. resend_api_key -> RESEND_API_KEY) and rewrites
+          # just those lines in place before every redeploy. Uses awk
+          # (matching on the key up to the first "=", replacing the whole
+          # line) rather than sed, since a secret value containing "&",
+          # "\", or extra "=" would corrupt a sed replacement string.
+          # Static values (DATABASE_URL, CORS_ORIGIN, etc.) are left
+          # untouched — those only change via a Terraform-driven instance
+          # replacement anyway.
           COMMANDS_JSON=$(jq -n \
             --arg registry "${ECR_REPOSITORY%%/*}" \
             --arg image "$ECR_REPOSITORY:latest" \
@@ -103,6 +122,8 @@ jobs:
             --arg port "$APP_PORT" \
             '{commands: [
               ("aws ecr get-login-password --region " + $region + " | docker login --username AWS --password-stdin " + $registry),
+              ("for NAME in google_client_id google_client_secret kakao_client_id kakao_client_secret naver_client_id naver_client_secret admin_user_ids resend_api_key resend_from_email ses_from_email; do KEY=$(echo \"$NAME\" | tr a-z A-Z); VALUE=$(aws ssm get-parameter --region " + $region + " --name \"/onseol/prod/$NAME\" --with-decryption --query Parameter.Value --output text); awk -v k=\"$KEY\" -v v=\"$VALUE\" 'BEGIN{FS=OFS=\"=\"} $1==k{$0=k\"=\"v} 1' /etc/onseol-api.env > /etc/onseol-api.env.new && mv /etc/onseol-api.env.new /etc/onseol-api.env; done"),
+              "chmod 600 /etc/onseol-api.env",
               ("docker pull " + $image),
               "docker stop onseol-api || true",
               "docker rm onseol-api || true",

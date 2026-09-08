@@ -34,21 +34,24 @@ terraform -chdir=infra/terraform apply   # everything else
 
 ## After apply: set the real app secrets
 
-`ssm.tf` creates 7 SecureString parameters under `/onseol/prod/` as `CHANGE_ME` placeholders (Terraform never manages their real values — see the comment in `ssm.tf` for why). Set the real ones once:
+`ssm.tf` creates 10 SecureString parameters under `/onseol/prod/` as `CHANGE_ME` placeholders (Terraform never manages their real values — see the comment in `ssm.tf` for why). Set the real ones once:
 
 ```bash
-aws ssm put-parameter --name /onseol/prod/google_client_id     --type SecureString --overwrite --value "..."
-aws ssm put-parameter --name /onseol/prod/google_client_secret --type SecureString --overwrite --value "..."
-aws ssm put-parameter --name /onseol/prod/kakao_client_id      --type SecureString --overwrite --value "..."
-aws ssm put-parameter --name /onseol/prod/kakao_client_secret  --type SecureString --overwrite --value "..."
-aws ssm put-parameter --name /onseol/prod/naver_client_id      --type SecureString --overwrite --value "..."
-aws ssm put-parameter --name /onseol/prod/naver_client_secret  --type SecureString --overwrite --value "..."
-aws ssm put-parameter --name /onseol/prod/admin_user_ids       --type SecureString --overwrite --value "..."
+aws ssm put-parameter --name /onseol/prod/google_client_id      --type SecureString --overwrite --value "..."
+aws ssm put-parameter --name /onseol/prod/google_client_secret  --type SecureString --overwrite --value "..."
+aws ssm put-parameter --name /onseol/prod/kakao_client_id       --type SecureString --overwrite --value "..."
+aws ssm put-parameter --name /onseol/prod/kakao_client_secret   --type SecureString --overwrite --value "..."
+aws ssm put-parameter --name /onseol/prod/naver_client_id       --type SecureString --overwrite --value "..."
+aws ssm put-parameter --name /onseol/prod/naver_client_secret   --type SecureString --overwrite --value "..."
+aws ssm put-parameter --name /onseol/prod/admin_user_ids        --type SecureString --overwrite --value "..."
+aws ssm put-parameter --name /onseol/prod/resend_api_key        --type SecureString --overwrite --value "..."
+aws ssm put-parameter --name /onseol/prod/resend_from_email     --type SecureString --overwrite --value "온설 <no-reply@onseol.com>"
+aws ssm put-parameter --name /onseol/prod/ses_from_email        --type SecureString --overwrite --value "온설 <no-reply@onseol.com>"
 ```
 
-Each OAuth provider's redirect URI also needs to be registered as `https://api.onseol.com/auth/<provider>/callback` in that provider's own developer console.
+Each OAuth provider's redirect URI also needs to be registered as `https://api.onseol.com/auth/<provider>/callback` in that provider's own developer console. `resend_api_key` should be a Resend key scoped to **Sending access** only (not Full access) — the API server only ever sends mail through it.
 
-The EC2 instance only reads these at boot — after changing one, redeploy the instance (see below) to pick it up.
+After changing one, redeploy (see below) to pick it up — `deploy-api.yml`'s redeploy step re-fetches all 10 of these from SSM and rewrites them into the running container's env file before restarting, so a plain "Run workflow" (no code change needed) is enough to roll out a rotated secret. Everything else in the env file (`DATABASE_URL`, `CORS_ORIGIN`, etc.) is still only set at instance boot, since those only change via a Terraform-driven instance replacement anyway.
 
 ## Running DB migrations
 
@@ -91,6 +94,18 @@ aws ssm send-command --instance-ids "$INSTANCE_ID" --document-name "AWS-RunShell
 ```
 
 Phase 2's Auto Scaling Group will replace the SSM-based restart with an instance refresh — the build/push half of the pipeline stays the same.
+
+## Viewing container logs
+
+No SSH — same SSM route as everything else above:
+
+```bash
+INSTANCE_ID=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=onseol-api" "Name=instance-state-name,Values=running" --query "Reservations[0].Instances[0].InstanceId" --output text)
+COMMAND_ID=$(aws ssm send-command --instance-ids "$INSTANCE_ID" --document-name "AWS-RunShellScript" \
+  --parameters '{"commands":["docker logs --tail 300 onseol-api"]}' --query "Command.CommandId" --output text)
+sleep 5
+aws ssm get-command-invocation --command-id "$COMMAND_ID" --instance-id "$INSTANCE_ID" --query "StandardOutputContent" --output text
+```
 
 ## Tearing down the ALB to stop paying for it between sessions
 
