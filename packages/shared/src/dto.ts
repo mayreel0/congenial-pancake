@@ -247,7 +247,6 @@ export const userResponseSchema = z.object({
   showRepliesOnProfile: z.boolean(),
   showCountsOnProfile: z.boolean(),
   nicknameVisible: z.boolean(),
-  emailVerified: z.boolean(),
   linkedProviders: z.array(z.enum(['google', 'kakao', 'naver'])),
 });
 export type UserResponseDto = z.infer<typeof userResponseSchema>;
