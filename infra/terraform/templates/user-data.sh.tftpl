@@ -33,6 +33,10 @@ KAKAO_CLIENT_SECRET=$(fetch_param kakao_client_secret)
 NAVER_CLIENT_ID=$(fetch_param naver_client_id)
 NAVER_CLIENT_SECRET=$(fetch_param naver_client_secret)
 ADMIN_USER_IDS=$(fetch_param admin_user_ids)
+AWS_REGION=$REGION
+RESEND_API_KEY=$(fetch_param resend_api_key)
+RESEND_FROM_EMAIL=$(fetch_param resend_from_email)
+SES_FROM_EMAIL=$(fetch_param ses_from_email)
 EOF
 chmod 600 /etc/onseol-api.env
 
