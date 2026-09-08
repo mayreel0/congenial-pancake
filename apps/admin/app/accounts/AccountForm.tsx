@@ -3,7 +3,12 @@
 import { useState, type FormEvent } from "react";
 import { Button } from "ui/Button";
 import { TextField } from "ui/TextField";
+import { useFieldValidation } from "ui/useFieldValidation";
+import { issuePasswordResetLinkSchema } from "shared/dto";
+import { parseFieldErrors } from "shared/zod-form";
 import type { useAccountsAdmin } from "./useAccountsAdmin";
+
+type Field = "email";
 
 type AccountFormProps = {
   issuing: boolean;
@@ -26,9 +31,17 @@ export function AccountForm({
 }: AccountFormProps) {
   const [email, setEmail] = useState("");
   const [copied, setCopied] = useState(false);
+  const { touchAll, visibleError } = useFieldValidation<Field>();
+
+  const fieldErrors = parseFieldErrors(issuePasswordResetLinkSchema, {
+    email,
+  });
 
   async function handleSubmit(event: FormEvent): Promise<void> {
     event.preventDefault();
+    touchAll(["email"]);
+    if (Object.keys(fieldErrors).length > 0) return;
+
     setCopied(false);
     await issueLink(email);
   }
@@ -53,6 +66,7 @@ export function AccountForm({
           onSubmit={(event) => void handleSubmit(event)}
         >
           <TextField
+            error={visibleError("email", fieldErrors)}
             hint="비밀번호가 없는 계정(OAuth로만 로그인하던 계정)에 비밀번호를 설정할 수 있는 일회성 링크를 발급합니다."
             id="email"
             label="이메일"

@@ -3,6 +3,9 @@
 import { useState, type FormEvent } from "react";
 import { Button } from "ui/Button";
 import { TextField } from "ui/TextField";
+import { useFieldValidation } from "ui/useFieldValidation";
+import { loginSchema } from "shared/dto";
+import { parseFieldErrors } from "shared/zod-form";
 import { ApiError } from "../lib/api";
 
 const LOGIN_ERROR_MESSAGES: Record<string, string> = {
@@ -16,6 +19,8 @@ function loginErrorMessage(error: unknown): string {
   return "로그인하지 못했습니다. 잠시 후 다시 시도해주세요.";
 }
 
+type Field = "email" | "password";
+
 type LoginFormProps = {
   login(email: string, password: string): Promise<void>;
 };
@@ -28,9 +33,15 @@ export function LoginForm({ login }: LoginFormProps) {
   const [password, setPassword] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { touchAll, visibleError } = useFieldValidation<Field>();
+
+  const fieldErrors = parseFieldErrors(loginSchema, { email, password });
 
   async function handleSubmit(event: FormEvent): Promise<void> {
     event.preventDefault();
+    touchAll(["email", "password"]);
+    if (Object.keys(fieldErrors).length > 0) return;
+
     setError(null);
     setPending(true);
     try {
@@ -48,6 +59,7 @@ export function LoginForm({ login }: LoginFormProps) {
     >
       <TextField
         autoComplete="email"
+        error={visibleError("email", fieldErrors)}
         id="email"
         label="이메일"
         required
@@ -57,6 +69,7 @@ export function LoginForm({ login }: LoginFormProps) {
       />
       <TextField
         autoComplete="current-password"
+        error={visibleError("password", fieldErrors)}
         id="password"
         label="비밀번호"
         required

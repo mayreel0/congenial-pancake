@@ -159,7 +159,7 @@ describe("AdminReview", () => {
       target: { value: "admin@example.com" },
     });
     fireEvent.change(screen.getByLabelText("비밀번호"), {
-      target: { value: "wrong" },
+      target: { value: "wrongpassword" },
     });
     fireEvent.click(screen.getByRole("button", { name: "로그인" }));
 

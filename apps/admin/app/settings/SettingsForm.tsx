@@ -3,7 +3,9 @@
 import { useState, type FormEvent } from "react";
 import { Button } from "ui/Button";
 import { TextField } from "ui/TextField";
-import type { SettingsResponseDto } from "shared/dto";
+import { useFieldValidation } from "ui/useFieldValidation";
+import { updateSettingsSchema, type SettingsResponseDto } from "shared/dto";
+import { parseFieldErrors } from "shared/zod-form";
 import type { useAdminSettings } from "./useAdminSettings";
 
 type FormState = {
@@ -82,17 +84,23 @@ export function SettingsForm({
 }: SettingsFormProps) {
   const [form, setForm] = useState<FormState>(() => toFormState(settings));
   const [saved, setSaved] = useState(false);
+  const { touchAll, visibleError } = useFieldValidation<keyof FormState>();
+
+  const values = {
+    queueFreshnessHours: Number(form.queueFreshnessHours),
+    queueReplyCap: Number(form.queueReplyCap),
+    guestReplyLimit: Number(form.guestReplyLimit),
+    nicknameCooldownDays: Number(form.nicknameCooldownDays),
+  };
+  const fieldErrors = parseFieldErrors(updateSettingsSchema, values);
 
   async function handleSubmit(event: FormEvent): Promise<void> {
     event.preventDefault();
-    setSaved(false);
+    touchAll(FIELDS.map((field) => field.key));
+    if (Object.keys(fieldErrors).length > 0) return;
 
-    await update({
-      queueFreshnessHours: Number(form.queueFreshnessHours),
-      queueReplyCap: Number(form.queueReplyCap),
-      guestReplyLimit: Number(form.guestReplyLimit),
-      nicknameCooldownDays: Number(form.nicknameCooldownDays),
-    });
+    setSaved(false);
+    await update(values);
     setSaved(true);
   }
 
@@ -105,6 +113,7 @@ export function SettingsForm({
       >
         {FIELDS.map((field) => (
           <TextField
+            error={visibleError(field.key, fieldErrors)}
             hint={field.hint}
             id={field.key}
             key={field.key}
