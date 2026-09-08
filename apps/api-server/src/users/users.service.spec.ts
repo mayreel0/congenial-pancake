@@ -17,6 +17,8 @@ function makeUser(overrides: Partial<User> = {}): User {
     showCountsOnProfile: true,
     nicknameVisible: true,
     createdAt: new Date('2026-08-21T00:00:00.000Z'),
+    deletionRequestedAt: null,
+    deletedAt: null,
     ...overrides,
   };
 }
@@ -45,6 +47,10 @@ describe('UsersService', () => {
       updateNickname: jest.fn(),
       findByNickname: jest.fn(),
       updateProfileVisibility: jest.fn(),
+      requestDeletion: jest.fn(),
+      restoreAccount: jest.fn(),
+      scrubForDeletion: jest.fn(),
+      findPendingDeletionBefore: jest.fn(),
     } as unknown as jest.Mocked<UsersRepository>;
     settingsService = {
       get: jest.fn().mockResolvedValue(makeSettings()),
@@ -265,6 +271,48 @@ describe('UsersService', () => {
       expect(settingsService.get).not.toHaveBeenCalled();
       expect(usersRepository.findById).not.toHaveBeenCalled();
       expect(usersRepository.updateNickname).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('deletionGracePeriodEndsAt', () => {
+    it('returns null for an active account', () => {
+      const user = makeUser({ deletionRequestedAt: null });
+
+      expect(usersService.deletionGracePeriodEndsAt(user)).toBeNull();
+    });
+
+    it('returns requestedAt + 30 days for a pending-deletion account', () => {
+      const requestedAt = new Date('2026-09-01T00:00:00.000Z');
+      const user = makeUser({ deletionRequestedAt: requestedAt });
+
+      const result = usersService.deletionGracePeriodEndsAt(user);
+
+      expect(result).toEqual(new Date('2026-10-01T00:00:00.000Z'));
+    });
+  });
+
+  describe('withdrawal delegation', () => {
+    it('requestDeletion delegates to the repository', async () => {
+      await usersService.requestDeletion('user-1');
+      expect(usersRepository.requestDeletion).toHaveBeenCalledWith('user-1');
+    });
+
+    it('restoreAccount delegates to the repository', async () => {
+      await usersService.restoreAccount('user-1');
+      expect(usersRepository.restoreAccount).toHaveBeenCalledWith('user-1');
+    });
+
+    it('scrubForDeletion delegates to the repository', async () => {
+      await usersService.scrubForDeletion('user-1');
+      expect(usersRepository.scrubForDeletion).toHaveBeenCalledWith('user-1');
+    });
+
+    it('findPendingDeletionBefore delegates to the repository', async () => {
+      const cutoff = new Date('2026-08-01T00:00:00.000Z');
+      await usersService.findPendingDeletionBefore(cutoff);
+      expect(usersRepository.findPendingDeletionBefore).toHaveBeenCalledWith(
+        cutoff,
+      );
     });
   });
 });

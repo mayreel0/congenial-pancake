@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { DatabaseModule } from '../database/database.module';
 import { EmailModule } from '../email/email.module';
 import { UsersModule } from '../users/users.module';
+import { AccountDeletionCronService } from './account-deletion-cron.service';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { OAuthIdentitiesRepository } from './oauth-identities.repository';
@@ -36,6 +37,7 @@ import { SessionsRepository } from './sessions.repository';
     PasswordResetService,
     PendingSignupsRepository,
     AuthService,
+    AccountDeletionCronService,
   ],
   exports: [
     SessionService,

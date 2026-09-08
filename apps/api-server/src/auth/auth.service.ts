@@ -289,4 +289,43 @@ export class AuthService {
       .findByUserId(userId)
       .then((identities) => identities.map((identity) => identity.provider));
   }
+
+  // Always logs the account out everywhere immediately, regardless of
+  // which path below runs — a withdrawal request (even a reversible one)
+  // shouldn't leave existing sessions usable in the meantime.
+  //
+  // immediate skips the 30-day grace period entirely and scrubs right
+  // away — deliberately not reversible (email/oauth_identities are gone
+  // the moment this returns, same end state the daily cron would reach on
+  // its own after 30 days). The default path only stamps
+  // deletionRequestedAt; nothing else about the row changes until either
+  // restoreAccount clears it or AccountDeletionCronService finalizes it.
+  async requestWithdrawal(userId: string, immediate: boolean): Promise<void> {
+    await this.sessionService.revokeAllForUser(userId);
+    if (immediate) {
+      await this.finalizeAccountDeletion(userId);
+    } else {
+      await this.usersService.requestDeletion(userId);
+    }
+  }
+
+  // The actual scrub — shared by the immediate-withdrawal path above and
+  // AccountDeletionCronService, which calls this once a non-immediate
+  // withdrawal's 30-day grace period has elapsed. Clearing
+  // oauth_identities lives here (not in UsersService.scrubForDeletion)
+  // since it needs this service's own OAuthIdentitiesRepository — frees
+  // up (provider, providerAccountId) so the same social account can sign
+  // up fresh under a new account later.
+  async finalizeAccountDeletion(userId: string): Promise<void> {
+    await this.usersService.scrubForDeletion(userId);
+    await this.oauthIdentitiesRepository.deleteAllForUser(userId);
+  }
+
+  // Idempotent no-op if the account isn't actually pending deletion —
+  // the frontend only ever calls this from the restore dialog, which only
+  // renders when GET /auth/me reported a deletionGracePeriodEndsAt, but
+  // nothing here depends on that being true.
+  restoreAccount(userId: string): Promise<void> {
+    return this.usersService.restoreAccount(userId);
+  }
 }
