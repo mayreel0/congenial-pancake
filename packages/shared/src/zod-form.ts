@@ -3,8 +3,8 @@ import type { ZodType } from "zod";
 export type FieldErrors<Field extends string> = Partial<Record<Field, string>>;
 
 // Runs `schema` against `values` and returns a map of field name -> its
-// first Korean error message (only the first issue per field — this app
-// shows one message per field, not a list). Empty object when valid.
+// first error message (only the first issue per field — forms show one
+// message per field, not a list). Empty object when valid.
 export function parseFieldErrors<T extends Record<string, unknown>>(
   schema: ZodType<T>,
   values: T,

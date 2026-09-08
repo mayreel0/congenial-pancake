@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { parseFieldErrors } from "./zod-form";
+import { parseFieldErrors } from "shared/zod-form";
 
 const schema = z
   .object({

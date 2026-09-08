@@ -6,8 +6,8 @@ import { Button } from "ui/Button";
 import { TextField } from "ui/TextField";
 import { ApiError } from "../../lib/api";
 import { useAuth } from "../../lib/auth/useAuth";
-import { useFieldValidation } from "../../lib/useFieldValidation";
-import { parseFieldErrors } from "../../lib/zod-form";
+import { useFieldValidation } from "ui/useFieldValidation";
+import { parseFieldErrors } from "shared/zod-form";
 
 type Field = "nickname";
 

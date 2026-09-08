@@ -4,8 +4,8 @@ import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { resetPasswordSchema } from "shared/dto";
 import { ApiError, resetPassword } from "../lib/api";
-import { useFieldValidation } from "../lib/useFieldValidation";
-import { parseFieldErrors } from "../lib/zod-form";
+import { useFieldValidation } from "ui/useFieldValidation";
+import { parseFieldErrors } from "shared/zod-form";
 import { ResetPasswordBody, type ResetPasswordStatus } from "./ResetPasswordBody";
 
 type Field = "password";
