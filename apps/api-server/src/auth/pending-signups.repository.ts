@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq, gt, isNull } from 'drizzle-orm';
+import { and, desc, eq, gt, isNull } from 'drizzle-orm';
 import { DRIZZLE } from '../database/database.constants';
 import type { Database } from '../database/database.types';
 import { pendingSignups } from '../database/schema';
@@ -20,6 +20,13 @@ export class PendingSignupsRepository {
       .values({ email, tokenHash, expiresAt })
       .returning();
     return row;
+  }
+
+  findMostRecentByEmail(email: string): Promise<PendingSignup | undefined> {
+    return this.db.query.pendingSignups.findFirst({
+      where: eq(pendingSignups.email, email),
+      orderBy: desc(pendingSignups.createdAt),
+    });
   }
 
   findValidByHash(tokenHash: string): Promise<PendingSignup | undefined> {

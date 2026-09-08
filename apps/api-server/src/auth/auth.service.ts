@@ -25,6 +25,7 @@ import type { Session } from './sessions.repository';
 
 const TOKEN_BYTES = 32;
 const TOKEN_TTL_MS = 24 * 60 * 60 * 1000; // 24h — long enough to check an inbox at one's own pace.
+const RESEND_COOLDOWN_MS = 60 * 1000; // 60s between signup emails to the same address — common resend UX convention.
 
 function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
@@ -59,6 +60,19 @@ export class AuthService {
   async requestSignup(dto: SignupDto): Promise<void> {
     const existing = await this.usersService.findByEmail(dto.email);
     if (existing) throw new EmailAlreadyExistsException();
+
+    // Silently no-op within the cooldown rather than erroring — same
+    // "don't reveal state through the response" posture as the
+    // already-verified case, and it means a double-click or an impatient
+    // retry never looks different from a normal first request.
+    const mostRecent =
+      await this.pendingSignupsRepository.findMostRecentByEmail(dto.email);
+    if (
+      mostRecent &&
+      Date.now() - mostRecent.createdAt.getTime() < RESEND_COOLDOWN_MS
+    ) {
+      return;
+    }
 
     const token = randomBytes(TOKEN_BYTES).toString('hex');
     const expiresAt = new Date(Date.now() + TOKEN_TTL_MS);
