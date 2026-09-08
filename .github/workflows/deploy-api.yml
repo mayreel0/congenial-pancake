@@ -30,13 +30,24 @@ env:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # Required for GitHub to issue this run its own OIDC token — nothing
+    # to configure beyond this; no AWS credential is stored anywhere.
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
+      # No stored AWS credential — this exchanges GitHub's own short-lived
+      # OIDC token for temporary AWS credentials, scoped to exactly what
+      # infra/terraform/github-oidc.tf's role trust policy allows (only
+      # runs against this repo's v1 branch) and to exactly the
+      # permissions its inline policy grants (ECR push + this one SSM
+      # document + EC2 describe — not the AdministratorAccess used
+      # locally for Terraform).
       - uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: arn:aws:iam::769949044374:role/onseol-api-github-deploy
           aws-region: ${{ env.AWS_REGION }}
 
       - uses: aws-actions/amazon-ecr-login@v2
