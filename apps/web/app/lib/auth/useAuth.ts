@@ -7,9 +7,11 @@ import {
   useCurrentUserQuery,
   useLoginMutation,
   useLogoutMutation,
+  useRestoreAccountMutation,
   useSignupMutation,
   useUpdateNicknameMutation,
   useUpdateProfileVisibilityMutation,
+  useWithdrawMutation,
 } from "./queries";
 
 type AuthStatus = "loading" | "authenticated" | "anonymous";
@@ -24,6 +26,8 @@ type UseAuthResult = {
   refresh(): Promise<void>;
   updateNickname(nickname: string): Promise<void>;
   updateProfileVisibility(patch: ProfileVisibilityPatch): Promise<void>;
+  withdraw(immediate?: boolean): Promise<void>;
+  restoreAccount(): Promise<void>;
 };
 
 function toAuthStatus(isPending: boolean, hasUser: boolean): AuthStatus {
@@ -41,6 +45,8 @@ export function useAuth(): UseAuthResult {
   const logoutMutation = useLogoutMutation();
   const updateNicknameMutation = useUpdateNicknameMutation();
   const updateProfileVisibilityMutation = useUpdateProfileVisibilityMutation();
+  const withdrawMutation = useWithdrawMutation();
+  const restoreAccountMutation = useRestoreAccountMutation();
 
   const status = toAuthStatus(meQuery.isPending, Boolean(meQuery.data));
 
@@ -77,6 +83,14 @@ export function useAuth(): UseAuthResult {
     await updateProfileVisibilityMutation.mutateAsync(patch);
   }
 
+  async function withdraw(immediate?: boolean): Promise<void> {
+    await withdrawMutation.mutateAsync(immediate);
+  }
+
+  async function restoreAccount(): Promise<void> {
+    await restoreAccountMutation.mutateAsync();
+  }
+
   return {
     status,
     user: meQuery.data ?? null,
@@ -87,5 +101,7 @@ export function useAuth(): UseAuthResult {
     refresh,
     updateNickname,
     updateProfileVisibility,
+    withdraw,
+    restoreAccount,
   };
 }

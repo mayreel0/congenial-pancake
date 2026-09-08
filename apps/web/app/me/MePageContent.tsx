@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import { Button } from "ui/Button";
@@ -42,6 +43,12 @@ function MeContent({ status, user, notice }: MeContentProps) {
           <NicknameVisibilitySection />
           <ProfileVisibilitySection />
         </VisibilityDraftProvider>
+        <Link
+          className="text-sm text-muted underline-offset-2 hover:underline"
+          href="/me/withdraw"
+        >
+          회원탈퇴
+        </Link>
       </>
     );
   }

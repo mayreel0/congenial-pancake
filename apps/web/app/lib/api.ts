@@ -69,6 +69,25 @@ export function resetPassword(token: string, password: string): Promise<void> {
   });
 }
 
+// Always logs the account out everywhere immediately. immediate=true skips
+// the 30-day grace period and scrubs right away (not reversible); the
+// default just starts the grace period, restorable via restoreAccount()
+// until AccountDeletionCronService finalizes it server-side.
+export function withdraw(immediate?: boolean): Promise<void> {
+  return apiFetch<void>("/auth/withdraw", {
+    method: "POST",
+    body: JSON.stringify({ immediate }),
+  });
+}
+
+// Only meaningful while the account is mid-grace-period (see
+// CurrentUser.deletionGracePeriodEndsAt) — a no-op otherwise.
+export function restoreAccount(): Promise<CurrentUser> {
+  return apiFetch<CurrentUser>("/auth/restore-account", {
+    method: "POST",
+  });
+}
+
 export type OAuthProviderName = "google" | "kakao" | "naver";
 
 export function oauthLoginUrl(provider: OAuthProviderName): string {

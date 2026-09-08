@@ -6,9 +6,11 @@ import {
   fetchCurrentUser,
   login as apiLogin,
   logout as apiLogout,
+  restoreAccount as apiRestoreAccount,
   signup as apiSignup,
   updateNickname as apiUpdateNickname,
   updateProfileVisibility as apiUpdateProfileVisibility,
+  withdraw as apiWithdraw,
   type CurrentUser,
   type ProfileVisibilityPatch,
 } from "../api";
@@ -91,6 +93,30 @@ export function useLogoutMutation() {
     mutationFn: apiLogout,
     onSuccess: () => {
       queryClient.setQueryData(authKeys.me, null);
+    },
+  });
+}
+
+// The server always revokes the session regardless of immediate — clearing
+// the cache to null here matches that, same as logout above.
+export function useWithdrawMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (immediate?: boolean) => apiWithdraw(immediate),
+    onSuccess: () => {
+      queryClient.setQueryData(authKeys.me, null);
+    },
+  });
+}
+
+export function useRestoreAccountMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: apiRestoreAccount,
+    onSuccess: (user: CurrentUser) => {
+      queryClient.setQueryData(authKeys.me, user);
     },
   });
 }
