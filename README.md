@@ -33,7 +33,13 @@ pnpm --filter storybook-app storybook  # :6006
 
 ## Verification
 
-앱마다 공통으로 있습니다 (`web`/`admin`/`api-server`):
+한 번에 전체 워크스페이스(스크립트가 있는 앱/패키지만, `--if-present`):
+
+```bash
+pnpm run verify
+```
+
+특정 앱만 확인할 땐 (`web`/`admin`/`api-server`):
 
 ```bash
 pnpm --filter <app> lint
