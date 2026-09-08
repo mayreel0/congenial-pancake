@@ -12,4 +12,4 @@ Plain TS, no React, no app-specific logic: currently just `formatTimestamp`. Onl
 
 ## No build step
 
-Same pattern as `packages/ui`/`packages/api-client`: `package.json`'s `exports` maps `"."` straight to `src/index.ts`, no `tsc` build. Consuming apps transpile this package as part of their own build (`transpilePackages: ["ui", "api-client", "utils"]` in each app's `next.config.ts`).
+Same pattern as `packages/ui`/`packages/api`: `package.json`'s `exports` maps `"."` straight to `src/index.ts`, no `tsc` build. Consuming apps transpile this package as part of their own build (`transpilePackages: ["ui", "api", "utils", "shared"]` in each app's `next.config.ts`).
