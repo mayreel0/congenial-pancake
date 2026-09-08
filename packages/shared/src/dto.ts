@@ -208,12 +208,36 @@ export type CreateReportInput = z.infer<typeof createReportSchema>;
 
 // PATCH /admin/settings body — each field independent/optional, same
 // reasoning as updateProfileVisibilitySchema.
+const QUEUE_FRESHNESS_HOURS_MESSAGE = "1~720 사이의 정수를 입력해주세요.";
+const QUEUE_REPLY_CAP_MESSAGE = "1~50 사이의 정수를 입력해주세요.";
+const GUEST_REPLY_LIMIT_MESSAGE = "1~50 사이의 정수를 입력해주세요.";
+const NICKNAME_COOLDOWN_DAYS_MESSAGE = "1~90 사이의 정수를 입력해주세요.";
 export const updateSettingsSchema = z
   .object({
-    queueFreshnessHours: z.number().int().min(1).max(720).optional(),
-    queueReplyCap: z.number().int().min(1).max(50).optional(),
-    guestReplyLimit: z.number().int().min(1).max(50).optional(),
-    nicknameCooldownDays: z.number().int().min(1).max(90).optional(),
+    queueFreshnessHours: z
+      .number(QUEUE_FRESHNESS_HOURS_MESSAGE)
+      .int(QUEUE_FRESHNESS_HOURS_MESSAGE)
+      .min(1, QUEUE_FRESHNESS_HOURS_MESSAGE)
+      .max(720, QUEUE_FRESHNESS_HOURS_MESSAGE)
+      .optional(),
+    queueReplyCap: z
+      .number(QUEUE_REPLY_CAP_MESSAGE)
+      .int(QUEUE_REPLY_CAP_MESSAGE)
+      .min(1, QUEUE_REPLY_CAP_MESSAGE)
+      .max(50, QUEUE_REPLY_CAP_MESSAGE)
+      .optional(),
+    guestReplyLimit: z
+      .number(GUEST_REPLY_LIMIT_MESSAGE)
+      .int(GUEST_REPLY_LIMIT_MESSAGE)
+      .min(1, GUEST_REPLY_LIMIT_MESSAGE)
+      .max(50, GUEST_REPLY_LIMIT_MESSAGE)
+      .optional(),
+    nicknameCooldownDays: z
+      .number(NICKNAME_COOLDOWN_DAYS_MESSAGE)
+      .int(NICKNAME_COOLDOWN_DAYS_MESSAGE)
+      .min(1, NICKNAME_COOLDOWN_DAYS_MESSAGE)
+      .max(90, NICKNAME_COOLDOWN_DAYS_MESSAGE)
+      .optional(),
   })
   .strict();
 export type UpdateSettingsInput = z.infer<typeof updateSettingsSchema>;
