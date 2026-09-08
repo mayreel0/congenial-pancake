@@ -4,11 +4,11 @@ import {
   runReplyContentModerationEval,
   type ReplyContentModerationEvalCase,
 } from './reply-content-moderation.eval';
-import { ReplyContentModerationService } from './reply-content-moderation.service';
+import { ReplyContentModerationService } from '../reply-content/reply-content-moderation.service';
 import type {
   ReplyRewriter,
   ReplyToneClassifier,
-} from './reply-content-moderation.types';
+} from '../reply-content/reply-content-moderation.types';
 
 describe('runReplyContentModerationEval', () => {
   it('compares actual moderation actions and category coverage against expected fixtures', async () => {
