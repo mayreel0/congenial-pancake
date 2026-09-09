@@ -86,11 +86,15 @@ export class ReplyAlreadySubmittedException extends AppException {
   }
 }
 
+// Korean, not English — matching NicknameCooldownException below: the
+// limit is dynamic (settings-configurable), so the frontend can't carry a
+// fixed translation for it. The backend builds the final sentence and the
+// frontend shows it as-is, no code→text lookup table involved.
 export class ReplyGuestLimitExceededException extends AppException {
   constructor(limit: number) {
     super(
       'REPLY_GUEST_LIMIT_EXCEEDED',
-      `Guests may only reply ${limit} times in total. Log in to reply more.`,
+      `비회원은 답변을 최대 ${limit}번까지만 남길 수 있어요. 로그인하면 더 남길 수 있어요.`,
       HttpStatus.CONFLICT,
     );
   }
