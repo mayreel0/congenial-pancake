@@ -47,3 +47,14 @@ body {
   background: var(--background);
   color: var(--foreground);
 }
+
+/* Browsers default <a> to a pointer cursor but not button/select/label —
+   Tailwind v4's preflight doesn't add it either. Individual `cursor-pointer`
+   classes were never actually used anywhere in the codebase (confirmed via
+   repo-wide grep), so this is a real, global gap rather than a
+   case-by-case oversight — see program-wide UX audit, 2026-09-09. */
+button:not(:disabled),
+select,
+label:has(input[type="checkbox"]) {
+  cursor: pointer;
+}
