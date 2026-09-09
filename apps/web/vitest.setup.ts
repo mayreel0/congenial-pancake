@@ -53,6 +53,19 @@ vi.mock("next/navigation", () => ({
 beforeEach(() => {
   MockIntersectionObserver.instances = [];
   vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
+  // jsdom has neither — ui/Pagination's scroll-to-top-on-page-change reads
+  // matchMedia (which jsdom doesn't implement at all, so leaving it unstubbed
+  // would throw rather than just warn) and calls scrollTo.
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn((query: string) => ({
+      matches: false,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })),
+  );
+  vi.stubGlobal("scrollTo", vi.fn());
   vi.stubGlobal(
     "fetch",
     vi.fn((input: RequestInfo | URL) => {
