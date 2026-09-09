@@ -89,6 +89,32 @@ jobs:
           fi
           echo "EC2_INSTANCE_ID=$INSTANCE_ID" >> "$GITHUB_ENV"
 
+      # RDS's managed master password (rds.tf's manage_master_user_password)
+      # rotates on its own every 7 days by default — found the hard way
+      # (2026-09-09) when a rotation invalidated the password baked into
+      # /etc/onseol-api.env at instance boot and every deploy afterward
+      # crash-looped on "applying migrations..." until the instance was
+      # replaced. Looked up by DB identifier rather than hardcoded, same
+      # reasoning as the EC2 instance lookup above — the secret ARN would
+      # change if this DB instance were ever replaced.
+      - name: Look up the RDS secret and endpoint
+        run: |
+          DB_SECRET_ARN=$(aws rds describe-db-instances \
+            --db-instance-identifier onseol-db \
+            --query "DBInstances[0].MasterUserSecret.SecretArn" --output text)
+          DB_ENDPOINT=$(aws rds describe-db-instances \
+            --db-instance-identifier onseol-db \
+            --query "DBInstances[0].Endpoint.Address" --output text)
+          DB_PORT=$(aws rds describe-db-instances \
+            --db-instance-identifier onseol-db \
+            --query "DBInstances[0].Endpoint.Port" --output text)
+          if [ -z "$DB_SECRET_ARN" ] || [ "$DB_SECRET_ARN" = "None" ]; then
+            echo "::error::onseol-db의 마스터 비밀번호 시크릿 ARN을 찾지 못했습니다."
+            exit 1
+          fi
+          echo "DB_SECRET_ARN=$DB_SECRET_ARN" >> "$GITHUB_ENV"
+          echo "DB_ENDPOINT=$DB_ENDPOINT:$DB_PORT" >> "$GITHUB_ENV"
+
       - name: Redeploy container over SSM
         run: |
           # Built with jq rather than hand-escaped shell quoting inside
@@ -112,17 +138,28 @@ jobs:
           # (matching on the key up to the first "=", replacing the whole
           # line) rather than sed, since a secret value containing "&",
           # "\", or extra "=" would corrupt a sed replacement string.
-          # Static values (DATABASE_URL, CORS_ORIGIN, etc.) are left
-          # untouched — those only change via a Terraform-driven instance
-          # replacement anyway.
+          # DATABASE_URL gets the same treatment, separately, right below
+          # — it isn't a plain string like the app secrets, it has to be
+          # rebuilt from the RDS-managed secret's {username,password} JSON
+          # (same recipe as infra/terraform/templates/user-data.sh.tftpl).
+          # This closes the exact gap found the hard way on 2026-09-09: the
+          # master password auto-rotates every 7 days, but a plain restart
+          # was still reusing whatever was baked in at boot, so it silently
+          # went stale and crash-looped the container on every deploy after
+          # a rotation until the instance was replaced. CORS_ORIGIN etc.
+          # are still left untouched — those only change via a
+          # Terraform-driven instance replacement.
           COMMANDS_JSON=$(jq -n \
             --arg registry "${ECR_REPOSITORY%%/*}" \
             --arg image "$ECR_REPOSITORY:latest" \
             --arg region "$AWS_REGION" \
             --arg port "$APP_PORT" \
+            --arg dbSecretArn "$DB_SECRET_ARN" \
+            --arg dbEndpoint "$DB_ENDPOINT" \
             '{commands: [
               ("aws ecr get-login-password --region " + $region + " | docker login --username AWS --password-stdin " + $registry),
               ("for NAME in google_client_id google_client_secret kakao_client_id kakao_client_secret naver_client_id naver_client_secret admin_user_ids resend_api_key resend_from_email ses_from_email; do KEY=$(echo \"$NAME\" | tr a-z A-Z); VALUE=$(aws ssm get-parameter --region " + $region + " --name \"/onseol/prod/$NAME\" --with-decryption --query Parameter.Value --output text); awk -v k=\"$KEY\" -v v=\"$VALUE\" '\''BEGIN{FS=OFS=\"=\"} $1==k{$0=k\"=\"v} 1'\'' /etc/onseol-api.env > /etc/onseol-api.env.new && mv /etc/onseol-api.env.new /etc/onseol-api.env; done"),
+              ("DB_SECRET=$(aws secretsmanager get-secret-value --region " + $region + " --secret-id \"" + $dbSecretArn + "\" --query SecretString --output text); DB_USER=$(echo \"$DB_SECRET\" | python3 -c '\''import sys,json;print(json.load(sys.stdin)[\"username\"])'\''); DB_PASSWORD=$(echo \"$DB_SECRET\" | python3 -c '\''import sys,json,urllib.parse;print(urllib.parse.quote(json.load(sys.stdin)[\"password\"],safe=\"\"))'\''); NEW_URL=\"postgres://$DB_USER:$DB_PASSWORD@" + $dbEndpoint + "/onseol?sslmode=require\"; awk -v k=\"DATABASE_URL\" -v v=\"$NEW_URL\" '\''BEGIN{FS=OFS=\"=\"} $1==k{$0=k\"=\"v} 1'\'' /etc/onseol-api.env > /etc/onseol-api.env.new && mv /etc/onseol-api.env.new /etc/onseol-api.env"),
               "chmod 600 /etc/onseol-api.env",
               ("docker pull " + $image),
               "docker stop onseol-api || true",
