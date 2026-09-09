@@ -1,6 +1,7 @@
 import {
   NicknameRequiredException,
   RequestGuestLimitExceededException,
+  RequestNotFoundException,
 } from '../common/exceptions/app.exception';
 import type { SettingsService } from '../settings/settings.service';
 import type { SettingsRecord } from '../settings/settings.repository';
@@ -19,6 +20,7 @@ function makeRequest(overrides: Partial<RequestRecord> = {}): RequestRecord {
     createdAt: new Date('2026-08-21T00:00:00.000Z'),
     hidden: false,
     deletedAt: null,
+    contentRemoved: false,
     reviewedAt: null,
     anonymous: true,
     ...overrides,
@@ -70,6 +72,8 @@ describe('RequestsService', () => {
       findByGuestId: jest.fn(),
       setHidden: jest.fn(),
       findQueueCandidate: jest.fn(),
+      findById: jest.fn(),
+      markContentRemoved: jest.fn(),
     } as unknown as jest.Mocked<RequestsRepository>;
     settingsService = {
       get: jest.fn().mockResolvedValue(makeSettings()),
@@ -220,6 +224,40 @@ describe('RequestsService', () => {
         'request-1',
         true,
       );
+    });
+  });
+
+  describe('deleteOwn', () => {
+    it('marks the request content removed when the caller is the author', async () => {
+      requestsRepository.findById.mockResolvedValue(
+        makeRequest({ id: 'request-1', authorId: 'user-1' }),
+      );
+
+      await requestsService.deleteOwn('user-1', 'request-1');
+
+      expect(requestsRepository.markContentRemoved).toHaveBeenCalledWith(
+        'request-1',
+      );
+    });
+
+    it('throws NotFound without removing content when the caller is not the author', async () => {
+      requestsRepository.findById.mockResolvedValue(
+        makeRequest({ id: 'request-1', authorId: 'user-1' }),
+      );
+
+      await expect(
+        requestsService.deleteOwn('someone-else', 'request-1'),
+      ).rejects.toBeInstanceOf(RequestNotFoundException);
+      expect(requestsRepository.markContentRemoved).not.toHaveBeenCalled();
+    });
+
+    it('throws NotFound when the request does not exist', async () => {
+      requestsRepository.findById.mockResolvedValue(undefined);
+
+      await expect(
+        requestsService.deleteOwn('user-1', 'missing'),
+      ).rejects.toBeInstanceOf(RequestNotFoundException);
+      expect(requestsRepository.markContentRemoved).not.toHaveBeenCalled();
     });
   });
 });

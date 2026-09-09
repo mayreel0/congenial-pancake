@@ -41,6 +41,7 @@ function makeRequest(overrides: Partial<RequestRecord> = {}): RequestRecord {
     createdAt: new Date('2026-08-21T00:00:00.000Z'),
     hidden: false,
     deletedAt: null,
+    contentRemoved: false,
     reviewedAt: null,
     anonymous: true,
     ...overrides,
@@ -121,7 +122,11 @@ describe('RequestsRepository', () => {
       );
 
       expect(rowsChain.where).toHaveBeenCalledWith(
-        and(eq(requests.authorId, 'user-1'), undefined),
+        and(
+          eq(requests.authorId, 'user-1'),
+          eq(requests.contentRemoved, false),
+          undefined,
+        ),
       );
       expect(rowsChain.orderBy).toHaveBeenCalledWith(desc(requests.createdAt));
       expect(rowsChain.limit).toHaveBeenCalledWith(20);

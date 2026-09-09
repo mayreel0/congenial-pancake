@@ -4,6 +4,7 @@ import {
   NicknameRequiredException,
   ReplyAlreadySubmittedException,
   ReplyGuestLimitExceededException,
+  ReplyNotFoundException,
   RequestNotFoundException,
 } from '../common/exceptions/app.exception';
 import type {
@@ -40,7 +41,14 @@ export class RepliesService {
     guestId: string,
   ): Promise<ReplyRecord> {
     const request = await this.requestsService.findVisibleById(requestId);
-    if (!request) throw new RequestNotFoundException();
+    // A self-deleted request must not be replyable, even via a direct call
+    // that skips the answer queue (which already excludes it as a
+    // candidate) — findVisibleById itself can't filter this out, since it's
+    // also used to render a removed request's own thread page with its
+    // placeholder body (see docs/decisions/2026-09-09-onseol-own-content-
+    // deletion-decisions.md).
+    if (!request || request.contentRemoved)
+      throw new RequestNotFoundException();
 
     if (userId) {
       const existing = await this.repliesRepository.findByRequestAndAuthor(
@@ -152,5 +160,18 @@ export class RepliesService {
 
   softDelete(id: string): Promise<void> {
     return this.repliesRepository.softDelete(id);
+  }
+
+  // Member-only self-service delete. Unlike a request's contentRemoved
+  // flag, a reply isn't the parent of anything else — deleting it never
+  // needs to preserve someone else's content, so this just reuses the
+  // same soft-delete admin moderation already uses (removed from every
+  // view, same as admin's own "영구 삭제").
+  async deleteOwn(userId: string, id: string): Promise<void> {
+    const reply = await this.repliesRepository.findById(id);
+    if (!reply || reply.authorId !== userId) {
+      throw new ReplyNotFoundException();
+    }
+    await this.repliesRepository.softDelete(id);
   }
 }

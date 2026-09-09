@@ -91,10 +91,12 @@ function installFakeBackend(initialQueue: RequestDto[]) {
               requestBody: target.body,
               requestCreatedAt: target.createdAt,
               requestAuthor: target.author,
+              requestRemoved: false,
               replyId: `reply-${replyCounter}`,
               replyBody: body.body,
               replyCreatedAt: new Date().toISOString(),
               replyAuthor: { anonymous: true },
+              replyRemoved: false,
             },
           ];
         }
@@ -318,20 +320,24 @@ describe("AnswerSession", () => {
       requestBody: "최근에 남긴 고민",
       requestCreatedAt: "2026-08-25T00:00:00.000Z",
       requestAuthor: { anonymous: true },
+      requestRemoved: false,
       replyId: "reply-recent",
       replyBody: "최근에 남긴 답변",
       replyCreatedAt: "2026-08-25T01:00:00.000Z",
       replyAuthor: { anonymous: true },
+      replyRemoved: false,
     };
     const olderEntry: MyAnswerLogEntryDto = {
       requestId: "req-older",
       requestBody: "예전에 남긴 고민",
       requestCreatedAt: "2026-08-01T00:00:00.000Z",
       requestAuthor: { anonymous: true },
+      requestRemoved: false,
       replyId: "reply-older",
       replyBody: "예전에 남긴 답변",
       replyCreatedAt: "2026-08-01T01:00:00.000Z",
       replyAuthor: { anonymous: true },
+      replyRemoved: false,
     };
 
     const fetchMock = vi.fn((input: RequestInfo | URL): Promise<MockResponse> => {

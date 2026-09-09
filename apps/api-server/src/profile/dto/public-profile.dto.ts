@@ -4,6 +4,7 @@ import {
   publicReplyItemSchema,
   publicRequestItemSchema,
 } from 'shared/dto';
+import { visibleRequestBody } from '../../common/request-content';
 import type { ReplyWithRequest } from '../../replies/replies.repository';
 import type { RequestRecord } from '../../requests/requests.repository';
 
@@ -16,7 +17,7 @@ export function toPublicRequestItemDto(
 ): PublicRequestItemDto {
   return {
     id: request.id,
-    body: request.body,
+    body: visibleRequestBody(request),
     createdAt: request.createdAt.toISOString(),
   };
 }
@@ -32,7 +33,7 @@ export function toPublicReplyItemDto({
     body: reply.body,
     createdAt: reply.createdAt.toISOString(),
     requestId: request.id,
-    requestBody: request.body,
+    requestBody: visibleRequestBody(request),
   };
 }
 

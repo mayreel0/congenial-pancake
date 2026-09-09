@@ -81,6 +81,11 @@ export class RequestsRepository {
     });
   }
 
+  // Only consumer is /today's rotating prompt line (GET /requests) — a
+  // self-deleted request has no business surfacing there as inspiration, so
+  // (like findSampleExchanges) it's excluded outright rather than shown as
+  // a placeholder (see docs/decisions/2026-09-09-onseol-own-content-
+  // deletion-decisions.md).
   findVisible(): Promise<RequestWithReplyCount[]> {
     return this.db
       .select({
@@ -91,6 +96,7 @@ export class RequestsRepository {
         createdAt: requests.createdAt,
         hidden: requests.hidden,
         deletedAt: requests.deletedAt,
+        contentRemoved: requests.contentRemoved,
         reviewedAt: requests.reviewedAt,
         anonymous: requests.anonymous,
         replyCount: count(replies.id),
@@ -104,7 +110,13 @@ export class RequestsRepository {
           isNull(replies.deletedAt),
         ),
       )
-      .where(and(eq(requests.hidden, false), isNull(requests.deletedAt)))
+      .where(
+        and(
+          eq(requests.hidden, false),
+          isNull(requests.deletedAt),
+          eq(requests.contentRemoved, false),
+        ),
+      )
       .groupBy(requests.id)
       .orderBy(desc(requests.createdAt));
   }
@@ -145,6 +157,7 @@ export class RequestsRepository {
         createdAt: requests.createdAt,
         hidden: requests.hidden,
         deletedAt: requests.deletedAt,
+        contentRemoved: requests.contentRemoved,
         reviewedAt: requests.reviewedAt,
         anonymous: requests.anonymous,
       })
@@ -185,9 +198,16 @@ export class RequestsRepository {
   }
 
   // "내 기록" → 내가 작성한 고민: every request this member posted, newest
-  // first, with every reply nested oldest-first — no hidden/deletedAt
-  // filtering on either side, matching RepliesRepository.findMine()'s
-  // precedent that a viewer's own content is shown to them unfiltered.
+  // first, with every reply nested oldest-first. Still unfiltered by admin's
+  // hidden/deletedAt (matching RepliesRepository.findMine()'s precedent that
+  // a viewer's own content is shown to them unfiltered) — but a request the
+  // viewer deleted themselves (contentRemoved) is excluded outright rather
+  // than shown as a placeholder card, since the whole point of deleting your
+  // own post is that you don't have to keep seeing it either. Nested replies
+  // aren't filtered by their own author's contentRemoved/deletedAt here —
+  // those are someone else's content, shown via visibleReplyBody() instead
+  // of being hidden from the recipient (see
+  // docs/decisions/2026-09-09-onseol-own-content-deletion-decisions.md).
   async findMine(
     authorId: string,
     range: DateRange,
@@ -195,6 +215,7 @@ export class RequestsRepository {
   ): Promise<PagedResult<FeedItem>> {
     const whereClause = and(
       eq(requests.authorId, authorId),
+      eq(requests.contentRemoved, false),
       dateRangeCondition(requests.createdAt, range),
     );
 
@@ -214,6 +235,7 @@ export class RequestsRepository {
         createdAt: requests.createdAt,
         hidden: requests.hidden,
         deletedAt: requests.deletedAt,
+        contentRemoved: requests.contentRemoved,
         reviewedAt: requests.reviewedAt,
         anonymous: requests.anonymous,
       })
@@ -274,8 +296,9 @@ export class RequestsRepository {
   }
 
   // HeatmapCalendar for /records' 내가 남긴 고민 tab: per-KST-day count of
-  // this member's own requests, unfiltered by hidden/deletedAt — matches
-  // findMine's "viewer's own content shown unfiltered" policy.
+  // this member's own requests, matching findMine's filtering exactly (see
+  // its comment) — otherwise the heatmap would count days the list itself
+  // no longer shows anything for.
   async countMineByDay(
     authorId: string,
     range: DateRange,
@@ -283,6 +306,7 @@ export class RequestsRepository {
     const dayBucket = kstDayBucket(requests.createdAt);
     const whereClause = and(
       eq(requests.authorId, authorId),
+      eq(requests.contentRemoved, false),
       dateRangeCondition(requests.createdAt, range),
     );
     const rows = await this.db
@@ -386,6 +410,25 @@ export class RequestsRepository {
       .where(eq(requests.id, id));
   }
 
+  // Ownership check in RequestsService.deleteOwn needs the raw row
+  // (authorId included) regardless of hidden/deletedAt — unlike
+  // findVisibleById, which is for read paths that should never surface
+  // moderated-away content.
+  findById(id: string): Promise<RequestRecord | undefined> {
+    return this.db.query.requests.findFirst({
+      where: eq(requests.id, id),
+    });
+  }
+
+  // The author's own "삭제" — see requests.schema.ts's contentRemoved
+  // comment. Never touches hidden/deletedAt.
+  async markContentRemoved(id: string): Promise<void> {
+    await this.db
+      .update(requests)
+      .set({ contentRemoved: true })
+      .where(eq(requests.id, id));
+  }
+
   // The next request this viewer should be offered to answer: fresh
   // (within limits.freshnessHours), not theirs, not already replied to or
   // skipped/held by them, fewest visible replies first (capped at
@@ -415,6 +458,7 @@ export class RequestsRepository {
     const baseWhere = and(
       eq(requests.hidden, false),
       isNull(requests.deletedAt),
+      eq(requests.contentRemoved, false),
       gt(requests.createdAt, freshnessCutoff),
       notSelfAuthoredCondition,
       excludedRequestIds.length > 0
@@ -470,6 +514,7 @@ export class RequestsRepository {
         createdAt: requests.createdAt,
         hidden: requests.hidden,
         deletedAt: requests.deletedAt,
+        contentRemoved: requests.contentRemoved,
         reviewedAt: requests.reviewedAt,
         anonymous: requests.anonymous,
         replyCount,

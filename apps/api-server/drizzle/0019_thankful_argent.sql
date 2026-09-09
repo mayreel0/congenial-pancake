@@ -1,0 +1,1 @@
+ALTER TABLE "requests" ADD COLUMN "content_removed" boolean DEFAULT false NOT NULL;

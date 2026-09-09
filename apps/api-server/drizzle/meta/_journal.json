@@ -134,6 +134,13 @@
       "when": 1788887856978,
       "tag": "0018_unknown_lizard",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1788903867016,
+      "tag": "0019_thankful_argent",
+      "breakpoints": true
     }
   ]
 }

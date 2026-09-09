@@ -14,6 +14,7 @@ function makeRequest(overrides: Partial<RequestRecord> = {}): RequestRecord {
     createdAt: new Date('2026-08-21T00:00:00.000Z'),
     hidden: false,
     deletedAt: null,
+    contentRemoved: false,
     reviewedAt: null,
     anonymous: false,
     ...overrides,
@@ -174,6 +175,7 @@ describe('RequestsController', () => {
                 nickname: '민들레',
                 nicknameDiscriminator: 'SER1',
               },
+              removed: false,
             },
             replies: [
               {
@@ -185,12 +187,14 @@ describe('RequestsController', () => {
                   nickname: '햇살',
                   nicknameDiscriminator: 'SER2',
                 },
+                removed: false,
               },
               {
                 id: 'reply-2',
                 body: '괜찮아요.',
                 createdAt: '2026-08-21T01:00:00.000Z',
                 author: { anonymous: true },
+                removed: false,
               },
             ],
           },

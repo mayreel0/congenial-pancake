@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import {
   NicknameRequiredException,
   RequestGuestLimitExceededException,
+  RequestNotFoundException,
 } from '../common/exceptions/app.exception';
 import { SettingsService } from '../settings/settings.service';
 import { UsersService } from '../users/users.service';
@@ -121,5 +122,18 @@ export class RequestsService {
 
   softDelete(id: string): Promise<void> {
     return this.requestsRepository.softDelete(id);
+  }
+
+  // Member-only self-service delete — see requests.schema.ts's
+  // contentRemoved comment for why this is a different mechanism from
+  // admin's softDelete above. Same 404 whether the request doesn't exist
+  // or belongs to someone else, so a non-owner can't probe for which ids
+  // are real.
+  async deleteOwn(userId: string, id: string): Promise<void> {
+    const request = await this.requestsRepository.findById(id);
+    if (!request || request.authorId !== userId) {
+      throw new RequestNotFoundException();
+    }
+    await this.requestsRepository.markContentRemoved(id);
   }
 }
