@@ -3,6 +3,7 @@ export * from './sessions.schema';
 export * from './requests.schema';
 export * from './replies.schema';
 export * from './reports.schema';
+export * from './reply-moderation-logs.schema';
 export * from './oauth-identities.schema';
 export * from './answer-interactions.schema';
 export * from './saved-replies.schema';
