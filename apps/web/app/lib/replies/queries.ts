@@ -10,6 +10,7 @@ import {
 import { requestKeys } from "../requests/queries";
 import {
   createReply,
+  deleteOwnReply,
   fetchMyAnswerLog,
   fetchMyReplyDayCounts,
   fetchSavedReplyIds,
@@ -99,6 +100,23 @@ export function useCreateReplyMutation() {
 
 // Saved replies are member-only — pass enabled: false for guests instead of
 // letting the query fire and 401.
+export function useDeleteOwnReplyMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      requestId,
+      replyId,
+    }: {
+      requestId: string;
+      replyId: string;
+    }) => deleteOwnReply(requestId, replyId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: replyKeys.mineAll });
+    },
+  });
+}
+
 export function useSavedReplyIdsQuery(enabled: boolean) {
   return useQuery({
     queryKey: replyKeys.saved,

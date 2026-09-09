@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { ActionConfirmDialog } from "ui/ActionConfirmDialog";
 import { Button } from "ui/Button";
 import { HeatmapCalendarField } from "ui/HeatmapCalendarField";
 import { Pagination } from "ui/Pagination";
@@ -6,6 +8,7 @@ import { daysInMonthAnchor, formatKoreanDate } from "../../lib/kst-date";
 import { PAGE_SIZE_OPTIONS } from "../../lib/pagination";
 import type { MyAnswerLogEntryDto } from "../../lib/replies/api";
 import {
+  useDeleteOwnReplyMutation,
   useMyAnswerLogQuery,
   useMyReplyDayCountsQuery,
 } from "../../lib/replies/queries";
@@ -15,11 +18,12 @@ import { AnswerLogCard } from "./AnswerLogCard";
 type AnswerLogBodyProps = {
   loading: boolean;
   entries: MyAnswerLogEntryDto[];
+  onDeleteReply(requestId: string, replyId: string): void;
 };
 
 // Early return instead of a nested ternary — matches
 // apps/admin/app/components/AdminStatusGate.tsx's pattern.
-function AnswerLogBody({ loading, entries }: AnswerLogBodyProps) {
+function AnswerLogBody({ loading, entries, onDeleteReply }: AnswerLogBodyProps) {
   if (loading) {
     return (
       <div className="space-y-4">
@@ -51,7 +55,11 @@ function AnswerLogBody({ loading, entries }: AnswerLogBodyProps) {
   return (
     <ol className="space-y-4">
       {entries.map((entry) => (
-        <AnswerLogCard entry={entry} key={entry.replyId} />
+        <AnswerLogCard
+          entry={entry}
+          key={entry.replyId}
+          onDeleteReply={onDeleteReply}
+        />
       ))}
     </ol>
   );
@@ -77,6 +85,17 @@ export function MyAnswerLogSection() {
     monthDays[0],
     monthDays[monthDays.length - 1],
   );
+  const deleteReply = useDeleteOwnReplyMutation();
+  const [pendingDelete, setPendingDelete] = useState<{
+    requestId: string;
+    replyId: string;
+  } | null>(null);
+
+  function confirmDelete() {
+    if (!pendingDelete) return;
+    deleteReply.mutate(pendingDelete);
+    setPendingDelete(null);
+  }
 
   return (
     <section className="space-y-4" aria-labelledby="my-answer-log-heading">
@@ -118,6 +137,9 @@ export function MyAnswerLogSection() {
       <AnswerLogBody
         entries={data?.items ?? []}
         loading={answerLog.isPending || answerLog.isLoading}
+        onDeleteReply={(requestId, replyId) =>
+          setPendingDelete({ requestId, replyId })
+        }
       />
       {data && (
         <Pagination
@@ -129,6 +151,13 @@ export function MyAnswerLogSection() {
           onPageSizeChange={setPageSize}
         />
       )}
+      <ActionConfirmDialog
+        confirmLabel="삭제하기"
+        message="이 답변을 삭제할까요? 삭제한 답변은 더 이상 보이지 않아요."
+        open={pendingDelete !== null}
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={confirmDelete}
+      />
     </section>
   );
 }

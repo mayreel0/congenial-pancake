@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "../lib/test-utils";
+import { fireEvent, render, screen, waitFor, within } from "../lib/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import RecordsPage from "./page";
 
@@ -18,8 +18,9 @@ function installFakeBackend({
   requestLog?: unknown[];
 }) {
   const fetchMock = vi.fn(
-    (input: RequestInfo | URL): Promise<MockResponse> => {
+    (input: RequestInfo | URL, init?: RequestInit): Promise<MockResponse> => {
       const url = typeof input === "string" ? input : input.toString();
+      const method = init?.method ?? "GET";
 
       if (url.endsWith("/auth/me")) {
         if (!loggedIn) {
@@ -32,6 +33,10 @@ function installFakeBackend({
             createdAt: "2026-08-22T00:00:00.000Z",
           }),
         );
+      }
+
+      if (url.includes("/delete-own") && method === "POST") {
+        return Promise.resolve(jsonResponse(204, null));
       }
 
       if (url.includes("/replies/mine")) {
@@ -365,5 +370,133 @@ describe("RecordsPage", () => {
       // Changing the page size also resets to page 1.
       expect(sizeCall.get("page")).toBe("1");
     });
+  });
+
+  it("deletes a posted request after confirming, via 더보기 → 삭제하기", async () => {
+    const fetchMock = installFakeBackend({
+      loggedIn: true,
+      requestLog: [
+        {
+          request: {
+            id: "request-1",
+            body: "요즘 마음이 자꾸 가라앉아요.",
+            createdAt: "2026-08-20T10:15:00.000Z",
+            author: { anonymous: true },
+            removed: false,
+          },
+          replies: [],
+        },
+      ],
+    });
+
+    render(<RecordsPage />);
+
+    await screen.findByText("요즘 마음이 자꾸 가라앉아요.");
+    fireEvent.click(screen.getByRole("button", { name: "더보기" }));
+    fireEvent.click(screen.getByRole("button", { name: "삭제하기" }));
+
+    expect(
+      await screen.findByText(
+        "이 글을 삭제할까요? 삭제하면 글 내용은 사라지고, 이미 달린 답변은 그대로 남아요.",
+      ),
+    ).toBeInTheDocument();
+
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "삭제하기" }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining("/requests/request-1/delete-own"),
+        expect.objectContaining({ method: "POST" }),
+      );
+    });
+  });
+
+  it("hides the 더보기 menu for an already-deleted request", async () => {
+    installFakeBackend({
+      loggedIn: true,
+      requestLog: [
+        {
+          request: {
+            id: "request-1",
+            body: "삭제된 글이에요.",
+            createdAt: "2026-08-20T10:15:00.000Z",
+            author: { anonymous: true },
+            removed: true,
+          },
+          replies: [],
+        },
+      ],
+    });
+
+    render(<RecordsPage />);
+
+    await screen.findByText("삭제된 글이에요.");
+    expect(
+      screen.queryByRole("button", { name: "더보기" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("deletes a given reply after confirming, via 더보기 → 삭제하기", async () => {
+    const fetchMock = installFakeBackend({
+      loggedIn: true,
+      replies: [
+        {
+          requestId: "request-1",
+          requestBody: "요즘 마음이 자꾸 가라앉아요.",
+          requestCreatedAt: "2026-08-20T10:15:00.000Z",
+          requestRemoved: false,
+          replyId: "reply-1",
+          replyBody: "잠깐이라도 쉬어가도 괜찮다고 말해주고 싶어요.",
+          replyCreatedAt: "2026-08-21T11:30:00.000Z",
+          replyRemoved: false,
+        },
+      ],
+    });
+
+    render(<RecordsPage />);
+    await switchToRepliesTab();
+
+    await screen.findByText("잠깐이라도 쉬어가도 괜찮다고 말해주고 싶어요.");
+    fireEvent.click(screen.getByRole("button", { name: "더보기" }));
+    fireEvent.click(screen.getByRole("button", { name: "삭제하기" }));
+
+    expect(
+      await screen.findByText("이 답변을 삭제할까요? 삭제한 답변은 더 이상 보이지 않아요."),
+    ).toBeInTheDocument();
+
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "삭제하기" }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining("/requests/request-1/replies/reply-1/delete-own"),
+        expect.objectContaining({ method: "POST" }),
+      );
+    });
+  });
+
+  it("hides the 더보기 menu for an already-deleted reply", async () => {
+    installFakeBackend({
+      loggedIn: true,
+      replies: [
+        {
+          requestId: "request-1",
+          requestBody: "요즘 마음이 자꾸 가라앉아요.",
+          requestCreatedAt: "2026-08-20T10:15:00.000Z",
+          requestRemoved: false,
+          replyId: "reply-1",
+          replyBody: "삭제된 답변이에요.",
+          replyCreatedAt: "2026-08-21T11:30:00.000Z",
+          replyRemoved: true,
+        },
+      ],
+    });
+
+    render(<RecordsPage />);
+    await switchToRepliesTab();
+
+    await screen.findByText("삭제된 답변이에요.");
+    expect(
+      screen.queryByRole("button", { name: "더보기" }),
+    ).not.toBeInTheDocument();
   });
 });

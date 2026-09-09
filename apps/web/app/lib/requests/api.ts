@@ -129,3 +129,12 @@ export function fetchMyRequestDayCounts(
   const params = new URLSearchParams({ from, to });
   return apiFetch<DayCountsDto>(`/requests/mine/counts?${params.toString()}`);
 }
+
+// See docs/decisions/2026-09-09-onseol-own-content-deletion-decisions.md —
+// the request row itself stays (replies to it are preserved), only its body
+// is replaced everywhere with a fixed placeholder from then on.
+export function deleteOwnRequest(requestId: string): Promise<void> {
+  return apiFetch<void>(`/requests/${requestId}/delete-own`, {
+    method: "POST",
+  });
+}
