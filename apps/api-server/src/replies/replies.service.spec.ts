@@ -136,6 +136,21 @@ describe('RepliesService', () => {
       ).rejects.toBeInstanceOf(RequestNotFoundException);
     });
 
+    it('throws when the target request was self-deleted by its author', async () => {
+      requestsService.findVisibleById.mockResolvedValue(
+        makeRequest({ contentRemoved: true }),
+      );
+
+      await expect(
+        repliesService.create(
+          'request-1',
+          { body: '내용' },
+          'user-1',
+          'unused-guest-id',
+        ),
+      ).rejects.toBeInstanceOf(RequestNotFoundException);
+    });
+
     it('throws when the logged-in user already replied to this request', async () => {
       requestsService.findVisibleById.mockResolvedValue(makeRequest());
       repliesRepository.findByRequestAndAuthor.mockResolvedValue(makeReply());

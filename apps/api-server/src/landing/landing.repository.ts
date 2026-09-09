@@ -46,7 +46,10 @@ export class LandingRepository {
   }
 
   // Snapshot, not time-windowed: visible requests with zero visible replies
-  // right now.
+  // right now. A self-deleted request is excluded too — it can no longer be
+  // offered through the answer queue (see RequestsRepository.
+  // findQueueCandidate), so counting it as "waiting for reply" would be
+  // misleading.
   async countWaitingForReply(): Promise<number> {
     const [row] = await this.db
       .select({ value: count() })
@@ -55,6 +58,7 @@ export class LandingRepository {
         and(
           eq(requests.hidden, false),
           isNull(requests.deletedAt),
+          eq(requests.contentRemoved, false),
           notExists(
             this.db
               .select({ one: sql`1` })

@@ -81,6 +81,11 @@ export class RequestsRepository {
     });
   }
 
+  // Only consumer is /today's rotating prompt line (GET /requests) — a
+  // self-deleted request has no business surfacing there as inspiration, so
+  // (like findSampleExchanges) it's excluded outright rather than shown as
+  // a placeholder (see docs/decisions/2026-09-09-onseol-own-content-
+  // deletion-decisions.md).
   findVisible(): Promise<RequestWithReplyCount[]> {
     return this.db
       .select({
@@ -105,7 +110,13 @@ export class RequestsRepository {
           isNull(replies.deletedAt),
         ),
       )
-      .where(and(eq(requests.hidden, false), isNull(requests.deletedAt)))
+      .where(
+        and(
+          eq(requests.hidden, false),
+          isNull(requests.deletedAt),
+          eq(requests.contentRemoved, false),
+        ),
+      )
       .groupBy(requests.id)
       .orderBy(desc(requests.createdAt));
   }
@@ -447,6 +458,7 @@ export class RequestsRepository {
     const baseWhere = and(
       eq(requests.hidden, false),
       isNull(requests.deletedAt),
+      eq(requests.contentRemoved, false),
       gt(requests.createdAt, freshnessCutoff),
       notSelfAuthoredCondition,
       excludedRequestIds.length > 0
