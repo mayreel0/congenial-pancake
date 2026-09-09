@@ -187,9 +187,16 @@ export class RequestsRepository {
   }
 
   // "내 기록" → 내가 작성한 고민: every request this member posted, newest
-  // first, with every reply nested oldest-first — no hidden/deletedAt
-  // filtering on either side, matching RepliesRepository.findMine()'s
-  // precedent that a viewer's own content is shown to them unfiltered.
+  // first, with every reply nested oldest-first. Still unfiltered by admin's
+  // hidden/deletedAt (matching RepliesRepository.findMine()'s precedent that
+  // a viewer's own content is shown to them unfiltered) — but a request the
+  // viewer deleted themselves (contentRemoved) is excluded outright rather
+  // than shown as a placeholder card, since the whole point of deleting your
+  // own post is that you don't have to keep seeing it either. Nested replies
+  // aren't filtered by their own author's contentRemoved/deletedAt here —
+  // those are someone else's content, shown via visibleReplyBody() instead
+  // of being hidden from the recipient (see
+  // docs/decisions/2026-09-09-onseol-own-content-deletion-decisions.md).
   async findMine(
     authorId: string,
     range: DateRange,
@@ -197,6 +204,7 @@ export class RequestsRepository {
   ): Promise<PagedResult<FeedItem>> {
     const whereClause = and(
       eq(requests.authorId, authorId),
+      eq(requests.contentRemoved, false),
       dateRangeCondition(requests.createdAt, range),
     );
 
@@ -277,8 +285,9 @@ export class RequestsRepository {
   }
 
   // HeatmapCalendar for /records' 내가 남긴 고민 tab: per-KST-day count of
-  // this member's own requests, unfiltered by hidden/deletedAt — matches
-  // findMine's "viewer's own content shown unfiltered" policy.
+  // this member's own requests, matching findMine's filtering exactly (see
+  // its comment) — otherwise the heatmap would count days the list itself
+  // no longer shows anything for.
   async countMineByDay(
     authorId: string,
     range: DateRange,
@@ -286,6 +295,7 @@ export class RequestsRepository {
     const dayBucket = kstDayBucket(requests.createdAt);
     const whereClause = and(
       eq(requests.authorId, authorId),
+      eq(requests.contentRemoved, false),
       dateRangeCondition(requests.createdAt, range),
     );
     const rows = await this.db
