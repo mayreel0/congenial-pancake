@@ -1,6 +1,10 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import {
+  SKELETON_MIN_DISPLAY_MS,
+  useMinDisplayDuration,
+} from "ui/useMinDisplayDuration";
 import { useAuth } from "../lib/auth/useAuth";
 import type { AuthorDisplayDto, RequestDto } from "../lib/requests/api";
 import {
@@ -157,13 +161,26 @@ export function useAnswerQueue(): UseAnswerQueueResult {
     await reportMutation.mutateAsync({ targetType: "request", targetId: requestId });
   }
 
+  const isLoadingCurrentTarget = useMinDisplayDuration(
+    !activeHeldRequest && queueQuery.isLoading,
+    SKELETON_MIN_DISPLAY_MS,
+  );
+  const isLoadingHeldRequests = useMinDisplayDuration(
+    heldQuery.isLoading,
+    SKELETON_MIN_DISPLAY_MS,
+  );
+  const isLoadingAnswerLog = useMinDisplayDuration(
+    answerLogQuery.isLoading,
+    SKELETON_MIN_DISPLAY_MS,
+  );
+
   return {
     currentAnswerTarget,
-    isLoadingCurrentTarget: !activeHeldRequest && queueQuery.isLoading,
+    isLoadingCurrentTarget,
     heldRequests,
-    isLoadingHeldRequests: heldQuery.isLoading,
+    isLoadingHeldRequests,
     answerLog,
-    isLoadingAnswerLog: answerLogQuery.isLoading,
+    isLoadingAnswerLog,
     isAnsweringHeldRequest: activeHeldRequest !== null,
     hasOlderAnswerLogEntries: answerLogQuery.hasNextPage,
     isLoadingOlderAnswerLogEntries: answerLogQuery.isFetchingNextPage,

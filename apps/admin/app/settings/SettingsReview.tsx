@@ -4,6 +4,10 @@ import { AdminNav } from "../components/AdminNav";
 import { AdminStatusGate } from "../components/AdminStatusGate";
 import { useAuth } from "../lib/auth/useAuth";
 import { Skeleton } from "ui/Skeleton";
+import {
+  SKELETON_MIN_DISPLAY_MS,
+  useMinDisplayDuration,
+} from "ui/useMinDisplayDuration";
 import { SettingsForm } from "./SettingsForm";
 import { useAdminSettings } from "./useAdminSettings";
 
@@ -26,13 +30,17 @@ function SettingsFormSkeleton() {
 export function SettingsReview() {
   const auth = useAuth();
   const admin = useAdminSettings();
+  const showSkeleton = useMinDisplayDuration(
+    admin.isLoadingSettings,
+    SKELETON_MIN_DISPLAY_MS,
+  );
 
   return (
     <div className="min-h-dvh bg-background text-foreground">
       <AdminNav activePath="/settings" />
       <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-5 py-10 sm:px-8">
         <AdminStatusGate status={admin.status} login={auth.login}>
-          {admin.isLoadingSettings ? (
+          {showSkeleton ? (
             <SettingsFormSkeleton />
           ) : (
             admin.settings && (

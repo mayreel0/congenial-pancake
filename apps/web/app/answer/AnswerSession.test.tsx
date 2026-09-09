@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, within } from "../lib/test-utils";
+import { act, fireEvent, render, screen, waitFor, within } from "../lib/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { RequestDto } from "../lib/requests/api";
 import type { MyAnswerLogEntryDto } from "../lib/replies/api";
@@ -422,6 +422,13 @@ describe("AnswerSession", () => {
     expect(await screen.findByText("최근에 남긴 고민")).toBeInTheDocument();
     expect(screen.queryByText("예전에 남긴 고민")).not.toBeInTheDocument();
 
+    // The sentinel only mounts once isLoadingAnswerLog itself flips false,
+    // which — via useMinDisplayDuration — lags data arrival by one tick
+    // (a real setTimeout, even at 0ms, to avoid a synchronous setState
+    // inside an effect) — entries can render slightly before that.
+    await waitFor(() =>
+      expect(MockIntersectionObserver.instances.length).toBeGreaterThan(0),
+    );
     const observer = MockIntersectionObserver.instances.at(-1);
     expect(observer).toBeDefined();
     await act(async () => {

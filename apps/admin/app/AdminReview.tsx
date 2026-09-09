@@ -5,6 +5,10 @@ import { ActionConfirmDialog } from "ui/ActionConfirmDialog";
 import { Skeleton } from "ui/Skeleton";
 import { Toast } from "ui/Toast";
 import { useToast } from "ui/useToast";
+import {
+  SKELETON_MIN_DISPLAY_MS,
+  useMinDisplayDuration,
+} from "ui/useMinDisplayDuration";
 import { AdminNav } from "./components/AdminNav";
 import { AdminStatusGate } from "./components/AdminStatusGate";
 import { useAuth } from "./lib/auth/useAuth";
@@ -36,7 +40,12 @@ function ReviewBody({
   onRestoreReply,
   onDeleteReply,
 }: ReviewBodyProps) {
-  if (isLoadingQueue) {
+  const showSkeleton = useMinDisplayDuration(
+    isLoadingQueue,
+    SKELETON_MIN_DISPLAY_MS,
+  );
+
+  if (showSkeleton) {
     return (
       <div className="space-y-3">
         {[0, 1, 2].map((key) => (

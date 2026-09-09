@@ -1,6 +1,10 @@
 "use client";
 
 import { useRef, useState } from "react";
+import {
+  SKELETON_MIN_DISPLAY_MS,
+  useMinDisplayDuration,
+} from "ui/useMinDisplayDuration";
 import { useAuth } from "../lib/auth/useAuth";
 import {
   useCreateRequestMutation,
@@ -31,6 +35,10 @@ type UseTodayComposerResult = {
   requestDraft: string;
   requestSubmitStatus: RequestSubmitStatus;
   todayEntryMessages: string[];
+  // While loading, `requests` is empty and `todayEntryMessages` falls back
+  // to FALLBACK_ONSEOL_MESSAGES — same fallback used when there's genuinely
+  // no live content, so a loading UI can't just check emptiness here.
+  isLoadingEntryMessages: boolean;
   requestCount: number;
   replyCount: number;
   // null when not logged in or the user hasn't set one yet — the composer
@@ -91,11 +99,16 @@ export function useTodayComposer(): UseTodayComposerResult {
     createRequestMutation.isPending,
     justSubmitted,
   );
+  const isLoadingEntryMessages = useMinDisplayDuration(
+    requestsQuery.isLoading,
+    SKELETON_MIN_DISPLAY_MS,
+  );
 
   return {
     requestDraft,
     requestSubmitStatus,
     todayEntryMessages,
+    isLoadingEntryMessages,
     requestCount: requests.length,
     replyCount: requests.reduce((sum, request) => sum + request.replyCount, 0),
     nickname: user?.nickname ?? null,

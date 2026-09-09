@@ -1,6 +1,7 @@
 "use client";
 
 import { ServiceNav } from "../components/navigation/ServiceNav";
+import { Skeleton } from "ui/Skeleton";
 import { Toast } from "ui/Toast";
 import { useToast } from "ui/useToast";
 import { RequestComposer } from "./components/RequestComposer";
@@ -39,10 +40,14 @@ export function TodayPrototype() {
             <h1 className="text-2xl font-semibold tracking-normal text-foreground sm:text-4xl">
               오늘 어떤 말을 듣고 싶나요?
             </h1>
-            <RotatingOnseolLine
-              messages={prototype.todayEntryMessages}
-              paused={isTyping}
-            />
+            {prototype.isLoadingEntryMessages ? (
+              <Skeleton className="mx-auto h-14 w-full max-w-2xl" />
+            ) : (
+              <RotatingOnseolLine
+                messages={prototype.todayEntryMessages}
+                paused={isTyping}
+              />
+            )}
           </div>
 
           <div
@@ -60,10 +65,14 @@ export function TodayPrototype() {
             />
           </div>
 
-          <p className="text-sm text-muted">
-            오늘 {requestCount}개의 이야기가 남겨졌고, {replyCount}개의 답장이
-            도착했어요.
-          </p>
+          {prototype.isLoadingEntryMessages ? (
+            <Skeleton className="mx-auto h-4 w-64" />
+          ) : (
+            <p className="text-sm text-muted">
+              오늘 {requestCount}개의 이야기가 남겨졌고, {replyCount}개의 답장이
+              도착했어요.
+            </p>
+          )}
         </section>
       </main>
       <Toast toast={toast} onDismiss={dismiss} />

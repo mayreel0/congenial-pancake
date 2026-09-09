@@ -89,7 +89,13 @@ export function AnswerLog({
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [hasOlderEntries, onLoadOlderEntries]);
+    // isLoadingAnswerLog is a dependency (not just used above) because the
+    // sentinel <div ref> only exists in the DOM once the skeleton branch
+    // clears — hasOlderEntries can already be true one tick before that (its
+    // own loading flag isn't run through useMinDisplayDuration), so without
+    // this the effect would fire once against a still-null ref and then
+    // never retry, permanently losing the "scroll up for older" trigger.
+  }, [hasOlderEntries, isLoadingAnswerLog, onLoadOlderEntries]);
   const lastEntryReply = entries[entries.length - 1]?.reply ?? null;
   const showLiveDivider =
     !lastEntryReply ||

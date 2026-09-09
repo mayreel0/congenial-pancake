@@ -4,6 +4,10 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Pagination } from "ui/Pagination";
 import { Skeleton } from "ui/Skeleton";
+import {
+  SKELETON_MIN_DISPLAY_MS,
+  useMinDisplayDuration,
+} from "ui/useMinDisplayDuration";
 import { ServiceNav } from "../../../components/navigation/ServiceNav";
 import { ApiError } from "../../../lib/api";
 import {
@@ -100,12 +104,17 @@ export function RepliesListContent() {
   const page = parsePageParam(urlState.page);
   const pageSize = parsePageSizeParam(urlState.pageSize);
 
-  const query = usePublicRepliesQuery(
+  const rawQuery = usePublicRepliesQuery(
     parsed?.nickname ?? null,
     parsed?.discriminator ?? null,
     page,
     pageSize,
   );
+  const showSkeleton = useMinDisplayDuration(
+    rawQuery.isPending,
+    SKELETON_MIN_DISPLAY_MS,
+  );
+  const query = { ...rawQuery, isPending: showSkeleton };
 
   function setPage(nextPage: number) {
     updateUrlState({ page: String(nextPage) });
@@ -135,7 +144,7 @@ export function RepliesListContent() {
               profileHref={`/u/${encodeURIComponent(`${parsed.nickname}-${parsed.discriminator}`)}`}
               query={query}
             />
-            {query.data && (
+            {!showSkeleton && query.data && (
               <Pagination
                 page={page}
                 pageSize={pageSize}

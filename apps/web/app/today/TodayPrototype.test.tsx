@@ -106,6 +106,34 @@ describe("TodayPrototype", () => {
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
+  it("shows a skeleton, not the fallback sample line, while the entry feed is loading", async () => {
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url.endsWith("/auth/me")) {
+        return Promise.resolve({
+          ok: false,
+          status: 401,
+          json: () => Promise.resolve({ code: "UNAUTHORIZED" }),
+        });
+      }
+      // /requests never resolves — holds it in isLoading.
+      if (url.includes("/requests")) return new Promise(() => {});
+      throw new Error(`Unmocked fetch: ${url}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { container } = render(<TodayPrototype />);
+
+    await screen.findByRole("heading", { name: "오늘 어떤 말을 듣고 싶나요?" });
+    expect(
+      screen.queryByText("오늘 실수한 일이 계속 떠올라요."),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/개의 이야기가 남겨졌고/),
+    ).not.toBeInTheDocument();
+    expect(container.querySelectorAll(".animate-pulse").length).toBeGreaterThan(0);
+  });
+
   it("shows an error toast when the API rejects the submission", async () => {
     // GET /requests (initial load) keeps succeeding; POST /requests (submit)
     // is rejected with the guest-limit error code.
