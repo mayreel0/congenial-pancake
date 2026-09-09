@@ -86,6 +86,16 @@ resource "aws_iam_role_policy" "github_deploy" {
           "arn:aws:ssm:${var.aws_region}::document/AWS-RunShellScript",
         ]
       },
+      {
+        # Deploy needs the RDS master password secret's ARN/endpoint to
+        # tell the EC2 instance where to refresh DATABASE_URL from — the
+        # secret's actual value is never fetched here, only on the
+        # instance itself (see ec2.tf's secrets_read policy), so this
+        # role never sees the plaintext password.
+        Effect   = "Allow"
+        Action   = "rds:DescribeDBInstances"
+        Resource = aws_db_instance.main.arn
+      },
     ]
   })
 }
