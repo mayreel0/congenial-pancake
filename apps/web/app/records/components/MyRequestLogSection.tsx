@@ -4,6 +4,8 @@ import { Button } from "ui/Button";
 import { HeatmapCalendarField } from "ui/HeatmapCalendarField";
 import { Pagination } from "ui/Pagination";
 import { Skeleton } from "ui/Skeleton";
+import { Toast } from "ui/Toast";
+import { useToast } from "ui/useToast";
 import { daysInMonthAnchor, formatKoreanDate } from "../../lib/kst-date";
 import { PAGE_SIZE_OPTIONS } from "../../lib/pagination";
 import type { MyRequestLogEntryDto } from "../../lib/requests/api";
@@ -87,11 +89,18 @@ export function MyRequestLogSection() {
   );
   const deleteRequest = useDeleteOwnRequestMutation();
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const { toast, showSuccess, showError, dismiss } = useToast();
 
-  function confirmDelete() {
+  async function confirmDelete() {
     if (!pendingDeleteId) return;
-    deleteRequest.mutate(pendingDeleteId);
+    const id = pendingDeleteId;
     setPendingDeleteId(null);
+    try {
+      await deleteRequest.mutateAsync(id);
+      showSuccess("삭제했어요.");
+    } catch (error) {
+      showError(error);
+    }
   }
 
   return (
@@ -151,8 +160,9 @@ export function MyRequestLogSection() {
         message="이 글을 삭제할까요? 삭제하면 글 내용은 사라지고, 이미 달린 답변은 그대로 남아요."
         open={pendingDeleteId !== null}
         onCancel={() => setPendingDeleteId(null)}
-        onConfirm={confirmDelete}
+        onConfirm={() => void confirmDelete()}
       />
+      <Toast toast={toast} onDismiss={dismiss} />
     </section>
   );
 }

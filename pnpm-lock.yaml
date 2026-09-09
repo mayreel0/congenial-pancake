@@ -406,6 +406,9 @@ importers:
 
   packages/ui:
     dependencies:
+      api:
+        specifier: workspace:*
+        version: link:../api
       shared:
         specifier: workspace:*
         version: link:../shared

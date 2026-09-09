@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { Toast } from "ui/Toast";
+import { useToast } from "ui/useToast";
 import { useAuth } from "../lib/auth/useAuth";
 
 const NAV_ITEMS = [
@@ -23,6 +25,15 @@ type AdminNavProps = {
 // onseol-admin-app-split-decisions.md.
 export function AdminNav({ activePath }: AdminNavProps) {
   const auth = useAuth();
+  const { toast, showError, dismiss } = useToast();
+
+  async function handleLogout() {
+    try {
+      await auth.logout();
+    } catch (error) {
+      showError(error);
+    }
+  }
 
   return (
     <header className="flex h-14 items-center justify-between border-b border-line px-5 sm:px-8">
@@ -48,11 +59,12 @@ export function AdminNav({ activePath }: AdminNavProps) {
         <button
           className="text-sm text-muted transition hover:text-foreground"
           type="button"
-          onClick={() => void auth.logout()}
+          onClick={() => void handleLogout()}
         >
           로그아웃
         </button>
       )}
+      <Toast toast={toast} onDismiss={dismiss} />
     </header>
   );
 }

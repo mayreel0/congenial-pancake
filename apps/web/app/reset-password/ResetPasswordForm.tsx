@@ -3,17 +3,12 @@
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { resetPasswordSchema } from "shared/dto";
-import { ApiError, resetPassword } from "../lib/api";
+import { errorMessage, resetPassword } from "../lib/api";
 import { useFieldValidation } from "ui/useFieldValidation";
 import { parseFieldErrors } from "shared/zod-form";
 import { ResetPasswordBody, type ResetPasswordStatus } from "./ResetPasswordBody";
 
 type Field = "password";
-
-function errorMessage(error: unknown): string {
-  if (error instanceof ApiError) return error.message;
-  return "요청을 처리하지 못했습니다. 잠시 후 다시 시도해주세요.";
-}
 
 export function ResetPasswordForm() {
   const searchParams = useSearchParams();

@@ -4,7 +4,14 @@
 // Google OAuth are apps/web-only (apps/admin has neither) and stay here.
 import { apiFetch, API_BASE_URL, type CurrentUser } from "api";
 
-export { apiFetch, ApiError, login, logout, fetchCurrentUser } from "api";
+export {
+  apiFetch,
+  ApiError,
+  errorMessage,
+  login,
+  logout,
+  fetchCurrentUser,
+} from "api";
 export type { CurrentUser } from "api";
 
 // Requests a signup — creates nothing yet, just emails a link. Calling

@@ -8,15 +8,10 @@ import type { UserResponseDto } from "shared/dto";
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
 
-export class ApiError extends Error {
-  constructor(
-    public readonly statusCode: number,
-    public readonly code: string,
-    message: string,
-  ) {
-    super(message);
-  }
-}
+// Defined in its own module (not here) so errors.ts can import it without
+// a circular dependency back onto this file.
+import { ApiError } from "./apiError";
+export { ApiError };
 
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -65,3 +60,5 @@ export function logout(): Promise<void> {
 export function fetchCurrentUser(): Promise<CurrentUser> {
   return apiFetch<CurrentUser>("/auth/me");
 }
+
+export { errorMessage } from "./errors";

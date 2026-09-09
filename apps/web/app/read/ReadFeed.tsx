@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { ApiError } from "../lib/api";
+import { useState } from "react";
 import { ServiceNav } from "../components/navigation/ServiceNav";
 import { ActionConfirmDialog } from "ui/ActionConfirmDialog";
 import { HeatmapCalendarField } from "ui/HeatmapCalendarField";
 import { Pagination } from "ui/Pagination";
 import { Skeleton } from "ui/Skeleton";
+import { Toast } from "ui/Toast";
+import { useToast } from "ui/useToast";
 import { buildFeedItemLabels } from "../lib/feed-item-labels";
 import { formatKoreanDate } from "../lib/kst-date";
 import { PAGE_SIZE_OPTIONS } from "../lib/pagination";
@@ -16,19 +17,6 @@ import { useReadFeed } from "./useReadFeed";
 type PendingReport =
   | { kind: "request"; requestId: string }
   | { kind: "reply"; requestId: string; replyId: string };
-
-const TOAST_VISIBLE_MS = 2000;
-
-const ERROR_MESSAGES: Record<string, string> = {
-  REPORT_ALREADY_SUBMITTED: "이미 신고한 항목이에요.",
-};
-
-function errorMessage(error: unknown): string {
-  if (error instanceof ApiError) {
-    return ERROR_MESSAGES[error.code] ?? "요청을 처리하지 못했어요. 잠시 후 다시 시도해주세요.";
-  }
-  return "요청을 처리하지 못했어요. 잠시 후 다시 시도해주세요.";
-}
 
 type ReadFeedBodyProps = {
   feed: ReturnType<typeof useReadFeed>;
@@ -95,38 +83,9 @@ export function ReadFeed() {
   const [pendingReport, setPendingReport] = useState<PendingReport | null>(
     null,
   );
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const toastTimerRef = useRef<number | null>(null);
+  const { toast, showSuccess, showError, dismiss } = useToast();
 
   const savedSet = new Set(feed.savedReplyIds);
-
-  useEffect(() => {
-    return () => {
-      if (toastTimerRef.current !== null) {
-        window.clearTimeout(toastTimerRef.current);
-      }
-    };
-  }, []);
-
-  function showErrorToast(error: unknown) {
-    setToastMessage(errorMessage(error));
-
-    if (toastTimerRef.current !== null) {
-      window.clearTimeout(toastTimerRef.current);
-    }
-    toastTimerRef.current = window.setTimeout(() => {
-      setToastMessage(null);
-      toastTimerRef.current = null;
-    }, TOAST_VISIBLE_MS);
-  }
-
-  function dismissToast() {
-    setToastMessage(null);
-    if (toastTimerRef.current !== null) {
-      window.clearTimeout(toastTimerRef.current);
-      toastTimerRef.current = null;
-    }
-  }
 
   async function confirmPendingReport() {
     if (!pendingReport) return;
@@ -139,8 +98,9 @@ export function ReadFeed() {
       } else {
         await feed.reportReply(report.replyId);
       }
+      showSuccess("신고했어요.");
     } catch (error) {
-      showErrorToast(error);
+      showError(error);
     }
   }
 
@@ -148,7 +108,7 @@ export function ReadFeed() {
     try {
       await feed.toggleSavedReply(replyId);
     } catch (error) {
-      showErrorToast(error);
+      showError(error);
     }
   }
 
@@ -204,22 +164,7 @@ export function ReadFeed() {
         onCancel={() => setPendingReport(null)}
         onConfirm={() => void confirmPendingReport()}
       />
-      {toastMessage && (
-        <div
-          className="fixed bottom-5 left-1/2 z-10 flex w-[calc(100%-2.5rem)] max-w-sm -translate-x-1/2 items-center justify-between gap-3 rounded-lg border border-line bg-surface px-4 py-3 text-sm shadow-sm sm:bottom-8 sm:w-auto sm:min-w-64"
-          role="status"
-        >
-          <span className="text-red-600">{toastMessage}</span>
-          <button
-            aria-label="알림 닫기"
-            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-lg leading-none text-muted transition hover:bg-surface-muted hover:text-foreground"
-            type="button"
-            onClick={dismissToast}
-          >
-            ×
-          </button>
-        </div>
-      )}
+      <Toast toast={toast} onDismiss={dismiss} />
     </div>
   );
 }

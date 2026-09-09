@@ -4,6 +4,8 @@ import { Button } from "ui/Button";
 import { HeatmapCalendarField } from "ui/HeatmapCalendarField";
 import { Pagination } from "ui/Pagination";
 import { Skeleton } from "ui/Skeleton";
+import { Toast } from "ui/Toast";
+import { useToast } from "ui/useToast";
 import { daysInMonthAnchor, formatKoreanDate } from "../../lib/kst-date";
 import { PAGE_SIZE_OPTIONS } from "../../lib/pagination";
 import type { MyAnswerLogEntryDto } from "../../lib/replies/api";
@@ -90,11 +92,18 @@ export function MyAnswerLogSection() {
     requestId: string;
     replyId: string;
   } | null>(null);
+  const { toast, showSuccess, showError, dismiss } = useToast();
 
-  function confirmDelete() {
+  async function confirmDelete() {
     if (!pendingDelete) return;
-    deleteReply.mutate(pendingDelete);
+    const target = pendingDelete;
     setPendingDelete(null);
+    try {
+      await deleteReply.mutateAsync(target);
+      showSuccess("삭제했어요.");
+    } catch (error) {
+      showError(error);
+    }
   }
 
   return (
@@ -156,8 +165,9 @@ export function MyAnswerLogSection() {
         message="이 답변을 삭제할까요? 삭제한 답변은 더 이상 보이지 않아요."
         open={pendingDelete !== null}
         onCancel={() => setPendingDelete(null)}
-        onConfirm={confirmDelete}
+        onConfirm={() => void confirmDelete()}
       />
+      <Toast toast={toast} onDismiss={dismiss} />
     </section>
   );
 }

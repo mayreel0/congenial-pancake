@@ -1,6 +1,6 @@
 "use client";
 
-import { ApiError } from "../lib/api";
+import { ApiError, errorMessage } from "../lib/api";
 import { useAuth } from "../lib/auth/useAuth";
 import type { SettingsResponseDto } from "shared/dto";
 import {
@@ -40,10 +40,7 @@ function toStatus(
 
 function toUpdateError(error: unknown): string | null {
   if (!error) return null;
-  if (!(error instanceof ApiError)) {
-    return "설정을 저장하지 못했습니다. 잠시 후 다시 시도해주세요.";
-  }
-  return error.message;
+  return errorMessage(error);
 }
 
 export function useAdminSettings(): UseAdminSettingsResult {

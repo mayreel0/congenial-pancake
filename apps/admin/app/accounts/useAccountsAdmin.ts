@@ -1,6 +1,6 @@
 "use client";
 
-import { ApiError } from "../lib/api";
+import { ApiError, errorMessage } from "../lib/api";
 import { useAuth } from "../lib/auth/useAuth";
 import { useIssuePasswordResetLinkMutation } from "../lib/admin/accounts-queries";
 
@@ -27,13 +27,13 @@ function toStatus(
 // instead of surfacing that raw string.
 function toIssueError(error: unknown): string | null {
   if (!error) return null;
-  if (!(error instanceof ApiError)) {
-    return "링크를 발급하지 못했습니다. 잠시 후 다시 시도해주세요.";
-  }
-  if (error.statusCode === 401 || error.statusCode === 403) {
+  if (
+    error instanceof ApiError &&
+    (error.statusCode === 401 || error.statusCode === 403)
+  ) {
     return "이 계정은 접근 권한이 없어요.";
   }
-  return error.message;
+  return errorMessage(error);
 }
 
 // No GET query backs this page (unlike useAdminSettings/useAdminReview), so
