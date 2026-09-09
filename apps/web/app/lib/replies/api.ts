@@ -66,3 +66,17 @@ export function fetchMyReplyDayCounts(
   const params = new URLSearchParams({ from, to });
   return apiFetch<DayCountsDto>(`/replies/mine/counts?${params.toString()}`);
 }
+
+// See docs/decisions/2026-09-09-onseol-own-content-deletion-decisions.md —
+// soft-deletes the reply, which now also replaces its body with a fixed
+// placeholder wherever it's still shown (including the recipient's own
+// "내가 남긴 고민" record and the replier's own answer log).
+export function deleteOwnReply(
+  requestId: string,
+  replyId: string,
+): Promise<void> {
+  return apiFetch<void>(
+    `/requests/${requestId}/replies/${replyId}/delete-own`,
+    { method: "POST" },
+  );
+}
