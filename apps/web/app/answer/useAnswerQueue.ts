@@ -33,8 +33,15 @@ export type AnswerLogEntry = {
 
 type UseAnswerQueueResult = {
   currentAnswerTarget: RequestDto | null;
+  // True only for the very first fetch of the live queue candidate (not
+  // while viewing a held request, and not during skip/submit/hold's own
+  // "다음 글 불러오는 중" transition, which AnswerSession tracks separately) —
+  // lets AnswerLog tell "아직 안 불러왔다" apart from "정말 없다".
+  isLoadingCurrentTarget: boolean;
   heldRequests: RequestDto[];
+  isLoadingHeldRequests: boolean;
   answerLog: AnswerLogEntry[];
+  isLoadingAnswerLog: boolean;
   isAnsweringHeldRequest: boolean;
   hasOlderAnswerLogEntries: boolean;
   isLoadingOlderAnswerLogEntries: boolean;
@@ -152,8 +159,11 @@ export function useAnswerQueue(): UseAnswerQueueResult {
 
   return {
     currentAnswerTarget,
+    isLoadingCurrentTarget: !activeHeldRequest && queueQuery.isLoading,
     heldRequests,
+    isLoadingHeldRequests: heldQuery.isLoading,
     answerLog,
+    isLoadingAnswerLog: answerLogQuery.isLoading,
     isAnsweringHeldRequest: activeHeldRequest !== null,
     hasOlderAnswerLogEntries: answerLogQuery.hasNextPage,
     isLoadingOlderAnswerLogEntries: answerLogQuery.isFetchingNextPage,

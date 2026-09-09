@@ -28,7 +28,12 @@ function installFakeBackend(
   {
     loggedIn = true,
     isAdmin = true,
-  }: { loggedIn?: boolean; isAdmin?: boolean } = {},
+    neverResolveSettings = false,
+  }: {
+    loggedIn?: boolean;
+    isAdmin?: boolean;
+    neverResolveSettings?: boolean;
+  } = {},
 ) {
   const fetchMock = vi.fn(
     (input: RequestInfo | URL, init?: RequestInit): Promise<MockResponse> => {
@@ -54,6 +59,7 @@ function installFakeBackend(
             jsonResponse(403, { code: "FORBIDDEN", message: "Forbidden" }),
           );
         }
+        if (neverResolveSettings) return new Promise(() => {});
         return Promise.resolve(jsonResponse(200, settings));
       }
 
@@ -101,6 +107,19 @@ describe("SettingsReview", () => {
     expect(await screen.findByLabelText("답변 큐 신선도 (시간)")).toHaveValue(24);
     expect(screen.getByLabelText("답변 큐 답장 캡")).toHaveValue(3);
     expect(screen.getByLabelText("비회원 답장 총량 제한")).toHaveValue(2);
+  });
+
+  it("shows a skeleton, not a blank page, while settings are loading", async () => {
+    installFakeBackend(makeSettings(), { neverResolveSettings: true });
+    const { container } = render(<SettingsReview />);
+
+    // Auth resolves (AdminStatusGate's own loading clears) but the settings
+    // GET never does — this is specifically the in-between window.
+    await screen.findByRole("link", { name: "신고 검토" });
+    expect(
+      screen.queryByLabelText("답변 큐 신선도 (시간)"),
+    ).not.toBeInTheDocument();
+    expect(container.querySelectorAll(".animate-pulse").length).toBeGreaterThan(0);
   });
 
   it("saves edited values and shows a confirmation", async () => {

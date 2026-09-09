@@ -57,6 +57,25 @@ describe("ProfilePage", () => {
     ).toBeInTheDocument();
   });
 
+  it("shows a skeleton, not empty content, while the profile is loading", () => {
+    vi.mocked(useParams).mockReturnValue({ slug: "민들레-D59D" });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((input: RequestInfo | URL) => {
+        const url = typeof input === "string" ? input : input.toString();
+        if (url.endsWith("/auth/me")) {
+          return Promise.resolve(jsonResponse(401, { code: "UNAUTHORIZED" }));
+        }
+        // Never resolves — holds the query in isPending for this assertion.
+        return new Promise(() => {});
+      }),
+    );
+
+    const { container } = render(<ProfilePage />);
+
+    expect(container.querySelectorAll(".animate-pulse").length).toBeGreaterThan(0);
+  });
+
   it("shows a not-found message when no profile matches", async () => {
     vi.mocked(useParams).mockReturnValue({ slug: "민들레-D59D" });
     installFakeBackend({ profileStatus: 404 });

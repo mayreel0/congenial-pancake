@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ApiError } from "../../lib/api";
 import { ServiceNav } from "../../components/navigation/ServiceNav";
+import { Skeleton } from "ui/Skeleton";
 import { parseProfileSlug } from "../../lib/profile/slug";
 import type { PublicProfileDto } from "../../lib/profile/api";
 import { usePublicProfileQuery } from "../../lib/profile/queries";
@@ -35,9 +36,22 @@ function ProfileContent({ slug }: ProfileContentProps) {
 
   if (query.isPending) {
     return (
-      <p className="rounded-lg border border-line bg-surface px-4 py-5 text-sm text-muted shadow-sm">
-        불러오는 중입니다.
-      </p>
+      <div className="space-y-8">
+        <section className="space-y-3">
+          <Skeleton className="h-4 w-16" />
+          <Skeleton className="h-9 w-48" />
+          <Skeleton className="h-4 w-full max-w-xl" />
+        </section>
+        {[0, 1].map((key) => (
+          <section className="space-y-3" key={key}>
+            <Skeleton className="h-6 w-24" />
+            <div className="space-y-3 rounded-lg border border-line bg-surface px-4 py-5 shadow-sm">
+              <Skeleton className="h-4 w-2/3" />
+              <Skeleton className="h-4 w-full" />
+            </div>
+          </section>
+        ))}
+      </div>
     );
   }
 

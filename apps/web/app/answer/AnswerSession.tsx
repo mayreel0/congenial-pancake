@@ -128,6 +128,8 @@ export function AnswerSession() {
           currentRequest={currentTarget}
           entries={prototype.answerLog}
           hasOlderEntries={prototype.hasOlderAnswerLogEntries}
+          isLoadingAnswerLog={prototype.isLoadingAnswerLog}
+          isLoadingCurrentTarget={prototype.isLoadingCurrentTarget}
           isLoadingOlderEntries={prototype.isLoadingOlderAnswerLogEntries}
           isTyping={isTyping}
           leavingRequestId={leavingRequestId}
@@ -140,6 +142,7 @@ export function AnswerSession() {
         <div className="relative border-t border-line px-5 pt-2 sm:px-8">
           <HoldPanel
             heldRequests={prototype.heldRequests}
+            loading={prototype.isLoadingHeldRequests}
             open={holdPanelOpen}
             onClose={() => setHoldPanelOpen(false)}
             onSelect={(requestId) => {

@@ -45,7 +45,13 @@ function installFakeBackend(
     loggedIn = true,
     isAdmin = true,
     loginSucceeds = true,
-  }: { loggedIn?: boolean; isAdmin?: boolean; loginSucceeds?: boolean } = {},
+    neverResolveQueue = false,
+  }: {
+    loggedIn?: boolean;
+    isAdmin?: boolean;
+    loginSucceeds?: boolean;
+    neverResolveQueue?: boolean;
+  } = {},
 ) {
   let currentlyLoggedIn = loggedIn;
 
@@ -92,6 +98,7 @@ function installFakeBackend(
             jsonResponse(403, { code: "FORBIDDEN", message: "Forbidden" }),
           );
         }
+        if (neverResolveQueue) return new Promise(() => {});
         return Promise.resolve(jsonResponse(200, queue));
       }
 
@@ -185,6 +192,17 @@ describe("AdminReview", () => {
     expect(await screen.findByText("숨겨진 요청")).toBeInTheDocument();
     expect(screen.getByText("숨겨진 답변")).toBeInTheDocument();
     expect(screen.getAllByText(/신고 3건/)).toHaveLength(2);
+  });
+
+  it("shows a skeleton, not the empty-state message, while the queue is loading", async () => {
+    installFakeBackend(makeQueue(), { neverResolveQueue: true });
+    const { container } = render(<AdminReview />);
+
+    // Auth resolves (AdminStatusGate's own loading clears) but the queue GET
+    // never does — this is specifically the in-between window.
+    await screen.findByRole("heading", { name: "신고 검토" });
+    expect(screen.queryByText("검토할 항목이 없어요.")).not.toBeInTheDocument();
+    expect(container.querySelectorAll(".animate-pulse").length).toBeGreaterThan(0);
   });
 
   it("removes a request from the list after restoring it", async () => {

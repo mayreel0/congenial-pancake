@@ -11,6 +11,9 @@ import {
 type UseAdminSettingsResult = {
   status: "loading" | "signedOut" | "forbidden" | "ready";
   settings: SettingsResponseDto | undefined;
+  // status turns "ready" as soon as the auth check clears — the settings
+  // GET itself can still be in flight after that, which this covers.
+  isLoadingSettings: boolean;
   updating: boolean;
   updateError: string | null;
   update(
@@ -61,6 +64,7 @@ export function useAdminSettings(): UseAdminSettingsResult {
   return {
     status,
     settings: settingsQuery.data,
+    isLoadingSettings: settingsQuery.isLoading,
     updating: updateMutation.isPending,
     updateError,
     update: (input) => updateMutation.mutateAsync(input).then(() => undefined),

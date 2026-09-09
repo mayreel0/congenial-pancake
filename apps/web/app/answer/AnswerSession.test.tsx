@@ -153,6 +153,49 @@ describe("AnswerSession", () => {
     ).toBeInTheDocument();
   });
 
+  it("shows a skeleton, not the empty-queue message, while the queue candidate is loading", async () => {
+    const fetchMock = installFakeBackend([]);
+    fetchMock.mockImplementation((input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url.endsWith("/auth/me")) {
+        return Promise.resolve(
+          jsonResponse(200, {
+            id: "user-1",
+            email: "member@example.com",
+            createdAt: "2026-08-22T00:00:00.000Z",
+          }),
+        );
+      }
+      if (url.endsWith("/requests/held")) {
+        return Promise.resolve(jsonResponse(200, []));
+      }
+      if (url.includes("/replies/mine")) {
+        return Promise.resolve(
+          jsonResponse(200, {
+            items: [],
+            page: 1,
+            pageSize: 20,
+            totalItems: 0,
+            totalPages: 1,
+          }),
+        );
+      }
+      // /requests/queue never resolves — holds it in isLoading.
+      if (url.endsWith("/requests/queue")) return new Promise(() => {});
+      throw new Error(`Unmocked fetch: ${url}`);
+    });
+
+    const { container } = render(<AnswerSession />);
+
+    await screen.findByPlaceholderText(
+      "그 마음이 오래 남을 수 있죠. 그래도 오늘 버틴 건 분명해요.",
+    );
+    expect(
+      screen.queryByText("지금은 답할 수 있는 온설이 없어요."),
+    ).not.toBeInTheDocument();
+    expect(container.querySelectorAll(".animate-pulse").length).toBeGreaterThan(0);
+  });
+
   it("shows a typing indicator while the answer draft has text", async () => {
     installFakeBackend([makeRequest({ id: "req-1", body: "요청 본문" })]);
 
