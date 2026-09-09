@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { loginSchema, signupSchema } from "shared/dto";
 import { Button } from "ui/Button";
 import { TextField } from "ui/TextField";
-import { ApiError, oauthLoginUrl } from "../lib/api";
+import { ApiError, errorMessage, oauthLoginUrl } from "../lib/api";
 import { useAuth } from "../lib/auth/useAuth";
 import { useFieldValidation } from "ui/useFieldValidation";
 import { parseFieldErrors } from "shared/zod-form";
@@ -18,19 +18,6 @@ type SubmitStatus = "idle" | "pending";
 type Field = "email" | "password";
 
 const EMAIL_NOT_VERIFIED_CODE = "AUTH_EMAIL_NOT_VERIFIED";
-
-const ERROR_MESSAGES: Record<string, string> = {
-  AUTH_EMAIL_TAKEN: "이미 등록된 이메일입니다.",
-  AUTH_INVALID_CREDENTIALS: "이메일 또는 비밀번호가 올바르지 않습니다.",
-  [EMAIL_NOT_VERIFIED_CODE]: "이메일 인증이 필요해요. 메일함을 확인해주세요.",
-};
-
-function errorMessage(error: unknown): string {
-  if (error instanceof ApiError) {
-    return ERROR_MESSAGES[error.code] ?? error.message;
-  }
-  return "요청을 처리하지 못했습니다. 잠시 후 다시 시도해주세요.";
-}
 
 function submitButtonLabel(submitStatus: SubmitStatus, mode: Mode): string {
   if (submitStatus === "pending") return "처리 중";

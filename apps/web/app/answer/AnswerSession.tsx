@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import { ServiceNav } from "../components/navigation/ServiceNav";
 import { useAnswerQueue } from "./useAnswerQueue";
 import { ActionConfirmDialog } from "ui/ActionConfirmDialog";
+import { Toast } from "ui/Toast";
+import { useToast } from "ui/useToast";
 import { AnswerComposer } from "./components/AnswerComposer";
 import { AnswerLog } from "./components/AnswerLog";
 import { HoldPanel } from "./components/HoldPanel";
@@ -39,6 +41,7 @@ const ACTION_CONFIRM_COPY: Record<
 
 export function AnswerSession() {
   const prototype = useAnswerQueue();
+  const { toast, showError, dismiss } = useToast();
   const [holdPanelOpen, setHoldPanelOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(
     null,
@@ -78,6 +81,8 @@ export function AnswerSession() {
       setLoadingNext(true);
       try {
         await action();
+      } catch (error) {
+        showError(error);
       } finally {
         setLoadingNext(false);
       }
@@ -106,6 +111,8 @@ export function AnswerSession() {
     setAnswerSubmitStatus("pending");
     try {
       await prototype.submitReply(currentTarget.id);
+    } catch (error) {
+      showError(error);
     } finally {
       setAnswerSubmitStatus("idle");
     }
@@ -178,6 +185,7 @@ export function AnswerSession() {
         onCancel={() => setPendingAction(null)}
         onConfirm={confirmPendingAction}
       />
+      <Toast toast={toast} onDismiss={dismiss} />
     </div>
   );
 }

@@ -4,17 +4,12 @@ import { useState } from "react";
 import { updateNicknameSchema } from "shared/dto";
 import { Button } from "ui/Button";
 import { TextField } from "ui/TextField";
-import { ApiError } from "../../lib/api";
+import { errorMessage } from "../../lib/api";
 import { useAuth } from "../../lib/auth/useAuth";
 import { useFieldValidation } from "ui/useFieldValidation";
 import { parseFieldErrors } from "shared/zod-form";
 
 type Field = "nickname";
-
-function errorMessage(error: unknown): string {
-  if (error instanceof ApiError) return error.message;
-  return "요청을 처리하지 못했습니다. 잠시 후 다시 시도해주세요.";
-}
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 

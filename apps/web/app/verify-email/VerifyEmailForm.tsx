@@ -3,26 +3,13 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { completeSignupSchema } from "shared/dto";
-import { ApiError } from "../lib/api";
+import { errorMessage } from "../lib/api";
 import { useAuth } from "../lib/auth/useAuth";
 import { useFieldValidation } from "ui/useFieldValidation";
 import { parseFieldErrors } from "shared/zod-form";
 import { VerifyEmailBody, type VerifyEmailStatus } from "./VerifyEmailBody";
 
 type Field = "password";
-
-const ERROR_MESSAGES: Record<string, string> = {
-  AUTH_EMAIL_VERIFICATION_TOKEN_INVALID:
-    "인증 링크가 유효하지 않거나 만료되었습니다.",
-  AUTH_EMAIL_TAKEN: "이미 가입이 완료된 이메일입니다. 로그인해주세요.",
-};
-
-function errorMessage(error: unknown): string {
-  if (error instanceof ApiError) {
-    return ERROR_MESSAGES[error.code] ?? error.message;
-  }
-  return "요청을 처리하지 못했습니다. 잠시 후 다시 시도해주세요.";
-}
 
 export function VerifyEmailForm() {
   const router = useRouter();

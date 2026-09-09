@@ -17,10 +17,13 @@
     "./Skeleton": "./src/components/Skeleton.tsx",
     "./TextField": "./src/components/TextField.tsx",
     "./Toggle": "./src/components/Toggle.tsx",
+    "./Toast": "./src/components/Toast.tsx",
     "./useDismissOnOutsideClick": "./src/hooks/useDismissOnOutsideClick.ts",
-    "./useFieldValidation": "./src/hooks/useFieldValidation.ts"
+    "./useFieldValidation": "./src/hooks/useFieldValidation.ts",
+    "./useToast": "./src/hooks/useToast.ts"
   },
   "dependencies": {
+    "api": "workspace:*",
     "shared": "workspace:*"
   },
   "peerDependencies": {

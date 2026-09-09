@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { Toast } from "ui/Toast";
+import { useToast } from "ui/useToast";
 import { useAuth } from "../lib/auth/useAuth";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -27,6 +29,7 @@ export function AccountRestoreDialog() {
   const { user, restoreAccount, logout } = useAuth();
   const [restoring, setRestoring] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const { toast, showError, dismiss } = useToast();
 
   if (!user?.deletionGracePeriodEndsAt) return null;
 
@@ -36,6 +39,8 @@ export function AccountRestoreDialog() {
     setRestoring(true);
     try {
       await restoreAccount();
+    } catch (error) {
+      showError(error);
     } finally {
       setRestoring(false);
     }
@@ -43,7 +48,13 @@ export function AccountRestoreDialog() {
 
   async function handleLogout(): Promise<void> {
     setLoggingOut(true);
-    await logout();
+    try {
+      await logout();
+    } catch (error) {
+      showError(error);
+    } finally {
+      setLoggingOut(false);
+    }
   }
 
   return (
@@ -76,6 +87,7 @@ export function AccountRestoreDialog() {
           </button>
         </div>
       </div>
+      <Toast toast={toast} onDismiss={dismiss} />
     </div>
   );
 }

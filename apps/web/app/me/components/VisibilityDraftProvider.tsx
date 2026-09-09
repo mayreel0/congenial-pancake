@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
 import { ActionConfirmDialog } from "ui/ActionConfirmDialog";
 import { Button } from "ui/Button";
-import { ApiError, type CurrentUser } from "../../lib/api";
+import { errorMessage, type CurrentUser } from "../../lib/api";
 import { useAuth } from "../../lib/auth/useAuth";
 
 export type VisibilityDraft = {
@@ -29,11 +29,6 @@ function draftFromUser(user: VisibilityDraft): VisibilityDraft {
     showRepliesOnProfile: user.showRepliesOnProfile,
     showCountsOnProfile: user.showCountsOnProfile,
   };
-}
-
-function errorMessage(error: unknown): string {
-  if (error instanceof ApiError) return error.message;
-  return "설정을 바꾸지 못했습니다. 잠시 후 다시 시도해주세요.";
 }
 
 // Every "who can see this" toggle on /me — nickname visibility in

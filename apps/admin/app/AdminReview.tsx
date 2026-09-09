@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { ActionConfirmDialog } from "ui/ActionConfirmDialog";
+import { Toast } from "ui/Toast";
+import { useToast } from "ui/useToast";
 import { AdminNav } from "./components/AdminNav";
 import { AdminStatusGate } from "./components/AdminStatusGate";
 import { useAuth } from "./lib/auth/useAuth";
@@ -18,16 +20,41 @@ export function AdminReview() {
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(
     null,
   );
+  const { toast, showError, dismiss } = useToast();
 
+  // The confirm dialog closes the instant "영구 삭제" is confirmed, before
+  // this resolves — deliberately unchanged (see docs/decisions — program-
+  // wide UX audit, 2026-09-09) — a failure now at least surfaces as a
+  // toast instead of vanishing silently.
   async function confirmPendingDelete() {
     if (!pendingDelete) return;
     const target = pendingDelete;
     setPendingDelete(null);
 
-    if (target.kind === "request") {
-      await review.deleteRequest(target.id);
-    } else {
-      await review.deleteReply(target.id);
+    try {
+      if (target.kind === "request") {
+        await review.deleteRequest(target.id);
+      } else {
+        await review.deleteReply(target.id);
+      }
+    } catch (error) {
+      showError(error);
+    }
+  }
+
+  async function handleRestoreRequest(id: string) {
+    try {
+      await review.restoreRequest(id);
+    } catch (error) {
+      showError(error);
+    }
+  }
+
+  async function handleRestoreReply(id: string) {
+    try {
+      await review.restoreReply(id);
+    } catch (error) {
+      showError(error);
     }
   }
 
@@ -71,7 +98,7 @@ export function AdminReview() {
                               className="inline-flex h-8 items-center justify-center rounded-lg border border-line px-3 text-xs font-semibold text-foreground transition hover:bg-surface-muted"
                               type="button"
                               onClick={() =>
-                                void review.restoreRequest(request.id)
+                                void handleRestoreRequest(request.id)
                               }
                             >
                               복구
@@ -122,7 +149,7 @@ export function AdminReview() {
                             <button
                               className="inline-flex h-8 items-center justify-center rounded-lg border border-line px-3 text-xs font-semibold text-foreground transition hover:bg-surface-muted"
                               type="button"
-                              onClick={() => void review.restoreReply(reply.id)}
+                              onClick={() => void handleRestoreReply(reply.id)}
                             >
                               복구
                             </button>
@@ -153,6 +180,7 @@ export function AdminReview() {
         onCancel={() => setPendingDelete(null)}
         onConfirm={() => void confirmPendingDelete()}
       />
+      <Toast toast={toast} onDismiss={dismiss} />
     </div>
   );
 }
