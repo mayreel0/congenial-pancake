@@ -122,7 +122,11 @@ describe('RequestsRepository', () => {
       );
 
       expect(rowsChain.where).toHaveBeenCalledWith(
-        and(eq(requests.authorId, 'user-1'), undefined),
+        and(
+          eq(requests.authorId, 'user-1'),
+          eq(requests.contentRemoved, false),
+          undefined,
+        ),
       );
       expect(rowsChain.orderBy).toHaveBeenCalledWith(desc(requests.createdAt));
       expect(rowsChain.limit).toHaveBeenCalledWith(20);
