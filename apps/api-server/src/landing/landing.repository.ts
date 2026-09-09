@@ -88,6 +88,12 @@ export class LandingRepository {
           isNull(replies.deletedAt),
           eq(requests.hidden, false),
           isNull(requests.deletedAt),
+          // A self-deleted request's body is just a fixed placeholder —
+          // excluded from the pool entirely rather than shown, since
+          // visibleRequestBody() substituting the placeholder here would
+          // just mean a broken-looking sample landed on the public
+          // homepage.
+          eq(requests.contentRemoved, false),
         ),
       )
       .orderBy(sql`random()`)

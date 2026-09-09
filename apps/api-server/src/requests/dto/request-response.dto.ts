@@ -1,6 +1,7 @@
 import { createZodDto } from 'nestjs-zod';
 import { requestResponseSchema } from 'shared/dto';
 import { toAuthorDisplayDto } from '../../common/author-display';
+import { visibleRequestBody } from '../../common/request-content';
 import type { RequestRecord } from '../requests.repository';
 
 export class RequestResponseDto extends createZodDto(requestResponseSchema) {}
@@ -20,7 +21,7 @@ export function toRequestResponseDto(
 ): RequestResponseDto {
   return {
     id: request.id,
-    body: request.body,
+    body: visibleRequestBody(request),
     createdAt: request.createdAt.toISOString(),
     replyCount: request.replyCount ?? 0,
     author: toAuthorDisplayDto(request, nicknameByUserId),

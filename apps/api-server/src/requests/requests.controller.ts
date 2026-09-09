@@ -268,4 +268,16 @@ export class RequestsController {
     const nicknameByUserId = await this.nicknameMapFor([next]);
     return toRequestResponseDto(next, nicknameByUserId);
   }
+
+  // Member-only — see RequestsService.deleteOwn for why this only ever
+  // blanks the body (via contentRemoved), never touches hidden/deletedAt.
+  @Post(':id/delete-own')
+  @UseGuards(SessionGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteOwn(
+    @Param('id') id: string,
+    @CurrentUser() userId: string,
+  ): Promise<void> {
+    await this.requestsService.deleteOwn(userId, id);
+  }
 }

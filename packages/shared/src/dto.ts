@@ -101,11 +101,19 @@ export type FeedItemResponseDto = z.infer<typeof feedItemResponseSchema>;
 // myAnswerLogEntrySchema, since a request can have many replies (an answer
 // log entry is always exactly one request + one reply). No authorSlot here
 // — this is the viewer's own private list, not a shared thread.
+// `removed` lets the frontend tell "already self-deleted, body is now the
+// fixed placeholder" apart from "body just happens to read like the
+// placeholder" — see docs/decisions/2026-09-09-onseol-own-content-deletion-
+// decisions.md. True for the request item when its author deleted it
+// (backed by `contentRemoved`), and for a reply item when its author
+// deleted it (backed by `deletedAt`) — same field name, different backing
+// column depending on which item it's set on.
 const myRequestLogItemSchema = z.object({
   id: z.string(),
   body: z.string(),
   createdAt: z.string(),
   author: authorDisplaySchema,
+  removed: z.boolean(),
 });
 export const myRequestLogEntrySchema = z.object({
   request: myRequestLogItemSchema,
@@ -114,16 +122,19 @@ export const myRequestLogEntrySchema = z.object({
 export type MyRequestLogEntryDto = z.infer<typeof myRequestLogEntrySchema>;
 
 // "내 기록" → 내가 남긴 답변: flattened (always exactly one request + one
-// reply per entry, unlike the request-log's one-to-many).
+// reply per entry, unlike the request-log's one-to-many). requestRemoved/
+// replyRemoved mirror myRequestLogItemSchema's `removed` — see its comment.
 export const myAnswerLogEntrySchema = z.object({
   requestId: z.string(),
   requestBody: z.string(),
   requestCreatedAt: z.string(),
   requestAuthor: authorDisplaySchema,
+  requestRemoved: z.boolean(),
   replyId: z.string(),
   replyBody: z.string(),
   replyCreatedAt: z.string(),
   replyAuthor: authorDisplaySchema,
+  replyRemoved: z.boolean(),
 });
 export type MyAnswerLogEntryDto = z.infer<typeof myAnswerLogEntrySchema>;
 

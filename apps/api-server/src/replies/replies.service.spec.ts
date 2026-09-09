@@ -3,6 +3,7 @@ import {
   NicknameRequiredException,
   ReplyAlreadySubmittedException,
   ReplyGuestLimitExceededException,
+  ReplyNotFoundException,
   RequestNotFoundException,
 } from '../common/exceptions/app.exception';
 import type { RequestRecord } from '../requests/requests.repository';
@@ -23,6 +24,7 @@ function makeRequest(overrides: Partial<RequestRecord> = {}): RequestRecord {
     createdAt: new Date('2026-08-21T00:00:00.000Z'),
     hidden: false,
     deletedAt: null,
+    contentRemoved: false,
     reviewedAt: null,
     anonymous: true,
     ...overrides,
@@ -95,6 +97,8 @@ describe('RepliesService', () => {
       countByGuest: jest.fn(),
       setHidden: jest.fn(),
       findMine: jest.fn(),
+      findById: jest.fn(),
+      softDelete: jest.fn(),
     } as unknown as jest.Mocked<RepliesRepository>;
     requestsService = {
       findVisibleById: jest.fn(),
@@ -317,6 +321,38 @@ describe('RepliesService', () => {
         {},
         { page: 1, pageSize: 20 },
       );
+    });
+  });
+
+  describe('deleteOwn', () => {
+    it('soft-deletes the reply when the caller is the author', async () => {
+      repliesRepository.findById.mockResolvedValue(
+        makeReply({ id: 'reply-1', authorId: 'user-1' }),
+      );
+
+      await repliesService.deleteOwn('user-1', 'reply-1');
+
+      expect(repliesRepository.softDelete).toHaveBeenCalledWith('reply-1');
+    });
+
+    it('throws NotFound without deleting when the caller is not the author', async () => {
+      repliesRepository.findById.mockResolvedValue(
+        makeReply({ id: 'reply-1', authorId: 'user-1' }),
+      );
+
+      await expect(
+        repliesService.deleteOwn('someone-else', 'reply-1'),
+      ).rejects.toBeInstanceOf(ReplyNotFoundException);
+      expect(repliesRepository.softDelete).not.toHaveBeenCalled();
+    });
+
+    it('throws NotFound when the reply does not exist', async () => {
+      repliesRepository.findById.mockResolvedValue(undefined);
+
+      await expect(
+        repliesService.deleteOwn('user-1', 'missing'),
+      ).rejects.toBeInstanceOf(ReplyNotFoundException);
+      expect(repliesRepository.softDelete).not.toHaveBeenCalled();
     });
   });
 });

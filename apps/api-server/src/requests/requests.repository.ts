@@ -91,6 +91,7 @@ export class RequestsRepository {
         createdAt: requests.createdAt,
         hidden: requests.hidden,
         deletedAt: requests.deletedAt,
+        contentRemoved: requests.contentRemoved,
         reviewedAt: requests.reviewedAt,
         anonymous: requests.anonymous,
         replyCount: count(replies.id),
@@ -145,6 +146,7 @@ export class RequestsRepository {
         createdAt: requests.createdAt,
         hidden: requests.hidden,
         deletedAt: requests.deletedAt,
+        contentRemoved: requests.contentRemoved,
         reviewedAt: requests.reviewedAt,
         anonymous: requests.anonymous,
       })
@@ -214,6 +216,7 @@ export class RequestsRepository {
         createdAt: requests.createdAt,
         hidden: requests.hidden,
         deletedAt: requests.deletedAt,
+        contentRemoved: requests.contentRemoved,
         reviewedAt: requests.reviewedAt,
         anonymous: requests.anonymous,
       })
@@ -386,6 +389,25 @@ export class RequestsRepository {
       .where(eq(requests.id, id));
   }
 
+  // Ownership check in RequestsService.deleteOwn needs the raw row
+  // (authorId included) regardless of hidden/deletedAt — unlike
+  // findVisibleById, which is for read paths that should never surface
+  // moderated-away content.
+  findById(id: string): Promise<RequestRecord | undefined> {
+    return this.db.query.requests.findFirst({
+      where: eq(requests.id, id),
+    });
+  }
+
+  // The author's own "삭제" — see requests.schema.ts's contentRemoved
+  // comment. Never touches hidden/deletedAt.
+  async markContentRemoved(id: string): Promise<void> {
+    await this.db
+      .update(requests)
+      .set({ contentRemoved: true })
+      .where(eq(requests.id, id));
+  }
+
   // The next request this viewer should be offered to answer: fresh
   // (within limits.freshnessHours), not theirs, not already replied to or
   // skipped/held by them, fewest visible replies first (capped at
@@ -470,6 +492,7 @@ export class RequestsRepository {
         createdAt: requests.createdAt,
         hidden: requests.hidden,
         deletedAt: requests.deletedAt,
+        contentRemoved: requests.contentRemoved,
         reviewedAt: requests.reviewedAt,
         anonymous: requests.anonymous,
         replyCount,

@@ -103,6 +103,14 @@ export class RepliesRepository {
     await this.db.update(replies).set({ hidden }).where(eq(replies.id, id));
   }
 
+  // Ownership check in RepliesService.deleteOwn needs the raw row
+  // regardless of hidden/deletedAt.
+  findById(id: string): Promise<ReplyRecord | undefined> {
+    return this.db.query.replies.findFirst({
+      where: eq(replies.id, id),
+    });
+  }
+
   // Admin's "신고 검토" queue — joined with its request so the admin has
   // context for what was replied to, oldest hidden first.
   findHidden(): Promise<ReplyWithRequest[]> {

@@ -10,6 +10,7 @@ function makeRequest(overrides: Partial<RequestRecord> = {}): RequestRecord {
     createdAt: new Date('2026-08-21T00:00:00.000Z'),
     hidden: false,
     deletedAt: null,
+    contentRemoved: false,
     reviewedAt: null,
     anonymous: false,
     ...overrides,
@@ -49,6 +50,11 @@ describe('toMyRequestLogEntryDto', () => {
             authorId: null,
             guestId: 'guest-1',
           }),
+          makeReply({
+            id: 'reply-4',
+            authorId: 'user-3',
+            deletedAt: new Date('2026-08-22T00:00:00.000Z'),
+          }),
         ],
       },
       new Map([
@@ -68,6 +74,7 @@ describe('toMyRequestLogEntryDto', () => {
           nickname: '민들레',
           nicknameDiscriminator: 'SER1',
         },
+        removed: false,
       },
       replies: [
         {
@@ -79,18 +86,32 @@ describe('toMyRequestLogEntryDto', () => {
             nickname: '햇살',
             nicknameDiscriminator: 'SER2',
           },
+          removed: false,
         },
         {
           id: 'reply-2',
           body: '괜찮아요.',
           createdAt: '2026-08-21T01:00:00.000Z',
           author: { anonymous: true },
+          removed: false,
         },
         {
           id: 'reply-3',
           body: '괜찮아요.',
           createdAt: '2026-08-21T01:00:00.000Z',
           author: { anonymous: true },
+          removed: false,
+        },
+        {
+          id: 'reply-4',
+          body: '삭제된 답변이에요.',
+          createdAt: '2026-08-21T01:00:00.000Z',
+          author: {
+            anonymous: false,
+            nickname: '바다',
+            nicknameDiscriminator: 'SER3',
+          },
+          removed: true,
         },
       ],
     });

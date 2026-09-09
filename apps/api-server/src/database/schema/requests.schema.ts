@@ -28,6 +28,20 @@ export const requests = pgTable(
     hidden: boolean('hidden').notNull().default(false),
     // Soft delete for admin "영구 삭제" — never a real row delete.
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
+    // The author's own "삭제" (RequestsService.deleteOwn) — deliberately
+    // NOT the same mechanism as deletedAt/hidden above. Those hide the
+    // *entire thread* (request + every reply) from every query, which is
+    // right for moderation but wrong here: deleting your own request
+    // should never erase replies other people took the time to write.
+    // Instead this only ever affects how the body renders — see
+    // common/request-content.ts's visibleRequestBody(), the one place
+    // every response mapper reads a request's body through, so a removed
+    // request shows the same fixed placeholder everywhere (including in
+    // the replier's own answer log — no exception for anyone, per
+    // docs/decisions/2026-09-09-onseol-own-content-deletion-decisions.md).
+    // The row, `hidden`, and `deletedAt` are otherwise untouched, so the
+    // thread and its replies stay exactly as visible as before.
+    contentRemoved: boolean('content_removed').notNull().default(false),
     // Set when an admin restores this from auto-hide. Once set, auto-hide
     // only counts reports created after this timestamp — otherwise the
     // pre-existing report rows that caused the original hide would
