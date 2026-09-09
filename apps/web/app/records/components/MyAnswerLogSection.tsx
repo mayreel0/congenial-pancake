@@ -92,7 +92,7 @@ export function MyAnswerLogSection() {
     requestId: string;
     replyId: string;
   } | null>(null);
-  const { toast, showError, dismiss } = useToast();
+  const { toast, showSuccess, showError, dismiss } = useToast();
 
   async function confirmDelete() {
     if (!pendingDelete) return;
@@ -100,6 +100,7 @@ export function MyAnswerLogSection() {
     setPendingDelete(null);
     try {
       await deleteReply.mutateAsync(target);
+      showSuccess("삭제했어요.");
     } catch (error) {
       showError(error);
     }

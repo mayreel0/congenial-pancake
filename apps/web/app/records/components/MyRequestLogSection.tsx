@@ -89,7 +89,7 @@ export function MyRequestLogSection() {
   );
   const deleteRequest = useDeleteOwnRequestMutation();
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
-  const { toast, showError, dismiss } = useToast();
+  const { toast, showSuccess, showError, dismiss } = useToast();
 
   async function confirmDelete() {
     if (!pendingDeleteId) return;
@@ -97,6 +97,7 @@ export function MyRequestLogSection() {
     setPendingDeleteId(null);
     try {
       await deleteRequest.mutateAsync(id);
+      showSuccess("삭제했어요.");
     } catch (error) {
       showError(error);
     }

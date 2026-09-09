@@ -83,7 +83,7 @@ export function ReadFeed() {
   const [pendingReport, setPendingReport] = useState<PendingReport | null>(
     null,
   );
-  const { toast, showError, dismiss } = useToast();
+  const { toast, showSuccess, showError, dismiss } = useToast();
 
   const savedSet = new Set(feed.savedReplyIds);
 
@@ -98,6 +98,7 @@ export function ReadFeed() {
       } else {
         await feed.reportReply(report.replyId);
       }
+      showSuccess("신고했어요.");
     } catch (error) {
       showError(error);
     }

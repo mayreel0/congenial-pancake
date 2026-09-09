@@ -20,7 +20,7 @@ export function AdminReview() {
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(
     null,
   );
-  const { toast, showError, dismiss } = useToast();
+  const { toast, showSuccess, showError, dismiss } = useToast();
 
   // The confirm dialog closes the instant "영구 삭제" is confirmed, before
   // this resolves — deliberately unchanged (see docs/decisions — program-
@@ -37,6 +37,7 @@ export function AdminReview() {
       } else {
         await review.deleteReply(target.id);
       }
+      showSuccess("영구 삭제했어요.");
     } catch (error) {
       showError(error);
     }
@@ -45,6 +46,7 @@ export function AdminReview() {
   async function handleRestoreRequest(id: string) {
     try {
       await review.restoreRequest(id);
+      showSuccess("복구했어요.");
     } catch (error) {
       showError(error);
     }
@@ -53,6 +55,7 @@ export function AdminReview() {
   async function handleRestoreReply(id: string) {
     try {
       await review.restoreReply(id);
+      showSuccess("복구했어요.");
     } catch (error) {
       showError(error);
     }
