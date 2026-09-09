@@ -41,7 +41,14 @@ export class RepliesService {
     guestId: string,
   ): Promise<ReplyRecord> {
     const request = await this.requestsService.findVisibleById(requestId);
-    if (!request) throw new RequestNotFoundException();
+    // A self-deleted request must not be replyable, even via a direct call
+    // that skips the answer queue (which already excludes it as a
+    // candidate) — findVisibleById itself can't filter this out, since it's
+    // also used to render a removed request's own thread page with its
+    // placeholder body (see docs/decisions/2026-09-09-onseol-own-content-
+    // deletion-decisions.md).
+    if (!request || request.contentRemoved)
+      throw new RequestNotFoundException();
 
     if (userId) {
       const existing = await this.repliesRepository.findByRequestAndAuthor(

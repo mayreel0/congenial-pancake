@@ -42,6 +42,17 @@
 
 프론트엔드 코드는 변경 불필요 — 삭제 버튼 클릭 후 이미 해당 목록 쿼리를 무효화(invalidate)해서 다시 불러오는 구조라, 서버가 이제 그 항목을 아예 반환하지 않으면 카드가 자동으로 사라진다.
 
+## 결정 3-3: 삭제된 글이 "새로 답할 대상"으로 계속 순환되는 경로들을 전부 차단
+
+사용자가 실제로 겪고 보고: "답하기 페이지에... 익명 10 / 삭제된 글이에요. / 9월 9일 15:58" — 자기 글을 삭제한 사람의 글이 여전히 답변 큐에서 새 답변 대상으로 나오고 있었다. 확인해보니 `contentRemoved` 필터를 빠뜨린 지점이 하나가 아니라 네 곳이었다:
+
+- `RequestsRepository.findQueueCandidate` — 답변 큐가 삭제된 글을 계속 후보로 돌리고 있었음(핵심 버그, 사용자가 직접 목격).
+- `RepliesService.create` — 큐를 거치지 않고 삭제된 글의 requestId로 직접 답변 API를 호출해도 막혀있지 않았음. `findVisibleById` 자체는 못 고침(공개 프로필 스레드 상세 페이지가 삭제된 글을 placeholder로 보여줄 때도 같은 메서드를 쓰기 때문) — 대신 `RepliesService.create`에 `request.contentRemoved` 체크를 별도로 추가.
+- `RequestsRepository.findVisible` — `/today`("남기기") 페이지 상단에 회전하는 안내 문구가 실제 최근 글 5개를 그대로 가져다 쓰는데, 삭제된 글의 placeholder 문구("삭제된 글이에요.")가 그 자리에 뜨는 게 사용자가 두 번째로 지적한 지점. 이건 랜딩 페이지 샘플과 같은 성격("삭제된 글을 예시/영감으로 보여주는 건 말이 안 됨")이라 placeholder 대신 완전히 제외.
+- `LandingRepository.countWaitingForReply` — "답변을 기다리는 글 수" 통계에도 답변 큐에서 이미 제외된 삭제된 글이 계속 집계되고 있어서 같이 수정.
+
+반대로 `findFeed`(/read 피드)·`findPublicByAuthor`(공개 프로필 목록)·`findFeedItemById`(공개 프로필 스레드 상세)는 그대로 둠 — 이 세 곳은 "이미 존재했던 스레드/기록을 역사적으로 보여주는" 성격이라 placeholder로 대체해서 보여주는 게 맞고(결정 2), 새로운 상호작용(답변) 대상으로 다시 순환시키는 것과는 다른 문제이기 때문.
+
 ## 결정 4: 스코프를 로그인 회원 본인 콘텐츠로 한정 — 게스트 콘텐츠 삭제는 이번 라운드에 없음
 
 사용자 결정: "응 회원만으로 진행해줘." 게스트(비로그인) 작성 글/답변에 대한 본인 삭제 기능은 이번 라운드에 포함하지 않음.
@@ -58,6 +69,7 @@
   - `/public/samples`(랜딩 페이지 샘플) 응답에 삭제된 글이 전혀 포함되지 않음을 확인.
 - 결정 3-1(답변 삭제 대칭 적용) 관련 유닛 테스트: `visibleReplyBody` 자체(`request-content.spec.ts`), `toMyRequestLogEntryDto`가 삭제된 답변을 placeholder로 대체하는지(`my-request-log-entry.dto.spec.ts`), `toMyAnswerLogEntryDto`가 요청/답변 각각 삭제됐을 때 독립적으로 placeholder를 적용하는지(신규 `my-answer-log-entry.dto.spec.ts`) 모두 통과.
 - 결정 3-2(본인 기록에서 완전 제외) 관련 실제 로컬 DB + 실행 중인 서버 curl 검증: 내가 쓴 글 2개 중 1개를 삭제 → `/requests/mine`에 삭제 안 한 것만 남고 삭제한 건 아예 안 보임을 확인. 내가 남의 글에 남긴 답변(그게 유일한 답변)을 삭제 → `/replies/mine`이 빈 배열이 됨을 확인. 그와 별개로, 그 삭제된 글에 답변을 남긴 "다른 사람"의 `/replies/mine`은 그대로 남아있고 `requestBody`만 placeholder로 바뀌어 있음을 확인 — "본인이 지운 것만 본인 기록에서 빠지고, 남이 지운 건 내 기록에 placeholder로 남는다"는 두 원칙이 서로 안 섞이는지 검증.
+- 결정 3-3(순환 경로 차단) 관련 실제 로컬 DB + 실행 중인 서버 curl 검증: 삭제 전엔 `/requests/queue`가 그 글을 후보로 내려주다가, 삭제 후엔 다른 글로 넘어감을 확인. 삭제된 글에 큐를 거치지 않고 직접 `POST .../replies` 호출 시 404 확인. 삭제 전엔 `GET /requests`에 포함되던 글이 삭제 후엔 빠짐을 확인. `GET /public/stats`의 `waitingForReply` 값이 삭제 직후 정확히 1 감소함을 확인. `RepliesService.create`의 신규 유닛 테스트(`contentRemoved: true`인 요청에 답변 시도 시 `RequestNotFoundException`)도 통과.
 
 ## 프론트엔드: `/records` 삭제 버튼
 
