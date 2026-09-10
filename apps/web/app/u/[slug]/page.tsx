@@ -50,8 +50,8 @@ function ProfileContent({ slug }: ProfileContentProps) {
       <div className="space-y-8">
         <section className="space-y-3">
           <Skeleton className="h-4 w-16" />
-          <Skeleton className="h-9 w-48" />
-          <Skeleton className="h-4 w-full max-w-xl" />
+          <Skeleton className="h-8 w-48 sm:h-10" />
+          <Skeleton className="h-7 w-full max-w-xl" />
         </section>
         {[0, 1].map((key) => (
           <section className="space-y-3" key={key}>

@@ -8,6 +8,7 @@ describe("RequestComposer", () => {
     render(
       <RequestComposer
         status="idle"
+        isLoadingNickname={false}
         nickname={null}
         anonymous={false}
         onToggleAnonymous={vi.fn()}
@@ -20,6 +21,24 @@ describe("RequestComposer", () => {
     expect(screen.getByRole("button", { name: "보내기" })).toBeDisabled();
   });
 
+  it("shows a skeleton in the toggle's spot while it's not yet known whether one should show", () => {
+    const { container } = render(
+      <RequestComposer
+        status="idle"
+        isLoadingNickname={true}
+        nickname={null}
+        anonymous={false}
+        onToggleAnonymous={vi.fn()}
+        value=""
+        onChange={vi.fn()}
+        onSubmit={vi.fn()}
+      />,
+    );
+
+    expect(container.querySelector(".animate-pulse")).toBeInTheDocument();
+    expect(screen.queryByRole("switch")).not.toBeInTheDocument();
+  });
+
   it("submits through the send button when the request has text", async () => {
     const onSubmit = vi.fn();
     const user = userEvent.setup();
@@ -27,6 +46,7 @@ describe("RequestComposer", () => {
     render(
       <RequestComposer
         status="idle"
+        isLoadingNickname={false}
         nickname={null}
         anonymous={false}
         onToggleAnonymous={vi.fn()}
@@ -48,6 +68,7 @@ describe("RequestComposer", () => {
     render(
       <RequestComposer
         status="idle"
+        isLoadingNickname={false}
         nickname={null}
         anonymous={false}
         onToggleAnonymous={vi.fn()}
@@ -72,6 +93,7 @@ describe("RequestComposer", () => {
     const { rerender } = render(
       <RequestComposer
         status="idle"
+        isLoadingNickname={false}
         nickname={null}
         anonymous={false}
         onToggleAnonymous={vi.fn()}
@@ -90,6 +112,7 @@ describe("RequestComposer", () => {
     rerender(
       <RequestComposer
         status="idle"
+        isLoadingNickname={false}
         nickname={null}
         anonymous={false}
         onToggleAnonymous={vi.fn()}
@@ -109,6 +132,7 @@ describe("RequestComposer", () => {
     rerender(
       <RequestComposer
         status="success"
+        isLoadingNickname={false}
         nickname={null}
         anonymous={false}
         onToggleAnonymous={vi.fn()}
@@ -125,6 +149,7 @@ describe("RequestComposer", () => {
     const { rerender } = render(
       <RequestComposer
         status="idle"
+        isLoadingNickname={false}
         nickname={null}
         anonymous={false}
         onToggleAnonymous={vi.fn()}
@@ -143,6 +168,7 @@ describe("RequestComposer", () => {
     rerender(
       <RequestComposer
         status="idle"
+        isLoadingNickname={false}
         nickname={null}
         anonymous={false}
         onToggleAnonymous={vi.fn()}
@@ -159,6 +185,7 @@ describe("RequestComposer", () => {
     const { rerender } = render(
       <RequestComposer
         status="pending"
+        isLoadingNickname={false}
         nickname={null}
         anonymous={false}
         onToggleAnonymous={vi.fn()}
@@ -173,6 +200,7 @@ describe("RequestComposer", () => {
     rerender(
       <RequestComposer
         status="success"
+        isLoadingNickname={false}
         nickname={null}
         anonymous={false}
         onToggleAnonymous={vi.fn()}

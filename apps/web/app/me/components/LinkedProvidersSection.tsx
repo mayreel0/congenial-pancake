@@ -1,3 +1,4 @@
+import { Skeleton } from "ui/Skeleton";
 import {
   OAUTH_PROVIDER_NAMES_KO,
   OAUTH_PROVIDER_STYLES,
@@ -22,7 +23,10 @@ function CheckIcon() {
 }
 
 type LinkedProvidersSectionProps = {
-  linkedProviders: OAuthProviderName[];
+  // null while `user` hasn't loaded yet — the row shows skeleton tiles in
+  // the exact same h-11 w-11 footprint instead, so nothing reflows once
+  // the real (linked or not) tiles take over.
+  linkedProviders: OAuthProviderName[] | null;
 };
 
 // One fixed-size tile per provider regardless of linked state — a linked
@@ -48,38 +52,42 @@ export function LinkedProvidersSection({
       </div>
 
       <div className="flex gap-3">
-        {PROVIDERS.map((name) => {
-          const linked = linkedProviders.includes(name);
-          const { className, Icon } = OAUTH_PROVIDER_STYLES[name];
-          const providerLabel = OAUTH_PROVIDER_NAMES_KO[name];
-          const tileClassName = `relative flex h-11 w-11 items-center justify-center rounded-lg transition ${className}`;
+        {linkedProviders === null
+          ? PROVIDERS.map((name) => (
+              <Skeleton className="h-11 w-11 rounded-lg" key={name} />
+            ))
+          : PROVIDERS.map((name) => {
+              const linked = linkedProviders.includes(name);
+              const { className, Icon } = OAUTH_PROVIDER_STYLES[name];
+              const providerLabel = OAUTH_PROVIDER_NAMES_KO[name];
+              const tileClassName = `relative flex h-11 w-11 items-center justify-center rounded-lg transition ${className}`;
 
-          if (linked) {
-            return (
-              <div
-                aria-label={`${providerLabel} 연동됨`}
-                className={`${tileClassName} ring-2 ring-primary ring-offset-2 ring-offset-surface`}
-                key={name}
-              >
-                <Icon />
-                <span className="absolute -bottom-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-background ring-2 ring-surface">
-                  <CheckIcon />
-                </span>
-              </div>
-            );
-          }
+              if (linked) {
+                return (
+                  <div
+                    aria-label={`${providerLabel} 연동됨`}
+                    className={`${tileClassName} ring-2 ring-primary ring-offset-2 ring-offset-surface`}
+                    key={name}
+                  >
+                    <Icon />
+                    <span className="absolute -bottom-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-background ring-2 ring-surface">
+                      <CheckIcon />
+                    </span>
+                  </div>
+                );
+              }
 
-          return (
-            <a
-              aria-label={`${providerLabel} 연동하기`}
-              className={`${tileClassName} hover:opacity-90`}
-              href={oauthLoginUrl(name)}
-              key={name}
-            >
-              <Icon />
-            </a>
-          );
-        })}
+              return (
+                <a
+                  aria-label={`${providerLabel} 연동하기`}
+                  className={`${tileClassName} hover:opacity-90`}
+                  href={oauthLoginUrl(name)}
+                  key={name}
+                >
+                  <Icon />
+                </a>
+              );
+            })}
       </div>
     </section>
   );

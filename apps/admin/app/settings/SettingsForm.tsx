@@ -15,7 +15,10 @@ type FormState = {
   nicknameCooldownDays: string;
 };
 
-const FIELDS: Array<{
+// Exported so SettingsReview's loading skeleton can render the same real
+// labels/hints (only the input values themselves need to be skeleton'd)
+// without duplicating this list.
+export const FIELDS: Array<{
   key: keyof FormState;
   label: string;
   hint: string;

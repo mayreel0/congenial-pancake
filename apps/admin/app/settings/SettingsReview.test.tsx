@@ -114,8 +114,18 @@ describe("SettingsReview", () => {
     const { container } = render(<SettingsReview />);
 
     // Auth resolves (AdminStatusGate's own loading clears) but the settings
-    // GET never does — this is specifically the in-between window.
-    await screen.findByRole("link", { name: "신고 검토" });
+    // GET never does — this is specifically the in-between window. The real
+    // heading and this field's label/hint text stay put; only the actual
+    // value (which needs the GET to resolve) turns into a skeleton.
+    expect(
+      await screen.findByRole("heading", { name: "설정" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("답변 큐 신선도 (시간)")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "이 시간이 지난 온설은 답변 큐/보관함에서 제외됩니다.",
+      ),
+    ).toBeInTheDocument();
     expect(
       screen.queryByLabelText("답변 큐 신선도 (시간)"),
     ).not.toBeInTheDocument();

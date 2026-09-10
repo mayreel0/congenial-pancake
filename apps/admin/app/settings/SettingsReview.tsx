@@ -8,22 +8,31 @@ import {
   SKELETON_MIN_DISPLAY_MS,
   useMinDisplayDuration,
 } from "ui/useMinDisplayDuration";
-import { SettingsForm } from "./SettingsForm";
+import { FIELDS, SettingsForm } from "./SettingsForm";
 import { useAdminSettings } from "./useAdminSettings";
 
 // The auth check clearing (AdminStatusGate's own "loading") doesn't mean the
-// settings GET has resolved yet — this covers that in-between window.
+// settings GET has resolved yet — this covers that in-between window. Reuses
+// SettingsForm's own FIELDS list so the real heading/labels/hints stay put
+// and only the actual values (which need the GET to resolve) turn into
+// skeletons — matches 2026-09-10 UX audit feedback on /me's equivalent case.
 function SettingsFormSkeleton() {
   return (
-    <div className="space-y-6">
-      {[0, 1, 2, 3].map((key) => (
-        <div className="space-y-2" key={key}>
-          <Skeleton className="h-4 w-40" />
-          <Skeleton className="h-10 w-full" />
-        </div>
-      ))}
-      <Skeleton className="h-10 w-24" />
-    </div>
+    <>
+      <h1 className="text-lg font-semibold text-foreground">설정</h1>
+      <div className="space-y-6">
+        {FIELDS.map((field) => (
+          <div className="space-y-1" key={field.key}>
+            <label className="block text-sm font-semibold text-foreground">
+              {field.label}
+            </label>
+            <p className="text-xs text-muted">{field.hint}</p>
+            <Skeleton className="h-10 w-40" />
+          </div>
+        ))}
+        <Skeleton className="h-10 w-24" />
+      </div>
+    </>
   );
 }
 
