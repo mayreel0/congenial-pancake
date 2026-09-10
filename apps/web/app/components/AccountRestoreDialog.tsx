@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Toast } from "ui/Toast";
 import { useToast } from "ui/useToast";
+import { POPOVER_EXIT_MS, useAnimatedPresence } from "ui/useAnimatedPresence";
 import { useAuth } from "../lib/auth/useAuth";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -30,10 +31,17 @@ export function AccountRestoreDialog() {
   const [restoring, setRestoring] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const { toast, showError, dismiss } = useToast();
+  const open = Boolean(user?.deletionGracePeriodEndsAt);
+  // Kept mounted for POPOVER_EXIT_MS after the account is restored (so
+  // `deletionGracePeriodEndsAt` goes away) so the leave animation can
+  // actually play, instead of unmounting instantly.
+  const shouldRender = useAnimatedPresence(open, POPOVER_EXIT_MS);
 
-  if (!user?.deletionGracePeriodEndsAt) return null;
+  if (!shouldRender) return null;
 
-  const daysRemaining = daysUntil(user.deletionGracePeriodEndsAt);
+  const daysRemaining = user?.deletionGracePeriodEndsAt
+    ? daysUntil(user.deletionGracePeriodEndsAt)
+    : 0;
 
   async function handleRestore(): Promise<void> {
     setRestoring(true);
@@ -60,10 +68,16 @@ export function AccountRestoreDialog() {
   return (
     <div
       aria-modal="true"
-      className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-5"
+      className={`fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-5 ${
+        open ? "onseol-dialog-backdrop-enter" : "onseol-dialog-backdrop-leave"
+      }`}
       role="dialog"
     >
-      <div className="w-full max-w-sm space-y-4 rounded-lg border border-line bg-surface p-5 shadow-sm">
+      <div
+        className={`w-full max-w-sm space-y-4 rounded-lg border border-line bg-surface p-5 shadow-sm ${
+          open ? "onseol-dialog-box-enter" : "onseol-dialog-box-leave"
+        }`}
+      >
         <p className="text-sm leading-6 text-foreground">
           탈퇴 신청 중인 계정이에요. {daysRemaining}일 후 완전히 삭제됩니다.
           계속 이용하려면 계정을 복구해주세요.

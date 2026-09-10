@@ -300,7 +300,11 @@ describe("AnswerSession", () => {
 
     fireEvent.mouseDown(document.body);
 
-    expect(screen.queryByText("보류하기")).not.toBeInTheDocument();
+    // The menu stays mounted briefly to play its leave animation instead
+    // of unmounting the instant it closes.
+    await waitFor(() =>
+      expect(screen.queryByText("보류하기")).not.toBeInTheDocument(),
+    );
   });
 
   it("hides hold/report actions but keeps skip when not logged in", async () => {
@@ -381,7 +385,13 @@ describe("AnswerSession", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: "더보기" }));
     fireEvent.click(screen.getByRole("button", { name: "보류하기" }));
-    fireEvent.click(screen.getByRole("button", { name: "보류하기" }));
+    // Scoped to the dialog — the more-menu item of the same name can still
+    // be mid-leave-animation in the DOM at this exact point.
+    fireEvent.click(
+      within(screen.getByRole("dialog")).getByRole("button", {
+        name: "보류하기",
+      }),
+    );
 
     expect(
       await screen.findByRole("button", { name: "보류 중 (1)" }),
@@ -416,14 +426,24 @@ describe("AnswerSession", () => {
       screen.getByText(/신고하면 이 글은 답하기 목록에서 사라집니다/),
     ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "취소" }));
+    // Scoped to the dialog — the more-menu item of the same name can still
+    // be mid-leave-animation in the DOM at this exact point.
+    fireEvent.click(
+      within(screen.getByRole("dialog")).getByRole("button", {
+        name: "취소",
+      }),
+    );
     expect(
       screen.getByText("오늘 실수한 일이 계속 떠올라요."),
     ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "더보기" }));
     fireEvent.click(screen.getByRole("button", { name: "신고하기" }));
-    fireEvent.click(screen.getByRole("button", { name: "신고하기" }));
+    fireEvent.click(
+      within(screen.getByRole("dialog")).getByRole("button", {
+        name: "신고하기",
+      }),
+    );
 
     await act(async () => {});
 

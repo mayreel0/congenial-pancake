@@ -1,4 +1,8 @@
 import { useDismissOnOutsideClick } from "../hooks/useDismissOnOutsideClick";
+import {
+  POPOVER_EXIT_MS,
+  useAnimatedPresence,
+} from "../hooks/useAnimatedPresence";
 
 type ActionConfirmDialogProps = {
   open: boolean;
@@ -16,17 +20,26 @@ export function ActionConfirmDialog({
   onConfirm,
 }: ActionConfirmDialogProps) {
   const boxRef = useDismissOnOutsideClick<HTMLDivElement>(open, onCancel);
+  // Kept mounted for POPOVER_EXIT_MS after `open` goes false so the leave
+  // animation can actually play, instead of unmounting instantly.
+  const shouldRender = useAnimatedPresence(open, POPOVER_EXIT_MS);
 
-  if (!open) return null;
+  if (!shouldRender) return null;
 
   return (
     <div
       aria-modal="true"
-      className="fixed inset-0 z-30 flex items-center justify-center bg-black/40 px-5"
+      className={`fixed inset-0 z-30 flex items-center justify-center bg-black/40 px-5 ${
+        open
+          ? "onseol-dialog-backdrop-enter"
+          : "onseol-dialog-backdrop-leave"
+      }`}
       role="dialog"
     >
       <div
-        className="w-full max-w-sm space-y-4 rounded-lg border border-line bg-surface p-5 shadow-sm"
+        className={`w-full max-w-sm space-y-4 rounded-lg border border-line bg-surface p-5 shadow-sm ${
+          open ? "onseol-dialog-box-enter" : "onseol-dialog-box-leave"
+        }`}
         ref={boxRef}
       >
         <p className="text-sm leading-6 text-foreground">{message}</p>

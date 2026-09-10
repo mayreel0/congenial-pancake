@@ -2,6 +2,10 @@
 
 import { useState, type ReactNode } from "react";
 import { useDismissOnOutsideClick } from "../hooks/useDismissOnOutsideClick";
+import {
+  POPOVER_EXIT_MS,
+  useAnimatedPresence,
+} from "../hooks/useAnimatedPresence";
 import { MoreIcon } from "../icons";
 
 type MoreMenuItem = {
@@ -21,6 +25,9 @@ export function MoreMenu({ ariaLabel, items }: MoreMenuProps) {
   const containerRef = useDismissOnOutsideClick<HTMLDivElement>(open, () =>
     setOpen(false),
   );
+  // Kept mounted for POPOVER_EXIT_MS after `open` goes false so the leave
+  // animation can actually play, instead of unmounting instantly.
+  const shouldRender = useAnimatedPresence(open, POPOVER_EXIT_MS);
 
   return (
     <div className="relative shrink-0" ref={containerRef}>
@@ -34,10 +41,12 @@ export function MoreMenu({ ariaLabel, items }: MoreMenuProps) {
       >
         <MoreIcon className="h-4 w-4" />
       </button>
-      {open && (
+      {shouldRender && (
         <div
           aria-label={ariaLabel}
-          className="absolute right-0 top-full z-20 mt-1 w-32 overflow-hidden rounded-lg border border-line bg-surface shadow-sm"
+          className={`absolute right-0 top-full z-20 mt-1 w-32 overflow-hidden rounded-lg border border-line bg-surface shadow-sm ${
+            open ? "onseol-popover-enter" : "onseol-popover-leave"
+          }`}
         >
           {items.map((item) => (
             <button

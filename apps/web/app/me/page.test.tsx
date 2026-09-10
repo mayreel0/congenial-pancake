@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "../lib/test-utils";
+import { fireEvent, render, screen, waitFor, within } from "../lib/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import MePage from "./page";
 
@@ -255,7 +255,11 @@ describe("MePage", () => {
       showRepliesOnProfile: true,
       showCountsOnProfile: true,
     });
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    // The dialog stays mounted briefly to play its leave animation instead
+    // of unmounting the instant it closes.
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
   });
 
   it("canceling the dialog leaves the draft as-is without calling the API", async () => {
@@ -272,7 +276,11 @@ describe("MePage", () => {
     const dialog = await screen.findByRole("dialog");
     fireEvent.click(within(dialog).getByRole("button", { name: "취소" }));
 
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    // The dialog stays mounted briefly to play its leave animation instead
+    // of unmounting the instant it closes.
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
     // Dialog cancel only closes the dialog — the unsaved toggle change
     // itself is untouched, unlike the section's own "취소" button.
     expect(requestsToggle).not.toBeChecked();

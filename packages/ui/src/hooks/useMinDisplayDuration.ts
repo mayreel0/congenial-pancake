@@ -16,6 +16,13 @@ export const SKELETON_MIN_DISPLAY_MS =
 // state — this holds `true` for at least `minMs` after `active` first turns
 // true, even if `active` itself flips back to `false` sooner. It never
 // shortens a load that's genuinely slower than `minMs`.
+//
+// NOT for playing a close/leave animation before unmounting a menu/dialog —
+// `minMs` here counts down from when `active` *became true*, so anything
+// left active longer than `minMs` (the common case for a menu someone
+// actually reads) hits zero remaining time and "closes" instantly with no
+// animation at all. Use `useAnimatedPresence` for that instead, which
+// always waits its exit duration counted from when `active` goes false.
 export function useMinDisplayDuration(active: boolean, minMs: number): boolean {
   const [shown, setShown] = useState(active);
   const [prevActive, setPrevActive] = useState(active);
