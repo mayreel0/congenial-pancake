@@ -70,6 +70,7 @@ type SettingsFormProps = {
   updating: boolean;
   updateError: string | null;
   update: ReturnType<typeof useAdminSettings>["update"];
+  onSaved(): void;
 };
 
 // Only mounted once settings has actually loaded (see SettingsReview), and
@@ -85,9 +86,9 @@ export function SettingsForm({
   updating,
   updateError,
   update,
+  onSaved,
 }: SettingsFormProps) {
   const [form, setForm] = useState<FormState>(() => toFormState(settings));
-  const [saved, setSaved] = useState(false);
   const { touchAll, visibleError } = useFieldValidation<keyof FormState>();
 
   const values = {
@@ -108,9 +109,8 @@ export function SettingsForm({
     touchAll(FIELDS.map((field) => field.key));
     if (Object.keys(fieldErrors).length > 0) return;
 
-    setSaved(false);
     await update(values);
-    setSaved(true);
+    onSaved();
   }
 
   return (
@@ -131,17 +131,13 @@ export function SettingsForm({
           type="number"
           value={form[field.key]}
           width="compact"
-          onChange={(event) => {
-            setSaved(false);
-            setForm({ ...form, [field.key]: event.currentTarget.value });
-          }}
+          onChange={(event) =>
+            setForm({ ...form, [field.key]: event.currentTarget.value })
+          }
         />
       ))}
 
       {updateError && <p className="text-sm text-red-600">{updateError}</p>}
-      {!updateError && saved && (
-        <p className="text-sm text-primary">저장했어요.</p>
-      )}
 
       <Button
         disabled={Object.keys(fieldErrors).length > 0 || showSpinner}

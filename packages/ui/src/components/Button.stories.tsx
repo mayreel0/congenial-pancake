@@ -47,6 +47,21 @@ export const Secondary: Story = {
   },
 };
 
+export const Ghost: Story = {
+  args: {
+    type: "button",
+    variant: "ghost",
+    children: "취소",
+  },
+};
+
+export const Pending: Story = {
+  args: {
+    type: "button",
+    pending: true,
+  },
+};
+
 export const AsLink: Story = {
   args: {
     children: "답변 남기러 가기",
