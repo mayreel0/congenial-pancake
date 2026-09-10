@@ -3,6 +3,10 @@ import {
   POPOVER_EXIT_MS,
   useAnimatedPresence,
 } from "../hooks/useAnimatedPresence";
+import {
+  SUBMIT_SPINNER_DELAY_MS,
+  useDelayedPending,
+} from "../hooks/useDelayedPending";
 import { Button } from "./Button";
 
 type ActionConfirmDialogProps = {
@@ -31,6 +35,14 @@ export function ActionConfirmDialog({
   // Kept mounted for POPOVER_EXIT_MS after `open` goes false so the leave
   // animation can actually play, instead of unmounting instantly.
   const shouldRender = useAnimatedPresence(open, POPOVER_EXIT_MS);
+  // Only the spinner's *reveal* is delayed (a fast confirm shouldn't flash
+  // one) — the button still disables immediately via `disabled={pending}`
+  // below, so there's no window where a fast double-click could slip
+  // through.
+  const showSpinner = useDelayedPending(
+    pending ?? false,
+    SUBMIT_SPINNER_DELAY_MS,
+  );
 
   if (!shouldRender) return null;
 
@@ -60,7 +72,12 @@ export function ActionConfirmDialog({
           >
             취소
           </Button>
-          <Button pending={pending} size="sm" onClick={onConfirm}>
+          <Button
+            disabled={pending}
+            pending={showSpinner}
+            size="sm"
+            onClick={onConfirm}
+          >
             {confirmLabel}
           </Button>
         </div>

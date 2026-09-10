@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { loginSchema, signupSchema } from "shared/dto";
 import { Button } from "ui/Button";
 import { TextField } from "ui/TextField";
+import { SUBMIT_SPINNER_DELAY_MS, useDelayedPending } from "ui/useDelayedPending";
 import { ApiError, errorMessage, oauthLoginUrl } from "../lib/api";
 import { useAuth } from "../lib/auth/useAuth";
 import { useFieldValidation } from "ui/useFieldValidation";
@@ -47,6 +48,12 @@ export default function LoginPage() {
   const fieldErrors = parseFieldErrors(
     schema,
     mode === "login" ? { email, password } : { email },
+  );
+  // Delayed so a fast login doesn't flash the spinner — the button's own
+  // disabled state below still gates on the raw submitStatus.
+  const showSpinner = useDelayedPending(
+    submitStatus === "pending",
+    SUBMIT_SPINNER_DELAY_MS,
   );
 
   async function handleSubmit(event: React.FormEvent): Promise<void> {
@@ -157,9 +164,12 @@ export default function LoginPage() {
           )}
 
           <Button
-            disabled={Object.keys(fieldErrors).length > 0}
+            disabled={
+              Object.keys(fieldErrors).length > 0 ||
+              submitStatus === "pending"
+            }
             fullWidth
-            pending={submitStatus === "pending"}
+            pending={showSpinner}
             type="submit"
           >
             {submitButtonLabel(mode)}

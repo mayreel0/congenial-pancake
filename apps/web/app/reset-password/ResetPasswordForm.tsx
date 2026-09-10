@@ -5,6 +5,7 @@ import { useState } from "react";
 import { resetPasswordSchema } from "shared/dto";
 import { errorMessage, resetPassword } from "../lib/api";
 import { useFieldValidation } from "ui/useFieldValidation";
+import { SUBMIT_SPINNER_DELAY_MS, useDelayedPending } from "ui/useDelayedPending";
 import { parseFieldErrors } from "shared/zod-form";
 import { ResetPasswordBody, type ResetPasswordStatus } from "./ResetPasswordBody";
 
@@ -21,6 +22,12 @@ export function ResetPasswordForm() {
     token: token ?? "",
     password,
   });
+  // Delayed so a fast reset doesn't flash the spinner — the submit
+  // button's own disabled state still gates on the raw status.
+  const showSpinner = useDelayedPending(
+    status === "pending",
+    SUBMIT_SPINNER_DELAY_MS,
+  );
 
   async function handleSubmit(event: React.FormEvent): Promise<void> {
     event.preventDefault();
@@ -54,6 +61,7 @@ export function ResetPasswordForm() {
           fieldError={visibleError("password", fieldErrors)}
           hasFieldErrors={Object.keys(fieldErrors).length > 0}
           password={password}
+          showSpinner={showSpinner}
           status={status}
           token={token}
           onPasswordChange={setPassword}

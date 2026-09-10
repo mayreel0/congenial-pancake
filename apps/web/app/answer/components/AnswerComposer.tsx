@@ -5,6 +5,7 @@ import { createReplySchema } from "shared/dto";
 import { Button } from "ui/Button";
 import { Skeleton } from "ui/Skeleton";
 import { Toggle } from "ui/Toggle";
+import { SUBMIT_SPINNER_DELAY_MS, useDelayedPending } from "ui/useDelayedPending";
 import { parseFieldErrors } from "shared/zod-form";
 
 const MIN_TEXTAREA_HEIGHT = 44;
@@ -40,6 +41,9 @@ export function AnswerComposer({
   onCancelHeld,
 }: AnswerComposerProps) {
   const fieldDisabled = disabled || pending;
+  // Delayed so a fast reply doesn't flash the spinner — fieldDisabled still
+  // gates on the raw pending prop.
+  const showSpinner = useDelayedPending(pending, SUBMIT_SPINNER_DELAY_MS);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   // Just gates the button (no visible per-field error text) — an empty
   // composer isn't a mistake worth calling out, it's just the resting
@@ -118,7 +122,7 @@ export function AnswerComposer({
           <div className="shrink-0">
             <Button
               disabled={fieldDisabled || Object.keys(fieldErrors).length > 0}
-              pending={pending}
+              pending={showSpinner}
               size="sm"
               type="submit"
             >

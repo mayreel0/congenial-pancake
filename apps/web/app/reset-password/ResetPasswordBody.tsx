@@ -14,6 +14,11 @@ type ResetPasswordBodyProps = {
   // (unlike `fieldError`, which only shows once touched) — gates the
   // submit button so it starts disabled on an empty field.
   hasFieldErrors: boolean;
+  // Delayed version of `status === "pending"` (via useDelayedPending in the
+  // parent) — only for the spinner's visual reveal. The button's own
+  // `disabled` below stays on the raw `status` so there's no window where
+  // a fast double-submit could slip through.
+  showSpinner: boolean;
   onPasswordChange(value: string): void;
   onSubmit(event: React.FormEvent): void;
 };
@@ -28,6 +33,7 @@ export function ResetPasswordBody({
   error,
   fieldError,
   hasFieldErrors,
+  showSpinner,
   onPasswordChange,
   onSubmit,
 }: ResetPasswordBodyProps) {
@@ -65,9 +71,9 @@ export function ResetPasswordBody({
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       <Button
-        disabled={hasFieldErrors}
+        disabled={hasFieldErrors || status === "pending"}
         fullWidth
-        pending={status === "pending"}
+        pending={showSpinner}
         type="submit"
       >
         비밀번호 설정
