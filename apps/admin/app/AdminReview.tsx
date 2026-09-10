@@ -210,9 +210,8 @@ export function AdminReview() {
     <div className="min-h-dvh bg-background text-foreground">
       <AdminNav activePath="/" />
       <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-5 py-10 sm:px-8">
+        <h1 className="text-lg font-semibold text-foreground">신고 검토</h1>
         <AdminStatusGate status={review.status} login={auth.login}>
-          <h1 className="text-lg font-semibold text-foreground">신고 검토</h1>
-
           <ReviewBody
             hiddenReplies={review.hiddenReplies}
             hiddenRequests={review.hiddenRequests}

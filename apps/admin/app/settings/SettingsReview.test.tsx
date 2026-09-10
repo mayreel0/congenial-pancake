@@ -29,10 +29,12 @@ function installFakeBackend(
     loggedIn = true,
     isAdmin = true,
     neverResolveSettings = false,
+    neverResolveAuth = false,
   }: {
     loggedIn?: boolean;
     isAdmin?: boolean;
     neverResolveSettings?: boolean;
+    neverResolveAuth?: boolean;
   } = {},
 ) {
   const fetchMock = vi.fn(
@@ -41,6 +43,7 @@ function installFakeBackend(
       const method = init?.method ?? "GET";
 
       if (url.endsWith("/auth/me")) {
+        if (neverResolveAuth) return new Promise(() => {});
         if (!loggedIn) {
           return Promise.resolve(jsonResponse(401, { code: "UNAUTHORIZED" }));
         }
@@ -109,18 +112,36 @@ describe("SettingsReview", () => {
     expect(screen.getByLabelText("비회원 답장 총량 제한")).toHaveValue(2);
   });
 
+  it("keeps the '설정' title visible while auth is still resolving", async () => {
+    installFakeBackend(makeSettings(), { neverResolveAuth: true });
+
+    render(<SettingsReview />);
+
+    expect(
+      await screen.findByRole("heading", { name: "설정" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("이메일"),
+    ).not.toBeInTheDocument();
+  });
+
   it("shows a skeleton, not a blank page, while settings are loading", async () => {
     installFakeBackend(makeSettings(), { neverResolveSettings: true });
     const { container } = render(<SettingsReview />);
 
-    // Auth resolves (AdminStatusGate's own loading clears) but the settings
-    // GET never does — this is specifically the in-between window. The real
-    // heading and this field's label/hint text stay put; only the actual
-    // value (which needs the GET to resolve) turns into a skeleton.
+    // "설정" itself renders immediately regardless of status (outside
+    // AdminStatusGate), so it can't be the wait condition — wait for this
+    // field's label instead, which only appears once auth resolves and
+    // SettingsFormSkeleton (not AdminStatusGate's own generic skeleton)
+    // takes over. Auth resolves (AdminStatusGate's own loading clears) but
+    // the settings GET never does — this is specifically that in-between
+    // window, where the real heading and this field's label/hint text stay
+    // put and only the actual value (needing the GET to resolve) is a
+    // skeleton.
     expect(
-      await screen.findByRole("heading", { name: "설정" }),
+      await screen.findByText("답변 큐 신선도 (시간)"),
     ).toBeInTheDocument();
-    expect(screen.getByText("답변 큐 신선도 (시간)")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "설정" })).toBeInTheDocument();
     expect(
       screen.getByText(
         "이 시간이 지난 온설은 답변 큐/보관함에서 제외됩니다.",

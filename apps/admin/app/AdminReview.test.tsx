@@ -46,11 +46,13 @@ function installFakeBackend(
     isAdmin = true,
     loginSucceeds = true,
     neverResolveQueue = false,
+    neverResolveAuth = false,
   }: {
     loggedIn?: boolean;
     isAdmin?: boolean;
     loginSucceeds?: boolean;
     neverResolveQueue?: boolean;
+    neverResolveAuth?: boolean;
   } = {},
 ) {
   let currentlyLoggedIn = loggedIn;
@@ -61,6 +63,7 @@ function installFakeBackend(
       const method = init?.method ?? "GET";
 
       if (url.endsWith("/auth/me")) {
+        if (neverResolveAuth) return new Promise(() => {});
         if (!currentlyLoggedIn) {
           return Promise.resolve(jsonResponse(401, { code: "UNAUTHORIZED" }));
         }
@@ -198,11 +201,30 @@ describe("AdminReview", () => {
     installFakeBackend(makeQueue(), { neverResolveQueue: true });
     const { container } = render(<AdminReview />);
 
-    // Auth resolves (AdminStatusGate's own loading clears) but the queue GET
-    // never does — this is specifically the in-between window.
-    await screen.findByRole("heading", { name: "신고 검토" });
+    // "신고 검토" itself renders immediately regardless of status (outside
+    // AdminStatusGate), so it can't be the wait condition — AdminNav's
+    // logout button only shows once auth resolves to authenticated, which
+    // is genuinely what this test needs to wait for. The queue GET never
+    // resolves — this is specifically that in-between window.
+    await screen.findByRole("button", { name: "로그아웃" });
+    expect(
+      screen.getByRole("heading", { name: "신고 검토" }),
+    ).toBeInTheDocument();
     expect(screen.queryByText("검토할 항목이 없어요.")).not.toBeInTheDocument();
     expect(container.querySelectorAll(".animate-pulse").length).toBeGreaterThan(0);
+  });
+
+  it("keeps the '신고 검토' title visible while auth is still resolving", async () => {
+    installFakeBackend(makeQueue(), { neverResolveAuth: true });
+
+    render(<AdminReview />);
+
+    expect(
+      await screen.findByRole("heading", { name: "신고 검토" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "로그인" }),
+    ).not.toBeInTheDocument();
   });
 
   it("removes a request from the list after restoring it", async () => {
