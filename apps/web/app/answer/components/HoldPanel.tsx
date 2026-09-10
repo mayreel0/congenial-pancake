@@ -1,6 +1,7 @@
 import { truncatePreview } from "../../today/prototype/model";
 import type { RequestDto } from "../../lib/requests/api";
 import { Skeleton } from "ui/Skeleton";
+import { SHEET_EXIT_MS, useAnimatedPresence } from "ui/useAnimatedPresence";
 
 type HoldPanelBodyProps = {
   loading: boolean;
@@ -57,12 +58,17 @@ export function HoldPanel({
   onSelect,
   onClose,
 }: HoldPanelProps) {
-  if (!open) return null;
+  // Kept mounted for SHEET_EXIT_MS after `open` goes false so the slide-out
+  // animation can actually play, instead of unmounting instantly.
+  const shouldRender = useAnimatedPresence(open, SHEET_EXIT_MS);
+  if (!shouldRender) return null;
 
   return (
     <div
       aria-label="보류한 온설 목록"
-      className="absolute inset-x-0 bottom-full z-10 max-h-72 overflow-y-auto border-t border-line bg-surface px-5 py-3 shadow-sm sm:px-8"
+      className={`absolute inset-x-0 bottom-full z-10 max-h-72 overflow-y-auto border-t border-line bg-surface px-5 py-3 shadow-sm sm:px-8 ${
+        open ? "onseol-sheet-enter" : "onseol-sheet-leave"
+      }`}
       role="dialog"
     >
       <div className="mx-auto w-full max-w-6xl">

@@ -18,6 +18,7 @@
     "./TextField": "./src/components/TextField.tsx",
     "./Toggle": "./src/components/Toggle.tsx",
     "./Toast": "./src/components/Toast.tsx",
+    "./useAnimatedPresence": "./src/hooks/useAnimatedPresence.ts",
     "./useDismissOnOutsideClick": "./src/hooks/useDismissOnOutsideClick.ts",
     "./useFieldValidation": "./src/hooks/useFieldValidation.ts",
     "./useMinDisplayDuration": "./src/hooks/useMinDisplayDuration.ts",

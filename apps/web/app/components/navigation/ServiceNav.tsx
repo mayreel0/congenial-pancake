@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useDismissOnOutsideClick } from "ui/useDismissOnOutsideClick";
+import { POPOVER_EXIT_MS, useAnimatedPresence } from "ui/useAnimatedPresence";
 import { useAuth } from "../../lib/auth/useAuth";
 import { accountNavItems, landingEntryLinks, serviceNavItems } from "./routes";
 
@@ -37,6 +38,13 @@ function ProfileArea({
   onCloseProfileMenu,
   logout,
 }: ProfileAreaProps) {
+  // Kept mounted for POPOVER_EXIT_MS after `profileMenuOpen` goes false so
+  // the leave animation can actually play, instead of unmounting instantly.
+  const shouldRenderMenu = useAnimatedPresence(
+    profileMenuOpen,
+    POPOVER_EXIT_MS,
+  );
+
   if (status === "authenticated" && user) {
     return (
       <div className="relative" ref={profileMenuRef}>
@@ -49,10 +57,12 @@ function ProfileArea({
         >
           {user.email.charAt(0).toUpperCase()}
         </button>
-        {profileMenuOpen && (
+        {shouldRenderMenu && (
           <div
             aria-label="프로필"
-            className="absolute right-0 top-full z-20 mt-1 w-44 overflow-hidden rounded-lg border border-line bg-surface shadow-sm"
+            className={`absolute right-0 top-full z-20 mt-1 w-44 overflow-hidden rounded-lg border border-line bg-surface shadow-sm ${
+              profileMenuOpen ? "onseol-popover-enter" : "onseol-popover-leave"
+            }`}
           >
             <p className="truncate border-b border-line px-3 py-2 text-xs text-muted">
               {user.email}
@@ -106,6 +116,12 @@ export function ServiceNav({ activePath }: ServiceNavProps) {
     () => setProfileMenuOpen(false),
   );
   const { status, user, logout } = useAuth();
+  // Kept mounted for POPOVER_EXIT_MS after `menuOpen` goes false so the
+  // leave animation can actually play, instead of unmounting instantly.
+  const shouldRenderMobileMenu = useAnimatedPresence(
+    menuOpen,
+    POPOVER_EXIT_MS,
+  );
 
   return (
     <header className="relative sticky top-0 z-20 border-b border-line bg-background/95 backdrop-blur">
@@ -181,10 +197,12 @@ export function ServiceNav({ activePath }: ServiceNavProps) {
           />
         </nav>
       </div>
-      {menuOpen && (
+      {shouldRenderMobileMenu && (
         <nav
           aria-label="모바일 서비스 이동"
-          className="absolute left-0 right-0 top-full border-b border-line bg-background px-5 py-3 shadow-sm md:hidden"
+          className={`absolute left-0 right-0 top-full border-b border-line bg-background px-5 py-3 shadow-sm md:hidden ${
+            menuOpen ? "onseol-popover-enter" : "onseol-popover-leave"
+          }`}
         >
           <div className="mx-auto grid w-full max-w-6xl gap-1">
             {[
