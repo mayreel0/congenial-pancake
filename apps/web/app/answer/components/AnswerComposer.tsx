@@ -2,6 +2,7 @@
 
 import { useLayoutEffect, useRef } from "react";
 import { createReplySchema } from "shared/dto";
+import { Skeleton } from "ui/Skeleton";
 import { Toggle } from "ui/Toggle";
 import { parseFieldErrors } from "shared/zod-form";
 
@@ -16,6 +17,7 @@ type AnswerComposerProps = {
   // Same reveal-toggle rule as RequestComposer — hidden entirely when the
   // user has no nickname to reveal.
   nickname: string | null;
+  isLoadingNickname: boolean;
   anonymous: boolean;
   onChange(value: string): void;
   onToggleAnonymous(): void;
@@ -29,6 +31,7 @@ export function AnswerComposer({
   pending,
   isAnsweringHeldRequest,
   nickname,
+  isLoadingNickname,
   anonymous,
   onChange,
   onToggleAnonymous,
@@ -67,16 +70,23 @@ export function AnswerComposer({
         <p className="pb-2 text-xs text-muted">
           정답을 쓰지 않아도 됩니다. 짧게 들었다는 말이면 충분해요.
         </p>
-        {nickname && (
-          <div className="mb-2">
-            <Toggle
-              checked={!anonymous}
-              disabled={fieldDisabled}
-              label={`닉네임(${nickname})으로 남기기`}
-              onChange={() => onToggleAnonymous()}
-            />
-          </div>
-        )}
+        {/* Fixed h-5 slot regardless of outcome — same reasoning as
+            RequestComposer's toggle: don't let the composer shift once
+            loading resolves, whichever way it resolves. */}
+        <div className="mb-2 flex h-5 items-center">
+          {isLoadingNickname ? (
+            <Skeleton className="h-5 w-48 rounded-full" />
+          ) : (
+            nickname && (
+              <Toggle
+                checked={!anonymous}
+                disabled={fieldDisabled}
+                label={`닉네임(${nickname})으로 남기기`}
+                onChange={() => onToggleAnonymous()}
+              />
+            )
+          )}
+        </div>
         {isAnsweringHeldRequest && (
           <div className="flex items-center justify-between pb-2 text-xs text-muted">
             <span>보류한 온설에 답하는 중이에요.</span>

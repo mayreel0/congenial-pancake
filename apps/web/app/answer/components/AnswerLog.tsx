@@ -115,12 +115,14 @@ export function AnswerLog({
     );
   } else if (hasOlderEntries) {
     blocks.push(
-      <div className="flex justify-center py-3" key="load-older" ref={sentinelRef}>
+      <div key="load-older">
         {isLoadingOlderEntries && (
-          <p aria-live="polite" className="text-xs text-muted">
-            이전 대화 불러오는 중…
-          </p>
+          <div aria-live="polite" className="flex flex-col gap-2 pb-3">
+            <Skeleton className="h-14 max-w-[70%] self-start rounded-lg" />
+            <Skeleton className="h-14 max-w-[70%] self-end rounded-lg" />
+          </div>
         )}
+        <div ref={sentinelRef} />
       </div>,
     );
   }

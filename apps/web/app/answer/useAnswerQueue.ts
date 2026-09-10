@@ -57,6 +57,7 @@ type UseAnswerQueueResult = {
   // Same reveal-toggle rule as useTodayComposer — null nickname means the
   // composer hides the toggle entirely.
   nickname: string | null;
+  isLoadingNickname: boolean;
   anonymous: boolean;
   toggleAnonymous(): void;
   updateReplyDraft(requestId: string, value: string): void;
@@ -173,6 +174,10 @@ export function useAnswerQueue(): UseAnswerQueueResult {
     answerLogQuery.isLoading,
     SKELETON_MIN_DISPLAY_MS,
   );
+  const isLoadingNickname = useMinDisplayDuration(
+    status === "loading",
+    SKELETON_MIN_DISPLAY_MS,
+  );
 
   return {
     currentAnswerTarget,
@@ -188,6 +193,7 @@ export function useAnswerQueue(): UseAnswerQueueResult {
     canManageCurrentRequest: status === "authenticated",
     replyDrafts,
     nickname: user?.nickname ?? null,
+    isLoadingNickname,
     anonymous,
     toggleAnonymous,
     updateReplyDraft,

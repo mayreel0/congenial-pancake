@@ -196,6 +196,84 @@ describe("AnswerSession", () => {
     expect(container.querySelectorAll(".animate-pulse").length).toBeGreaterThan(0);
   });
 
+  it("shows a skeleton in the toggle's spot while auth (and so the nickname) is still loading", async () => {
+    const fetchMock = installFakeBackend([]);
+    fetchMock.mockImplementation((input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url.endsWith("/requests/queue")) {
+        return Promise.resolve(jsonResponse(200, null));
+      }
+      if (url.endsWith("/requests/held")) {
+        return Promise.resolve(jsonResponse(200, []));
+      }
+      if (url.includes("/replies/mine")) {
+        return Promise.resolve(
+          jsonResponse(200, {
+            items: [],
+            page: 1,
+            pageSize: 20,
+            totalItems: 0,
+            totalPages: 1,
+          }),
+        );
+      }
+      // /auth/me never resolves — holds status in "loading".
+      if (url.endsWith("/auth/me")) return new Promise(() => {});
+      throw new Error(`Unmocked fetch: ${url}`);
+    });
+
+    const { container } = render(<AnswerSession />);
+
+    await screen.findByPlaceholderText(
+      "그 마음이 오래 남을 수 있죠. 그래도 오늘 버틴 건 분명해요.",
+    );
+    expect(container.querySelectorAll(".animate-pulse").length).toBeGreaterThan(0);
+    expect(screen.queryByRole("switch")).not.toBeInTheDocument();
+  });
+
+  it("shows a skeleton, not '보류 중 (0)', while held requests are loading", async () => {
+    const fetchMock = installFakeBackend([]);
+    fetchMock.mockImplementation((input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url.endsWith("/auth/me")) {
+        return Promise.resolve(
+          jsonResponse(200, {
+            id: "user-1",
+            email: "member@example.com",
+            createdAt: "2026-08-22T00:00:00.000Z",
+          }),
+        );
+      }
+      if (url.endsWith("/requests/queue")) {
+        return Promise.resolve(jsonResponse(200, null));
+      }
+      if (url.includes("/replies/mine")) {
+        return Promise.resolve(
+          jsonResponse(200, {
+            items: [],
+            page: 1,
+            pageSize: 20,
+            totalItems: 0,
+            totalPages: 1,
+          }),
+        );
+      }
+      // /requests/held never resolves — holds it in isLoading.
+      if (url.endsWith("/requests/held")) return new Promise(() => {});
+      throw new Error(`Unmocked fetch: ${url}`);
+    });
+
+    const { container } = render(<AnswerSession />);
+
+    await screen.findByPlaceholderText(
+      "그 마음이 오래 남을 수 있죠. 그래도 오늘 버틴 건 분명해요.",
+    );
+    expect(
+      screen.queryByRole("button", { name: /보류 중/ }),
+    ).not.toBeInTheDocument();
+    expect(container.querySelectorAll(".animate-pulse").length).toBeGreaterThan(0);
+  });
+
   it("shows a typing indicator while the answer draft has text", async () => {
     installFakeBackend([makeRequest({ id: "req-1", body: "요청 본문" })]);
 
@@ -383,6 +461,11 @@ describe("AnswerSession", () => {
       replyRemoved: false,
     };
 
+    let resolveOlderPage: (() => void) | null = null;
+    const olderPagePromise = new Promise<void>((resolve) => {
+      resolveOlderPage = resolve;
+    });
+
     const fetchMock = vi.fn((input: RequestInfo | URL): Promise<MockResponse> => {
       const url = typeof input === "string" ? input : input.toString();
 
@@ -403,9 +486,22 @@ describe("AnswerSession", () => {
       }
       if (url.includes("/replies/mine")) {
         const page = Number(new URL(url).searchParams.get("page") ?? "1");
+        if (page > 1) {
+          // Held pending until the test explicitly resolves it, so the
+          // skeleton-while-loading-older state can be asserted first.
+          return olderPagePromise.then(() =>
+            jsonResponse(200, {
+              items: [olderEntry],
+              page,
+              pageSize: 1,
+              totalItems: 2,
+              totalPages: 2,
+            }),
+          );
+        }
         return Promise.resolve(
           jsonResponse(200, {
-            items: page === 1 ? [recentEntry] : [olderEntry],
+            items: [recentEntry],
             page,
             pageSize: 1,
             totalItems: 2,
@@ -417,7 +513,7 @@ describe("AnswerSession", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    render(<AnswerSession />);
+    const { container } = render(<AnswerSession />);
 
     expect(await screen.findByText("최근에 남긴 고민")).toBeInTheDocument();
     expect(screen.queryByText("예전에 남긴 고민")).not.toBeInTheDocument();
@@ -437,6 +533,13 @@ describe("AnswerSession", () => {
         observer! as unknown as IntersectionObserver,
       );
     });
+
+    // Still mid-flight (the older page hasn't resolved yet) — a skeleton
+    // bubble pair should show above the sentinel instead of nothing.
+    expect(container.querySelectorAll(".animate-pulse").length).toBeGreaterThan(0);
+    expect(screen.queryByText("예전에 남긴 고민")).not.toBeInTheDocument();
+
+    resolveOlderPage!();
 
     expect(await screen.findByText("예전에 남긴 고민")).toBeInTheDocument();
     // Both loaded pages stay visible — older is prepended, not swapped in.

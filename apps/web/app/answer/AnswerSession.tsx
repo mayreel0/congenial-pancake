@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { ServiceNav } from "../components/navigation/ServiceNav";
 import { useAnswerQueue } from "./useAnswerQueue";
 import { ActionConfirmDialog } from "ui/ActionConfirmDialog";
+import { Skeleton } from "ui/Skeleton";
 import { Toast } from "ui/Toast";
 import { useToast } from "ui/useToast";
 import { AnswerComposer } from "./components/AnswerComposer";
@@ -139,7 +140,7 @@ export function AnswerSession() {
           onReport={(requestId) => requestAction("report", requestId)}
           onSkip={(requestId) => requestAction("skip", requestId)}
         />
-        <div className="relative border-t border-line px-5 pt-2 sm:px-8">
+        <div className="relative border-t border-line px-5 py-2 sm:px-8">
           <HoldPanel
             heldRequests={prototype.heldRequests}
             loading={prototype.isLoadingHeldRequests}
@@ -152,13 +153,17 @@ export function AnswerSession() {
           />
           {prototype.canManageCurrentRequest && (
             <div className="mx-auto flex w-full max-w-6xl items-center justify-between">
-              <button
-                className="text-xs font-medium text-muted transition hover:text-foreground"
-                type="button"
-                onClick={() => setHoldPanelOpen((open) => !open)}
-              >
-                보류 중 ({prototype.heldRequests.length})
-              </button>
+              {prototype.isLoadingHeldRequests ? (
+                <Skeleton className="h-4 w-16" />
+              ) : (
+                <button
+                  className="text-xs font-medium text-muted transition hover:text-foreground"
+                  type="button"
+                  onClick={() => setHoldPanelOpen((open) => !open)}
+                >
+                  보류 중 ({prototype.heldRequests.length})
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -166,6 +171,7 @@ export function AnswerSession() {
           anonymous={prototype.anonymous}
           disabled={!currentTarget || loadingNext}
           isAnsweringHeldRequest={prototype.isAnsweringHeldRequest}
+          isLoadingNickname={prototype.isLoadingNickname}
           nickname={prototype.nickname}
           pending={answerSubmitStatus === "pending"}
           value={draft}
