@@ -3,9 +3,10 @@
 import { ApiError, errorMessage } from "../lib/api";
 import { useAuth } from "../lib/auth/useAuth";
 import { useIssuePasswordResetLinkMutation } from "../lib/admin/accounts-queries";
+import { useAdminWhoamiQuery } from "../lib/admin/whoami-queries";
 
 type UseAccountsAdminResult = {
-  status: "loading" | "signedOut" | "ready";
+  status: "loading" | "signedOut" | "forbidden" | "ready";
   issuing: boolean;
   issueError: string | null;
   url: string | null;
@@ -13,11 +14,20 @@ type UseAccountsAdminResult = {
   reset(): void;
 };
 
+// Mirrors useAdminSettings's status derivation, except the whoami query's
+// own loading state folds into "loading" here rather than getting its own
+// in-between skeleton — unlike SettingsForm, AccountForm's initial render
+// doesn't depend on any fetched data, so there's nothing worth showing
+// before whoami resolves.
 function toStatus(
   authStatus: ReturnType<typeof useAuth>["status"],
+  whoamiLoading: boolean,
+  forbidden: boolean,
 ): UseAccountsAdminResult["status"] {
   if (authStatus === "loading") return "loading";
   if (authStatus === "anonymous") return "signedOut";
+  if (whoamiLoading) return "loading";
+  if (forbidden) return "forbidden";
   return "ready";
 }
 
@@ -36,16 +46,25 @@ function toIssueError(error: unknown): string | null {
   return errorMessage(error);
 }
 
-// No GET query backs this page (unlike useAdminSettings/useAdminReview), so
-// unlike those there's no way to know "forbidden" ahead of a real attempt —
-// a non-admin session just sees the mutation's own 401/403 as issueError
-// below, same as SettingsForm's updateError.
+// No GET endpoint backs this page's actual data (unlike useAdminSettings/
+// useAdminReview) — /admin/whoami exists purely as a cheap admin precheck
+// so a non-admin sees "이 계정은 접근 권한이 없어요." immediately instead of
+// the real form, matching those two pages instead of only discovering
+// "forbidden" from the issue mutation's own 401/403 (kept below as a
+// fallback for the same message in case the session changes in between).
 export function useAccountsAdmin(): UseAccountsAdminResult {
   const { status: authStatus } = useAuth();
+  const enabled = authStatus === "authenticated";
+  const whoamiQuery = useAdminWhoamiQuery(enabled);
   const issueMutation = useIssuePasswordResetLinkMutation();
 
+  const forbidden =
+    whoamiQuery.error instanceof ApiError &&
+    (whoamiQuery.error.statusCode === 403 ||
+      whoamiQuery.error.statusCode === 401);
+
   return {
-    status: toStatus(authStatus),
+    status: toStatus(authStatus, whoamiQuery.isLoading, forbidden),
     issuing: issueMutation.isPending,
     issueError: toIssueError(issueMutation.error),
     url: issueMutation.data?.url ?? null,
