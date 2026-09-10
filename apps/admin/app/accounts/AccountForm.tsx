@@ -4,7 +4,6 @@ import { useState, type FormEvent } from "react";
 import { Button } from "ui/Button";
 import { TextField } from "ui/TextField";
 import { useFieldValidation } from "ui/useFieldValidation";
-import { SUBMIT_SPINNER_DELAY_MS, useDelayedPending } from "ui/useDelayedPending";
 import { issuePasswordResetLinkSchema } from "shared/dto";
 import { parseFieldErrors } from "shared/zod-form";
 import type { useAccountsAdmin } from "./useAccountsAdmin";
@@ -37,9 +36,6 @@ export function AccountForm({
   const fieldErrors = parseFieldErrors(issuePasswordResetLinkSchema, {
     email,
   });
-  // Delayed so a fast issue doesn't flash the spinner — the button's own
-  // disabled state below still gates on the raw issuing.
-  const showSpinner = useDelayedPending(issuing, SUBMIT_SPINNER_DELAY_MS);
 
   async function handleSubmit(event: FormEvent): Promise<void> {
     event.preventDefault();
@@ -89,8 +85,8 @@ export function AccountForm({
           )}
 
           <Button
-            disabled={Object.keys(fieldErrors).length > 0 || issuing}
-            pending={showSpinner}
+            disabled={Object.keys(fieldErrors).length > 0}
+            pending={issuing}
             type="submit"
           >
             링크 발급

@@ -4,7 +4,6 @@ import { useState, type FormEvent } from "react";
 import { Button } from "ui/Button";
 import { TextField } from "ui/TextField";
 import { useFieldValidation } from "ui/useFieldValidation";
-import { SUBMIT_SPINNER_DELAY_MS, useDelayedPending } from "ui/useDelayedPending";
 import { updateSettingsSchema, type SettingsResponseDto } from "shared/dto";
 import { parseFieldErrors } from "shared/zod-form";
 import type { useAdminSettings } from "./useAdminSettings";
@@ -97,9 +96,6 @@ export function SettingsForm({
     nicknameCooldownDays: Number(form.nicknameCooldownDays),
   };
   const fieldErrors = parseFieldErrors(updateSettingsSchema, values);
-  // Delayed so a fast save doesn't flash the spinner — the button's own
-  // disabled state below still gates on the raw updating.
-  const showSpinner = useDelayedPending(updating, SUBMIT_SPINNER_DELAY_MS);
 
   async function handleSubmit(event: FormEvent): Promise<void> {
     event.preventDefault();
@@ -142,8 +138,8 @@ export function SettingsForm({
       )}
 
       <Button
-        disabled={Object.keys(fieldErrors).length > 0 || updating}
-        pending={showSpinner}
+        disabled={Object.keys(fieldErrors).length > 0}
+        pending={updating}
         type="submit"
       >
         저장

@@ -5,7 +5,6 @@ import { useState } from "react";
 import { ActionConfirmDialog } from "ui/ActionConfirmDialog";
 import { Button } from "ui/Button";
 import { Toggle } from "ui/Toggle";
-import { SUBMIT_SPINNER_DELAY_MS, useDelayedPending } from "ui/useDelayedPending";
 import { errorMessage } from "../../lib/api";
 import { useAuth } from "../../lib/auth/useAuth";
 
@@ -17,12 +16,6 @@ export default function WithdrawPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
-  // Delayed so a fast withdraw doesn't flash the spinner — the button's own
-  // disabled state below still gates on the raw status.
-  const showSpinner = useDelayedPending(
-    status === "pending",
-    SUBMIT_SPINNER_DELAY_MS,
-  );
 
   async function handleConfirm(): Promise<void> {
     setConfirmOpen(false);
@@ -103,8 +96,7 @@ export default function WithdrawPage() {
           취소
         </Button>
         <Button
-          disabled={status === "pending"}
-          pending={showSpinner}
+          pending={status === "pending"}
           onClick={() => setConfirmOpen(true)}
         >
           탈퇴하기

@@ -4,7 +4,6 @@ import { useState, type FormEvent } from "react";
 import { Button } from "ui/Button";
 import { TextField } from "ui/TextField";
 import { useFieldValidation } from "ui/useFieldValidation";
-import { SUBMIT_SPINNER_DELAY_MS, useDelayedPending } from "ui/useDelayedPending";
 import { loginSchema } from "shared/dto";
 import { parseFieldErrors } from "shared/zod-form";
 import { ApiError } from "../lib/api";
@@ -37,9 +36,6 @@ export function LoginForm({ login }: LoginFormProps) {
   const { touchAll, visibleError } = useFieldValidation<Field>();
 
   const fieldErrors = parseFieldErrors(loginSchema, { email, password });
-  // Delayed so a fast login doesn't flash the spinner — the button's own
-  // disabled state below still gates on the raw pending.
-  const showSpinner = useDelayedPending(pending, SUBMIT_SPINNER_DELAY_MS);
 
   async function handleSubmit(event: FormEvent): Promise<void> {
     event.preventDefault();
@@ -85,9 +81,9 @@ export function LoginForm({ login }: LoginFormProps) {
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       <Button
-        disabled={Object.keys(fieldErrors).length > 0 || pending}
+        disabled={Object.keys(fieldErrors).length > 0}
         fullWidth
-        pending={showSpinner}
+        pending={pending}
         type="submit"
       >
         로그인

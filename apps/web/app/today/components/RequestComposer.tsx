@@ -5,7 +5,6 @@ import { createRequestSchema } from "shared/dto";
 import { Button } from "ui/Button";
 import { Skeleton } from "ui/Skeleton";
 import { Toggle } from "ui/Toggle";
-import { SUBMIT_SPINNER_DELAY_MS, useDelayedPending } from "ui/useDelayedPending";
 import { parseFieldErrors } from "shared/zod-form";
 
 const MIN_TEXTAREA_HEIGHT = 44;
@@ -55,9 +54,6 @@ export function RequestComposer({
     body: localValue.trim(),
   });
   const canSubmit = Object.keys(fieldErrors).length === 0 && !isPending;
-  // Delayed so a fast request doesn't flash the spinner — canSubmit (and
-  // thus the button's disabled state) still gates on the raw isPending.
-  const showSpinner = useDelayedPending(isPending, SUBMIT_SPINNER_DELAY_MS);
 
   useLayoutEffect(() => {
     const textarea = textareaRef.current;
@@ -117,7 +113,7 @@ export function RequestComposer({
         <div className="shrink-0">
           <Button
             disabled={!canSubmit}
-            pending={showSpinner}
+            pending={isPending}
             size="sm"
             type="submit"
           >

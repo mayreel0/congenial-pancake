@@ -6,7 +6,6 @@ import { completeSignupSchema } from "shared/dto";
 import { errorMessage } from "../lib/api";
 import { useAuth } from "../lib/auth/useAuth";
 import { useFieldValidation } from "ui/useFieldValidation";
-import { SUBMIT_SPINNER_DELAY_MS, useDelayedPending } from "ui/useDelayedPending";
 import { parseFieldErrors } from "shared/zod-form";
 import { VerifyEmailBody, type VerifyEmailStatus } from "./VerifyEmailBody";
 
@@ -25,12 +24,6 @@ export function VerifyEmailForm() {
     token: token ?? "",
     password,
   });
-  // Delayed so a fast signup doesn't flash the spinner — the submit
-  // button's own disabled state still gates on the raw status.
-  const showSpinner = useDelayedPending(
-    status === "pending",
-    SUBMIT_SPINNER_DELAY_MS,
-  );
 
   async function handleSubmit(event: React.FormEvent): Promise<void> {
     event.preventDefault();
@@ -66,7 +59,6 @@ export function VerifyEmailForm() {
           fieldError={visibleError("password", fieldErrors)}
           hasFieldErrors={Object.keys(fieldErrors).length > 0}
           password={password}
-          showSpinner={showSpinner}
           status={status}
           token={token}
           onPasswordChange={setPassword}

@@ -9,7 +9,6 @@ import {
   SKELETON_MIN_DISPLAY_MS,
   useMinDisplayDuration,
 } from "ui/useMinDisplayDuration";
-import { SUBMIT_SPINNER_DELAY_MS, useDelayedPending } from "ui/useDelayedPending";
 import { errorMessage } from "../../lib/api";
 import { useAuth } from "../../lib/auth/useAuth";
 import { useFieldValidation } from "ui/useFieldValidation";
@@ -49,9 +48,6 @@ export function NicknameSection() {
     status === "loading",
     SKELETON_MIN_DISPLAY_MS,
   );
-  // Delayed so a fast save doesn't flash the spinner — the button's own
-  // disabled state below still gates on the raw pending.
-  const showSpinner = useDelayedPending(pending, SUBMIT_SPINNER_DELAY_MS);
 
   if (showSkeleton) {
     return (
@@ -131,8 +127,8 @@ export function NicknameSection() {
           {error && <p className="text-xs text-red-600">{error}</p>}
           <div className="flex gap-2">
             <Button
-              disabled={Object.keys(fieldErrors).length > 0 || pending}
-              pending={showSpinner}
+              disabled={Object.keys(fieldErrors).length > 0}
+              pending={pending}
               size="sm"
               type="submit"
             >

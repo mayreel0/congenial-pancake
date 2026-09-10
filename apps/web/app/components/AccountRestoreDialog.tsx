@@ -5,7 +5,6 @@ import { Button } from "ui/Button";
 import { Toast } from "ui/Toast";
 import { useToast } from "ui/useToast";
 import { POPOVER_EXIT_MS, useAnimatedPresence } from "ui/useAnimatedPresence";
-import { SUBMIT_SPINNER_DELAY_MS, useDelayedPending } from "ui/useDelayedPending";
 import { useAuth } from "../lib/auth/useAuth";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -38,11 +37,6 @@ export function AccountRestoreDialog() {
   // `deletionGracePeriodEndsAt` goes away) so the leave animation can
   // actually play, instead of unmounting instantly.
   const shouldRender = useAnimatedPresence(open, POPOVER_EXIT_MS);
-  // Delayed so a fast logout/restore doesn't flash the spinner — each
-  // button's own `disabled` below still gates on the raw restoring/
-  // loggingOut state.
-  const showLogoutSpinner = useDelayedPending(loggingOut, SUBMIT_SPINNER_DELAY_MS);
-  const showRestoreSpinner = useDelayedPending(restoring, SUBMIT_SPINNER_DELAY_MS);
 
   if (!shouldRender) return null;
 
@@ -91,8 +85,8 @@ export function AccountRestoreDialog() {
         </p>
         <div className="flex justify-end gap-2">
           <Button
-            disabled={restoring || loggingOut}
-            pending={showLogoutSpinner}
+            disabled={restoring}
+            pending={loggingOut}
             size="sm"
             variant="ghost"
             onClick={() => void handleLogout()}
@@ -100,8 +94,8 @@ export function AccountRestoreDialog() {
             로그아웃
           </Button>
           <Button
-            disabled={loggingOut || restoring}
-            pending={showRestoreSpinner}
+            disabled={loggingOut}
+            pending={restoring}
             size="sm"
             onClick={() => void handleRestore()}
           >
