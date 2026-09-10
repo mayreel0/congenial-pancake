@@ -3,6 +3,10 @@ import {
   POPOVER_EXIT_MS,
   useAnimatedPresence,
 } from "../hooks/useAnimatedPresence";
+import {
+  BUTTON_PENDING_MIN_MS,
+  useMinDisplayDuration,
+} from "../hooks/useMinDisplayDuration";
 import { Button } from "./Button";
 
 type ActionConfirmDialogProps = {
@@ -31,6 +35,14 @@ export function ActionConfirmDialog({
   // Kept mounted for POPOVER_EXIT_MS after `open` goes false so the leave
   // animation can actually play, instead of unmounting instantly.
   const shouldRender = useAnimatedPresence(open, POPOVER_EXIT_MS);
+  // A fast local confirm action can complete in under a frame, which makes
+  // the spinner flash too briefly to register as feedback at all — this
+  // holds the busy state visible for a minimum duration, appearing in the
+  // same instant `pending` does (no gap before the spinner shows).
+  const showSpinner = useMinDisplayDuration(
+    pending ?? false,
+    BUTTON_PENDING_MIN_MS,
+  );
 
   if (!shouldRender) return null;
 
@@ -53,14 +65,19 @@ export function ActionConfirmDialog({
         <p className="text-sm leading-6 text-foreground">{message}</p>
         <div className="flex justify-end gap-2">
           <Button
-            disabled={pending}
+            disabled={pending || showSpinner}
             size="sm"
             variant="ghost"
             onClick={onCancel}
           >
             취소
           </Button>
-          <Button pending={pending} size="sm" onClick={onConfirm}>
+          <Button
+            disabled={pending || showSpinner}
+            pending={showSpinner}
+            size="sm"
+            onClick={onConfirm}
+          >
             {confirmLabel}
           </Button>
         </div>

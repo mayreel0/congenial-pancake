@@ -6,6 +6,7 @@ import { Button } from "ui/Button";
 import { Skeleton } from "ui/Skeleton";
 import { TextField } from "ui/TextField";
 import {
+  BUTTON_PENDING_MIN_MS,
   SKELETON_MIN_DISPLAY_MS,
   useMinDisplayDuration,
 } from "ui/useMinDisplayDuration";
@@ -48,6 +49,11 @@ export function NicknameSection() {
     status === "loading",
     SKELETON_MIN_DISPLAY_MS,
   );
+  // A fast local save can complete in under a frame, which makes the
+  // spinner flash too briefly to register as feedback at all — this holds
+  // the busy state visible for a minimum duration, appearing in the same
+  // instant `pending` does (no gap before the spinner shows).
+  const showSpinner = useMinDisplayDuration(pending, BUTTON_PENDING_MIN_MS);
 
   if (showSkeleton) {
     return (
@@ -127,15 +133,15 @@ export function NicknameSection() {
           {error && <p className="text-xs text-red-600">{error}</p>}
           <div className="flex gap-2">
             <Button
-              disabled={Object.keys(fieldErrors).length > 0}
-              pending={pending}
+              disabled={Object.keys(fieldErrors).length > 0 || showSpinner}
+              pending={showSpinner}
               size="sm"
               type="submit"
             >
               저장
             </Button>
             <Button
-              disabled={pending}
+              disabled={showSpinner}
               size="sm"
               type="button"
               variant="secondary"

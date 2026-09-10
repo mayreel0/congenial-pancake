@@ -6,6 +6,7 @@ import { completeSignupSchema } from "shared/dto";
 import { errorMessage } from "../lib/api";
 import { useAuth } from "../lib/auth/useAuth";
 import { useFieldValidation } from "ui/useFieldValidation";
+import { BUTTON_PENDING_MIN_MS, useMinDisplayDuration } from "ui/useMinDisplayDuration";
 import { parseFieldErrors } from "shared/zod-form";
 import { VerifyEmailBody, type VerifyEmailStatus } from "./VerifyEmailBody";
 
@@ -24,6 +25,14 @@ export function VerifyEmailForm() {
     token: token ?? "",
     password,
   });
+  // A fast local signup can complete in under a frame, which makes the
+  // spinner flash too briefly to register as feedback at all — this holds
+  // the busy state visible for a minimum duration, appearing in the same
+  // instant status does (no gap before the spinner shows).
+  const showSpinner = useMinDisplayDuration(
+    status === "pending",
+    BUTTON_PENDING_MIN_MS,
+  );
 
   async function handleSubmit(event: React.FormEvent): Promise<void> {
     event.preventDefault();
@@ -59,7 +68,7 @@ export function VerifyEmailForm() {
           fieldError={visibleError("password", fieldErrors)}
           hasFieldErrors={Object.keys(fieldErrors).length > 0}
           password={password}
-          status={status}
+          showSpinner={showSpinner}
           token={token}
           onPasswordChange={setPassword}
           onSubmit={(event) => void handleSubmit(event)}

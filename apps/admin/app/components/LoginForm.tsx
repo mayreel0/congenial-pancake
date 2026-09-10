@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { Button } from "ui/Button";
 import { TextField } from "ui/TextField";
 import { useFieldValidation } from "ui/useFieldValidation";
+import { BUTTON_PENDING_MIN_MS, useMinDisplayDuration } from "ui/useMinDisplayDuration";
 import { loginSchema } from "shared/dto";
 import { parseFieldErrors } from "shared/zod-form";
 import { ApiError } from "../lib/api";
@@ -36,6 +37,11 @@ export function LoginForm({ login }: LoginFormProps) {
   const { touchAll, visibleError } = useFieldValidation<Field>();
 
   const fieldErrors = parseFieldErrors(loginSchema, { email, password });
+  // A fast local login can complete in under a frame, which makes the
+  // spinner flash too briefly to register as feedback at all — this holds
+  // the busy state visible for a minimum duration, appearing in the same
+  // instant `pending` does (no gap before the spinner shows).
+  const showSpinner = useMinDisplayDuration(pending, BUTTON_PENDING_MIN_MS);
 
   async function handleSubmit(event: FormEvent): Promise<void> {
     event.preventDefault();
@@ -81,9 +87,9 @@ export function LoginForm({ login }: LoginFormProps) {
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       <Button
-        disabled={Object.keys(fieldErrors).length > 0}
+        disabled={Object.keys(fieldErrors).length > 0 || showSpinner}
         fullWidth
-        pending={pending}
+        pending={showSpinner}
         type="submit"
       >
         로그인

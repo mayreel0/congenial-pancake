@@ -5,6 +5,7 @@ import { createRequestSchema } from "shared/dto";
 import { Button } from "ui/Button";
 import { Skeleton } from "ui/Skeleton";
 import { Toggle } from "ui/Toggle";
+import { BUTTON_PENDING_MIN_MS, useMinDisplayDuration } from "ui/useMinDisplayDuration";
 import { parseFieldErrors } from "shared/zod-form";
 
 const MIN_TEXTAREA_HEIGHT = 44;
@@ -47,13 +48,19 @@ export function RequestComposer({
   }
 
   const isPending = status === "pending";
+  // A fast local submit can complete in under a frame, which makes the
+  // spinner flash too briefly to register as feedback at all — this holds
+  // the busy state visible for a minimum duration, appearing in the same
+  // instant isPending does (no gap before the spinner shows, unlike a
+  // delayed-reveal approach — see the button_pending_immediate_spinner memo).
+  const showSpinner = useMinDisplayDuration(isPending, BUTTON_PENDING_MIN_MS);
   // Just gates the button (no visible per-field error text) — an empty
   // composer isn't a mistake worth calling out, it's just the resting
   // state, and the disabled button already says "type something."
   const fieldErrors = parseFieldErrors(createRequestSchema, {
     body: localValue.trim(),
   });
-  const canSubmit = Object.keys(fieldErrors).length === 0 && !isPending;
+  const canSubmit = Object.keys(fieldErrors).length === 0 && !showSpinner;
 
   useLayoutEffect(() => {
     const textarea = textareaRef.current;
@@ -97,7 +104,7 @@ export function RequestComposer({
       <div className="flex items-end gap-2 rounded-lg border border-line bg-surface px-3 py-2 transition focus-within:border-primary">
         <textarea
           className="max-h-32 min-h-11 flex-1 resize-none bg-transparent py-2 text-base leading-6 text-foreground outline-none placeholder:text-muted"
-          disabled={isPending}
+          disabled={showSpinner}
           id="request-body"
           maxLength={160}
           placeholder="오늘 어떤 말을 듣고 싶나요?"
@@ -113,7 +120,7 @@ export function RequestComposer({
         <div className="shrink-0">
           <Button
             disabled={!canSubmit}
-            pending={isPending}
+            pending={showSpinner}
             size="sm"
             type="submit"
           >

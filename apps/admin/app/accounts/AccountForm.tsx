@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { Button } from "ui/Button";
 import { TextField } from "ui/TextField";
 import { useFieldValidation } from "ui/useFieldValidation";
+import { BUTTON_PENDING_MIN_MS, useMinDisplayDuration } from "ui/useMinDisplayDuration";
 import { issuePasswordResetLinkSchema } from "shared/dto";
 import { parseFieldErrors } from "shared/zod-form";
 import type { useAccountsAdmin } from "./useAccountsAdmin";
@@ -36,6 +37,11 @@ export function AccountForm({
   const fieldErrors = parseFieldErrors(issuePasswordResetLinkSchema, {
     email,
   });
+  // A fast local issue can complete in under a frame, which makes the
+  // spinner flash too briefly to register as feedback at all — this holds
+  // the busy state visible for a minimum duration, appearing in the same
+  // instant `issuing` does (no gap before the spinner shows).
+  const showSpinner = useMinDisplayDuration(issuing, BUTTON_PENDING_MIN_MS);
 
   async function handleSubmit(event: FormEvent): Promise<void> {
     event.preventDefault();
@@ -85,8 +91,8 @@ export function AccountForm({
           )}
 
           <Button
-            disabled={Object.keys(fieldErrors).length > 0}
-            pending={issuing}
+            disabled={Object.keys(fieldErrors).length > 0 || showSpinner}
+            pending={showSpinner}
             type="submit"
           >
             링크 발급

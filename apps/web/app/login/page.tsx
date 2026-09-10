@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { loginSchema, signupSchema } from "shared/dto";
 import { Button } from "ui/Button";
 import { TextField } from "ui/TextField";
+import { BUTTON_PENDING_MIN_MS, useMinDisplayDuration } from "ui/useMinDisplayDuration";
 import { ApiError, errorMessage, oauthLoginUrl } from "../lib/api";
 import { useAuth } from "../lib/auth/useAuth";
 import { useFieldValidation } from "ui/useFieldValidation";
@@ -47,6 +48,14 @@ export default function LoginPage() {
   const fieldErrors = parseFieldErrors(
     schema,
     mode === "login" ? { email, password } : { email },
+  );
+  // A fast/local auth check can complete in under a frame, which makes the
+  // spinner flash too briefly to register as feedback at all — this holds
+  // the busy state visible for a minimum duration, appearing in the same
+  // instant submitStatus does (no gap before the spinner shows).
+  const showSpinner = useMinDisplayDuration(
+    submitStatus === "pending",
+    BUTTON_PENDING_MIN_MS,
   );
 
   async function handleSubmit(event: React.FormEvent): Promise<void> {
@@ -157,9 +166,9 @@ export default function LoginPage() {
           )}
 
           <Button
-            disabled={Object.keys(fieldErrors).length > 0}
+            disabled={Object.keys(fieldErrors).length > 0 || showSpinner}
             fullWidth
-            pending={submitStatus === "pending"}
+            pending={showSpinner}
             type="submit"
           >
             {submitButtonLabel(mode)}

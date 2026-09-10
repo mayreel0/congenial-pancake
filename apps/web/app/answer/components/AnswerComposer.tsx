@@ -5,6 +5,7 @@ import { createReplySchema } from "shared/dto";
 import { Button } from "ui/Button";
 import { Skeleton } from "ui/Skeleton";
 import { Toggle } from "ui/Toggle";
+import { BUTTON_PENDING_MIN_MS, useMinDisplayDuration } from "ui/useMinDisplayDuration";
 import { parseFieldErrors } from "shared/zod-form";
 
 const MIN_TEXTAREA_HEIGHT = 44;
@@ -39,7 +40,12 @@ export function AnswerComposer({
   onSubmit,
   onCancelHeld,
 }: AnswerComposerProps) {
-  const fieldDisabled = disabled || pending;
+  // A fast local reply can complete in under a frame, which makes the
+  // spinner flash too briefly to register as feedback at all — this holds
+  // the busy state visible for a minimum duration, appearing in the same
+  // instant `pending` does (no gap before the spinner shows).
+  const showSpinner = useMinDisplayDuration(pending, BUTTON_PENDING_MIN_MS);
+  const fieldDisabled = disabled || showSpinner;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   // Just gates the button (no visible per-field error text) — an empty
   // composer isn't a mistake worth calling out, it's just the resting
@@ -118,7 +124,7 @@ export function AnswerComposer({
           <div className="shrink-0">
             <Button
               disabled={fieldDisabled || Object.keys(fieldErrors).length > 0}
-              pending={pending}
+              pending={showSpinner}
               size="sm"
               type="submit"
             >

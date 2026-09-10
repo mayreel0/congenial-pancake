@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { Button } from "ui/Button";
 import { TextField } from "ui/TextField";
 import { useFieldValidation } from "ui/useFieldValidation";
+import { BUTTON_PENDING_MIN_MS, useMinDisplayDuration } from "ui/useMinDisplayDuration";
 import { updateSettingsSchema, type SettingsResponseDto } from "shared/dto";
 import { parseFieldErrors } from "shared/zod-form";
 import type { useAdminSettings } from "./useAdminSettings";
@@ -96,6 +97,11 @@ export function SettingsForm({
     nicknameCooldownDays: Number(form.nicknameCooldownDays),
   };
   const fieldErrors = parseFieldErrors(updateSettingsSchema, values);
+  // A fast local save can complete in under a frame, which makes the
+  // spinner flash too briefly to register as feedback at all — this holds
+  // the busy state visible for a minimum duration, appearing in the same
+  // instant `updating` does (no gap before the spinner shows).
+  const showSpinner = useMinDisplayDuration(updating, BUTTON_PENDING_MIN_MS);
 
   async function handleSubmit(event: FormEvent): Promise<void> {
     event.preventDefault();
@@ -138,8 +144,8 @@ export function SettingsForm({
       )}
 
       <Button
-        disabled={Object.keys(fieldErrors).length > 0}
-        pending={updating}
+        disabled={Object.keys(fieldErrors).length > 0 || showSpinner}
+        pending={showSpinner}
         type="submit"
       >
         저장
