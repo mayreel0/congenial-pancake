@@ -15,7 +15,10 @@ type FormState = {
   nicknameCooldownDays: string;
 };
 
-const FIELDS: Array<{
+// Exported so SettingsReview's loading skeleton can render the same real
+// labels/hints (only the input values themselves need to be skeleton'd)
+// without duplicating this list.
+export const FIELDS: Array<{
   key: keyof FormState;
   label: string;
   hint: string;
@@ -105,43 +108,38 @@ export function SettingsForm({
   }
 
   return (
-    <>
-      <h1 className="text-lg font-semibold text-foreground">설정</h1>
-      <form
-        className="space-y-6"
-        onSubmit={(event) => void handleSubmit(event)}
-      >
-        {FIELDS.map((field) => (
-          <TextField
-            error={visibleError(field.key, fieldErrors)}
-            hint={field.hint}
-            id={field.key}
-            key={field.key}
-            label={field.label}
-            max={field.max}
-            min={field.min}
-            required
-            type="number"
-            value={form[field.key]}
-            width="compact"
-            onChange={(event) => {
-              setSaved(false);
-              setForm({ ...form, [field.key]: event.currentTarget.value });
-            }}
-          />
-        ))}
+    <form
+      className="space-y-6"
+      onSubmit={(event) => void handleSubmit(event)}
+    >
+      {FIELDS.map((field) => (
+        <TextField
+          error={visibleError(field.key, fieldErrors)}
+          hint={field.hint}
+          id={field.key}
+          key={field.key}
+          label={field.label}
+          max={field.max}
+          min={field.min}
+          required
+          type="number"
+          value={form[field.key]}
+          width="compact"
+          onChange={(event) => {
+            setSaved(false);
+            setForm({ ...form, [field.key]: event.currentTarget.value });
+          }}
+        />
+      ))}
 
-        {updateError && (
-          <p className="text-sm text-red-600">{updateError}</p>
-        )}
-        {!updateError && saved && (
-          <p className="text-sm text-primary">저장했어요.</p>
-        )}
+      {updateError && <p className="text-sm text-red-600">{updateError}</p>}
+      {!updateError && saved && (
+        <p className="text-sm text-primary">저장했어요.</p>
+      )}
 
-        <Button disabled={updating} type="submit">
-          {updating ? "저장 중" : "저장"}
-        </Button>
-      </form>
-    </>
+      <Button disabled={updating} type="submit">
+        {updating ? "저장 중" : "저장"}
+      </Button>
+    </form>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useLayoutEffect, useRef, useState } from "react";
 import { createRequestSchema } from "shared/dto";
+import { Skeleton } from "ui/Skeleton";
 import { Toggle } from "ui/Toggle";
 import { parseFieldErrors } from "shared/zod-form";
 
@@ -15,6 +16,7 @@ type RequestComposerProps = {
   // guests and nicknameless members can never post non-anonymously (see
   // docs/decisions/2026-08-28-onseol-nickname-post-reveal-decisions.md).
   nickname: string | null;
+  isLoadingNickname: boolean;
   anonymous: boolean;
   onChange(value: string): void;
   onToggleAnonymous(): void;
@@ -25,6 +27,7 @@ export function RequestComposer({
   value,
   status,
   nickname,
+  isLoadingNickname,
   anonymous,
   onChange,
   onToggleAnonymous,
@@ -70,15 +73,23 @@ export function RequestComposer({
         if (canSubmit) void onSubmit(localValue.trim());
       }}
     >
-      {nickname && (
-        <div className="mb-1.5">
-          <Toggle
-            checked={!anonymous}
-            label={`닉네임(${nickname})으로 남기기`}
-            onChange={() => onToggleAnonymous()}
-          />
-        </div>
-      )}
+      {/* Fixed h-5 slot regardless of outcome (skeleton / real toggle /
+          nothing) — a guest or nicknameless member ending up with no toggle
+          shouldn't shift the composer below any differently than a member
+          with one does, once the loading state resolves. */}
+      <div className="mb-1.5 flex h-5 items-center">
+        {isLoadingNickname ? (
+          <Skeleton className="h-5 w-48 rounded-full" />
+        ) : (
+          nickname && (
+            <Toggle
+              checked={!anonymous}
+              label={`닉네임(${nickname})으로 남기기`}
+              onChange={() => onToggleAnonymous()}
+            />
+          )
+        )}
+      </div>
       <label className="sr-only" htmlFor="request-body">
         오늘 어떤 말을 듣고 싶나요?
       </label>

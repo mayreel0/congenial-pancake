@@ -1,6 +1,7 @@
 "use client";
 
 import { ServiceNav } from "../components/navigation/ServiceNav";
+import { Skeleton } from "ui/Skeleton";
 import { Toast } from "ui/Toast";
 import { useToast } from "ui/useToast";
 import { RequestComposer } from "./components/RequestComposer";
@@ -39,10 +40,21 @@ export function TodayPrototype() {
             <h1 className="text-2xl font-semibold tracking-normal text-foreground sm:text-4xl">
               오늘 어떤 말을 듣고 싶나요?
             </h1>
-            <RotatingOnseolLine
-              messages={prototype.todayEntryMessages}
-              paused={isTyping}
-            />
+            {prototype.isLoadingEntryMessages ? (
+              // h-14 wrapper matches RotatingOnseolLine's own min-h-14 (it
+              // reserves room for up to 2 lines so rotating between a short
+              // and a long message doesn't jitter) — only the visible bar
+              // inside is sized like a single line, so leaving the skeleton
+              // doesn't grow the layout despite looking appropriately small.
+              <div className="mx-auto flex h-14 w-full max-w-2xl items-center justify-center">
+                <Skeleton className="h-6 w-2/3" />
+              </div>
+            ) : (
+              <RotatingOnseolLine
+                messages={prototype.todayEntryMessages}
+                paused={isTyping}
+              />
+            )}
           </div>
 
           <div
@@ -51,6 +63,7 @@ export function TodayPrototype() {
           >
             <RequestComposer
               anonymous={prototype.anonymous}
+              isLoadingNickname={prototype.isLoadingNickname}
               nickname={prototype.nickname}
               status={prototype.requestSubmitStatus}
               value={prototype.requestDraft}
@@ -60,10 +73,14 @@ export function TodayPrototype() {
             />
           </div>
 
-          <p className="text-sm text-muted">
-            오늘 {requestCount}개의 이야기가 남겨졌고, {replyCount}개의 답장이
-            도착했어요.
-          </p>
+          {prototype.isLoadingEntryMessages ? (
+            <Skeleton className="mx-auto h-5 w-64" />
+          ) : (
+            <p className="text-sm text-muted">
+              오늘 {requestCount}개의 이야기가 남겨졌고, {replyCount}개의 답장이
+              도착했어요.
+            </p>
+          )}
         </section>
       </main>
       <Toast toast={toast} onDismiss={dismiss} />

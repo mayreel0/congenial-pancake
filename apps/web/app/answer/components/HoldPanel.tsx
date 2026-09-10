@@ -1,9 +1,51 @@
 import { truncatePreview } from "../../today/prototype/model";
 import type { RequestDto } from "../../lib/requests/api";
+import { Skeleton } from "ui/Skeleton";
+
+type HoldPanelBodyProps = {
+  loading: boolean;
+  heldRequests: RequestDto[];
+  onSelect(requestId: string): void;
+};
+
+// Early return instead of a nested ternary — matches
+// apps/admin/app/components/AdminStatusGate.tsx's pattern.
+function HoldPanelBody({ loading, heldRequests, onSelect }: HoldPanelBodyProps) {
+  if (loading) {
+    return (
+      <div className="space-y-2 py-1">
+        {[0, 1].map((key) => (
+          <Skeleton className="h-9 w-full" key={key} />
+        ))}
+      </div>
+    );
+  }
+
+  if (heldRequests.length === 0) {
+    return <p className="py-4 text-sm text-muted">보류한 온설이 없어요.</p>;
+  }
+
+  return (
+    <ul className="space-y-2">
+      {heldRequests.map((request) => (
+        <li key={request.id}>
+          <button
+            className="block w-full rounded-lg border border-line bg-background px-3 py-2 text-left text-sm text-foreground transition hover:bg-surface-muted"
+            type="button"
+            onClick={() => onSelect(request.id)}
+          >
+            {truncatePreview(request.body, 60)}
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 type HoldPanelProps = {
   open: boolean;
   heldRequests: RequestDto[];
+  loading: boolean;
   onSelect(requestId: string): void;
   onClose(): void;
 };
@@ -11,6 +53,7 @@ type HoldPanelProps = {
 export function HoldPanel({
   open,
   heldRequests,
+  loading,
   onSelect,
   onClose,
 }: HoldPanelProps) {
@@ -34,23 +77,11 @@ export function HoldPanel({
             닫기
           </button>
         </div>
-        {heldRequests.length === 0 ? (
-          <p className="py-4 text-sm text-muted">보류한 온설이 없어요.</p>
-        ) : (
-          <ul className="space-y-2">
-            {heldRequests.map((request) => (
-              <li key={request.id}>
-                <button
-                  className="block w-full rounded-lg border border-line bg-background px-3 py-2 text-left text-sm text-foreground transition hover:bg-surface-muted"
-                  type="button"
-                  onClick={() => onSelect(request.id)}
-                >
-                  {truncatePreview(request.body, 60)}
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+        <HoldPanelBody
+          heldRequests={heldRequests}
+          loading={loading}
+          onSelect={onSelect}
+        />
       </div>
     </div>
   );

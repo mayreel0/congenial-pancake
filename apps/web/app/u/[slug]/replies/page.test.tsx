@@ -12,9 +12,11 @@ function jsonResponse(status: number, body: unknown): MockResponse {
 function installFakeBackend({
   items = [],
   status = 200,
+  neverResolve = false,
 }: {
   items?: unknown[];
   status?: number;
+  neverResolve?: boolean;
 }) {
   const fetchMock = vi.fn(
     (input: RequestInfo | URL): Promise<MockResponse> => {
@@ -25,6 +27,7 @@ function installFakeBackend({
       }
 
       if (url.includes("/replies")) {
+        if (neverResolve) return new Promise(() => {});
         if (status >= 400) {
           return Promise.resolve(jsonResponse(status, { statusCode: status }));
         }
@@ -89,6 +92,16 @@ describe("RepliesListPage", () => {
       "href",
       "/u/%EB%AF%BC%EB%93%A4%EB%A0%88-D59D/replies/reply-1",
     );
+  });
+
+  it("shows a skeleton, not empty content, while the list is loading", async () => {
+    vi.mocked(useParams).mockReturnValue({ slug: "민들레-D59D" });
+    installFakeBackend({ neverResolve: true });
+
+    const { container } = render(<RepliesListPage />);
+
+    await screen.findByRole("link", { name: "← 민들레#D59D" });
+    expect(container.querySelectorAll(".animate-pulse").length).toBeGreaterThan(0);
   });
 
   it("shows an empty message when there is nothing to list", async () => {

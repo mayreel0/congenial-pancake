@@ -15,6 +15,7 @@ function installFakeBackend({
   showRepliesOnProfile = true,
   showCountsOnProfile = true,
   nicknameVisible = true,
+  neverResolveAuth = false,
 }: {
   loggedIn: boolean;
   nickname?: string | null;
@@ -22,12 +23,14 @@ function installFakeBackend({
   showRepliesOnProfile?: boolean;
   showCountsOnProfile?: boolean;
   nicknameVisible?: boolean;
+  neverResolveAuth?: boolean;
 }) {
   const fetchMock = vi.fn(
     (input: RequestInfo | URL, init?: RequestInit): Promise<MockResponse> => {
       const url = typeof input === "string" ? input : input.toString();
 
       if (url.endsWith("/auth/me")) {
+        if (neverResolveAuth) return new Promise(() => {});
         if (!loggedIn) {
           return Promise.resolve(jsonResponse(401, { code: "UNAUTHORIZED" }));
         }
@@ -96,6 +99,33 @@ describe("MePage", () => {
         expect.objectContaining({ href: "http://localhost:3000/login" }),
       ]),
     );
+  });
+
+  it("shows a skeleton, not a blank page, while auth is still resolving", async () => {
+    installFakeBackend({ loggedIn: true, neverResolveAuth: true });
+
+    const { container } = render(<MePage />);
+
+    // Headings and every section's own title render immediately — only the
+    // fields that actually need `user` (email/date, linked-provider tiles,
+    // nickname value, visibility toggles) turn into skeletons.
+    expect(
+      await screen.findByRole("heading", { name: "내 정보" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "연동된 계정" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "닉네임" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "닉네임 공개 설정" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "공개 프로필 설정" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "회원탈퇴" })).toBeInTheDocument();
+    expect(screen.queryByText("member@example.com")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("로그인하면 내 정보를 볼 수 있습니다."),
+    ).not.toBeInTheDocument();
+    expect(container.querySelectorAll(".animate-pulse").length).toBeGreaterThan(0);
   });
 
   it("shows the member's email and joined date", async () => {

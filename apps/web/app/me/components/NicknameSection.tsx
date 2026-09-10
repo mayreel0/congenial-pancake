@@ -3,7 +3,12 @@
 import { useState } from "react";
 import { updateNicknameSchema } from "shared/dto";
 import { Button } from "ui/Button";
+import { Skeleton } from "ui/Skeleton";
 import { TextField } from "ui/TextField";
+import {
+  SKELETON_MIN_DISPLAY_MS,
+  useMinDisplayDuration,
+} from "ui/useMinDisplayDuration";
 import { errorMessage } from "../../lib/api";
 import { useAuth } from "../../lib/auth/useAuth";
 import { useFieldValidation } from "ui/useFieldValidation";
@@ -30,7 +35,7 @@ function cooldownDaysRemaining(availableAt: string | null): number | null {
 // only covers the nickname's actual text and its change cooldown, so it can
 // stay a self-contained <form> with no cross-component state.
 export function NicknameSection() {
-  const { user, updateNickname } = useAuth();
+  const { user, updateNickname, status } = useAuth();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
   const [pending, setPending] = useState(false);
@@ -39,6 +44,28 @@ export function NicknameSection() {
   const fieldErrors = parseFieldErrors(updateNicknameSchema, {
     nickname: draft.trim(),
   });
+  const showSkeleton = useMinDisplayDuration(
+    status === "loading",
+    SKELETON_MIN_DISPLAY_MS,
+  );
+
+  if (showSkeleton) {
+    return (
+      <section className="space-y-3 rounded-lg border border-line bg-surface px-4 py-5 shadow-sm">
+        <div className="space-y-1">
+          <h2 className="text-sm font-semibold text-foreground">닉네임</h2>
+          <p className="text-xs text-muted">
+            글이나 답장을 남길 때, 익명 대신 이 닉네임으로 남길지 매번 선택할
+            수 있어요.
+          </p>
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <Skeleton className="h-5 w-32" />
+          <Skeleton className="h-10 w-16" />
+        </div>
+      </section>
+    );
+  }
 
   if (!user) return null;
 

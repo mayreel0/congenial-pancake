@@ -3,6 +3,7 @@ import type { AnswerLogEntry } from "../useAnswerQueue";
 import type { RequestDto } from "../../lib/requests/api";
 import { authorDisplayLabel, authorProfileHref } from "../../lib/author-label";
 import { formatDayLabel, isSameCalendarDay } from "../../lib/format";
+import { Skeleton } from "ui/Skeleton";
 import { DateDivider } from "./DateDivider";
 import { RequestBubble } from "./RequestBubble";
 import { ReplyBubble } from "./ReplyBubble";
@@ -12,6 +13,14 @@ import { TypingBubble } from "./TypingBubble";
 type AnswerLogProps = {
   entries: AnswerLogEntry[];
   currentRequest: RequestDto | null;
+  // Very first fetch of the live queue candidate — distinct from
+  // `loadingNext` (an in-session skip/submit/hold transition) since this is
+  // about "haven't loaded yet" vs. "genuinely nothing to answer".
+  isLoadingCurrentTarget: boolean;
+  // Very first fetch of the viewer's own answer history, above the live
+  // section — `isLoadingOlderEntries` only covers loading further pages
+  // once the first one is already in.
+  isLoadingAnswerLog: boolean;
   authorLabels: Map<string, string>;
   leavingRequestId: string | null;
   loadingNext: boolean;
@@ -34,6 +43,8 @@ type AnswerLogProps = {
 export function AnswerLog({
   entries,
   currentRequest,
+  isLoadingCurrentTarget,
+  isLoadingAnswerLog,
   authorLabels,
   leavingRequestId,
   loadingNext,
@@ -78,7 +89,13 @@ export function AnswerLog({
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [hasOlderEntries, onLoadOlderEntries]);
+    // isLoadingAnswerLog is a dependency (not just used above) because the
+    // sentinel <div ref> only exists in the DOM once the skeleton branch
+    // clears — hasOlderEntries can already be true one tick before that (its
+    // own loading flag isn't run through useMinDisplayDuration), so without
+    // this the effect would fire once against a still-null ref and then
+    // never retry, permanently losing the "scroll up for older" trigger.
+  }, [hasOlderEntries, isLoadingAnswerLog, onLoadOlderEntries]);
   const lastEntryReply = entries[entries.length - 1]?.reply ?? null;
   const showLiveDivider =
     !lastEntryReply ||
@@ -89,14 +106,23 @@ export function AnswerLog({
   // Oldest position — with the container's flex-col-reverse + the
   // .reverse() below, this ends up at the visual top, which is exactly
   // where "scroll up for older" needs the trigger to sit.
-  if (hasOlderEntries) {
+  if (isLoadingAnswerLog) {
     blocks.push(
-      <div className="flex justify-center py-3" key="load-older" ref={sentinelRef}>
+      <div className="flex flex-col gap-2" key="answer-log-loading">
+        <Skeleton className="h-14 max-w-[70%] self-start rounded-lg" />
+        <Skeleton className="h-14 max-w-[70%] self-end rounded-lg" />
+      </div>,
+    );
+  } else if (hasOlderEntries) {
+    blocks.push(
+      <div key="load-older">
         {isLoadingOlderEntries && (
-          <p aria-live="polite" className="text-xs text-muted">
-            이전 대화 불러오는 중…
-          </p>
+          <div aria-live="polite" className="flex flex-col gap-2 pb-3">
+            <Skeleton className="h-14 max-w-[70%] self-start rounded-lg" />
+            <Skeleton className="h-14 max-w-[70%] self-end rounded-lg" />
+          </div>
         )}
+        <div ref={sentinelRef} />
       </div>,
     );
   }
@@ -167,6 +193,13 @@ export function AnswerLog({
             <SkipIcon className="h-3.5 w-3.5" />
           </button>
         </div>
+      </div>,
+    );
+  } else if (isLoadingCurrentTarget) {
+    blocks.push(
+      <div className="flex flex-col gap-2" key="live-loading-target">
+        {showLiveDivider && <DateDivider label="오늘" />}
+        <Skeleton className="h-16 max-w-[85%] self-start rounded-lg sm:max-w-[70%]" />
       </div>,
     );
   } else {

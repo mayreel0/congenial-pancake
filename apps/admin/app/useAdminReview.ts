@@ -13,6 +13,9 @@ import {
 
 type UseAdminReviewResult = {
   status: "loading" | "signedOut" | "forbidden" | "ready";
+  // status turns "ready" as soon as the auth check clears — the hidden-queue
+  // GET itself can still be in flight after that, which this covers.
+  isLoadingQueue: boolean;
   hiddenRequests: AdminRequestResponseDto[];
   hiddenReplies: AdminReplyResponseDto[];
   restoreRequest(id: string): Promise<void>;
@@ -53,6 +56,7 @@ export function useAdminReview(): UseAdminReviewResult {
 
   return {
     status,
+    isLoadingQueue: hiddenQuery.isLoading,
     hiddenRequests: hiddenQuery.data?.requests ?? [],
     hiddenReplies: hiddenQuery.data?.replies ?? [],
     restoreRequest: (id) => restoreRequestMutation.mutateAsync(id),

@@ -45,7 +45,15 @@ function installFakeBackend(
     loggedIn = true,
     isAdmin = true,
     loginSucceeds = true,
-  }: { loggedIn?: boolean; isAdmin?: boolean; loginSucceeds?: boolean } = {},
+    neverResolveQueue = false,
+    neverResolveAuth = false,
+  }: {
+    loggedIn?: boolean;
+    isAdmin?: boolean;
+    loginSucceeds?: boolean;
+    neverResolveQueue?: boolean;
+    neverResolveAuth?: boolean;
+  } = {},
 ) {
   let currentlyLoggedIn = loggedIn;
 
@@ -55,6 +63,7 @@ function installFakeBackend(
       const method = init?.method ?? "GET";
 
       if (url.endsWith("/auth/me")) {
+        if (neverResolveAuth) return new Promise(() => {});
         if (!currentlyLoggedIn) {
           return Promise.resolve(jsonResponse(401, { code: "UNAUTHORIZED" }));
         }
@@ -92,6 +101,7 @@ function installFakeBackend(
             jsonResponse(403, { code: "FORBIDDEN", message: "Forbidden" }),
           );
         }
+        if (neverResolveQueue) return new Promise(() => {});
         return Promise.resolve(jsonResponse(200, queue));
       }
 
@@ -185,6 +195,36 @@ describe("AdminReview", () => {
     expect(await screen.findByText("숨겨진 요청")).toBeInTheDocument();
     expect(screen.getByText("숨겨진 답변")).toBeInTheDocument();
     expect(screen.getAllByText(/신고 3건/)).toHaveLength(2);
+  });
+
+  it("shows a skeleton, not the empty-state message, while the queue is loading", async () => {
+    installFakeBackend(makeQueue(), { neverResolveQueue: true });
+    const { container } = render(<AdminReview />);
+
+    // "신고 검토" itself renders immediately regardless of status (outside
+    // AdminStatusGate), so it can't be the wait condition — AdminNav's
+    // logout button only shows once auth resolves to authenticated, which
+    // is genuinely what this test needs to wait for. The queue GET never
+    // resolves — this is specifically that in-between window.
+    await screen.findByRole("button", { name: "로그아웃" });
+    expect(
+      screen.getByRole("heading", { name: "신고 검토" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("검토할 항목이 없어요.")).not.toBeInTheDocument();
+    expect(container.querySelectorAll(".animate-pulse").length).toBeGreaterThan(0);
+  });
+
+  it("keeps the '신고 검토' title visible while auth is still resolving", async () => {
+    installFakeBackend(makeQueue(), { neverResolveAuth: true });
+
+    render(<AdminReview />);
+
+    expect(
+      await screen.findByRole("heading", { name: "신고 검토" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "로그인" }),
+    ).not.toBeInTheDocument();
   });
 
   it("removes a request from the list after restoring it", async () => {

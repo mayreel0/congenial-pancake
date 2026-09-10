@@ -1,6 +1,10 @@
 "use client";
 
 import { useRef, useState } from "react";
+import {
+  SKELETON_MIN_DISPLAY_MS,
+  useMinDisplayDuration,
+} from "ui/useMinDisplayDuration";
 import { useAuth } from "../lib/auth/useAuth";
 import {
   useCreateRequestMutation,
@@ -31,6 +35,10 @@ type UseTodayComposerResult = {
   requestDraft: string;
   requestSubmitStatus: RequestSubmitStatus;
   todayEntryMessages: string[];
+  // While loading, `requests` is empty and `todayEntryMessages` falls back
+  // to FALLBACK_ONSEOL_MESSAGES — same fallback used when there's genuinely
+  // no live content, so a loading UI can't just check emptiness here.
+  isLoadingEntryMessages: boolean;
   requestCount: number;
   replyCount: number;
   // null when not logged in or the user hasn't set one yet — the composer
@@ -38,6 +46,11 @@ type UseTodayComposerResult = {
   // 2026-08-28-onseol-nickname-post-reveal-decisions.md: a guest or a
   // nicknameless member can never post non-anonymously).
   nickname: string | null;
+  // While true, the composer can't yet tell whether the toggle should show
+  // at all — it renders a skeleton in the toggle's exact spot instead of
+  // guessing, so nothing shifts once the real answer (toggle or nothing)
+  // is known.
+  isLoadingNickname: boolean;
   anonymous: boolean;
   updateRequestDraft(value: string): void;
   toggleAnonymous(): void;
@@ -45,7 +58,7 @@ type UseTodayComposerResult = {
 };
 
 export function useTodayComposer(): UseTodayComposerResult {
-  const { user } = useAuth();
+  const { user, status } = useAuth();
   const [requestDraft, setRequestDraft] = useState("");
   const [justSubmitted, setJustSubmitted] = useState(false);
   const [anonymous, setAnonymous] = useState(true);
@@ -91,14 +104,24 @@ export function useTodayComposer(): UseTodayComposerResult {
     createRequestMutation.isPending,
     justSubmitted,
   );
+  const isLoadingEntryMessages = useMinDisplayDuration(
+    requestsQuery.isLoading,
+    SKELETON_MIN_DISPLAY_MS,
+  );
+  const isLoadingNickname = useMinDisplayDuration(
+    status === "loading",
+    SKELETON_MIN_DISPLAY_MS,
+  );
 
   return {
     requestDraft,
     requestSubmitStatus,
     todayEntryMessages,
+    isLoadingEntryMessages,
     requestCount: requests.length,
     replyCount: requests.reduce((sum, request) => sum + request.replyCount, 0),
     nickname: user?.nickname ?? null,
+    isLoadingNickname,
     anonymous,
     updateRequestDraft,
     toggleAnonymous,

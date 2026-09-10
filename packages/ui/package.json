@@ -20,6 +20,7 @@
     "./Toast": "./src/components/Toast.tsx",
     "./useDismissOnOutsideClick": "./src/hooks/useDismissOnOutsideClick.ts",
     "./useFieldValidation": "./src/hooks/useFieldValidation.ts",
+    "./useMinDisplayDuration": "./src/hooks/useMinDisplayDuration.ts",
     "./useToast": "./src/hooks/useToast.ts"
   },
   "dependencies": {

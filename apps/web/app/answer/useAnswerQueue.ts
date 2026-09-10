@@ -1,6 +1,10 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import {
+  SKELETON_MIN_DISPLAY_MS,
+  useMinDisplayDuration,
+} from "ui/useMinDisplayDuration";
 import { useAuth } from "../lib/auth/useAuth";
 import type { AuthorDisplayDto, RequestDto } from "../lib/requests/api";
 import {
@@ -33,8 +37,15 @@ export type AnswerLogEntry = {
 
 type UseAnswerQueueResult = {
   currentAnswerTarget: RequestDto | null;
+  // True only for the very first fetch of the live queue candidate (not
+  // while viewing a held request, and not during skip/submit/hold's own
+  // "다음 글 불러오는 중" transition, which AnswerSession tracks separately) —
+  // lets AnswerLog tell "아직 안 불러왔다" apart from "정말 없다".
+  isLoadingCurrentTarget: boolean;
   heldRequests: RequestDto[];
+  isLoadingHeldRequests: boolean;
   answerLog: AnswerLogEntry[];
+  isLoadingAnswerLog: boolean;
   isAnsweringHeldRequest: boolean;
   hasOlderAnswerLogEntries: boolean;
   isLoadingOlderAnswerLogEntries: boolean;
@@ -46,6 +57,7 @@ type UseAnswerQueueResult = {
   // Same reveal-toggle rule as useTodayComposer — null nickname means the
   // composer hides the toggle entirely.
   nickname: string | null;
+  isLoadingNickname: boolean;
   anonymous: boolean;
   toggleAnonymous(): void;
   updateReplyDraft(requestId: string, value: string): void;
@@ -150,10 +162,30 @@ export function useAnswerQueue(): UseAnswerQueueResult {
     await reportMutation.mutateAsync({ targetType: "request", targetId: requestId });
   }
 
+  const isLoadingCurrentTarget = useMinDisplayDuration(
+    !activeHeldRequest && queueQuery.isLoading,
+    SKELETON_MIN_DISPLAY_MS,
+  );
+  const isLoadingHeldRequests = useMinDisplayDuration(
+    heldQuery.isLoading,
+    SKELETON_MIN_DISPLAY_MS,
+  );
+  const isLoadingAnswerLog = useMinDisplayDuration(
+    answerLogQuery.isLoading,
+    SKELETON_MIN_DISPLAY_MS,
+  );
+  const isLoadingNickname = useMinDisplayDuration(
+    status === "loading",
+    SKELETON_MIN_DISPLAY_MS,
+  );
+
   return {
     currentAnswerTarget,
+    isLoadingCurrentTarget,
     heldRequests,
+    isLoadingHeldRequests,
     answerLog,
+    isLoadingAnswerLog,
     isAnsweringHeldRequest: activeHeldRequest !== null,
     hasOlderAnswerLogEntries: answerLogQuery.hasNextPage,
     isLoadingOlderAnswerLogEntries: answerLogQuery.isFetchingNextPage,
@@ -161,6 +193,7 @@ export function useAnswerQueue(): UseAnswerQueueResult {
     canManageCurrentRequest: status === "authenticated",
     replyDrafts,
     nickname: user?.nickname ?? null,
+    isLoadingNickname,
     anonymous,
     toggleAnonymous,
     updateReplyDraft,
