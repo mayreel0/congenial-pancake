@@ -19,10 +19,8 @@ type Field = "email" | "password";
 
 const EMAIL_NOT_VERIFIED_CODE = "AUTH_EMAIL_NOT_VERIFIED";
 
-function submitButtonLabel(submitStatus: SubmitStatus, mode: Mode): string {
-  if (submitStatus === "pending") return "처리 중";
-  if (mode === "login") return "로그인";
-  return "인증 메일 받기";
+function submitButtonLabel(mode: Mode): string {
+  return mode === "login" ? "로그인" : "인증 메일 받기";
 }
 
 export default function LoginPage() {
@@ -159,11 +157,12 @@ export default function LoginPage() {
           )}
 
           <Button
-            disabled={submitStatus === "pending"}
+            disabled={Object.keys(fieldErrors).length > 0}
             fullWidth
+            pending={submitStatus === "pending"}
             type="submit"
           >
-            {submitButtonLabel(submitStatus, mode)}
+            {submitButtonLabel(mode)}
           </Button>
         </form>
 

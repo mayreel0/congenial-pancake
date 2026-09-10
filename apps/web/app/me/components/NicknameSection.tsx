@@ -127,11 +127,12 @@ export function NicknameSection() {
           {error && <p className="text-xs text-red-600">{error}</p>}
           <div className="flex gap-2">
             <Button
-              disabled={pending || Object.keys(fieldErrors).length > 0}
+              disabled={Object.keys(fieldErrors).length > 0}
+              pending={pending}
               size="sm"
               type="submit"
             >
-              {pending ? "저장하는 중" : "저장"}
+              저장
             </Button>
             <Button
               disabled={pending}

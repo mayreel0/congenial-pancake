@@ -84,8 +84,12 @@ export function AccountForm({
             <p className="text-sm text-red-600">{issueError}</p>
           )}
 
-          <Button disabled={issuing} type="submit">
-            {issuing ? "발급 중" : "링크 발급"}
+          <Button
+            disabled={Object.keys(fieldErrors).length > 0}
+            pending={issuing}
+            type="submit"
+          >
+            링크 발급
           </Button>
         </form>
 

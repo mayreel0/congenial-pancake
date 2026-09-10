@@ -52,6 +52,7 @@ export function ResetPasswordForm() {
         <ResetPasswordBody
           error={error}
           fieldError={visibleError("password", fieldErrors)}
+          hasFieldErrors={Object.keys(fieldErrors).length > 0}
           password={password}
           status={status}
           token={token}

@@ -80,8 +80,13 @@ export function LoginForm({ login }: LoginFormProps) {
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
-      <Button disabled={pending} fullWidth type="submit">
-        {pending ? "로그인 중" : "로그인"}
+      <Button
+        disabled={Object.keys(fieldErrors).length > 0}
+        fullWidth
+        pending={pending}
+        type="submit"
+      >
+        로그인
       </Button>
 
       {/* OAuth-only 계정은 이메일/비밀번호가 없어 이 폼으로 로그인할 수

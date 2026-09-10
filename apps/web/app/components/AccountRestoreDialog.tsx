@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "ui/Button";
 import { Toast } from "ui/Toast";
 import { useToast } from "ui/useToast";
 import { POPOVER_EXIT_MS, useAnimatedPresence } from "ui/useAnimatedPresence";
@@ -83,22 +84,23 @@ export function AccountRestoreDialog() {
           계속 이용하려면 계정을 복구해주세요.
         </p>
         <div className="flex justify-end gap-2">
-          <button
-            className="inline-flex h-10 items-center justify-center rounded-lg px-4 text-sm font-medium text-muted transition hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={loggingOut || restoring}
-            type="button"
+          <Button
+            disabled={restoring}
+            pending={loggingOut}
+            size="sm"
+            variant="ghost"
             onClick={() => void handleLogout()}
           >
-            {loggingOut ? "로그아웃 중" : "로그아웃"}
-          </button>
-          <button
-            className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={loggingOut || restoring}
-            type="button"
+            로그아웃
+          </Button>
+          <Button
+            disabled={loggingOut}
+            pending={restoring}
+            size="sm"
             onClick={() => void handleRestore()}
           >
-            {restoring ? "복구 중" : "복구하기"}
-          </button>
+            복구하기
+          </Button>
         </div>
       </div>
       <Toast toast={toast} onDismiss={dismiss} />

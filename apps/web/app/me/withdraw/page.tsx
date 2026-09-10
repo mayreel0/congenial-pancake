@@ -96,10 +96,10 @@ export default function WithdrawPage() {
           취소
         </Button>
         <Button
-          disabled={status === "pending"}
+          pending={status === "pending"}
           onClick={() => setConfirmOpen(true)}
         >
-          {status === "pending" ? "처리 중" : "탈퇴하기"}
+          탈퇴하기
         </Button>
       </div>
 

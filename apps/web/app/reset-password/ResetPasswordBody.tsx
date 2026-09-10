@@ -10,6 +10,10 @@ type ResetPasswordBodyProps = {
   password: string;
   error: string | null;
   fieldError: string | undefined;
+  // Raw validity, independent of whether the field has been touched yet
+  // (unlike `fieldError`, which only shows once touched) — gates the
+  // submit button so it starts disabled on an empty field.
+  hasFieldErrors: boolean;
   onPasswordChange(value: string): void;
   onSubmit(event: React.FormEvent): void;
 };
@@ -23,6 +27,7 @@ export function ResetPasswordBody({
   password,
   error,
   fieldError,
+  hasFieldErrors,
   onPasswordChange,
   onSubmit,
 }: ResetPasswordBodyProps) {
@@ -59,8 +64,13 @@ export function ResetPasswordBody({
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
-      <Button disabled={status === "pending"} fullWidth type="submit">
-        {status === "pending" ? "처리 중" : "비밀번호 설정"}
+      <Button
+        disabled={hasFieldErrors}
+        fullWidth
+        pending={status === "pending"}
+        type="submit"
+      >
+        비밀번호 설정
       </Button>
     </form>
   );

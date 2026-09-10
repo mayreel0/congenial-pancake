@@ -182,7 +182,7 @@ label:has(input[type="checkbox"]) {
 /* Anchored dropdowns/menus that pop up near their trigger — MoreMenu,
    HeatmapCalendarField's calendar popover, ServiceNav's profile dropdown
    and mobile nav panel. Kept mounted for POPOVER_EXIT_MS (see
-   packages/ui/src/hooks/useMinDisplayDuration.ts) after closing so this
+   packages/ui/src/hooks/useAnimatedPresence.ts) after closing so this
    leave animation actually gets to play instead of an instant unmount. */
 @keyframes onseol-popover-enter {
   from {
@@ -360,5 +360,16 @@ label:has(input[type="checkbox"]) {
   .onseol-typing-dot {
     animation: none;
     opacity: 0.6;
+  }
+}
+
+/* Tailwind's own animate-spin utility (ui/Button's pending spinner) has no
+   built-in prefers-reduced-motion handling — this is an unlayered rule, so
+   per CSS cascade layers it wins over Tailwind's own @layer utilities
+   regardless of source order or specificity (same mechanism already
+   relied on for the cursor-pointer override above). */
+@media (prefers-reduced-motion: reduce) {
+  .animate-spin {
+    animation: none;
   }
 }

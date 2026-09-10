@@ -2,6 +2,7 @@
 
 import { useLayoutEffect, useRef } from "react";
 import { createReplySchema } from "shared/dto";
+import { Button } from "ui/Button";
 import { Skeleton } from "ui/Skeleton";
 import { Toggle } from "ui/Toggle";
 import { parseFieldErrors } from "shared/zod-form";
@@ -114,13 +115,16 @@ export function AnswerComposer({
             value={value}
             onChange={(event) => onChange(event.target.value)}
           />
-          <button
-            className="inline-flex h-10 shrink-0 items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={fieldDisabled || Object.keys(fieldErrors).length > 0}
-            type="submit"
-          >
-            {pending ? "답하는 중" : "답변하기"}
-          </button>
+          <div className="shrink-0">
+            <Button
+              disabled={fieldDisabled || Object.keys(fieldErrors).length > 0}
+              pending={pending}
+              size="sm"
+              type="submit"
+            >
+              답변하기
+            </Button>
+          </div>
         </div>
       </div>
     </form>

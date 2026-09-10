@@ -2,6 +2,7 @@
 
 import { useLayoutEffect, useRef, useState } from "react";
 import { createRequestSchema } from "shared/dto";
+import { Button } from "ui/Button";
 import { Skeleton } from "ui/Skeleton";
 import { Toggle } from "ui/Toggle";
 import { parseFieldErrors } from "shared/zod-form";
@@ -109,13 +110,16 @@ export function RequestComposer({
             onChange(nextValue);
           }}
         />
-        <button
-          className="inline-flex h-10 shrink-0 items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={!canSubmit}
-          type="submit"
-        >
-          {isPending ? "남기는 중" : "보내기"}
-        </button>
+        <div className="shrink-0">
+          <Button
+            disabled={!canSubmit}
+            pending={isPending}
+            size="sm"
+            type="submit"
+          >
+            보내기
+          </Button>
+        </div>
       </div>
     </form>
   );

@@ -137,8 +137,12 @@ export function SettingsForm({
         <p className="text-sm text-primary">저장했어요.</p>
       )}
 
-      <Button disabled={updating} type="submit">
-        {updating ? "저장 중" : "저장"}
+      <Button
+        disabled={Object.keys(fieldErrors).length > 0}
+        pending={updating}
+        type="submit"
+      >
+        저장
       </Button>
     </form>
   );
