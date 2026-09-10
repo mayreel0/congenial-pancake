@@ -140,8 +140,9 @@ export function VisibilityDraftProvider({
         )}
       </form>
       <ActionConfirmDialog
-        confirmLabel={pending ? "저장하는 중" : "저장"}
+        confirmLabel="저장"
         message="설정을 저장할까요?"
+        pending={pending}
         open={confirming}
         onCancel={() => setConfirming(false)}
         onConfirm={() => void handleConfirmSave()}

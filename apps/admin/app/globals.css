@@ -61,7 +61,7 @@ label:has(input[type="checkbox"]) {
 
 /* ActionConfirmDialog (packages/ui) is shared with apps/web, which is where
    these classes are documented in full — kept mounted for POPOVER_EXIT_MS
-   (packages/ui/src/hooks/useMinDisplayDuration.ts) after closing so the
+   (packages/ui/src/hooks/useAnimatedPresence.ts) after closing so the
    leave animation actually plays instead of an instant unmount. */
 @keyframes onseol-dialog-backdrop-enter {
   from {
@@ -128,6 +128,17 @@ label:has(input[type="checkbox"]) {
   .onseol-dialog-backdrop-leave,
   .onseol-dialog-box-enter,
   .onseol-dialog-box-leave {
+    animation: none;
+  }
+}
+
+/* Tailwind's own animate-spin utility (ui/Button's pending spinner) has no
+   built-in prefers-reduced-motion handling — this is an unlayered rule, so
+   per CSS cascade layers it wins over Tailwind's own @layer utilities
+   regardless of source order or specificity (same mechanism already
+   relied on for the cursor-pointer override above). */
+@media (prefers-reduced-motion: reduce) {
+  .animate-spin {
     animation: none;
   }
 }

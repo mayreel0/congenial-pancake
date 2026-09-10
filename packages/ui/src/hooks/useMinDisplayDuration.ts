@@ -11,6 +11,19 @@ import { useEffect, useRef, useState } from "react";
 export const SKELETON_MIN_DISPLAY_MS =
   process.env.NODE_ENV === "test" ? 0 : 500;
 
+// Same idea, for a button's pending spinner — a fast local mutation (a save,
+// a reply) can complete in under a frame, so the spinner appears and
+// vanishes too quickly to actually register as feedback ("아무것도 안
+// 보인다"). Unlike the delayed-reveal approach tried and rejected for this
+// same round (see docs/decisions and the button_pending_immediate_spinner
+// memory note) — which left a disabled-but-not-yet-spinning gap right after
+// the click — this hook shows the spinner in the *same* render the button
+// disables (see the render-phase adjustment below), so there's no gap at
+// all; it only ever holds the *end* a little longer than the raw request
+// took.
+export const BUTTON_PENDING_MIN_MS =
+  process.env.NODE_ENV === "test" ? 0 : 300;
+
 // A very fast response (common on a local/nearby network) makes a skeleton
 // flash for a frame or two, which reads as a glitch rather than a loading
 // state — this holds `true` for at least `minMs` after `active` first turns

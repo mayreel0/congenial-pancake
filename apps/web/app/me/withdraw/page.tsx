@@ -5,6 +5,7 @@ import { useState } from "react";
 import { ActionConfirmDialog } from "ui/ActionConfirmDialog";
 import { Button } from "ui/Button";
 import { Toggle } from "ui/Toggle";
+import { BUTTON_PENDING_MIN_MS, useMinDisplayDuration } from "ui/useMinDisplayDuration";
 import { errorMessage } from "../../lib/api";
 import { useAuth } from "../../lib/auth/useAuth";
 
@@ -16,6 +17,14 @@ export default function WithdrawPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
+  // A fast local withdraw can complete in under a frame, which makes the
+  // spinner flash too briefly to register as feedback at all — this holds
+  // the busy state visible for a minimum duration, appearing in the same
+  // instant status does (no gap before the spinner shows).
+  const showSpinner = useMinDisplayDuration(
+    status === "pending",
+    BUTTON_PENDING_MIN_MS,
+  );
 
   async function handleConfirm(): Promise<void> {
     setConfirmOpen(false);
@@ -96,10 +105,11 @@ export default function WithdrawPage() {
           취소
         </Button>
         <Button
-          disabled={status === "pending"}
+          disabled={showSpinner}
+          pending={showSpinner}
           onClick={() => setConfirmOpen(true)}
         >
-          {status === "pending" ? "처리 중" : "탈퇴하기"}
+          탈퇴하기
         </Button>
       </div>
 

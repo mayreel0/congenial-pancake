@@ -46,6 +46,24 @@ export function XCircleIcon({ className }: IconProps) {
   );
 }
 
+// Pending-button spinner — a light full ring plus one solid arc, spun via
+// the consumer's own `animate-spin` class (this component is just the
+// static shape) so `prefers-reduced-motion` can be handled in one place
+// (globals.css) rather than baked into the icon itself.
+export function SpinnerIcon({ className }: IconProps) {
+  return (
+    <svg aria-hidden="true" className={className} fill="none" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" opacity="0.25" r="9" stroke="currentColor" strokeWidth="3" />
+      <path
+        d="M21 12a9 9 0 0 0-9-9"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="3"
+      />
+    </svg>
+  );
+}
+
 export function WarningCircleIcon({ className }: IconProps) {
   return (
     <svg aria-hidden="true" className={className} viewBox="0 0 24 24">

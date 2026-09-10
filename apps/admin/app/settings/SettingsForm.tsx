@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { Button } from "ui/Button";
 import { TextField } from "ui/TextField";
 import { useFieldValidation } from "ui/useFieldValidation";
+import { BUTTON_PENDING_MIN_MS, useMinDisplayDuration } from "ui/useMinDisplayDuration";
 import { updateSettingsSchema, type SettingsResponseDto } from "shared/dto";
 import { parseFieldErrors } from "shared/zod-form";
 import type { useAdminSettings } from "./useAdminSettings";
@@ -69,6 +70,7 @@ type SettingsFormProps = {
   updating: boolean;
   updateError: string | null;
   update: ReturnType<typeof useAdminSettings>["update"];
+  onSaved(): void;
 };
 
 // Only mounted once settings has actually loaded (see SettingsReview), and
@@ -84,9 +86,9 @@ export function SettingsForm({
   updating,
   updateError,
   update,
+  onSaved,
 }: SettingsFormProps) {
   const [form, setForm] = useState<FormState>(() => toFormState(settings));
-  const [saved, setSaved] = useState(false);
   const { touchAll, visibleError } = useFieldValidation<keyof FormState>();
 
   const values = {
@@ -96,15 +98,19 @@ export function SettingsForm({
     nicknameCooldownDays: Number(form.nicknameCooldownDays),
   };
   const fieldErrors = parseFieldErrors(updateSettingsSchema, values);
+  // A fast local save can complete in under a frame, which makes the
+  // spinner flash too briefly to register as feedback at all — this holds
+  // the busy state visible for a minimum duration, appearing in the same
+  // instant `updating` does (no gap before the spinner shows).
+  const showSpinner = useMinDisplayDuration(updating, BUTTON_PENDING_MIN_MS);
 
   async function handleSubmit(event: FormEvent): Promise<void> {
     event.preventDefault();
     touchAll(FIELDS.map((field) => field.key));
     if (Object.keys(fieldErrors).length > 0) return;
 
-    setSaved(false);
     await update(values);
-    setSaved(true);
+    onSaved();
   }
 
   return (
@@ -125,20 +131,20 @@ export function SettingsForm({
           type="number"
           value={form[field.key]}
           width="compact"
-          onChange={(event) => {
-            setSaved(false);
-            setForm({ ...form, [field.key]: event.currentTarget.value });
-          }}
+          onChange={(event) =>
+            setForm({ ...form, [field.key]: event.currentTarget.value })
+          }
         />
       ))}
 
       {updateError && <p className="text-sm text-red-600">{updateError}</p>}
-      {!updateError && saved && (
-        <p className="text-sm text-primary">저장했어요.</p>
-      )}
 
-      <Button disabled={updating} type="submit">
-        {updating ? "저장 중" : "저장"}
+      <Button
+        disabled={Object.keys(fieldErrors).length > 0 || showSpinner}
+        pending={showSpinner}
+        type="submit"
+      >
+        저장
       </Button>
     </form>
   );

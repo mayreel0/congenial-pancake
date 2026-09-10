@@ -2,8 +2,10 @@
 
 import { useLayoutEffect, useRef } from "react";
 import { createReplySchema } from "shared/dto";
+import { Button } from "ui/Button";
 import { Skeleton } from "ui/Skeleton";
 import { Toggle } from "ui/Toggle";
+import { BUTTON_PENDING_MIN_MS, useMinDisplayDuration } from "ui/useMinDisplayDuration";
 import { parseFieldErrors } from "shared/zod-form";
 
 const MIN_TEXTAREA_HEIGHT = 44;
@@ -38,7 +40,12 @@ export function AnswerComposer({
   onSubmit,
   onCancelHeld,
 }: AnswerComposerProps) {
-  const fieldDisabled = disabled || pending;
+  // A fast local reply can complete in under a frame, which makes the
+  // spinner flash too briefly to register as feedback at all — this holds
+  // the busy state visible for a minimum duration, appearing in the same
+  // instant `pending` does (no gap before the spinner shows).
+  const showSpinner = useMinDisplayDuration(pending, BUTTON_PENDING_MIN_MS);
+  const fieldDisabled = disabled || showSpinner;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   // Just gates the button (no visible per-field error text) — an empty
   // composer isn't a mistake worth calling out, it's just the resting
@@ -114,13 +121,16 @@ export function AnswerComposer({
             value={value}
             onChange={(event) => onChange(event.target.value)}
           />
-          <button
-            className="inline-flex h-10 shrink-0 items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={fieldDisabled || Object.keys(fieldErrors).length > 0}
-            type="submit"
-          >
-            {pending ? "답하는 중" : "답변하기"}
-          </button>
+          <div className="shrink-0">
+            <Button
+              disabled={fieldDisabled || Object.keys(fieldErrors).length > 0}
+              pending={showSpinner}
+              size="sm"
+              type="submit"
+            >
+              답변하기
+            </Button>
+          </div>
         </div>
       </div>
     </form>

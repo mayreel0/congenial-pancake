@@ -3,11 +3,22 @@ import {
   POPOVER_EXIT_MS,
   useAnimatedPresence,
 } from "../hooks/useAnimatedPresence";
+import {
+  BUTTON_PENDING_MIN_MS,
+  useMinDisplayDuration,
+} from "../hooks/useMinDisplayDuration";
+import { Button } from "./Button";
 
 type ActionConfirmDialogProps = {
   open: boolean;
   message: string;
   confirmLabel: string;
+  // Optional — most callers fire a quick, effectively-synchronous action
+  // (report/delete/restore) with no tracked pending state. Callers that do
+  // have one (e.g. a save that hits the network) pass it so the confirm
+  // button shows a spinner and disables itself instead of allowing a
+  // double-click mid-request.
+  pending?: boolean;
   onCancel(): void;
   onConfirm(): void;
 };
@@ -16,6 +27,7 @@ export function ActionConfirmDialog({
   open,
   message,
   confirmLabel,
+  pending,
   onCancel,
   onConfirm,
 }: ActionConfirmDialogProps) {
@@ -23,6 +35,14 @@ export function ActionConfirmDialog({
   // Kept mounted for POPOVER_EXIT_MS after `open` goes false so the leave
   // animation can actually play, instead of unmounting instantly.
   const shouldRender = useAnimatedPresence(open, POPOVER_EXIT_MS);
+  // A fast local confirm action can complete in under a frame, which makes
+  // the spinner flash too briefly to register as feedback at all — this
+  // holds the busy state visible for a minimum duration, appearing in the
+  // same instant `pending` does (no gap before the spinner shows).
+  const showSpinner = useMinDisplayDuration(
+    pending ?? false,
+    BUTTON_PENDING_MIN_MS,
+  );
 
   if (!shouldRender) return null;
 
@@ -44,20 +64,22 @@ export function ActionConfirmDialog({
       >
         <p className="text-sm leading-6 text-foreground">{message}</p>
         <div className="flex justify-end gap-2">
-          <button
-            className="inline-flex h-10 items-center justify-center rounded-lg px-4 text-sm font-medium text-muted transition hover:bg-surface-muted"
-            type="button"
+          <Button
+            disabled={pending || showSpinner}
+            size="sm"
+            variant="ghost"
             onClick={onCancel}
           >
             취소
-          </button>
-          <button
-            className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
-            type="button"
+          </Button>
+          <Button
+            disabled={pending || showSpinner}
+            pending={showSpinner}
+            size="sm"
             onClick={onConfirm}
           >
             {confirmLabel}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

@@ -5,10 +5,17 @@ export type VerifyEmailStatus = "idle" | "pending";
 
 type VerifyEmailBodyProps = {
   token: string | null;
-  status: VerifyEmailStatus;
   password: string;
   error: string | null;
   fieldError: string | undefined;
+  // Raw validity, independent of whether the field has been touched yet
+  // (unlike `fieldError`, which only shows once touched) — gates the
+  // submit button so it starts disabled on an empty field.
+  hasFieldErrors: boolean;
+  // Min-display-duration version of `status === "pending"` (via
+  // useMinDisplayDuration in the parent) — appears the same instant status
+  // does, just held a little longer so a fast signup doesn't flash.
+  showSpinner: boolean;
   onPasswordChange(value: string): void;
   onSubmit(event: React.FormEvent): void;
 };
@@ -17,10 +24,11 @@ type VerifyEmailBodyProps = {
 // apps/admin/app/components/AdminStatusGate.tsx's pattern.
 export function VerifyEmailBody({
   token,
-  status,
   password,
   error,
   fieldError,
+  hasFieldErrors,
+  showSpinner,
   onPasswordChange,
   onSubmit,
 }: VerifyEmailBodyProps) {
@@ -46,8 +54,13 @@ export function VerifyEmailBody({
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
-      <Button disabled={status === "pending"} fullWidth type="submit">
-        {status === "pending" ? "처리 중" : "가입 완료"}
+      <Button
+        disabled={hasFieldErrors || showSpinner}
+        fullWidth
+        pending={showSpinner}
+        type="submit"
+      >
+        가입 완료
       </Button>
     </form>
   );

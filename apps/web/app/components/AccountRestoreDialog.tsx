@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "ui/Button";
 import { Toast } from "ui/Toast";
 import { useToast } from "ui/useToast";
 import { POPOVER_EXIT_MS, useAnimatedPresence } from "ui/useAnimatedPresence";
+import { BUTTON_PENDING_MIN_MS, useMinDisplayDuration } from "ui/useMinDisplayDuration";
 import { useAuth } from "../lib/auth/useAuth";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -36,6 +38,19 @@ export function AccountRestoreDialog() {
   // `deletionGracePeriodEndsAt` goes away) so the leave animation can
   // actually play, instead of unmounting instantly.
   const shouldRender = useAnimatedPresence(open, POPOVER_EXIT_MS);
+  // A fast local logout/restore can complete in under a frame, which makes
+  // the spinner flash too briefly to register as feedback at all — this
+  // holds the busy state visible for a minimum duration, appearing in the
+  // same instant restoring/loggingOut does (no gap before the spinner
+  // shows).
+  const showLogoutSpinner = useMinDisplayDuration(
+    loggingOut,
+    BUTTON_PENDING_MIN_MS,
+  );
+  const showRestoreSpinner = useMinDisplayDuration(
+    restoring,
+    BUTTON_PENDING_MIN_MS,
+  );
 
   if (!shouldRender) return null;
 
@@ -83,22 +98,23 @@ export function AccountRestoreDialog() {
           계속 이용하려면 계정을 복구해주세요.
         </p>
         <div className="flex justify-end gap-2">
-          <button
-            className="inline-flex h-10 items-center justify-center rounded-lg px-4 text-sm font-medium text-muted transition hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={loggingOut || restoring}
-            type="button"
+          <Button
+            disabled={restoring || showLogoutSpinner}
+            pending={showLogoutSpinner}
+            size="sm"
+            variant="ghost"
             onClick={() => void handleLogout()}
           >
-            {loggingOut ? "로그아웃 중" : "로그아웃"}
-          </button>
-          <button
-            className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={loggingOut || restoring}
-            type="button"
+            로그아웃
+          </Button>
+          <Button
+            disabled={loggingOut || showRestoreSpinner}
+            pending={showRestoreSpinner}
+            size="sm"
             onClick={() => void handleRestore()}
           >
-            {restoring ? "복구 중" : "복구하기"}
-          </button>
+            복구하기
+          </Button>
         </div>
       </div>
       <Toast toast={toast} onDismiss={dismiss} />

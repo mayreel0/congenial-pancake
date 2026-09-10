@@ -181,7 +181,7 @@ describe("RequestComposer", () => {
     expect(textarea).toHaveStyle({ height: "128px", overflowY: "auto" });
   });
 
-  it("shows pending without adding inline success copy", () => {
+  it("stays labeled '보내기' while pending (no text swap) without adding inline success copy", () => {
     const { rerender } = render(
       <RequestComposer
         status="pending"
@@ -195,7 +195,7 @@ describe("RequestComposer", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "남기는 중" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "보내기" })).toBeDisabled();
 
     rerender(
       <RequestComposer

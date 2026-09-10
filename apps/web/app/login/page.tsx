@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { loginSchema, signupSchema } from "shared/dto";
 import { Button } from "ui/Button";
 import { TextField } from "ui/TextField";
+import { BUTTON_PENDING_MIN_MS, useMinDisplayDuration } from "ui/useMinDisplayDuration";
 import { ApiError, errorMessage, oauthLoginUrl } from "../lib/api";
 import { useAuth } from "../lib/auth/useAuth";
 import { useFieldValidation } from "ui/useFieldValidation";
@@ -19,10 +20,8 @@ type Field = "email" | "password";
 
 const EMAIL_NOT_VERIFIED_CODE = "AUTH_EMAIL_NOT_VERIFIED";
 
-function submitButtonLabel(submitStatus: SubmitStatus, mode: Mode): string {
-  if (submitStatus === "pending") return "처리 중";
-  if (mode === "login") return "로그인";
-  return "인증 메일 받기";
+function submitButtonLabel(mode: Mode): string {
+  return mode === "login" ? "로그인" : "인증 메일 받기";
 }
 
 export default function LoginPage() {
@@ -49,6 +48,14 @@ export default function LoginPage() {
   const fieldErrors = parseFieldErrors(
     schema,
     mode === "login" ? { email, password } : { email },
+  );
+  // A fast/local auth check can complete in under a frame, which makes the
+  // spinner flash too briefly to register as feedback at all — this holds
+  // the busy state visible for a minimum duration, appearing in the same
+  // instant submitStatus does (no gap before the spinner shows).
+  const showSpinner = useMinDisplayDuration(
+    submitStatus === "pending",
+    BUTTON_PENDING_MIN_MS,
   );
 
   async function handleSubmit(event: React.FormEvent): Promise<void> {
@@ -159,11 +166,12 @@ export default function LoginPage() {
           )}
 
           <Button
-            disabled={submitStatus === "pending"}
+            disabled={Object.keys(fieldErrors).length > 0 || showSpinner}
             fullWidth
+            pending={showSpinner}
             type="submit"
           >
-            {submitButtonLabel(submitStatus, mode)}
+            {submitButtonLabel(mode)}
           </Button>
         </form>
 

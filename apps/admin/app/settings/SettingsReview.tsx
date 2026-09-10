@@ -4,6 +4,8 @@ import { AdminNav } from "../components/AdminNav";
 import { AdminStatusGate } from "../components/AdminStatusGate";
 import { useAuth } from "../lib/auth/useAuth";
 import { Skeleton } from "ui/Skeleton";
+import { Toast } from "ui/Toast";
+import { useToast } from "ui/useToast";
 import {
   SKELETON_MIN_DISPLAY_MS,
   useMinDisplayDuration,
@@ -38,6 +40,7 @@ function SettingsFormSkeleton() {
 export function SettingsReview() {
   const auth = useAuth();
   const admin = useAdminSettings();
+  const { toast, showSuccess, dismiss } = useToast();
   const showSkeleton = useMinDisplayDuration(
     admin.isLoadingSettings,
     SKELETON_MIN_DISPLAY_MS,
@@ -58,11 +61,13 @@ export function SettingsReview() {
                 updating={admin.updating}
                 updateError={admin.updateError}
                 update={admin.update}
+                onSaved={() => showSuccess("저장했어요.")}
               />
             )
           )}
         </AdminStatusGate>
       </main>
+      <Toast toast={toast} onDismiss={dismiss} />
     </div>
   );
 }
