@@ -6,7 +6,7 @@ import { useToast } from "ui/useToast";
 import { useAuth } from "../lib/auth/useAuth";
 
 const NAV_ITEMS = [
-  { href: "/", label: "신고 검토" },
+  { href: "/review", label: "신고 검토" },
   { href: "/settings", label: "설정" },
   { href: "/accounts", label: "계정" },
 ];

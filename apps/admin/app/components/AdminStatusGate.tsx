@@ -1,35 +1,46 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { Skeleton } from "ui/Skeleton";
 import {
   SKELETON_MIN_DISPLAY_MS,
   useMinDisplayDuration,
 } from "ui/useMinDisplayDuration";
-import { LoginForm } from "./LoginForm";
 
 export type AdminPageStatus = "loading" | "signedOut" | "forbidden" | "ready";
 
 type AdminStatusGateProps = {
   status: AdminPageStatus;
-  login(email: string, password: string): Promise<void>;
   children: ReactNode;
 };
 
-// Shared by every admin page (AdminReview, SettingsReview — both derive the
-// exact same status union from useAuth() + a page-specific "forbidden"
-// check) to avoid duplicating a 4-way loading/signedOut/forbidden/ready
-// ternary chain in each one. Early returns instead of nested ternaries.
-export function AdminStatusGate({ status, login, children }: AdminStatusGateProps) {
+// Shared by every feature page (신고 검토/설정/계정 — all three derive their
+// status from useAdminAccess). Unlike the version this replaced, signedOut/
+// forbidden no longer render inline here — they redirect to the dedicated /
+// gate (AdminGate), which is the only place that actually shows the login
+// form or the "접근 권한이 없어요" message now. This means a feature page's
+// real URL (e.g. /review) is never reachable content for an unauthenticated
+// or unauthorized visitor, only its shell briefly flashes a skeleton while
+// the redirect is in flight.
+export function AdminStatusGate({ status, children }: AdminStatusGateProps) {
+  const router = useRouter();
   const showSkeleton = useMinDisplayDuration(
     status === "loading",
     SKELETON_MIN_DISPLAY_MS,
   );
 
+  useEffect(() => {
+    if (status === "signedOut" || status === "forbidden") {
+      router.replace("/");
+    }
+  }, [status, router]);
+
   // A generic shape, not per-page — this gate doesn't know whether it's
   // loading AdminReview's list or SettingsReview's form, and both pages'
-  // own content is briefly blank while the auth check itself is in flight.
-  if (showSkeleton) {
+  // own content is briefly blank while the redirect (or the auth check
+  // itself) is in flight.
+  if (showSkeleton || status === "signedOut" || status === "forbidden") {
     return (
       <div className="space-y-4">
         {[0, 1, 2].map((key) => (
@@ -43,14 +54,6 @@ export function AdminStatusGate({ status, login, children }: AdminStatusGateProp
           </div>
         ))}
       </div>
-    );
-  }
-  if (status === "signedOut") return <LoginForm login={login} />;
-  if (status === "forbidden") {
-    return (
-      <p className="py-16 text-center text-sm text-muted">
-        이 계정은 접근 권한이 없어요.
-      </p>
     );
   }
   return <>{children}</>;

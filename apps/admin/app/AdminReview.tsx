@@ -11,7 +11,7 @@ import {
 } from "ui/useMinDisplayDuration";
 import { AdminNav } from "./components/AdminNav";
 import { AdminStatusGate } from "./components/AdminStatusGate";
-import { useAuth } from "./lib/auth/useAuth";
+import { useAdminAccess } from "./lib/admin/useAdminAccess";
 import { formatTimestamp } from "utils";
 import { useAdminReview } from "./useAdminReview";
 
@@ -160,7 +160,7 @@ function ReviewBody({
 }
 
 export function AdminReview() {
-  const auth = useAuth();
+  const access = useAdminAccess();
   const review = useAdminReview();
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(
     null,
@@ -208,10 +208,10 @@ export function AdminReview() {
 
   return (
     <div className="min-h-dvh bg-background text-foreground">
-      <AdminNav activePath="/" />
+      <AdminNav activePath="/review" />
       <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-5 py-10 sm:px-8">
         <h1 className="text-lg font-semibold text-foreground">신고 검토</h1>
-        <AdminStatusGate status={review.status} login={auth.login}>
+        <AdminStatusGate status={access.status}>
           <ReviewBody
             hiddenReplies={review.hiddenReplies}
             hiddenRequests={review.hiddenRequests}
