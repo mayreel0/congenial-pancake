@@ -57,6 +57,16 @@ export class AdminController {
     private readonly passwordResetService: PasswordResetService,
   ) {}
 
+  // Cheap precheck for apps/admin's /accounts page, which (unlike 신고 검토
+  // and 설정) has no other GET endpoint of its own to probe "is this
+  // session actually an admin" ahead of a real mutation attempt — reaching
+  // this handler at all already proves it (SessionGuard + AdminGuard on the
+  // whole controller), so the response body carries no real information.
+  @Get('whoami')
+  whoami(): { isAdmin: true } {
+    return { isAdmin: true };
+  }
+
   @Get('moderation/hidden')
   async hidden(): Promise<HiddenModerationQueueDto> {
     const [hiddenRequests, hiddenReplies] = await Promise.all([
