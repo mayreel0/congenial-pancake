@@ -166,8 +166,8 @@ export function ServiceNav({ activePath }: ServiceNavProps) {
                   className={[
                     "inline-flex h-9 items-center rounded-lg px-3 text-sm font-semibold transition",
                     active
-                      ? "bg-surface-muted text-foreground"
-                      : "text-muted hover:bg-surface-muted hover:text-foreground",
+                      ? "onseol-nav-active text-foreground"
+                      : "text-muted hover:text-foreground",
                   ].join(" ")}
                   href={item.href}
                   key={item.href}
