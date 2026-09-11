@@ -1,0 +1,24 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "workspaces": {
+    "apps/api-server": {
+      // Knip's Nest plugin only auto-detects src/main.ts — swagger-only.ts
+      // (a second real entry point, `pnpm --filter api-server
+      // start:swagger`) and the e2e spec (run via its own jest-e2e.json,
+      // not picked up from the main `test` script) both need to be listed
+      // explicitly or they're reported as unused, along with everything
+      // only reachable through them.
+      "entry": ["src/main.ts", "src/swagger-only.ts", "test/**/*.e2e-spec.ts"]
+    },
+    "tools/load-test": {
+      // These .js files are arguments to the external `k6` binary (`k6 run
+      // scenarios/x.js`), not imported by anything — knip's import-graph
+      // analysis can't see that kind of usage.
+      "ignore": ["scenarios/**"],
+      "ignoreBinaries": ["k6"]
+    }
+  },
+  // Loaded via a raw file path in next/font's localFont(), not a JS import
+  // — apps/web/app/layout.tsx.
+  "ignoreDependencies": ["pretendard"]
+}
