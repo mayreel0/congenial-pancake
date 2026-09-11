@@ -114,6 +114,48 @@ label:has(input[type="checkbox"]) {
   cursor: pointer;
 }
 
+/* Active top-nav item: no filled background in light (text color/weight
+   alone carries it), a soft blurred glow behind the label in dark — a solid
+   pill reads fine on light's near-white surface but looks heavy against
+   dark's own already-dim surface tones. isolate + a negative-z-index
+   ::before keeps the blur behind the label text without leaking behind the
+   header's own background. */
+.onseol-nav-active {
+  isolation: isolate;
+  position: relative;
+}
+
+.onseol-nav-active::before {
+  content: "";
+  position: absolute;
+  inset: -10px -6px;
+  z-index: -1;
+  border-radius: inherit;
+  filter: blur(14px);
+}
+
+@media (prefers-color-scheme: dark) {
+  .onseol-nav-active::before {
+    background: radial-gradient(
+      ellipse at center,
+      color-mix(in srgb, var(--primary) 55%, transparent) 0%,
+      transparent 72%
+    );
+  }
+}
+
+:root[data-theme="dark"] .onseol-nav-active::before {
+  background: radial-gradient(
+    ellipse at center,
+    color-mix(in srgb, var(--primary) 55%, transparent) 0%,
+    transparent 72%
+  );
+}
+
+:root[data-theme="light"] .onseol-nav-active::before {
+  background: none;
+}
+
 @keyframes onseol-soft-wipe {
   from {
     clip-path: inset(0 0 100% 0);
