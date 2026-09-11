@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from "./lib/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { HiddenModerationQueueDto } from "./lib/admin/api";
+import { mockRouterReplace } from "../vitest.setup";
 import { AdminReview } from "./AdminReview";
 
 type MockResponse = { ok: boolean; status: number; json: () => Promise<unknown> };
@@ -95,6 +96,15 @@ function installFakeBackend(
         );
       }
 
+      if (url.endsWith("/admin/whoami")) {
+        if (!isAdmin) {
+          return Promise.resolve(
+            jsonResponse(403, { code: "FORBIDDEN", message: "Forbidden" }),
+          );
+        }
+        return Promise.resolve(jsonResponse(200, { isAdmin: true }));
+      }
+
       if (url.endsWith("/admin/moderation/hidden") && method === "GET") {
         if (!isAdmin) {
           return Promise.resolve(
@@ -138,54 +148,26 @@ describe("AdminReview", () => {
     vi.unstubAllGlobals();
   });
 
-  it("shows an inline login form when signed out", async () => {
+  // Signed-out/forbidden no longer render inline here — AdminGate (the /
+  // route) is the only place either state is actually shown now. See
+  // AdminGate.test.tsx for the login form/forbidden-message/redirect-once-
+  // ready coverage.
+  it("redirects to / when signed out", async () => {
     installFakeBackend(makeQueue(), { loggedIn: false });
     render(<AdminReview />);
 
-    expect(await screen.findByLabelText("이메일")).toBeInTheDocument();
-    expect(screen.getByLabelText("비밀번호")).toBeInTheDocument();
+    await waitFor(() => expect(mockRouterReplace).toHaveBeenCalledWith("/"));
+    expect(screen.queryByLabelText("이메일")).not.toBeInTheDocument();
   });
 
-  it("logs in from the inline form and shows the review list on success", async () => {
-    installFakeBackend(makeQueue(), { loggedIn: false });
-    render(<AdminReview />);
-
-    fireEvent.change(await screen.findByLabelText("이메일"), {
-      target: { value: "admin@example.com" },
-    });
-    fireEvent.change(screen.getByLabelText("비밀번호"), {
-      target: { value: "password123" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "로그인" }));
-
-    expect(await screen.findByText("숨겨진 요청")).toBeInTheDocument();
-  });
-
-  it("shows an error and stays on the form when login fails", async () => {
-    installFakeBackend(makeQueue(), { loggedIn: false, loginSucceeds: false });
-    render(<AdminReview />);
-
-    fireEvent.change(await screen.findByLabelText("이메일"), {
-      target: { value: "admin@example.com" },
-    });
-    fireEvent.change(screen.getByLabelText("비밀번호"), {
-      target: { value: "wrongpassword" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "로그인" }));
-
-    expect(
-      await screen.findByText("이메일 또는 비밀번호가 올바르지 않습니다."),
-    ).toBeInTheDocument();
-    expect(screen.getByLabelText("이메일")).toBeInTheDocument();
-  });
-
-  it("shows a forbidden message for a logged-in non-admin", async () => {
+  it("redirects to / for a logged-in non-admin", async () => {
     installFakeBackend(makeQueue(), { isAdmin: false });
     render(<AdminReview />);
 
+    await waitFor(() => expect(mockRouterReplace).toHaveBeenCalledWith("/"));
     expect(
-      await screen.findByText("이 계정은 접근 권한이 없어요."),
-    ).toBeInTheDocument();
+      screen.queryByText("이 계정은 접근 권한이 없어요."),
+    ).not.toBeInTheDocument();
   });
 
   it("lists hidden requests and replies with their report counts for an admin", async () => {
@@ -276,7 +258,7 @@ describe("AdminReview", () => {
   it("shows a logout button when authenticated, not when signed out", async () => {
     installFakeBackend(makeQueue(), { loggedIn: false });
     render(<AdminReview />);
-    await screen.findByLabelText("이메일");
+    await waitFor(() => expect(mockRouterReplace).toHaveBeenCalledWith("/"));
 
     expect(
       screen.queryByRole("button", { name: "로그아웃" }),

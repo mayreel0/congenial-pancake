@@ -1,5 +1,5 @@
-import { AdminReview } from "./AdminReview";
+import { AdminGate } from "./AdminGate";
 
 export default function AdminPage() {
-  return <AdminReview />;
+  return <AdminGate />;
 }

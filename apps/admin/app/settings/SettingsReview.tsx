@@ -2,7 +2,7 @@
 
 import { AdminNav } from "../components/AdminNav";
 import { AdminStatusGate } from "../components/AdminStatusGate";
-import { useAuth } from "../lib/auth/useAuth";
+import { useAdminAccess } from "../lib/admin/useAdminAccess";
 import { Skeleton } from "ui/Skeleton";
 import { Toast } from "ui/Toast";
 import { useToast } from "ui/useToast";
@@ -38,7 +38,7 @@ function SettingsFormSkeleton() {
 }
 
 export function SettingsReview() {
-  const auth = useAuth();
+  const access = useAdminAccess();
   const admin = useAdminSettings();
   const { toast, showSuccess, dismiss } = useToast();
   const showSkeleton = useMinDisplayDuration(
@@ -51,7 +51,7 @@ export function SettingsReview() {
       <AdminNav activePath="/settings" />
       <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-5 py-10 sm:px-8">
         <h1 className="text-lg font-semibold text-foreground">설정</h1>
-        <AdminStatusGate status={admin.status} login={auth.login}>
+        <AdminStatusGate status={access.status}>
           {showSkeleton ? (
             <SettingsFormSkeleton />
           ) : (

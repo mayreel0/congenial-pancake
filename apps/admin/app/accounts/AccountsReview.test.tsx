@@ -1,5 +1,6 @@
-import { fireEvent, render, screen } from "../lib/test-utils";
+import { fireEvent, render, screen, waitFor } from "../lib/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { mockRouterReplace } from "../../vitest.setup";
 import { AccountsReview } from "./AccountsReview";
 
 type MockResponse = { ok: boolean; status: number; json: () => Promise<unknown> };
@@ -68,20 +69,24 @@ describe("AccountsReview", () => {
     vi.unstubAllGlobals();
   });
 
-  it("shows an inline login form when signed out", async () => {
+  // Signed-out/forbidden no longer render inline here — AdminGate (the /
+  // route) is the only place either state is actually shown now.
+  it("redirects to / when signed out", async () => {
     installFakeBackend({ loggedIn: false });
     render(<AccountsReview />);
 
-    expect(await screen.findByLabelText("이메일")).toBeInTheDocument();
+    await waitFor(() => expect(mockRouterReplace).toHaveBeenCalledWith("/"));
+    expect(screen.queryByLabelText("이메일")).not.toBeInTheDocument();
   });
 
-  it("shows a forbidden message for a logged-in non-admin, without ever showing the form", async () => {
+  it("redirects to / for a logged-in non-admin, without ever showing the form", async () => {
     installFakeBackend({ isAdmin: false });
     render(<AccountsReview />);
 
+    await waitFor(() => expect(mockRouterReplace).toHaveBeenCalledWith("/"));
     expect(
-      await screen.findByText("이 계정은 접근 권한이 없어요."),
-    ).toBeInTheDocument();
+      screen.queryByText("이 계정은 접근 권한이 없어요."),
+    ).not.toBeInTheDocument();
     expect(screen.queryByLabelText("이메일")).not.toBeInTheDocument();
   });
 

@@ -1,6 +1,7 @@
-import { fireEvent, render, screen } from "../lib/test-utils";
+import { fireEvent, render, screen, waitFor } from "../lib/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { SettingsResponseDto } from "shared/dto";
+import { mockRouterReplace } from "../../vitest.setup";
 import { SettingsReview } from "./SettingsReview";
 
 type MockResponse = { ok: boolean; status: number; json: () => Promise<unknown> };
@@ -56,6 +57,15 @@ function installFakeBackend(
         );
       }
 
+      if (url.endsWith("/admin/whoami")) {
+        if (!isAdmin) {
+          return Promise.resolve(
+            jsonResponse(403, { code: "FORBIDDEN", message: "Forbidden" }),
+          );
+        }
+        return Promise.resolve(jsonResponse(200, { isAdmin: true }));
+      }
+
       if (url.endsWith("/admin/settings") && method === "GET") {
         if (!isAdmin) {
           return Promise.resolve(
@@ -85,20 +95,24 @@ describe("SettingsReview", () => {
     vi.unstubAllGlobals();
   });
 
-  it("shows an inline login form when signed out", async () => {
+  // Signed-out/forbidden no longer render inline here — AdminGate (the /
+  // route) is the only place either state is actually shown now.
+  it("redirects to / when signed out", async () => {
     installFakeBackend(makeSettings(), { loggedIn: false });
     render(<SettingsReview />);
 
-    expect(await screen.findByLabelText("이메일")).toBeInTheDocument();
+    await waitFor(() => expect(mockRouterReplace).toHaveBeenCalledWith("/"));
+    expect(screen.queryByLabelText("이메일")).not.toBeInTheDocument();
   });
 
-  it("shows a forbidden message for a logged-in non-admin", async () => {
+  it("redirects to / for a logged-in non-admin", async () => {
     installFakeBackend(makeSettings(), { isAdmin: false });
     render(<SettingsReview />);
 
+    await waitFor(() => expect(mockRouterReplace).toHaveBeenCalledWith("/"));
     expect(
-      await screen.findByText("이 계정은 접근 권한이 없어요."),
-    ).toBeInTheDocument();
+      screen.queryByText("이 계정은 접근 권한이 없어요."),
+    ).not.toBeInTheDocument();
   });
 
   it("shows the current settings values for an admin", async () => {
@@ -171,14 +185,14 @@ describe("SettingsReview", () => {
     await screen.findByLabelText("답변 큐 신선도 (시간)");
     expect(screen.getByRole("link", { name: "신고 검토" })).toHaveAttribute(
       "href",
-      "/",
+      "/review",
     );
   });
 
   it("does not show the nav's logout button when signed out", async () => {
     installFakeBackend(makeSettings(), { loggedIn: false });
     render(<SettingsReview />);
-    await screen.findByLabelText("이메일");
+    await waitFor(() => expect(mockRouterReplace).toHaveBeenCalledWith("/"));
 
     expect(
       screen.queryByRole("button", { name: "로그아웃" }),

@@ -1,7 +1,7 @@
 "use client";
 
-import { ApiError, errorMessage } from "../lib/api";
-import { useAuth } from "../lib/auth/useAuth";
+import { errorMessage } from "../lib/api";
+import { useAdminAccess } from "../lib/admin/useAdminAccess";
 import type { SettingsResponseDto } from "shared/dto";
 import {
   useAdminSettingsQuery,
@@ -9,10 +9,11 @@ import {
 } from "../lib/admin/settings-queries";
 
 type UseAdminSettingsResult = {
-  status: "loading" | "signedOut" | "forbidden" | "ready";
   settings: SettingsResponseDto | undefined;
-  // status turns "ready" as soon as the auth check clears — the settings
-  // GET itself can still be in flight after that, which this covers.
+  // "is this session even allowed to see this" lives in useAdminAccess now
+  // (shared across every admin page) — this only covers the in-between
+  // window after access is confirmed but the settings GET is still in
+  // flight.
   isLoadingSettings: boolean;
   updating: boolean;
   updateError: string | null;
@@ -29,40 +30,21 @@ type UseAdminSettingsResult = {
   ): Promise<void>;
 };
 
-// Mirrors useAdminReview's status derivation exactly — see that file's
-// comment for why forbidden can only be known by actually trying the query.
-function toStatus(
-  authStatus: ReturnType<typeof useAuth>["status"],
-  forbidden: boolean,
-): UseAdminSettingsResult["status"] {
-  if (authStatus === "loading") return "loading";
-  if (authStatus === "anonymous") return "signedOut";
-  if (forbidden) return "forbidden";
-  return "ready";
-}
-
 function toUpdateError(error: unknown): string | null {
   if (!error) return null;
   return errorMessage(error);
 }
 
 export function useAdminSettings(): UseAdminSettingsResult {
-  const { status: authStatus } = useAuth();
-  const enabled = authStatus === "authenticated";
+  const { status } = useAdminAccess();
+  const enabled = status === "ready";
 
   const settingsQuery = useAdminSettingsQuery(enabled);
   const updateMutation = useUpdateAdminSettingsMutation();
 
-  const forbidden =
-    settingsQuery.error instanceof ApiError &&
-    (settingsQuery.error.statusCode === 403 ||
-      settingsQuery.error.statusCode === 401);
-
-  const status = toStatus(authStatus, forbidden);
   const updateError = toUpdateError(updateMutation.error);
 
   return {
-    status,
     settings: settingsQuery.data,
     isLoadingSettings: settingsQuery.isLoading,
     updating: updateMutation.isPending,
