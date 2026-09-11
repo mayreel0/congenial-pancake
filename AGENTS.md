@@ -89,6 +89,14 @@ Record each confirmed decision as its own file in `docs/decisions/`, named `YYYY
 - Commit messages and PR titles both use a `<type>: <설명>` prefix (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, ...), and the two must match for the same change. Before writing either, check the existing convention rather than assuming — `git log --oneline -10` for commit style, `gh pr list --state all --limit 10` for PR title style. Do not title a PR without doing this check, even if the commit message already has a prefix. PR titles are also checked by CI (`.github/workflows/pr-title.yml`) before merge.
 - Prefer several small, single-concern PRs over one large bundled one. This repo's history deliberately splits backend and frontend for the same feature into separate rounds — default to proposing that split rather than bundling.
 
+## Code Comments
+
+Default to no comment. Write one only when removing it would let a future reader miss something real: a non-obvious constraint, a workaround for a specific bug, a subtle invariant, or a decision that looks wrong at a glance but isn't. Comments should explain *why*, not *what* — a well-named identifier already says what; if a comment restates that, delete it. (See Ousterhout, *A Philosophy of Software Design*, ch.13, and Martin, *Clean Code*, ch.4, for the fuller version of this.)
+
+When the same non-obvious reasoning applies at several call sites, write it once — at the shared function/hook/component those sites actually call — not copy-pasted at each site with only a variable name swapped. If there's no shared code to attach it to, write the full explanation in the most authoritative single spot (the first/clearest call site, or a `docs/decisions/*.md` entry for a project-wide decision) and leave a short pointer everywhere else (`// see X for why`), not the full prose again. Before finishing a change that applies the same edit to several files, grep for any comment phrase you just wrote across those files — if it shows up more than once or twice, that's the signal to cut it down to one place.
+
+Each workspace's own `AGENTS.md` is itself one of these authoritative places — see the note near the top of each one.
+
 ## Code Style
 
 Prefer an early return per branch over a nested ternary for 3+-way conditional rendering — this was previously justified with a repeated comment pointing at `apps/admin/app/components/AdminStatusGate.tsx` in 15 different files; it's a style default now, so no per-file comment is needed to justify it.

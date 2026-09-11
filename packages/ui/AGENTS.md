@@ -2,6 +2,8 @@
 
 Project-wide rules live in the root `AGENTS.md`. See `docs/decisions/2026-08-25-onseol-shared-ui-package-decisions.md` for the full reasoning behind this package's existence and what belongs here vs. not.
 
+This package is consumed by both `apps/web` and `apps/admin`, so it's the right place for any "why does this component/hook behave this way" explanation both apps need — write it once here at the definition, not duplicated at each app's call site (see root `AGENTS.md`'s "Code Comments").
+
 ## What belongs here — React components only
 
 Only genuinely React-specific code (components, providers) that is identical between `apps/web` and `apps/admin` today, with no reason to expect it to diverge — not "similar," not "could plausibly be shared with effort." If sharing something here would require adding options/flags to accommodate one app's extra needs (the way `apps/web`'s auth flow needs signup/Google OAuth and `apps/admin`'s doesn't), it belongs in that app instead, not here.
