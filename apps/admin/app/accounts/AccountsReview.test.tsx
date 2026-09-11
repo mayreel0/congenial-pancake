@@ -115,16 +115,17 @@ describe("AccountsReview", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("issues a link and shows it", async () => {
+  it("issues a link, shows it, and clears the email field", async () => {
     installFakeBackend();
     render(<AccountsReview />);
 
-    const input = await screen.findByLabelText("이메일");
+    const input = await screen.findByLabelText<HTMLInputElement>("이메일");
     fireEvent.change(input, { target: { value: "oauth-user@example.com" } });
     fireEvent.click(screen.getByRole("button", { name: "링크 발급" }));
 
     expect(
       await screen.findByText("https://onseol.com/reset/token123"),
     ).toBeInTheDocument();
+    expect(input.value).toBe("");
   });
 });

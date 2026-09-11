@@ -46,6 +46,7 @@ export function AccountForm({
 
     setCopied(false);
     await issueLink(email);
+    setEmail("");
   }
 
   async function handleCopy(): Promise<void> {
