@@ -1,0 +1,42 @@
+name: Verify
+
+# Runs the same lint/typecheck/test/build gate every round in this repo
+# has always been expected to pass locally before opening a PR — until
+# now nothing actually enforced it server-side (pr-title.yml only checks
+# the title string), so a PR could merge without any of it having
+# actually been run. Targets v1 specifically, not main — see
+# docs/decisions and this repo's own PR history, every PR here bases off
+# v1.
+on:
+  pull_request:
+    branches: [v1]
+  workflow_dispatch:
+
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: ".nvmrc"
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm run verify
+
+      # Non-blocking for now — the repo currently has a known backlog of
+      # unused files/deps/exports (see PR #182) that hasn't been cleaned
+      # up yet, so a hard failure here would block every unrelated PR.
+      # Once that backlog is cleared, drop continue-on-error so this
+      # actually gates merges the same way the step above does.
+      - run: pnpm run knip
+        continue-on-error: true
