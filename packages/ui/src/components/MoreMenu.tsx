@@ -25,8 +25,6 @@ export function MoreMenu({ ariaLabel, items }: MoreMenuProps) {
   const containerRef = useDismissOnOutsideClick<HTMLDivElement>(open, () =>
     setOpen(false),
   );
-  // Kept mounted for POPOVER_EXIT_MS after `open` goes false so the leave
-  // animation can actually play, instead of unmounting instantly.
   const shouldRender = useAnimatedPresence(open, POPOVER_EXIT_MS);
 
   return (

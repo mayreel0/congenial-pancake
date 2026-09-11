@@ -49,10 +49,6 @@ export default function LoginPage() {
     schema,
     mode === "login" ? { email, password } : { email },
   );
-  // A fast/local auth check can complete in under a frame, which makes the
-  // spinner flash too briefly to register as feedback at all — this holds
-  // the busy state visible for a minimum duration, appearing in the same
-  // instant submitStatus does (no gap before the spinner shows).
   const showSpinner = useMinDisplayDuration(
     submitStatus === "pending",
     BUTTON_PENDING_MIN_MS,

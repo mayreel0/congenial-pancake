@@ -40,16 +40,11 @@ export function AnswerComposer({
   onSubmit,
   onCancelHeld,
 }: AnswerComposerProps) {
-  // A fast local reply can complete in under a frame, which makes the
-  // spinner flash too briefly to register as feedback at all — this holds
-  // the busy state visible for a minimum duration, appearing in the same
-  // instant `pending` does (no gap before the spinner shows).
   const showSpinner = useMinDisplayDuration(pending, BUTTON_PENDING_MIN_MS);
   const fieldDisabled = disabled || showSpinner;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  // Just gates the button (no visible per-field error text) — an empty
-  // composer isn't a mistake worth calling out, it's just the resting
-  // state, and the disabled button already says "type something."
+  // See RequestComposer's identical fieldErrors usage for why this only
+  // gates the button, with no visible per-field error text.
   const fieldErrors = parseFieldErrors(createReplySchema, {
     body: value.trim(),
   });

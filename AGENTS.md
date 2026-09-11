@@ -89,6 +89,10 @@ Record each confirmed decision as its own file in `docs/decisions/`, named `YYYY
 - Commit messages and PR titles both use a `<type>: <설명>` prefix (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, ...), and the two must match for the same change. Before writing either, check the existing convention rather than assuming — `git log --oneline -10` for commit style, `gh pr list --state all --limit 10` for PR title style. Do not title a PR without doing this check, even if the commit message already has a prefix. PR titles are also checked by CI (`.github/workflows/pr-title.yml`) before merge.
 - Prefer several small, single-concern PRs over one large bundled one. This repo's history deliberately splits backend and frontend for the same feature into separate rounds — default to proposing that split rather than bundling.
 
+## Code Style
+
+Prefer an early return per branch over a nested ternary for 3+-way conditional rendering — this was previously justified with a repeated comment pointing at `apps/admin/app/components/AdminStatusGate.tsx` in 15 different files; it's a style default now, so no per-file comment is needed to justify it.
+
 ## Verification Standard
 
 Passing lint/typecheck/tests is necessary but not sufficient before calling a change done. Verify backend changes against a real local server with `curl` (not just unit tests); verify frontend changes by clicking through them in a real browser against a live dev server. This has been the bar for every round in this project so far — treat it as a requirement, not an optional extra.

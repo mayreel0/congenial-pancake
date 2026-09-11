@@ -21,10 +21,6 @@ type ResetPasswordBodyProps = {
   onPasswordChange(value: string): void;
   onSubmit(event: React.FormEvent): void;
 };
-
-// Early returns instead of a nested ternary — matches
-// apps/admin/app/components/AdminStatusGate.tsx's pattern for a 3+-way
-// conditional render.
 export function ResetPasswordBody({
   token,
   status,

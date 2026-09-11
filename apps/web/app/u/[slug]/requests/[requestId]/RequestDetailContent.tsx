@@ -18,8 +18,6 @@ type RequestDetailBodyProps = {
   query: ReturnType<typeof usePublicRequestThreadQuery>;
 };
 
-// Early return per branch instead of a nested ternary — matches
-// apps/admin/app/components/AdminStatusGate.tsx's pattern.
 function RequestDetailBody({ query }: RequestDetailBodyProps) {
   const showSkeleton = useMinDisplayDuration(
     query.isPending,

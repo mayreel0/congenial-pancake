@@ -34,8 +34,7 @@ export type CreateReplyInput = {
 export type ReplyRecord = typeof replies.$inferSelect;
 export type ReplyWithRequest = { reply: ReplyRecord; request: RequestRecord };
 
-// `start`/`end` are both optional (/records' date range defaults to
-// unbounded) — undefined here means "no filter", not "match nothing".
+// See requests.repository.ts's identical dateRangeCondition for why.
 function dateRangeCondition(
   column: typeof replies.createdAt,
   range: DateRange,

@@ -9,8 +9,6 @@ type HoldPanelBodyProps = {
   onSelect(requestId: string): void;
 };
 
-// Early return instead of a nested ternary — matches
-// apps/admin/app/components/AdminStatusGate.tsx's pattern.
 function HoldPanelBody({ loading, heldRequests, onSelect }: HoldPanelBodyProps) {
   if (loading) {
     return (
@@ -58,8 +56,6 @@ export function HoldPanel({
   onSelect,
   onClose,
 }: HoldPanelProps) {
-  // Kept mounted for SHEET_EXIT_MS after `open` goes false so the slide-out
-  // animation can actually play, instead of unmounting instantly.
   const shouldRender = useAnimatedPresence(open, SHEET_EXIT_MS);
   if (!shouldRender) return null;
 

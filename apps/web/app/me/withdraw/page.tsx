@@ -17,10 +17,6 @@ export default function WithdrawPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
-  // A fast local withdraw can complete in under a frame, which makes the
-  // spinner flash too briefly to register as feedback at all — this holds
-  // the busy state visible for a minimum duration, appearing in the same
-  // instant status does (no gap before the spinner shows).
   const showSpinner = useMinDisplayDuration(
     status === "pending",
     BUTTON_PENDING_MIN_MS,

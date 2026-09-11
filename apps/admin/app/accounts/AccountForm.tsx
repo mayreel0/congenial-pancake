@@ -37,10 +37,6 @@ export function AccountForm({
   const fieldErrors = parseFieldErrors(issuePasswordResetLinkSchema, {
     email,
   });
-  // A fast local issue can complete in under a frame, which makes the
-  // spinner flash too briefly to register as feedback at all — this holds
-  // the busy state visible for a minimum duration, appearing in the same
-  // instant `issuing` does (no gap before the spinner shows).
   const showSpinner = useMinDisplayDuration(issuing, BUTTON_PENDING_MIN_MS);
 
   async function handleSubmit(event: FormEvent): Promise<void> {

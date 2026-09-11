@@ -34,15 +34,9 @@ export function AccountRestoreDialog() {
   const [loggingOut, setLoggingOut] = useState(false);
   const { toast, showError, dismiss } = useToast();
   const open = Boolean(user?.deletionGracePeriodEndsAt);
-  // Kept mounted for POPOVER_EXIT_MS after the account is restored (so
-  // `deletionGracePeriodEndsAt` goes away) so the leave animation can
-  // actually play, instead of unmounting instantly.
+  // `open` goes false once the account is restored, clearing
+  // `deletionGracePeriodEndsAt`.
   const shouldRender = useAnimatedPresence(open, POPOVER_EXIT_MS);
-  // A fast local logout/restore can complete in under a frame, which makes
-  // the spinner flash too briefly to register as feedback at all — this
-  // holds the busy state visible for a minimum duration, appearing in the
-  // same instant restoring/loggingOut does (no gap before the spinner
-  // shows).
   const showLogoutSpinner = useMinDisplayDuration(
     loggingOut,
     BUTTON_PENDING_MIN_MS,

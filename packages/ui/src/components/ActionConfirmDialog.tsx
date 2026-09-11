@@ -32,13 +32,7 @@ export function ActionConfirmDialog({
   onConfirm,
 }: ActionConfirmDialogProps) {
   const boxRef = useDismissOnOutsideClick<HTMLDivElement>(open, onCancel);
-  // Kept mounted for POPOVER_EXIT_MS after `open` goes false so the leave
-  // animation can actually play, instead of unmounting instantly.
   const shouldRender = useAnimatedPresence(open, POPOVER_EXIT_MS);
-  // A fast local confirm action can complete in under a frame, which makes
-  // the spinner flash too briefly to register as feedback at all — this
-  // holds the busy state visible for a minimum duration, appearing in the
-  // same instant `pending` does (no gap before the spinner shows).
   const showSpinner = useMinDisplayDuration(
     pending ?? false,
     BUTTON_PENDING_MIN_MS,

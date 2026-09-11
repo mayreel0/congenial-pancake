@@ -18,8 +18,6 @@ type ProfileContentProps = {
   slug: string;
 };
 
-// Early return per branch instead of a nested ternary — matches
-// apps/admin/app/components/AdminStatusGate.tsx's pattern.
 function ProfileContent({ slug }: ProfileContentProps) {
   const parsed = parseProfileSlug(slug);
   const query = usePublicProfileQuery(

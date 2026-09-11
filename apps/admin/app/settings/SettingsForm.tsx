@@ -98,10 +98,6 @@ export function SettingsForm({
     nicknameCooldownDays: Number(form.nicknameCooldownDays),
   };
   const fieldErrors = parseFieldErrors(updateSettingsSchema, values);
-  // A fast local save can complete in under a frame, which makes the
-  // spinner flash too briefly to register as feedback at all — this holds
-  // the busy state visible for a minimum duration, appearing in the same
-  // instant `updating` does (no gap before the spinner shows).
   const showSpinner = useMinDisplayDuration(updating, BUTTON_PENDING_MIN_MS);
 
   async function handleSubmit(event: FormEvent): Promise<void> {

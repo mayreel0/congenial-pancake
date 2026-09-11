@@ -19,8 +19,6 @@ type ReplyDetailBodyProps = {
   replyId: string;
 };
 
-// Early return per branch instead of a nested ternary — matches
-// apps/admin/app/components/AdminStatusGate.tsx's pattern.
 function ReplyDetailBody({ query, replyId }: ReplyDetailBodyProps) {
   const showSkeleton = useMinDisplayDuration(
     query.isPending,

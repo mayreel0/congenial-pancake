@@ -34,10 +34,8 @@ type RepliesListItemsProps = {
   };
 };
 
-// Early return per branch instead of a nested ternary — matches
-// apps/admin/app/components/AdminStatusGate.tsx's pattern. Pagination is a
-// sibling of this, not nested inside it — it stays visible even on an
-// empty page (see ui/Pagination's "always renders" note).
+// Pagination is a sibling of this, not nested inside it — it stays visible
+// even on an empty page (see ui/Pagination's "always renders" note).
 function RepliesListItems({ profileHref, query }: RepliesListItemsProps) {
   if (query.isPending) {
     return (

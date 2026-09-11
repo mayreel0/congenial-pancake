@@ -8,20 +8,16 @@ type VerifyEmailBodyProps = {
   password: string;
   error: string | null;
   fieldError: string | undefined;
-  // Raw validity, independent of whether the field has been touched yet
-  // (unlike `fieldError`, which only shows once touched) — gates the
-  // submit button so it starts disabled on an empty field.
+  // See ResetPasswordBody's identical prop for why (raw touched-independent
+  // validity, gates the submit button on an empty field).
   hasFieldErrors: boolean;
-  // Min-display-duration version of `status === "pending"` (via
-  // useMinDisplayDuration in the parent) — appears the same instant status
-  // does, just held a little longer so a fast signup doesn't flash.
+  // See ResetPasswordBody's identical prop for why (min-display-duration
+  // version of `status === "pending"`).
   showSpinner: boolean;
   onPasswordChange(value: string): void;
   onSubmit(event: React.FormEvent): void;
 };
 
-// Early return instead of a nested ternary — matches
-// apps/admin/app/components/AdminStatusGate.tsx's pattern.
 export function VerifyEmailBody({
   token,
   password,
