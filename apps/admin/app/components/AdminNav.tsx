@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { Toast } from "ui/Toast";
 import { useToast } from "ui/useToast";
+import { POPOVER_EXIT_MS, useAnimatedPresence } from "ui/useAnimatedPresence";
 import { useAuth } from "../lib/auth/useAuth";
 
 const NAV_ITEMS = [
@@ -26,6 +28,11 @@ type AdminNavProps = {
 export function AdminNav({ activePath }: AdminNavProps) {
   const auth = useAuth();
   const { toast, showError, dismiss } = useToast();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const shouldRenderMobileMenu = useAnimatedPresence(
+    menuOpen,
+    POPOVER_EXIT_MS,
+  );
 
   async function handleLogout() {
     try {
@@ -36,33 +43,91 @@ export function AdminNav({ activePath }: AdminNavProps) {
   }
 
   return (
-    <header className="flex h-14 items-center justify-between border-b border-line px-5 sm:px-8">
-      <div className="flex items-center gap-6">
-        <p className="text-sm font-semibold text-foreground">온설 관리</p>
-        <nav className="flex items-center gap-4">
-          {NAV_ITEMS.map((item) => (
-            <Link
-              key={item.href}
-              className={
-                activePath === item.href
-                  ? "text-sm font-semibold text-foreground"
-                  : "text-sm text-muted transition hover:text-foreground"
-              }
-              href={item.href}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+    <header className="relative border-b border-line px-5 sm:px-8">
+      <div className="flex h-14 items-center justify-between">
+        <div className="flex items-center gap-6">
+          <button
+            aria-expanded={menuOpen}
+            aria-label={menuOpen ? "메뉴 닫기" : "메뉴 열기"}
+            className="relative inline-flex h-9 w-9 items-center justify-center rounded-lg border border-line bg-surface text-foreground md:hidden"
+            type="button"
+            onClick={() => setMenuOpen((open) => !open)}
+          >
+            <span
+              aria-hidden="true"
+              className={[
+                "absolute h-0.5 w-4 rounded-full bg-current transition",
+                menuOpen ? "rotate-45" : "-translate-y-1.5",
+              ].join(" ")}
+            />
+            <span
+              aria-hidden="true"
+              className={[
+                "absolute h-0.5 w-4 rounded-full bg-current transition",
+                menuOpen ? "opacity-0" : "opacity-100",
+              ].join(" ")}
+            />
+            <span
+              aria-hidden="true"
+              className={[
+                "absolute h-0.5 w-4 rounded-full bg-current transition",
+                menuOpen ? "-rotate-45" : "translate-y-1.5",
+              ].join(" ")}
+            />
+          </button>
+          <p className="text-sm font-semibold text-foreground">온설 관리</p>
+          <nav className="hidden items-center gap-4 md:flex">
+            {NAV_ITEMS.map((item) => (
+              <Link
+                key={item.href}
+                className={
+                  activePath === item.href
+                    ? "text-sm font-semibold text-foreground"
+                    : "text-sm text-muted transition hover:text-foreground"
+                }
+                href={item.href}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+        </div>
+        {auth.status === "authenticated" && (
+          <button
+            className="text-sm text-muted transition hover:text-foreground"
+            type="button"
+            onClick={() => void handleLogout()}
+          >
+            로그아웃
+          </button>
+        )}
       </div>
-      {auth.status === "authenticated" && (
-        <button
-          className="text-sm text-muted transition hover:text-foreground"
-          type="button"
-          onClick={() => void handleLogout()}
+      {shouldRenderMobileMenu && (
+        <nav
+          aria-label="관리 메뉴"
+          className={`absolute left-0 right-0 top-full z-10 border-b border-line bg-background px-5 py-3 shadow-sm md:hidden ${
+            menuOpen ? "onseol-popover-enter" : "onseol-popover-leave"
+          }`}
         >
-          로그아웃
-        </button>
+          <div className="grid gap-1">
+            {NAV_ITEMS.map((item) => (
+              <Link
+                key={item.href}
+                aria-current={activePath === item.href ? "page" : undefined}
+                className={[
+                  "rounded-lg px-3 py-3 text-sm font-semibold transition",
+                  activePath === item.href
+                    ? "bg-surface-muted text-foreground"
+                    : "text-muted hover:bg-surface-muted hover:text-foreground",
+                ].join(" ")}
+                href={item.href}
+                onClick={() => setMenuOpen(false)}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </div>
+        </nav>
       )}
       <Toast toast={toast} onDismiss={dismiss} />
     </header>
