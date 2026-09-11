@@ -48,11 +48,6 @@ export function RequestComposer({
   }
 
   const isPending = status === "pending";
-  // A fast local submit can complete in under a frame, which makes the
-  // spinner flash too briefly to register as feedback at all — this holds
-  // the busy state visible for a minimum duration, appearing in the same
-  // instant isPending does (no gap before the spinner shows, unlike a
-  // delayed-reveal approach — see the button_pending_immediate_spinner memo).
   const showSpinner = useMinDisplayDuration(isPending, BUTTON_PENDING_MIN_MS);
   // Just gates the button (no visible per-field error text) — an empty
   // composer isn't a mistake worth calling out, it's just the resting

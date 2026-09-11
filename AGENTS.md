@@ -97,6 +97,10 @@ When the same non-obvious reasoning applies at several call sites, write it once
 
 Each workspace's own `AGENTS.md` is itself one of these authoritative places — see the note near the top of each one.
 
+## Code Style
+
+Prefer an early return per branch over a nested ternary for 3+-way conditional rendering — this was previously justified with a repeated comment pointing at `apps/admin/app/components/AdminStatusGate.tsx` in 15 different files; it's a style default now, so no per-file comment is needed to justify it.
+
 ## Verification Standard
 
 Passing lint/typecheck/tests is necessary but not sufficient before calling a change done. Verify backend changes against a real local server with `curl` (not just unit tests); verify frontend changes by clicking through them in a real browser against a live dev server. This has been the bar for every round in this project so far — treat it as a requirement, not an optional extra.

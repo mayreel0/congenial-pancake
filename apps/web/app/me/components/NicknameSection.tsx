@@ -49,10 +49,6 @@ export function NicknameSection() {
     status === "loading",
     SKELETON_MIN_DISPLAY_MS,
   );
-  // A fast local save can complete in under a frame, which makes the
-  // spinner flash too briefly to register as feedback at all — this holds
-  // the busy state visible for a minimum duration, appearing in the same
-  // instant `pending` does (no gap before the spinner shows).
   const showSpinner = useMinDisplayDuration(pending, BUTTON_PENDING_MIN_MS);
 
   if (showSkeleton) {

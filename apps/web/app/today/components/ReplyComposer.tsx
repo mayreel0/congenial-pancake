@@ -17,9 +17,8 @@ export function ReplyComposer({
   onSubmit,
 }: ReplyComposerProps) {
   const remaining = 180 - value.length;
-  // Just gates the button (no visible per-field error text) — an empty
-  // composer isn't a mistake worth calling out, it's just the resting
-  // state, and the disabled button already says "type something."
+  // See RequestComposer's identical fieldErrors usage for why this only
+  // gates the button, with no visible per-field error text.
   const fieldErrors = parseFieldErrors(createReplySchema, {
     body: value.trim(),
   });

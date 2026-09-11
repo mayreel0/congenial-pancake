@@ -26,8 +26,6 @@ type MeContentProps = {
   notice: string | null;
 };
 
-// Early return instead of a nested ternary — matches
-// apps/admin/app/components/AdminStatusGate.tsx's pattern.
 function MeContent({ status, user, notice }: MeContentProps) {
   // A direct visit or refresh (not SPA navigation from somewhere ServiceNav
   // already warmed the same /auth/me cache) is the only realistic way to

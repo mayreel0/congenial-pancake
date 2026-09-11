@@ -26,8 +26,6 @@ type ProfileAreaProps = {
   logout(): Promise<void>;
 };
 
-// Early return instead of a nested ternary — matches
-// apps/admin/app/components/AdminStatusGate.tsx's pattern.
 function ProfileArea({
   activePath,
   status,
@@ -38,8 +36,6 @@ function ProfileArea({
   onCloseProfileMenu,
   logout,
 }: ProfileAreaProps) {
-  // Kept mounted for POPOVER_EXIT_MS after `profileMenuOpen` goes false so
-  // the leave animation can actually play, instead of unmounting instantly.
   const shouldRenderMenu = useAnimatedPresence(
     profileMenuOpen,
     POPOVER_EXIT_MS,
@@ -116,8 +112,6 @@ export function ServiceNav({ activePath }: ServiceNavProps) {
     () => setProfileMenuOpen(false),
   );
   const { status, user, logout } = useAuth();
-  // Kept mounted for POPOVER_EXIT_MS after `menuOpen` goes false so the
-  // leave animation can actually play, instead of unmounting instantly.
   const shouldRenderMobileMenu = useAnimatedPresence(
     menuOpen,
     POPOVER_EXIT_MS,

@@ -23,8 +23,6 @@ type AnswerLogBodyProps = {
   onDeleteReply(requestId: string, replyId: string): void;
 };
 
-// Early return instead of a nested ternary — matches
-// apps/admin/app/components/AdminStatusGate.tsx's pattern.
 function AnswerLogBody({ loading, entries, onDeleteReply }: AnswerLogBodyProps) {
   if (loading) {
     return (

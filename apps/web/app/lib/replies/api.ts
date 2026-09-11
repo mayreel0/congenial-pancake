@@ -23,8 +23,8 @@ export function createReply(
 
 export type MyAnswerLogEntryDto = SharedMyAnswerLogEntryDto;
 
-// from/to both omitted → unbounded (the full history) — see
-// apps/api-server's kstDateRange.
+// See fetchMyRequestLog's identical from/to params for why (unbounded when
+// both omitted — apps/api-server's kstDateRange).
 export function fetchMyAnswerLog(
   from?: string,
   to?: string,
