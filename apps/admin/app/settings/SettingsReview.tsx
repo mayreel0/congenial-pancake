@@ -1,6 +1,6 @@
 "use client";
 
-import { AdminNav } from "../components/AdminNav";
+import { AdminShell } from "../components/AdminShell";
 import { AdminStatusGate } from "../components/AdminStatusGate";
 import { useAdminAccess } from "../lib/admin/useAdminAccess";
 import { Skeleton } from "ui/Skeleton";
@@ -47,8 +47,7 @@ export function SettingsReview() {
   );
 
   return (
-    <div className="min-h-dvh bg-background text-foreground">
-      <AdminNav activePath="/settings" />
+    <AdminShell activePath="/settings">
       <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-5 py-10 sm:px-8">
         <h1 className="text-lg font-semibold text-foreground">설정</h1>
         <AdminStatusGate status={access.status}>
@@ -68,6 +67,6 @@ export function SettingsReview() {
         </AdminStatusGate>
       </main>
       <Toast toast={toast} onDismiss={dismiss} />
-    </div>
+    </AdminShell>
   );
 }
