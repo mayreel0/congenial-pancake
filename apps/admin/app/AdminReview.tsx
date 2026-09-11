@@ -9,7 +9,7 @@ import {
   SKELETON_MIN_DISPLAY_MS,
   useMinDisplayDuration,
 } from "ui/useMinDisplayDuration";
-import { AdminNav } from "./components/AdminNav";
+import { AdminShell } from "./components/AdminShell";
 import { AdminStatusGate } from "./components/AdminStatusGate";
 import { useAdminAccess } from "./lib/admin/useAdminAccess";
 import { formatTimestamp } from "utils";
@@ -207,8 +207,7 @@ export function AdminReview() {
   }
 
   return (
-    <div className="min-h-dvh bg-background text-foreground">
-      <AdminNav activePath="/review" />
+    <AdminShell activePath="/review">
       <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-5 py-10 sm:px-8">
         <h1 className="text-lg font-semibold text-foreground">신고 검토</h1>
         <AdminStatusGate status={access.status}>
@@ -231,6 +230,6 @@ export function AdminReview() {
         onConfirm={() => void confirmPendingDelete()}
       />
       <Toast toast={toast} onDismiss={dismiss} />
-    </div>
+    </AdminShell>
   );
 }
