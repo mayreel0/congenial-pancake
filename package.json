@@ -8,6 +8,10 @@
     "verify:lint": "pnpm -r --if-present --parallel run lint",
     "verify:typecheck": "pnpm -r --if-present --parallel run typecheck",
     "verify:test": "pnpm -r --if-present --parallel run test",
-    "verify:build": "pnpm -r --if-present --parallel run build"
+    "verify:build": "pnpm -r --if-present --parallel run build",
+    "knip": "DATABASE_URL=postgresql://knip:knip@localhost:5432/knip knip"
+  },
+  "devDependencies": {
+    "knip": "^6.35.1"
   }
 }
