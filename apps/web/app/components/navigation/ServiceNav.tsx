@@ -165,9 +165,7 @@ export function ServiceNav({ activePath }: ServiceNavProps) {
                   aria-current={active ? "page" : undefined}
                   className={[
                     "inline-flex h-9 items-center rounded-lg px-3 text-sm font-semibold transition",
-                    active
-                      ? "onseol-nav-active text-foreground"
-                      : "text-muted hover:text-foreground",
+                    active ? "text-foreground" : "text-muted hover:text-foreground",
                   ].join(" ")}
                   href={item.href}
                   key={item.href}
