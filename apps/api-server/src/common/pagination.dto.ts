@@ -4,8 +4,6 @@
 // unchanged.
 export {
   type PaginatedDto,
-  DEFAULT_PAGE_SIZE,
-  PAGE_SIZE_OPTIONS,
   toPaginatedDto,
   parsePageParam,
   parsePageSizeParam,

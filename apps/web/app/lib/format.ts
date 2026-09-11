@@ -26,3 +26,8 @@ export function formatJoinedDate(iso: string): string {
   const date = new Date(iso);
   return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`;
 }
+
+export function truncatePreview(text: string, maxLength: number): string {
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, maxLength).trimEnd()}...`;
+}

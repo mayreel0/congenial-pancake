@@ -1,4 +1,4 @@
-import { truncatePreview } from "../../today/prototype/model";
+import { truncatePreview } from "../../lib/format";
 import type { RequestDto } from "../../lib/requests/api";
 import { Skeleton } from "ui/Skeleton";
 import { SHEET_EXIT_MS, useAnimatedPresence } from "ui/useAnimatedPresence";

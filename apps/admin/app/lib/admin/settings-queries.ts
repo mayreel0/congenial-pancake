@@ -7,7 +7,7 @@ import {
   type UpdateAdminSettingsInput,
 } from "./settings-api";
 
-export const adminSettingsKeys = {
+const adminSettingsKeys = {
   settings: ["admin", "settings"] as const,
 };
 

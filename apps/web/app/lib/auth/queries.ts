@@ -15,7 +15,7 @@ import {
   type ProfileVisibilityPatch,
 } from "../api";
 
-export const authKeys = {
+const authKeys = {
   me: ["auth", "me"] as const,
 };
 

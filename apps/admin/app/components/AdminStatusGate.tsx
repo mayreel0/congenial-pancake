@@ -8,7 +8,7 @@ import {
   useMinDisplayDuration,
 } from "ui/useMinDisplayDuration";
 
-export type AdminPageStatus = "loading" | "signedOut" | "forbidden" | "ready";
+type AdminPageStatus = "loading" | "signedOut" | "forbidden" | "ready";
 
 type AdminStatusGateProps = {
   status: AdminPageStatus;

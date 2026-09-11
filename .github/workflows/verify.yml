@@ -41,10 +41,4 @@ jobs:
 
       - run: pnpm run verify
 
-      # Non-blocking for now — the repo currently has a known backlog of
-      # unused files/deps/exports (see PR #182) that hasn't been cleaned
-      # up yet, so a hard failure here would block every unrelated PR.
-      # Once that backlog is cleared, drop continue-on-error so this
-      # actually gates merges the same way the step above does.
       - run: pnpm run knip
-        continue-on-error: true

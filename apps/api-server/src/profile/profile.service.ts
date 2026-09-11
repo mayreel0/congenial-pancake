@@ -19,7 +19,7 @@ import {
 // How many of a profile's own recent posts show inline on /u/[slug] before
 // linking out to the full paginated list — small enough to keep the main
 // page short, big enough to be a meaningful preview.
-export const PROFILE_PREVIEW_SIZE = 5;
+const PROFILE_PREVIEW_SIZE = 5;
 
 @Injectable()
 export class ProfileService {
