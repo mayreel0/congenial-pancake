@@ -10,7 +10,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 # apps/web — 온설 공개 사이트
 
-Project-wide rules live in the root `AGENTS.md`.
+Project-wide rules live in the root `AGENTS.md`. This file already documents most non-obvious cross-cutting decisions in prose — when a code comment would just restate something explained here, reference the relevant section instead of re-deriving it inline (see root `AGENTS.md`'s "Code Comments").
 
 ## Shared code with apps/admin
 

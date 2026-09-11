@@ -2,6 +2,8 @@
 
 Project-wide rules live in the root `AGENTS.md`. See `docs/decisions/2026-08-26-onseol-storybook-app-decisions.md` for the full reasoning behind this app's existence.
 
+This file already documents most non-obvious cross-cutting decisions in prose — when a code comment would just restate something explained here, reference the relevant section instead of re-deriving it inline (see root `AGENTS.md`'s "Code Comments").
+
 ## What this app is
 
 Just a Storybook runner. It has no components, no pages, no routes of its own — `.storybook/main.ts`'s `stories` glob scans story files where they actually live (`apps/web/app/**/*.stories.tsx` for web's own components, `packages/ui/src/**/*.stories.tsx` for shared ones) rather than requiring them to move here. When `apps/admin` eventually has its own reusable components worth documenting, add a third glob root here rather than duplicating this whole setup into `apps/admin`.

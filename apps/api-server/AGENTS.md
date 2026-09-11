@@ -2,6 +2,8 @@
 
 App-specific rules only. Project-wide rules (branching policy, decision-confirmation process, etc.) live in the root `AGENTS.md`.
 
+This file already documents most non-obvious cross-cutting decisions in prose — when a code comment would just restate something explained here, reference the relevant section instead of re-deriving it inline (see root `AGENTS.md`'s "Code Comments").
+
 ## Running
 
 - `pnpm --filter api-server start:dev` — local run. Requires `.env` (see `.env.example`; `DATABASE_URL` must point at a local Postgres).

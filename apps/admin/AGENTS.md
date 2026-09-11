@@ -12,6 +12,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 Project-wide rules live in the root `AGENTS.md`. This app used to be `/admin` inside `apps/web`; it was split into its own Next.js app so the public site never ships admin code/routes in its bundle — see `docs/decisions/2026-08-25-onseol-admin-app-split-decisions.md` for the full reasoning.
 
+This file already documents most non-obvious cross-cutting decisions in prose — when a code comment would just restate something explained here, reference the relevant section instead of re-deriving it inline (see root `AGENTS.md`'s "Code Comments").
+
 ## Running
 
 - `pnpm --filter admin dev` — runs on **port 3002** (not 3000, which `apps/web` owns). Needs `.env.local` (see `.env.example`) pointing `NEXT_PUBLIC_API_BASE_URL` at the same `apps/api-server` instance `apps/web` uses.
