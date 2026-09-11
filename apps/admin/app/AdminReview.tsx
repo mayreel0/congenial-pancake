@@ -29,6 +29,36 @@ type ReviewBodyProps = {
   onDeleteReply(id: string): void;
 };
 
+type RowActionsProps = {
+  onRestore(): void;
+  onDelete(): void;
+};
+
+function RowActions({ onRestore, onDelete }: RowActionsProps) {
+  return (
+    <div className="flex justify-end gap-2">
+      <button
+        className="inline-flex h-8 items-center justify-center rounded-lg border border-line px-3 text-xs font-semibold text-foreground transition hover:bg-surface-muted"
+        type="button"
+        onClick={onRestore}
+      >
+        복구
+      </button>
+      <button
+        className="inline-flex h-8 items-center justify-center rounded-lg border border-line px-3 text-xs font-semibold text-red-600 transition hover:bg-surface-muted"
+        type="button"
+        onClick={onDelete}
+      >
+        영구 삭제
+      </button>
+    </div>
+  );
+}
+
+const TH_CLASS =
+  "border-b border-line px-3 py-2 text-left text-xs font-semibold text-muted";
+const TD_CLASS = "border-b border-line px-3 py-3 align-top text-sm";
+
 // Early return instead of a nested ternary — matches
 // apps/admin/app/components/AdminStatusGate.tsx's pattern.
 function ReviewBody({
@@ -76,40 +106,39 @@ function ReviewBody({
           <h2 className="text-sm font-semibold text-muted">
             요청 ({hiddenRequests.length})
           </h2>
-          <ul className="space-y-3">
-            {hiddenRequests.map((request) => (
-              <li
-                className="space-y-2 rounded-lg border border-line bg-surface px-4 py-3"
-                key={request.id}
-              >
-                <p className="text-sm leading-6 text-foreground">
-                  {request.body}
-                </p>
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-xs text-muted">
-                    {formatTimestamp(request.createdAt)} · 신고{" "}
-                    {request.reportCount}건
-                  </p>
-                  <div className="flex shrink-0 gap-2">
-                    <button
-                      className="inline-flex h-8 items-center justify-center rounded-lg border border-line px-3 text-xs font-semibold text-foreground transition hover:bg-surface-muted"
-                      type="button"
-                      onClick={() => onRestoreRequest(request.id)}
-                    >
-                      복구
-                    </button>
-                    <button
-                      className="inline-flex h-8 items-center justify-center rounded-lg border border-line px-3 text-xs font-semibold text-red-600 transition hover:bg-surface-muted"
-                      type="button"
-                      onClick={() => onDeleteRequest(request.id)}
-                    >
-                      영구 삭제
-                    </button>
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
+          <div className="overflow-x-auto rounded-lg border border-line bg-surface">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr>
+                  <th className={TH_CLASS}>내용</th>
+                  <th className={`${TH_CLASS} whitespace-nowrap`}>작성일</th>
+                  <th className={`${TH_CLASS} whitespace-nowrap`}>신고</th>
+                  <th className={`${TH_CLASS} text-right`}>액션</th>
+                </tr>
+              </thead>
+              <tbody>
+                {hiddenRequests.map((request) => (
+                  <tr key={request.id}>
+                    <td className={`${TD_CLASS} text-foreground`}>
+                      {request.body}
+                    </td>
+                    <td className={`${TD_CLASS} whitespace-nowrap text-muted`}>
+                      {formatTimestamp(request.createdAt)}
+                    </td>
+                    <td className={`${TD_CLASS} whitespace-nowrap text-muted`}>
+                      {request.reportCount}건
+                    </td>
+                    <td className={TD_CLASS}>
+                      <RowActions
+                        onDelete={() => onDeleteRequest(request.id)}
+                        onRestore={() => onRestoreRequest(request.id)}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
       )}
 
@@ -118,41 +147,43 @@ function ReviewBody({
           <h2 className="text-sm font-semibold text-muted">
             답변 ({hiddenReplies.length})
           </h2>
-          <ul className="space-y-3">
-            {hiddenReplies.map((reply) => (
-              <li
-                className="space-y-2 rounded-lg border border-line bg-surface px-4 py-3"
-                key={reply.id}
-              >
-                <p className="text-xs text-muted">원글: {reply.requestBody}</p>
-                <p className="text-sm leading-6 text-foreground">
-                  {reply.body}
-                </p>
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-xs text-muted">
-                    {formatTimestamp(reply.createdAt)} · 신고{" "}
-                    {reply.reportCount}건
-                  </p>
-                  <div className="flex shrink-0 gap-2">
-                    <button
-                      className="inline-flex h-8 items-center justify-center rounded-lg border border-line px-3 text-xs font-semibold text-foreground transition hover:bg-surface-muted"
-                      type="button"
-                      onClick={() => onRestoreReply(reply.id)}
-                    >
-                      복구
-                    </button>
-                    <button
-                      className="inline-flex h-8 items-center justify-center rounded-lg border border-line px-3 text-xs font-semibold text-red-600 transition hover:bg-surface-muted"
-                      type="button"
-                      onClick={() => onDeleteReply(reply.id)}
-                    >
-                      영구 삭제
-                    </button>
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
+          <div className="overflow-x-auto rounded-lg border border-line bg-surface">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr>
+                  <th className={TH_CLASS}>원글</th>
+                  <th className={TH_CLASS}>답변 내용</th>
+                  <th className={`${TH_CLASS} whitespace-nowrap`}>작성일</th>
+                  <th className={`${TH_CLASS} whitespace-nowrap`}>신고</th>
+                  <th className={`${TH_CLASS} text-right`}>액션</th>
+                </tr>
+              </thead>
+              <tbody>
+                {hiddenReplies.map((reply) => (
+                  <tr key={reply.id}>
+                    <td className={`${TD_CLASS} text-muted`}>
+                      {reply.requestBody}
+                    </td>
+                    <td className={`${TD_CLASS} text-foreground`}>
+                      {reply.body}
+                    </td>
+                    <td className={`${TD_CLASS} whitespace-nowrap text-muted`}>
+                      {formatTimestamp(reply.createdAt)}
+                    </td>
+                    <td className={`${TD_CLASS} whitespace-nowrap text-muted`}>
+                      {reply.reportCount}건
+                    </td>
+                    <td className={TD_CLASS}>
+                      <RowActions
+                        onDelete={() => onDeleteReply(reply.id)}
+                        onRestore={() => onRestoreReply(reply.id)}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
       )}
     </>
@@ -208,7 +239,7 @@ export function AdminReview() {
 
   return (
     <AdminShell activePath="/review">
-      <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-5 py-10 sm:px-8">
+      <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-5 py-10 sm:px-8">
         <h1 className="text-lg font-semibold text-foreground">신고 검토</h1>
         <AdminStatusGate status={access.status}>
           <ReviewBody
