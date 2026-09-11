@@ -176,7 +176,7 @@ describe("AdminReview", () => {
 
     expect(await screen.findByText("숨겨진 요청")).toBeInTheDocument();
     expect(screen.getByText("숨겨진 답변")).toBeInTheDocument();
-    expect(screen.getAllByText(/신고 3건/)).toHaveLength(2);
+    expect(screen.getAllByText("3건")).toHaveLength(2);
   });
 
   it("shows a skeleton, not the empty-state message, while the queue is loading", async () => {
