@@ -4,7 +4,7 @@ import { KakaoOAuthProvider } from './kakao-oauth.provider';
 import { NaverOAuthProvider } from './naver-oauth.provider';
 import type { OAuthProvider } from './oauth-provider.interface';
 
-export const OAUTH_PROVIDER_NAMES = ['google', 'kakao', 'naver'] as const;
+const OAUTH_PROVIDER_NAMES = ['google', 'kakao', 'naver'] as const;
 export type OAuthProviderName = (typeof OAUTH_PROVIDER_NAMES)[number];
 
 function isOAuthProviderName(value: string): value is OAuthProviderName {

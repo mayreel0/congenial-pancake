@@ -9,7 +9,7 @@ import {
   restoreRequest,
 } from "./api";
 
-export const adminKeys = {
+const adminKeys = {
   hidden: ["admin", "moderation", "hidden"] as const,
 };
 

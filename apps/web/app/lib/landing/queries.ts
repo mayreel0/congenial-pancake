@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchLandingStats, fetchSampleExchanges } from "./api";
 
-export const landingKeys = {
+const landingKeys = {
   stats: ["landing", "stats"] as const,
   samples: (limit: number) => ["landing", "samples", limit] as const,
 };

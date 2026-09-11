@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchAdminWhoami } from "./whoami-api";
 
-export const adminWhoamiKeys = {
+const adminWhoamiKeys = {
   whoami: ["admin", "whoami"] as const,
 };
 

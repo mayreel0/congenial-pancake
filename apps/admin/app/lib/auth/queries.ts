@@ -8,7 +8,7 @@ import {
   type CurrentUser,
 } from "../api";
 
-export const authKeys = {
+const authKeys = {
   me: ["auth", "me"] as const,
 };
 

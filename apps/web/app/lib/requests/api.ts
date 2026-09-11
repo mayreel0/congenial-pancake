@@ -2,7 +2,6 @@ import type {
   AuthorDisplayDto,
   DayCountsResponseDto,
   FeedItemResponseDto,
-  FeedReplyResponseDto,
   MyRequestLogEntryDto as SharedMyRequestLogEntryDto,
   RequestResponseDto,
 } from "shared/dto";
@@ -56,11 +55,6 @@ export function holdRequest(requestId: string): Promise<RequestDto | null> {
 export function fetchHeldRequests(): Promise<RequestDto[]> {
   return apiFetch<RequestDto[]>("/requests/held");
 }
-
-// authorSlot identifies a repeat author only within this one thread — see
-// apps/api/src/requests/feed-author-slots.ts. It carries no identity beyond
-// that; the frontend maps it to a randomly-picked display nickname.
-export type FeedReplyDto = FeedReplyResponseDto;
 
 export type FeedItemDto = FeedItemResponseDto;
 

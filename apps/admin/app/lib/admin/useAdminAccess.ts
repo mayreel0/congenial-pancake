@@ -4,7 +4,7 @@ import { ApiError } from "../api";
 import { useAuth } from "../auth/useAuth";
 import { useAdminWhoamiQuery } from "./whoami-queries";
 
-export type AdminAccessStatus = "loading" | "signedOut" | "forbidden" | "ready";
+type AdminAccessStatus = "loading" | "signedOut" | "forbidden" | "ready";
 
 type UseAdminAccessResult = {
   status: AdminAccessStatus;

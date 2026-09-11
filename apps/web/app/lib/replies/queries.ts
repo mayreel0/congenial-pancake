@@ -18,7 +18,7 @@ import {
   unsaveReply,
 } from "./api";
 
-export const replyKeys = {
+const replyKeys = {
   // Prefix key — pass to invalidateQueries to match every mine(...) variant
   // regardless of its from/to/page/pageSize args.
   mineAll: ["replies", "mine"] as const,

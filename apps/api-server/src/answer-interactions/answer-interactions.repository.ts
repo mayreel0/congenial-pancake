@@ -4,8 +4,6 @@ import { DRIZZLE } from '../database/database.constants';
 import type { Database } from '../database/database.types';
 import { answerInteractions, requests } from '../database/schema';
 
-export type AnswerInteraction = typeof answerInteractions.$inferSelect;
-
 @Injectable()
 export class AnswerInteractionsRepository {
   constructor(@Inject(DRIZZLE) private readonly db: Database) {}
