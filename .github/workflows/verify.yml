@@ -9,7 +9,7 @@ name: Verify
 # v1.
 on:
   pull_request:
-    branches: [v1]
+    branches: [v1, chore/add-knip]
   workflow_dispatch:
 
 concurrency:
