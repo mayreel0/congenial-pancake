@@ -2,15 +2,13 @@
 
 import { ServiceNav } from "../components/navigation/ServiceNav";
 import { Skeleton } from "ui/Skeleton";
-import { Toast } from "ui/Toast";
-import { useToast } from "ui/useToast";
+import { toast } from "ui/useToast";
 import { RequestComposer } from "./components/RequestComposer";
 import { RotatingOnseolLine } from "./components/RotatingOnseolLine";
 import { useTodayComposer } from "./useTodayComposer";
 
 export function TodayPrototype() {
   const prototype = useTodayComposer();
-  const { toast, showSuccess, showError, dismiss } = useToast();
   const isTyping = prototype.requestDraft.trim().length > 0;
   const requestCount = prototype.requestCount;
   const replyCount = prototype.replyCount;
@@ -18,9 +16,9 @@ export function TodayPrototype() {
   const submitRequest = async (body: string) => {
     try {
       await prototype.submitRequest(body);
-      showSuccess("온설을 남겼어요");
+      toast.success("온설을 남겼어요");
     } catch (error) {
-      showError(error);
+      toast.error(error);
     }
   };
 
@@ -83,7 +81,6 @@ export function TodayPrototype() {
           )}
         </section>
       </main>
-      <Toast toast={toast} onDismiss={dismiss} />
     </div>
   );
 }

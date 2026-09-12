@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import localFont from "next/font/local";
+import { GlobalToast } from "ui/GlobalToast";
 import { QueryProvider } from "ui/QueryProvider";
 import { AccountRestoreDialog } from "./components/AccountRestoreDialog";
 import "./globals.css";
@@ -36,6 +37,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
         <QueryProvider>
           <AccountRestoreDialog />
           {children}
+          <GlobalToast />
         </QueryProvider>
       </body>
     </html>

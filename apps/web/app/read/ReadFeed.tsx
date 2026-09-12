@@ -6,8 +6,7 @@ import { ActionConfirmDialog } from "ui/ActionConfirmDialog";
 import { HeatmapCalendarField } from "ui/HeatmapCalendarField";
 import { Pagination } from "ui/Pagination";
 import { Skeleton } from "ui/Skeleton";
-import { Toast } from "ui/Toast";
-import { useToast } from "ui/useToast";
+import { toast } from "ui/useToast";
 import { buildFeedItemLabels } from "../lib/feed-item-labels";
 import { formatKoreanDate } from "../lib/kst-date";
 import { PAGE_SIZE_OPTIONS } from "../lib/pagination";
@@ -81,7 +80,6 @@ export function ReadFeed() {
   const [pendingReport, setPendingReport] = useState<PendingReport | null>(
     null,
   );
-  const { toast, showSuccess, showError, dismiss } = useToast();
 
   const savedSet = new Set(feed.savedReplyIds);
 
@@ -96,9 +94,9 @@ export function ReadFeed() {
       } else {
         await feed.reportReply(report.replyId);
       }
-      showSuccess("신고했어요.");
+      toast.success("신고했어요.");
     } catch (error) {
-      showError(error);
+      toast.error(error);
     }
   }
 
@@ -106,7 +104,7 @@ export function ReadFeed() {
     try {
       await feed.toggleSavedReply(replyId);
     } catch (error) {
-      showError(error);
+      toast.error(error);
     }
   }
 
@@ -162,7 +160,6 @@ export function ReadFeed() {
         onCancel={() => setPendingReport(null)}
         onConfirm={() => void confirmPendingReport()}
       />
-      <Toast toast={toast} onDismiss={dismiss} />
     </div>
   );
 }

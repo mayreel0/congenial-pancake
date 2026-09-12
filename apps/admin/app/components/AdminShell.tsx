@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { type ReactNode, useState } from "react";
-import { Toast } from "ui/Toast";
-import { useToast } from "ui/useToast";
+import { toast } from "ui/useToast";
 import { POPOVER_EXIT_MS, useAnimatedPresence } from "ui/useAnimatedPresence";
 import { useAuth } from "../lib/auth/useAuth";
 
@@ -71,10 +70,9 @@ type AdminShellProps = {
 // always exactly one control for whichever nav treatment is active.
 // `{children}` is rendered exactly once — only the chrome around it
 // (sidebar presence, which toggle button shows) is responsive, so page
-// content/queries/toasts never double-mount at both breakpoints.
+// content/queries never double-mount at both breakpoints.
 export function AdminShell({ activePath, children }: AdminShellProps) {
   const auth = useAuth();
-  const { toast, showError, dismiss } = useToast();
   const [menuOpen, setMenuOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const shouldRenderMobileMenu = useAnimatedPresence(
@@ -86,7 +84,7 @@ export function AdminShell({ activePath, children }: AdminShellProps) {
     try {
       await auth.logout();
     } catch (error) {
-      showError(error);
+      toast.error(error);
     }
   }
 
@@ -188,8 +186,6 @@ export function AdminShell({ activePath, children }: AdminShellProps) {
 
         <div className="flex-1">{children}</div>
       </div>
-
-      <Toast toast={toast} onDismiss={dismiss} />
     </div>
   );
 }
