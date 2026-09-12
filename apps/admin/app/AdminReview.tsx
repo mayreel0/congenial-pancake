@@ -3,8 +3,7 @@
 import { useState } from "react";
 import { ActionConfirmDialog } from "ui/ActionConfirmDialog";
 import { Skeleton } from "ui/Skeleton";
-import { Toast } from "ui/Toast";
-import { useToast } from "ui/useToast";
+import { toast } from "ui/useToast";
 import {
   SKELETON_MIN_DISPLAY_MS,
   useMinDisplayDuration,
@@ -196,7 +195,6 @@ export function AdminReview() {
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(
     null,
   );
-  const { toast, showSuccess, showError, dismiss } = useToast();
 
   // The confirm dialog closes the instant "영구 삭제" is confirmed, before
   // this resolves — deliberately unchanged (see docs/decisions — program-
@@ -213,27 +211,27 @@ export function AdminReview() {
       } else {
         await review.deleteReply(target.id);
       }
-      showSuccess("영구 삭제했어요.");
+      toast.success("영구 삭제했어요.");
     } catch (error) {
-      showError(error);
+      toast.error(error);
     }
   }
 
   async function handleRestoreRequest(id: string) {
     try {
       await review.restoreRequest(id);
-      showSuccess("복구했어요.");
+      toast.success("복구했어요.");
     } catch (error) {
-      showError(error);
+      toast.error(error);
     }
   }
 
   async function handleRestoreReply(id: string) {
     try {
       await review.restoreReply(id);
-      showSuccess("복구했어요.");
+      toast.success("복구했어요.");
     } catch (error) {
-      showError(error);
+      toast.error(error);
     }
   }
 
@@ -260,7 +258,6 @@ export function AdminReview() {
         onCancel={() => setPendingDelete(null)}
         onConfirm={() => void confirmPendingDelete()}
       />
-      <Toast toast={toast} onDismiss={dismiss} />
     </AdminShell>
   );
 }

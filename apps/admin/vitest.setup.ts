@@ -1,5 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import { afterEach, beforeEach, vi } from "vitest";
+import { toast } from "ui/useToast";
 
 // Exported so a test can assert AdminGate/AdminStatusGate actually
 // redirected (e.g. `expect(mockRouterReplace).toHaveBeenCalledWith("/review")`)
@@ -41,4 +42,8 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  // toast (ui/useToast) is a module-level singleton, not per-render state
+  // — without this, a toast/its dismiss timer left over from one test
+  // could leak into the next.
+  toast.dismiss();
 });

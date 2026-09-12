@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "ui/Button";
-import { Toast } from "ui/Toast";
-import { useToast } from "ui/useToast";
+import { toast } from "ui/useToast";
 import { POPOVER_EXIT_MS, useAnimatedPresence } from "ui/useAnimatedPresence";
 import { BUTTON_PENDING_MIN_MS, useMinDisplayDuration } from "ui/useMinDisplayDuration";
 import { useAuth } from "../lib/auth/useAuth";
@@ -32,7 +31,6 @@ export function AccountRestoreDialog() {
   const { user, restoreAccount, logout } = useAuth();
   const [restoring, setRestoring] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
-  const { toast, showError, dismiss } = useToast();
   const open = Boolean(user?.deletionGracePeriodEndsAt);
   // `open` goes false once the account is restored, clearing
   // `deletionGracePeriodEndsAt`.
@@ -57,7 +55,7 @@ export function AccountRestoreDialog() {
     try {
       await restoreAccount();
     } catch (error) {
-      showError(error);
+      toast.error(error);
     } finally {
       setRestoring(false);
     }
@@ -68,7 +66,7 @@ export function AccountRestoreDialog() {
     try {
       await logout();
     } catch (error) {
-      showError(error);
+      toast.error(error);
     } finally {
       setLoggingOut(false);
     }
@@ -111,7 +109,6 @@ export function AccountRestoreDialog() {
           </Button>
         </div>
       </div>
-      <Toast toast={toast} onDismiss={dismiss} />
     </div>
   );
 }

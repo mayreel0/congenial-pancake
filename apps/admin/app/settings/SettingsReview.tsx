@@ -4,8 +4,7 @@ import { AdminShell } from "../components/AdminShell";
 import { AdminStatusGate } from "../components/AdminStatusGate";
 import { useAdminAccess } from "../lib/admin/useAdminAccess";
 import { Skeleton } from "ui/Skeleton";
-import { Toast } from "ui/Toast";
-import { useToast } from "ui/useToast";
+import { toast } from "ui/useToast";
 import {
   SKELETON_MIN_DISPLAY_MS,
   useMinDisplayDuration,
@@ -40,7 +39,6 @@ function SettingsFormSkeleton() {
 export function SettingsReview() {
   const access = useAdminAccess();
   const admin = useAdminSettings();
-  const { toast, showSuccess, dismiss } = useToast();
   const showSkeleton = useMinDisplayDuration(
     admin.isLoadingSettings,
     SKELETON_MIN_DISPLAY_MS,
@@ -60,13 +58,12 @@ export function SettingsReview() {
                 updating={admin.updating}
                 updateError={admin.updateError}
                 update={admin.update}
-                onSaved={() => showSuccess("저장했어요.")}
+                onSaved={() => toast.success("저장했어요.")}
               />
             )
           )}
         </AdminStatusGate>
       </main>
-      <Toast toast={toast} onDismiss={dismiss} />
     </AdminShell>
   );
 }

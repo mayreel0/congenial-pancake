@@ -5,9 +5,8 @@ import { ServiceNav } from "../components/navigation/ServiceNav";
 import { useAnswerQueue } from "./useAnswerQueue";
 import { ActionConfirmDialog } from "ui/ActionConfirmDialog";
 import { Skeleton } from "ui/Skeleton";
-import { Toast } from "ui/Toast";
 import { useDismissOnOutsideClick } from "ui/useDismissOnOutsideClick";
-import { useToast } from "ui/useToast";
+import { toast } from "ui/useToast";
 import { AnswerComposer } from "./components/AnswerComposer";
 import { AnswerLog } from "./components/AnswerLog";
 import { HoldPanel } from "./components/HoldPanel";
@@ -43,7 +42,6 @@ const ACTION_CONFIRM_COPY: Record<
 
 export function AnswerSession() {
   const prototype = useAnswerQueue();
-  const { toast, showError, dismiss } = useToast();
   const [holdPanelOpen, setHoldPanelOpen] = useState(false);
   const holdPanelRef = useDismissOnOutsideClick<HTMLDivElement>(
     holdPanelOpen,
@@ -88,7 +86,7 @@ export function AnswerSession() {
       try {
         await action();
       } catch (error) {
-        showError(error);
+        toast.error(error);
       } finally {
         setLoadingNext(false);
       }
@@ -118,7 +116,7 @@ export function AnswerSession() {
     try {
       await prototype.submitReply(currentTarget.id);
     } catch (error) {
-      showError(error);
+      toast.error(error);
     } finally {
       setAnswerSubmitStatus("idle");
     }
@@ -199,7 +197,6 @@ export function AnswerSession() {
         onCancel={() => setPendingAction(null)}
         onConfirm={confirmPendingAction}
       />
-      <Toast toast={toast} onDismiss={dismiss} />
     </div>
   );
 }
