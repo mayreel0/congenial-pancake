@@ -36,10 +36,15 @@ export class AnswerInteractionsService {
 
   async findHeldForAuthor(userId: string) {
     const settings = await this.settingsService.get();
-    return this.answerInteractionsRepository.findHeldForAuthor(
+    const rows = await this.answerInteractionsRepository.findHeldForAuthor(
       userId,
       settings.queueFreshnessHours,
     );
+    const freshnessMs = settings.queueFreshnessHours * 60 * 60 * 1000;
+    return rows.map((row) => ({
+      request: row.request,
+      expiresAt: new Date(row.request.createdAt.getTime() + freshnessMs),
+    }));
   }
 
   clearForViewer(

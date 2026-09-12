@@ -38,6 +38,10 @@ import { UsersService } from '../users/users.service';
 import { CreateRequestDto } from './dto/create-request.dto';
 import { toFeedItemDto, type FeedItemResponseDto } from './dto/feed-item.dto';
 import {
+  toHeldRequestResponseDto,
+  type HeldRequestResponseDto,
+} from './dto/held-request-response.dto';
+import {
   toMyRequestLogEntryDto,
   type MyRequestLogEntryDto,
 } from './dto/my-request-log-entry.dto';
@@ -225,13 +229,13 @@ export class RequestsController {
   // queue-decisions.md for why holding is member-only while skip is not.
   @Get('held')
   @UseGuards(SessionGuard)
-  async held(@CurrentUser() userId: string): Promise<RequestResponseDto[]> {
+  async held(@CurrentUser() userId: string): Promise<HeldRequestResponseDto[]> {
     const rows = await this.answerInteractionsService.findHeldForAuthor(userId);
     const nicknameByUserId = await this.nicknameMapFor(
       rows.map((row) => row.request),
     );
     return rows.map((row) =>
-      toRequestResponseDto(row.request, nicknameByUserId),
+      toHeldRequestResponseDto(row.request, row.expiresAt, nicknameByUserId),
     );
   }
 

@@ -60,6 +60,16 @@ export const requestResponseSchema = z.object({
 });
 export type RequestResponseDto = z.infer<typeof requestResponseSchema>;
 
+// GET /requests/held — expiresAt is computed server-side from the
+// *current* queueFreshnessHours setting at request time, not frozen at
+// hold time, matching how the backend's own freshness-window query
+// already works (an admin changing the setting shifts every held item's
+// effective expiry immediately, not just newly-held ones).
+export const heldRequestResponseSchema = requestResponseSchema.extend({
+  expiresAt: z.string(),
+});
+export type HeldRequestResponseDto = z.infer<typeof heldRequestResponseSchema>;
+
 // POST /requests/:requestId/replies body.
 export const createReplySchema = z
   .object({

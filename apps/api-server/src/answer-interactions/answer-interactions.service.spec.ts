@@ -1,5 +1,6 @@
 import type { SettingsService } from '../settings/settings.service';
 import type { SettingsRecord } from '../settings/settings.repository';
+import type { RequestRecord } from '../requests/requests.repository';
 import type { AnswerInteractionsRepository } from './answer-interactions.repository';
 import { AnswerInteractionsService } from './answer-interactions.service';
 
@@ -11,6 +12,22 @@ function makeSettings(overrides: Partial<SettingsRecord> = {}): SettingsRecord {
     guestReplyLimit: 5,
     nicknameCooldownDays: 7,
     updatedAt: new Date('2026-08-21T00:00:00.000Z'),
+    ...overrides,
+  };
+}
+
+function makeRequest(overrides: Partial<RequestRecord> = {}): RequestRecord {
+  return {
+    id: 'request-1',
+    body: '오늘 조금 힘들었어요.',
+    authorId: 'user-1',
+    guestId: null,
+    createdAt: new Date('2026-08-21T00:00:00.000Z'),
+    hidden: false,
+    deletedAt: null,
+    contentRemoved: false,
+    reviewedAt: null,
+    anonymous: true,
     ...overrides,
   };
 }
@@ -73,10 +90,25 @@ describe('AnswerInteractionsService', () => {
       settingsService.get.mockResolvedValue(
         makeSettings({ queueFreshnessHours: 24 }),
       );
+      repository.findHeldForAuthor.mockResolvedValue([]);
 
       await service.findHeldForAuthor('user-1');
 
       expect(repository.findHeldForAuthor).toHaveBeenCalledWith('user-1', 24);
+    });
+
+    it('computes expiresAt as createdAt + the current freshness window', async () => {
+      settingsService.get.mockResolvedValue(
+        makeSettings({ queueFreshnessHours: 24 }),
+      );
+      const request = makeRequest({
+        createdAt: new Date('2026-08-21T00:00:00.000Z'),
+      });
+      repository.findHeldForAuthor.mockResolvedValue([{ request }]);
+
+      const [row] = await service.findHeldForAuthor('user-1');
+
+      expect(row.expiresAt).toEqual(new Date('2026-08-22T00:00:00.000Z'));
     });
   });
 
