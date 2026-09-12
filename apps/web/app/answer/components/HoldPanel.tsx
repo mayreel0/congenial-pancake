@@ -1,7 +1,7 @@
 import { truncatePreview } from "../../lib/format";
 import type { RequestDto } from "../../lib/requests/api";
 import { Skeleton } from "ui/Skeleton";
-import { SHEET_EXIT_MS, useAnimatedPresence } from "ui/useAnimatedPresence";
+import { POPOVER_EXIT_MS, useAnimatedPresence } from "ui/useAnimatedPresence";
 
 type HoldPanelBodyProps = {
   loading: boolean;
@@ -56,35 +56,33 @@ export function HoldPanel({
   onSelect,
   onClose,
 }: HoldPanelProps) {
-  const shouldRender = useAnimatedPresence(open, SHEET_EXIT_MS);
+  const shouldRender = useAnimatedPresence(open, POPOVER_EXIT_MS);
   if (!shouldRender) return null;
 
   return (
     <div
       aria-label="보류한 온설 목록"
-      className={`absolute inset-x-0 bottom-full z-10 max-h-72 overflow-y-auto border-t border-line bg-surface px-5 py-3 shadow-sm sm:px-8 ${
-        open ? "onseol-sheet-enter" : "onseol-sheet-leave"
+      className={`absolute right-0 top-full z-10 mt-2 max-h-72 w-72 overflow-y-auto rounded-lg border border-line bg-surface px-4 py-3 shadow-sm ${
+        open ? "onseol-popover-enter" : "onseol-popover-leave"
       }`}
       role="dialog"
     >
-      <div className="mx-auto w-full max-w-6xl">
-        <div className="flex items-center justify-between pb-2">
-          <p className="text-sm font-semibold text-foreground">보류 중</p>
-          <button
-            aria-label="보류함 닫기"
-            className="text-sm text-muted"
-            type="button"
-            onClick={onClose}
-          >
-            닫기
-          </button>
-        </div>
-        <HoldPanelBody
-          heldRequests={heldRequests}
-          loading={loading}
-          onSelect={onSelect}
-        />
+      <div className="flex items-center justify-between pb-2">
+        <p className="text-sm font-semibold text-foreground">보류 중</p>
+        <button
+          aria-label="보류함 닫기"
+          className="text-sm text-muted"
+          type="button"
+          onClick={onClose}
+        >
+          닫기
+        </button>
       </div>
+      <HoldPanelBody
+        heldRequests={heldRequests}
+        loading={loading}
+        onSelect={onSelect}
+      />
     </div>
   );
 }

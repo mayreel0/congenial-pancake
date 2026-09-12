@@ -9,10 +9,6 @@ import { useEffect, useState } from "react";
 // a real animation-length wait.
 export const POPOVER_EXIT_MS = process.env.NODE_ENV === "test" ? 0 : 120;
 
-// Same idea, for HoldPanel's bottom-sheet slide — see its
-// `onseol-sheet-leave` animation duration in apps/web/app/globals.css.
-export const SHEET_EXIT_MS = process.env.NODE_ENV === "test" ? 0 : 150;
-
 // For playing a leave animation before actually unmounting — NOT the same
 // problem useMinDisplayDuration solves. That hook measures a minimum
 // duration *since becoming active* (so a fast load doesn't flash a

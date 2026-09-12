@@ -122,7 +122,7 @@ export function AnswerSession() {
   return (
     <div className="flex h-dvh flex-col bg-background text-foreground">
       <ServiceNav activePath="/answer" />
-      <div className="flex min-h-0 flex-1 flex-col">
+      <div className="relative flex min-h-0 flex-1 flex-col">
         <AnswerLog
           authorLabels={authorLabels}
           canManageCurrentRequest={prototype.canManageCurrentRequest}
@@ -140,33 +140,31 @@ export function AnswerSession() {
           onReport={(requestId) => requestAction("report", requestId)}
           onSkip={(requestId) => requestAction("skip", requestId)}
         />
-        <div className="relative border-t border-line px-5 py-2 sm:px-8">
-          <HoldPanel
-            heldRequests={prototype.heldRequests}
-            loading={prototype.isLoadingHeldRequests}
-            open={holdPanelOpen}
-            onClose={() => setHoldPanelOpen(false)}
-            onSelect={(requestId) => {
-              prototype.openHeldRequest(requestId);
-              setHoldPanelOpen(false);
-            }}
-          />
-          {prototype.canManageCurrentRequest && (
-            <div className="mx-auto flex w-full max-w-6xl items-center justify-between">
-              {prototype.isLoadingHeldRequests ? (
-                <Skeleton className="h-4 w-16" />
-              ) : (
-                <button
-                  className="text-xs font-medium text-muted transition hover:text-foreground"
-                  type="button"
-                  onClick={() => setHoldPanelOpen((open) => !open)}
-                >
-                  보류 중 ({prototype.heldRequests.length})
-                </button>
-              )}
-            </div>
-          )}
-        </div>
+        {prototype.canManageCurrentRequest && (
+          <div className="absolute right-5 top-3 z-10 sm:right-8">
+            {prototype.isLoadingHeldRequests ? (
+              <Skeleton className="h-7 w-20 rounded-full" />
+            ) : (
+              <button
+                className="inline-flex h-7 items-center rounded-full bg-primary px-3 text-xs font-semibold text-primary-foreground shadow-sm transition hover:opacity-90"
+                type="button"
+                onClick={() => setHoldPanelOpen((open) => !open)}
+              >
+                보류 중 ({prototype.heldRequests.length})
+              </button>
+            )}
+            <HoldPanel
+              heldRequests={prototype.heldRequests}
+              loading={prototype.isLoadingHeldRequests}
+              open={holdPanelOpen}
+              onClose={() => setHoldPanelOpen(false)}
+              onSelect={(requestId) => {
+                prototype.openHeldRequest(requestId);
+                setHoldPanelOpen(false);
+              }}
+            />
+          </div>
+        )}
         <AnswerComposer
           anonymous={prototype.anonymous}
           disabled={!currentTarget || loadingNext}
