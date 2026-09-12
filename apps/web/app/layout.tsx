@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import localFont from "next/font/local";
+import Script from "next/script";
 import { GlobalToast } from "ui/GlobalToast";
 import { QueryProvider } from "ui/QueryProvider";
 import { AccountRestoreDialog } from "./components/AccountRestoreDialog";
@@ -30,10 +31,30 @@ type RootLayoutProps = {
   children: ReactNode;
 };
 
+// /settings의 테마 설정(app/lib/site-settings.ts)을 하이드레이션 전에
+// 적용 — 그 모듈을 그대로 import할 수 없는 위치(beforeInteractive 인라인
+// 스크립트)라 저장 키/형식을 손으로 맞춰뒀다. site-settings.ts의
+// STORAGE_KEY나 SiteSettings.theme 필드를 바꾸면 이 문자열도 같이 고칠 것.
+const THEME_BOOTSTRAP_SCRIPT = `
+(function () {
+  try {
+    var raw = localStorage.getItem("onseol:site-settings");
+    if (!raw) return;
+    var theme = JSON.parse(raw).theme;
+    if (theme === "light" || theme === "dark") {
+      document.documentElement.dataset.theme = theme;
+    }
+  } catch (e) {}
+})();
+`;
+
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="ko" className={`${pretendard.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
+        <Script id="theme-bootstrap" strategy="beforeInteractive">
+          {THEME_BOOTSTRAP_SCRIPT}
+        </Script>
         <QueryProvider>
           <AccountRestoreDialog />
           {children}

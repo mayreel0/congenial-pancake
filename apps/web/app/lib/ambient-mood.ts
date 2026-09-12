@@ -4,10 +4,28 @@
 // KST로 계산되도록).
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
 
-type Season = "spring" | "summer" | "fall" | "winter";
-type TimeOfDay = "morning" | "afternoon";
-type AmbientMood = `${Season}-${TimeOfDay}`;
+export type Season = "spring" | "summer" | "fall" | "winter";
+export type TimeOfDay = "morning" | "afternoon";
+export type AmbientMood = `${Season}-${TimeOfDay}`;
 type ParticleMotif = "petal" | "firefly" | "leaf" | "snow";
+
+// 설정 페이지의 "수동으로 계절/시간대 고르기" 옵션이 쓰는 라벨 — 이 파일이
+// 무드 자체의 소스이므로 라벨도 여기 같이 둔다(설정 페이지에서 따로 매핑을
+// 만들지 않도록).
+export const SEASONS: readonly Season[] = ["spring", "summer", "fall", "winter"];
+export const TIME_OF_DAYS: readonly TimeOfDay[] = ["morning", "afternoon"];
+
+export const SEASON_LABELS: Record<Season, string> = {
+  spring: "봄",
+  summer: "여름",
+  fall: "가을",
+  winter: "겨울",
+};
+
+export const TIME_OF_DAY_LABELS: Record<TimeOfDay, string> = {
+  morning: "오전",
+  afternoon: "오후",
+};
 
 export type AmbientMoodConfig = {
   // 배경에 얇게 얹는 그라디언트 색상(테마의 --background 위에 낮은 알파로
