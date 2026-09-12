@@ -50,7 +50,14 @@ const THEME_BOOTSTRAP_SCRIPT = `
 
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
-    <html lang="ko" className={`${pretendard.variable} h-full antialiased`}>
+    <html
+      lang="ko"
+      className={`${pretendard.variable} h-full antialiased`}
+      // theme-bootstrap 스크립트가 하이드레이션 전에 data-theme을 직접
+      // 붙이는데, 서버가 렌더링한 HTML에는 이 속성이 없으니 React가
+      // "속성이 안 맞다"고 보는 게 정상 — 이 엘리먼트에서만 그 경고를 끈다.
+      suppressHydrationWarning
+    >
       <body className="min-h-full flex flex-col">
         <Script id="theme-bootstrap" strategy="beforeInteractive">
           {THEME_BOOTSTRAP_SCRIPT}
