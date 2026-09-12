@@ -21,6 +21,16 @@ jest.mock('drizzle-orm', () => ({
     right,
   })),
   or: jest.fn((...args: unknown[]) => ({ op: 'or', args })),
+  // schema/index.ts now transitively pulls in reply-moderation-logs.schema.ts,
+  // whose jsonb column defaults call sql`...` eagerly at module-load time
+  // (unlike this file's own pgTable extra-config callbacks, which drizzle
+  // only invokes lazily) — without this, requiring `../database/schema`
+  // throws "sql is not a function" the moment that file loads.
+  sql: jest.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({
+    op: 'sql',
+    strings,
+    values,
+  })),
 }));
 
 import { and, asc, desc, eq, gte, inArray, isNull, lt } from 'drizzle-orm';
