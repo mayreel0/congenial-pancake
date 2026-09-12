@@ -12,9 +12,9 @@ export type ReplyContentModerationEvalCase = {
   expectedCategories: ModerationCategory[];
 };
 
-export type ReplyContentModerationEvalStatus = 'pass' | 'warn' | 'fail';
+type ReplyContentModerationEvalStatus = 'pass' | 'warn' | 'fail';
 
-export type ReplyContentModerationEvalResult = {
+type ReplyContentModerationEvalResult = {
   id: string;
   text: string;
   status: ReplyContentModerationEvalStatus;
@@ -32,7 +32,7 @@ export type ReplyContentModerationEvalResult = {
   suggestions: string[];
 };
 
-export type ReplyContentModerationEvalSummary = {
+type ReplyContentModerationEvalSummary = {
   total: number;
   passed: number;
   warned: number;

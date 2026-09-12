@@ -17,14 +17,10 @@ export type ReplyContentModerationServiceOptions = {
 };
 
 export type {
-  ModerationAction,
-  ModerationCategory,
-  ModerationExcludedReason,
   ModerationInput,
   ModerationResult,
   ReplyRewriter,
   ReplyToneClassifier,
-  ToneClassification,
 } from './reply-content-moderation.types';
 
 function toResult(
