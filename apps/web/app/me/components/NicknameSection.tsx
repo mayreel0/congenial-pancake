@@ -115,69 +115,85 @@ export function NicknameSection() {
         </p>
       </div>
 
-      {editing ? (
-        <form className="space-y-3" onSubmit={(event) => void handleSubmit(event)}>
-          <TextField
-            error={visibleError("nickname", fieldErrors)}
-            id="nickname"
-            label="닉네임"
-            maxLength={20}
-            value={draft}
-            width="compact"
-            onChange={(event) => setDraft(event.currentTarget.value)}
-          />
-          {error && <p className="text-xs text-red-600">{error}</p>}
-          <div className="flex gap-2">
-            <Button
-              disabled={Object.keys(fieldErrors).length > 0 || showSpinner}
-              pending={showSpinner}
-              size="sm"
-              type="submit"
-            >
-              저장
-            </Button>
-            <Button
-              disabled={showSpinner}
-              size="sm"
-              type="button"
-              variant="secondary"
-              onClick={cancelEditing}
-            >
-              취소
-            </Button>
-          </div>
-        </form>
-      ) : (
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-sm text-foreground">
-              {user.nickname ? (
-                <>
-                  {user.nickname}
-                  <span className="text-muted">#{user.nicknameDiscriminator}</span>
-                </>
-              ) : (
-                <span className="text-muted">아직 설정한 닉네임이 없어요.</span>
-              )}
-            </p>
-            {cooldownActive && (
-              <p className="text-xs text-muted">
-                {daysRemaining}일 후에 다시 바꿀 수 있어요.
+      <div
+        aria-hidden={editing}
+        className="onseol-collapse-row grid"
+        inert={editing}
+        style={{ gridTemplateRows: editing ? "0fr" : "1fr" }}
+      >
+        <div style={{ opacity: editing ? 0 : 1 }}>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm text-foreground">
+                {user.nickname ? (
+                  <>
+                    {user.nickname}
+                    <span className="text-muted">#{user.nicknameDiscriminator}</span>
+                  </>
+                ) : (
+                  <span className="text-muted">아직 설정한 닉네임이 없어요.</span>
+                )}
               </p>
-            )}
-          </div>
-          <div className="shrink-0">
-            <Button
-              disabled={cooldownActive}
-              size="sm"
-              type="button"
-              onClick={startEditing}
-            >
-              {user.nickname ? "수정" : "설정하기"}
-            </Button>
+              {cooldownActive && (
+                <p className="text-xs text-muted">
+                  {daysRemaining}일 후에 다시 바꿀 수 있어요.
+                </p>
+              )}
+            </div>
+            <div className="shrink-0">
+              <Button
+                disabled={cooldownActive}
+                size="sm"
+                type="button"
+                onClick={startEditing}
+              >
+                {user.nickname ? "수정" : "설정하기"}
+              </Button>
+            </div>
           </div>
         </div>
-      )}
+      </div>
+
+      <div
+        aria-hidden={!editing}
+        className="onseol-collapse-row grid"
+        inert={!editing}
+        style={{ gridTemplateRows: editing ? "1fr" : "0fr" }}
+      >
+        <div style={{ opacity: editing ? 1 : 0 }}>
+          <form className="space-y-3" onSubmit={(event) => void handleSubmit(event)}>
+            <TextField
+              error={visibleError("nickname", fieldErrors)}
+              id="nickname"
+              label="닉네임"
+              maxLength={20}
+              value={draft}
+              width="compact"
+              onChange={(event) => setDraft(event.currentTarget.value)}
+            />
+            {error && <p className="text-xs text-red-600">{error}</p>}
+            <div className="flex gap-2">
+              <Button
+                disabled={Object.keys(fieldErrors).length > 0 || showSpinner}
+                pending={showSpinner}
+                size="sm"
+                type="submit"
+              >
+                저장
+              </Button>
+              <Button
+                disabled={showSpinner}
+                size="sm"
+                type="button"
+                variant="secondary"
+                onClick={cancelEditing}
+              >
+                취소
+              </Button>
+            </div>
+          </form>
+        </div>
+      </div>
     </section>
   );
 }

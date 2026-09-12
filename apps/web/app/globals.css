@@ -373,3 +373,29 @@ label:has(input[type="checkbox"]) {
     animation: none;
   }
 }
+
+/* Swapping between two differently-sized blocks (e.g. NicknameSection's
+   display view <-> edit form) with a smooth height transition, no JS
+   measurement: both blocks stay mounted, each wrapped in its own
+   single-track grid toggling that track between 0fr (collapsed) and 1fr
+   (its own natural height) — only one side is ever 1fr at a time, so the
+   parent's total height transitions smoothly as a side effect. The nested
+   opacity fade keeps the incoming content from feeling like a hard
+   clip-reveal while its row grows. */
+.onseol-collapse-row {
+  overflow: hidden;
+  transition: grid-template-rows 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.onseol-collapse-row > * {
+  min-height: 0;
+  overflow: hidden;
+  transition: opacity 150ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .onseol-collapse-row,
+  .onseol-collapse-row > * {
+    transition: none;
+  }
+}
