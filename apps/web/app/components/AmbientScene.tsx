@@ -6,6 +6,7 @@ import {
   ambientMoodOf,
   type AmbientMoodConfig,
 } from "../lib/ambient-mood";
+import { loadSiteSettings } from "../lib/site-settings";
 
 // 커서가 파티클에 "인지하는" 것처럼 보이게 하는 값 — 반경 안에 들어오면
 // 살짝 밀려나고, decay로 서서히 원래 흐름으로 돌아온다(영구 이동 아님).
@@ -95,20 +96,44 @@ function drawParticle(
 
 export function AmbientScene() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  // 마운트 시점 한 번만 고른 무드 — 매 렌더마다 시각이 바뀌어 다른 무드로
-  // 흔들리면 안 되므로 lazy useState 초기값으로 고정.
-  const [config] = useState<AmbientMoodConfig>(
-    () => AMBIENT_MOOD_CONFIG[ambientMoodOf()],
-  );
+  // 서버/최초 클라이언트 렌더에선 localStorage를 못 읽으므로 null(=아직
+  // 안 그림)로 시작 — 두 렌더가 똑같아야 hydration 불일치가 안 남. 설정을
+  // 실제로 읽는 건 아래 첫 번째 effect뿐이고, 그 결과에 따라 무드가 정해지거나
+  // (disable404Scene이면) 계속 null로 남아 아무것도 안 그린다.
+  const [config, setConfig] = useState<AmbientMoodConfig | null>(null);
+  const reduceMotionOverrideRef = useRef(false);
 
   useEffect(() => {
+    // setState를 effect 본문에서 바로 부르면 react-hooks/set-state-in-effect에
+    // 걸림 — useMinDisplayDuration과 같은 방식으로 setTimeout(…, 0) 콜백
+    // 안으로 미룬다. 장식용 배경이라 한 틱 늦게 나타나는 건 문제없음(404
+    // 페이지에서 커서 반응/무드 배경보다 더 중요한 건 없으니 지연 자체를
+    // 신경 쓸 필요가 없다).
+    const timer = window.setTimeout(() => {
+      const settings = loadSiteSettings();
+      reduceMotionOverrideRef.current = settings.reduceMotion;
+      if (settings.disable404Scene) return; // config는 null로 남고 아무것도 안 그림
+
+      const mood =
+        settings.ambientMode === "manual" ? settings.manualMood : ambientMoodOf();
+      setConfig(AMBIENT_MOOD_CONFIG[mood]);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!config) return;
+    // 아래 resize/step 클로저 안에서도 좁혀진 타입(null 아님)을 유지하려고
+    // 새 로컬 상수에 담아 씀 — TS는 상위 스코프 변수의 null 체크를 중첩
+    // 함수 경계까지 그대로 넘겨주지 않는다.
+    const activeConfig = config;
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return; // 캔버스 미지원 환경 — 애니메이션 없이 조용히 스킵
 
-    const prefersReducedMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
+    const prefersReducedMotion =
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
+      reduceMotionOverrideRef.current;
     const dpr = window.devicePixelRatio || 1;
 
     let width = canvas.clientWidth;
@@ -121,7 +146,7 @@ export function AmbientScene() {
       canvas!.width = width * dpr;
       canvas!.height = height * dpr;
       ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
-      particles = createParticles(config.density, width, height, config);
+      particles = createParticles(activeConfig.density, width, height, activeConfig);
     }
     resize();
     window.addEventListener("resize", resize);
@@ -153,11 +178,11 @@ export function AmbientScene() {
         particle.angle += particle.angleSpeed;
         const sway = Math.sin(particle.angle) * 0.4;
         const bob =
-          config.motif === "firefly" ? Math.cos(particle.angle * 1.3) * 0.35 : 0;
+          activeConfig.motif === "firefly" ? Math.cos(particle.angle * 1.3) * 0.35 : 0;
 
-        particle.x += (sway + particle.pushVx) * config.speed;
-        particle.y += (bob + particle.fallSpeed + particle.pushVy) * config.speed;
-        particle.rotation += particle.rotationSpeed * config.speed;
+        particle.x += (sway + particle.pushVx) * activeConfig.speed;
+        particle.y += (bob + particle.fallSpeed + particle.pushVy) * activeConfig.speed;
+        particle.rotation += particle.rotationSpeed * activeConfig.speed;
 
         if (particle.y - particle.size > height) {
           particle.y = -particle.size;
@@ -166,7 +191,7 @@ export function AmbientScene() {
         if (particle.x < -20) particle.x = width + 20;
         if (particle.x > width + 20) particle.x = -20;
 
-        drawParticle(ctx!, particle, config, time);
+        drawParticle(ctx!, particle, activeConfig, time);
       }
 
       if (!prefersReducedMotion) {
@@ -186,6 +211,8 @@ export function AmbientScene() {
       window.removeEventListener("pointermove", handlePointerMove);
     };
   }, [config]);
+
+  if (!config) return null; // 최초 렌더 중 / disable404Scene 설정
 
   return (
     <div
