@@ -6,7 +6,11 @@ import {
   useMinDisplayDuration,
 } from "ui/useMinDisplayDuration";
 import { useAuth } from "../lib/auth/useAuth";
-import type { AuthorDisplayDto, RequestDto } from "../lib/requests/api";
+import type {
+  AuthorDisplayDto,
+  HeldRequestDto,
+  RequestDto,
+} from "../lib/requests/api";
 import {
   useHeldRequestsQuery,
   useHoldMutation,
@@ -42,7 +46,7 @@ type UseAnswerQueueResult = {
   // "다음 글 불러오는 중" transition, which AnswerSession tracks separately) —
   // lets AnswerLog tell "아직 안 불러왔다" apart from "정말 없다".
   isLoadingCurrentTarget: boolean;
-  heldRequests: RequestDto[];
+  heldRequests: HeldRequestDto[];
   isLoadingHeldRequests: boolean;
   answerLog: AnswerLogEntry[];
   isLoadingAnswerLog: boolean;

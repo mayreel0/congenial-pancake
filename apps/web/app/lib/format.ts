@@ -31,3 +31,34 @@ export function truncatePreview(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text;
   return `${text.slice(0, maxLength).trimEnd()}...`;
 }
+
+const MINUTE_MS = 60_000;
+const HOUR_MS = 60 * MINUTE_MS;
+const DAY_MS = 24 * HOUR_MS;
+
+// Shared bucketing for both "N ago" and "N until" phrasing below — takes
+// the absolute size of a duration and returns which unit reads most
+// naturally at that size, or null under a minute (both callers show a
+// fixed word for that case instead of "0분").
+function relativeMagnitude(
+  absoluteMs: number,
+): { value: number; unit: "분" | "시간" | "일" } | null {
+  if (absoluteMs < MINUTE_MS) return null;
+  if (absoluteMs < HOUR_MS) return { value: Math.floor(absoluteMs / MINUTE_MS), unit: "분" };
+  if (absoluteMs < DAY_MS) return { value: Math.floor(absoluteMs / HOUR_MS), unit: "시간" };
+  return { value: Math.floor(absoluteMs / DAY_MS), unit: "일" };
+}
+
+export function formatRelativeTime(iso: string, now: Date = new Date()): string {
+  const magnitude = relativeMagnitude(now.getTime() - new Date(iso).getTime());
+  return magnitude ? `${magnitude.value}${magnitude.unit} 전` : "방금";
+}
+
+// HoldPanel's "언제 답변 큐 신선도 만료로 사라지는지" — same bucketing as
+// formatRelativeTime, just phrased forward instead of backward.
+export function formatTimeRemaining(iso: string, now: Date = new Date()): string {
+  const remainingMs = new Date(iso).getTime() - now.getTime();
+  const magnitude = relativeMagnitude(remainingMs);
+  if (remainingMs <= 0 || !magnitude) return "곧 만료";
+  return `${magnitude.value}${magnitude.unit} 후 만료`;
+}
