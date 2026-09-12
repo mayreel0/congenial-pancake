@@ -2,6 +2,7 @@ import type {
   AuthorDisplayDto,
   DayCountsResponseDto,
   FeedItemResponseDto,
+  HeldRequestResponseDto,
   MyRequestLogEntryDto as SharedMyRequestLogEntryDto,
   RequestResponseDto,
 } from "shared/dto";
@@ -11,6 +12,7 @@ import type { PaginatedDto } from "../pagination";
 export type { AuthorDisplayDto };
 
 export type RequestDto = RequestResponseDto;
+export type HeldRequestDto = HeldRequestResponseDto;
 
 export function listRequests(): Promise<RequestDto[]> {
   return apiFetch<RequestDto[]>("/requests");
@@ -52,8 +54,8 @@ export function holdRequest(requestId: string): Promise<RequestDto | null> {
   });
 }
 
-export function fetchHeldRequests(): Promise<RequestDto[]> {
-  return apiFetch<RequestDto[]>("/requests/held");
+export function fetchHeldRequests(): Promise<HeldRequestDto[]> {
+  return apiFetch<HeldRequestDto[]>("/requests/held");
 }
 
 export type FeedItemDto = FeedItemResponseDto;

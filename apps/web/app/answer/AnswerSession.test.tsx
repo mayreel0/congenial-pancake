@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor, within } from "../lib/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { RequestDto } from "../lib/requests/api";
+import type { HeldRequestDto, RequestDto } from "../lib/requests/api";
 import type { MyAnswerLogEntryDto } from "../lib/replies/api";
 import { MockIntersectionObserver } from "../../vitest.setup";
 import { AnswerSession } from "./AnswerSession";
@@ -16,7 +16,7 @@ function jsonResponse(status: number, body: unknown): MockResponse {
 // skip/hold/reply state transitions instead of static canned responses.
 function installFakeBackend(initialQueue: RequestDto[]) {
   let queue = [...initialQueue];
-  let held: RequestDto[] = [];
+  let held: HeldRequestDto[] = [];
   let log: MyAnswerLogEntryDto[] = [];
   let replyCounter = 0;
 
@@ -68,7 +68,13 @@ function installFakeBackend(initialQueue: RequestDto[]) {
       if (holdMatch && method === "POST") {
         const id = holdMatch[1];
         const target = queue.find((request) => request.id === id);
-        if (target) held = [...held, target];
+        if (target) {
+          // Mirrors the real backend's default queueFreshnessHours (60).
+          const expiresAt = new Date(
+            new Date(target.createdAt).getTime() + 60 * 60 * 60 * 1000,
+          ).toISOString();
+          held = [...held, { ...target, expiresAt }];
+        }
         queue = queue.filter((request) => request.id !== id);
         return Promise.resolve(jsonResponse(200, nextCandidate()));
       }
@@ -399,6 +405,9 @@ describe("AnswerSession", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "보류 중 (1)" }));
     const panel = screen.getByLabelText("보류한 온설 목록");
+    expect(within(panel).getByText("익명")).toBeInTheDocument();
+    expect(within(panel).getByText("방금")).toBeInTheDocument();
+    expect(within(panel).getByText(/후 만료$/)).toBeInTheDocument();
     fireEvent.click(within(panel).getByText("요청 본문"));
 
     fireEvent.change(screen.getByLabelText("답변 남기기"), {
