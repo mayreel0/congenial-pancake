@@ -7,8 +7,9 @@ resource "aws_ecr_repository" "api" {
   }
 }
 
-# Keep only the 10 most recent images — this repo has no CI pipeline yet
-# (images are pushed by hand), so untagged/old pushes would otherwise
+# Keep only the 10 most recent images — every push to v1 that touches
+# apps/api-server pushes a new :GITHUB_SHA-tagged image on top of :latest
+# (see .github/workflows/deploy-api.yml), so these would otherwise
 # accumulate indefinitely.
 resource "aws_ecr_lifecycle_policy" "api" {
   repository = aws_ecr_repository.api.name

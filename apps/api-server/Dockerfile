@@ -22,7 +22,19 @@ COPY --from=build /app/node_modules node_modules
 COPY --from=build /app/apps/api-server/node_modules apps/api-server/node_modules
 COPY --from=build /app/apps/api-server/package.json apps/api-server/package.json
 COPY --from=build /app/apps/api-server/dist apps/api-server/dist
+COPY --from=build /app/apps/api-server/drizzle apps/api-server/drizzle
+COPY --from=build /app/apps/api-server/drizzle.config.ts apps/api-server/drizzle.config.ts
 COPY --from=build /app/packages/shared packages/shared
 EXPOSE 3001
 WORKDIR /app/apps/api-server
-CMD ["node", "dist/src/main"]
+# Migrate before serving traffic — every deploy (see
+# .github/workflows/deploy-api.yml) just restarts this container with a
+# new image, so this is the one place a schema change actually gets
+# applied. Safe with today's single-instance setup; revisit if Phase 2
+# (Auto Scaling Group) ever starts more than one of these at once, since
+# concurrent `migrate` runs aren't guaranteed race-safe. Calls the
+# drizzle-kit binary directly rather than through `pnpm exec` — this
+# image has no root pnpm-workspace.yaml/package.json (deliberately slim),
+# and `pnpm exec` insists on a full workspace-consistency check first,
+# which fails without one.
+CMD ["sh", "-c", "node_modules/.bin/drizzle-kit migrate && node dist/src/main"]

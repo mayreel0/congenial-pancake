@@ -4,6 +4,9 @@ import { useMemo, useState } from "react";
 import { ServiceNav } from "../components/navigation/ServiceNav";
 import { useAnswerQueue } from "./useAnswerQueue";
 import { ActionConfirmDialog } from "ui/ActionConfirmDialog";
+import { Skeleton } from "ui/Skeleton";
+import { useDismissOnOutsideClick } from "ui/useDismissOnOutsideClick";
+import { toast } from "ui/useToast";
 import { AnswerComposer } from "./components/AnswerComposer";
 import { AnswerLog } from "./components/AnswerLog";
 import { HoldPanel } from "./components/HoldPanel";
@@ -40,6 +43,10 @@ const ACTION_CONFIRM_COPY: Record<
 export function AnswerSession() {
   const prototype = useAnswerQueue();
   const [holdPanelOpen, setHoldPanelOpen] = useState(false);
+  const holdPanelRef = useDismissOnOutsideClick<HTMLDivElement>(
+    holdPanelOpen,
+    () => setHoldPanelOpen(false),
+  );
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(
     null,
   );
@@ -78,6 +85,8 @@ export function AnswerSession() {
       setLoadingNext(true);
       try {
         await action();
+      } catch (error) {
+        toast.error(error);
       } finally {
         setLoadingNext(false);
       }
@@ -106,6 +115,8 @@ export function AnswerSession() {
     setAnswerSubmitStatus("pending");
     try {
       await prototype.submitReply(currentTarget.id);
+    } catch (error) {
+      toast.error(error);
     } finally {
       setAnswerSubmitStatus("idle");
     }
@@ -114,13 +125,15 @@ export function AnswerSession() {
   return (
     <div className="flex h-dvh flex-col bg-background text-foreground">
       <ServiceNav activePath="/answer" />
-      <div className="flex min-h-0 flex-1 flex-col">
+      <div className="relative flex min-h-0 flex-1 flex-col">
         <AnswerLog
           authorLabels={authorLabels}
           canManageCurrentRequest={prototype.canManageCurrentRequest}
           currentRequest={currentTarget}
           entries={prototype.answerLog}
           hasOlderEntries={prototype.hasOlderAnswerLogEntries}
+          isLoadingAnswerLog={prototype.isLoadingAnswerLog}
+          isLoadingCurrentTarget={prototype.isLoadingCurrentTarget}
           isLoadingOlderEntries={prototype.isLoadingOlderAnswerLogEntries}
           isTyping={isTyping}
           leavingRequestId={leavingRequestId}
@@ -130,32 +143,38 @@ export function AnswerSession() {
           onReport={(requestId) => requestAction("report", requestId)}
           onSkip={(requestId) => requestAction("skip", requestId)}
         />
-        <div className="relative border-t border-line px-5 pt-2 sm:px-8">
-          <HoldPanel
-            heldRequests={prototype.heldRequests}
-            open={holdPanelOpen}
-            onClose={() => setHoldPanelOpen(false)}
-            onSelect={(requestId) => {
-              prototype.openHeldRequest(requestId);
-              setHoldPanelOpen(false);
-            }}
-          />
-          {prototype.canManageCurrentRequest && (
-            <div className="mx-auto flex w-full max-w-6xl items-center justify-between">
-              <button
-                className="text-xs font-medium text-muted transition hover:text-foreground"
-                type="button"
-                onClick={() => setHoldPanelOpen((open) => !open)}
-              >
-                보류 중 ({prototype.heldRequests.length})
-              </button>
+        {prototype.canManageCurrentRequest && (
+          <div className="pointer-events-none absolute inset-x-0 top-3 z-10 mx-auto flex w-full max-w-6xl justify-end px-5 sm:px-8">
+            <div className="pointer-events-auto relative" ref={holdPanelRef}>
+              {prototype.isLoadingHeldRequests ? (
+                <Skeleton className="h-7 w-20 rounded-full" />
+              ) : (
+                <button
+                  className="inline-flex h-7 items-center rounded-full bg-primary px-3 text-xs font-semibold text-primary-foreground shadow-sm transition hover:opacity-90"
+                  type="button"
+                  onClick={() => setHoldPanelOpen((open) => !open)}
+                >
+                  보류 중 ({prototype.heldRequests.length})
+                </button>
+              )}
+              <HoldPanel
+                heldRequests={prototype.heldRequests}
+                loading={prototype.isLoadingHeldRequests}
+                open={holdPanelOpen}
+                onClose={() => setHoldPanelOpen(false)}
+                onSelect={(requestId) => {
+                  prototype.openHeldRequest(requestId);
+                  setHoldPanelOpen(false);
+                }}
+              />
             </div>
-          )}
-        </div>
+          </div>
+        )}
         <AnswerComposer
           anonymous={prototype.anonymous}
           disabled={!currentTarget || loadingNext}
           isAnsweringHeldRequest={prototype.isAnsweringHeldRequest}
+          isLoadingNickname={prototype.isLoadingNickname}
           nickname={prototype.nickname}
           pending={answerSubmitStatus === "pending"}
           value={draft}

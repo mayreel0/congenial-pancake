@@ -1,5 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import { afterEach, beforeEach, vi } from "vitest";
+import { toast } from "ui/useToast";
 
 // jsdom has no real IntersectionObserver — AnswerLog's reverse-infinite-
 // scroll (and anything else using this pattern later) needs one to exist so
@@ -53,6 +54,19 @@ vi.mock("next/navigation", () => ({
 beforeEach(() => {
   MockIntersectionObserver.instances = [];
   vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
+  // jsdom has neither — ui/Pagination's scroll-to-top-on-page-change reads
+  // matchMedia (which jsdom doesn't implement at all, so leaving it unstubbed
+  // would throw rather than just warn) and calls scrollTo.
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn((query: string) => ({
+      matches: false,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })),
+  );
+  vi.stubGlobal("scrollTo", vi.fn());
   vi.stubGlobal(
     "fetch",
     vi.fn((input: RequestInfo | URL) => {
@@ -103,4 +117,8 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  // toast (ui/useToast) is a module-level singleton, not per-render state
+  // — without this, a toast/its dismiss timer left over from one test
+  // could leak into the next.
+  toast.dismiss();
 });

@@ -4,13 +4,35 @@
 // Google OAuth are apps/web-only (apps/admin has neither) and stay here.
 import { apiFetch, API_BASE_URL, type CurrentUser } from "api";
 
-export { apiFetch, ApiError, login, logout, fetchCurrentUser } from "api";
+export {
+  apiFetch,
+  ApiError,
+  errorMessage,
+  login,
+  logout,
+  fetchCurrentUser,
+} from "api";
 export type { CurrentUser } from "api";
 
-export function signup(email: string, password: string): Promise<CurrentUser> {
-  return apiFetch<CurrentUser>("/auth/signup", {
+// Requests a signup — creates nothing yet, just emails a link. Calling
+// this again for the same address (a "resend") is exactly the same
+// request; there's no separate resend concept.
+export function signup(email: string): Promise<void> {
+  return apiFetch<void>("/auth/signup", {
     method: "POST",
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email }),
+  });
+}
+
+// Consumes the link signup sent — this is what actually creates the
+// account (already verified) and logs it in.
+export function completeSignup(
+  token: string,
+  password: string,
+): Promise<CurrentUser> {
+  return apiFetch<CurrentUser>("/auth/complete-signup", {
+    method: "POST",
+    body: JSON.stringify({ token, password }),
   });
 }
 
@@ -51,6 +73,25 @@ export function resetPassword(token: string, password: string): Promise<void> {
   return apiFetch<void>("/auth/reset-password", {
     method: "POST",
     body: JSON.stringify({ token, password }),
+  });
+}
+
+// Always logs the account out everywhere immediately. immediate=true skips
+// the 30-day grace period and scrubs right away (not reversible); the
+// default just starts the grace period, restorable via restoreAccount()
+// until AccountDeletionCronService finalizes it server-side.
+export function withdraw(immediate?: boolean): Promise<void> {
+  return apiFetch<void>("/auth/withdraw", {
+    method: "POST",
+    body: JSON.stringify({ immediate }),
+  });
+}
+
+// Only meaningful while the account is mid-grace-period (see
+// CurrentUser.deletionGracePeriodEndsAt) — a no-op otherwise.
+export function restoreAccount(): Promise<CurrentUser> {
+  return apiFetch<CurrentUser>("/auth/restore-account", {
+    method: "POST",
   });
 }
 

@@ -2,6 +2,8 @@
 
 Project-wide rules live in the root `AGENTS.md`. See `docs/decisions/2026-08-25-onseol-shared-ui-package-decisions.md` for the full reasoning (originally lived inside `packages/ui`, split out once that name stopped fitting non-React code).
 
+This package is consumed by both `apps/web` and `apps/admin`, so it's the right place for any "why does this behave this way" explanation both apps need — write it once here at the definition, not duplicated at each app's call site (see root `AGENTS.md`'s "Code Comments").
+
 ## Why this package can be named `api`
 
 The NestJS backend is `apps/api-server` (`"name": "api-server"` in its `package.json`), not `apps/api` — it was renamed specifically so this package could claim the more natural name `api` without a pnpm workspace collision (an earlier attempt at naming this package `api` while the backend was still `apps/api` broke `pnpm --filter api` and consuming apps' `tsc` resolution). Don't rename the backend back to `apps/api` without renaming this package first, or the collision returns.

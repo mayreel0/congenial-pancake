@@ -34,8 +34,7 @@ export type CreateReplyInput = {
 export type ReplyRecord = typeof replies.$inferSelect;
 export type ReplyWithRequest = { reply: ReplyRecord; request: RequestRecord };
 
-// `start`/`end` are both optional (/records' date range defaults to
-// unbounded) — undefined here means "no filter", not "match nothing".
+// See requests.repository.ts's identical dateRangeCondition for why.
 function dateRangeCondition(
   column: typeof replies.createdAt,
   range: DateRange,
@@ -99,18 +98,16 @@ export class RepliesRepository {
     return row?.value ?? 0;
   }
 
-  // Same global-not-per-request shape as countByGuest — used to cap an
-  // unverified member the same way a guest is capped, see RepliesService.
-  async countByAuthor(authorId: string): Promise<number> {
-    const [row] = await this.db
-      .select({ value: count() })
-      .from(replies)
-      .where(eq(replies.authorId, authorId));
-    return row?.value ?? 0;
-  }
-
   async setHidden(id: string, hidden: boolean): Promise<void> {
     await this.db.update(replies).set({ hidden }).where(eq(replies.id, id));
+  }
+
+  // Ownership check in RepliesService.deleteOwn needs the raw row
+  // regardless of hidden/deletedAt.
+  findById(id: string): Promise<ReplyRecord | undefined> {
+    return this.db.query.replies.findFirst({
+      where: eq(replies.id, id),
+    });
   }
 
   // Admin's "신고 검토" queue — joined with its request so the admin has
@@ -138,6 +135,14 @@ export class RepliesRepository {
       .where(eq(replies.id, id));
   }
 
+  // A reply the viewer deleted themselves (or that got admin-permanently-
+  // deleted — same deletedAt column either way) is excluded outright rather
+  // than shown as a placeholder entry: the point of deleting your own reply
+  // is that you don't have to keep seeing it in your own answer log either.
+  // The request side of each entry isn't filtered by the request author's
+  // own contentRemoved here — that's someone else's content, shown via
+  // visibleRequestBody() instead of being hidden from the replier (see
+  // docs/decisions/2026-09-09-onseol-own-content-deletion-decisions.md).
   async findMine(
     viewer: ViewerIdentity,
     range: DateRange,
@@ -148,6 +153,7 @@ export class RepliesRepository {
       : eq(replies.guestId, viewer.guestId!);
     const whereClause = and(
       identityCondition,
+      isNull(replies.deletedAt),
       dateRangeCondition(replies.createdAt, range),
     );
 
@@ -175,9 +181,10 @@ export class RepliesRepository {
   }
 
   // HeatmapCalendar for /records' 내가 남긴 답변 tab: per-KST-day count of
-  // this viewer's own replies, unfiltered by hidden/deletedAt — mirrors
-  // findMine's "viewer's own content shown unfiltered" policy. Same
-  // authorId-or-guestId identity as findMine since guests can reply too.
+  // this viewer's own replies, matching findMine's filtering exactly (see
+  // its comment) — otherwise the heatmap would count days the list itself
+  // no longer shows anything for. Same authorId-or-guestId identity as
+  // findMine since guests can reply too.
   async countMineByDay(
     viewer: ViewerIdentity,
     range: DateRange,
@@ -188,6 +195,7 @@ export class RepliesRepository {
       : eq(replies.guestId, viewer.guestId!);
     const whereClause = and(
       identityCondition,
+      isNull(replies.deletedAt),
       dateRangeCondition(replies.createdAt, range),
     );
     const rows = await this.db

@@ -12,6 +12,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 Project-wide rules live in the root `AGENTS.md`. This app used to be `/admin` inside `apps/web`; it was split into its own Next.js app so the public site never ships admin code/routes in its bundle — see `docs/decisions/2026-08-25-onseol-admin-app-split-decisions.md` for the full reasoning.
 
+This file already documents most non-obvious cross-cutting decisions in prose — when a code comment would just restate something explained here, reference the relevant section instead of re-deriving it inline (see root `AGENTS.md`'s "Code Comments").
+
 ## Running
 
 - `pnpm --filter admin dev` — runs on **port 3002** (not 3000, which `apps/web` owns). Needs `.env.local` (see `.env.example`) pointing `NEXT_PUBLIC_API_BASE_URL` at the same `apps/api-server` instance `apps/web` uses.
@@ -27,6 +29,8 @@ Three routes: `/` (`AdminReview.tsx` — "신고 검토": hidden requests/replie
 This app is **not** a separate identity system. It calls the exact same `apps/api-server` (`POST /auth/login`, `GET /auth/me`, `POST /auth/logout`) and gets the same httpOnly session cookie apps/web gets. That cookie is set by the API's own domain, not by whichever frontend asked for it — so it's already sent on requests from any same-site origin (`apps/web`'s origin and this app's origin are same-site: same registrable domain in production, both literally `localhost` in dev), independent of port/subdomain. The only thing that had to change for this to work across two separate frontend origins was `apps/api-server`'s CORS config (`CORS_ORIGIN` is now a comma-separated list, not a single URL — see `apps/api-server/src/config/env.schema.ts`). No token duplication, no separate auth backend.
 
 There is **no signup and no Google OAuth here** — `app/lib/api.ts` only exposes `login`/`logout`/`fetchCurrentUser`. Admin accounts already exist (created via the public site or directly in the DB); getting onto the `ADMIN_USER_IDS` whitelist (`apps/api-server`'s `AdminGuard`) is a separate, server-side-only step.
+
+An OAuth-only account (no `password_hash`) doesn't need one added here, though — since the session cookie is scoped to `api.onseol.com` itself (not this app's own origin, see "Auth" above), logging into `apps/web` via OAuth already leaves a valid session this app picks up the moment `GET /auth/me` runs, no separate admin login needed. `LoginForm.tsx`'s hint text below the submit button exists for exactly this case (confirmed working in production, 2026-09-08) — don't add OAuth buttons here to "fix" something that already works through the shared cookie; that would just be a second, redundant way to do the same thing. `/accounts`' password-reset-link flow (see "Scope" above) is for the separate case of wanting a *password* on an OAuth-only account (e.g. to use `/auth/login` directly, or as a recovery path if the OAuth provider itself becomes unavailable), not a prerequisite for reaching apps/admin at all.
 
 ## Don't repeat the ServiceNav mount-loop bug
 

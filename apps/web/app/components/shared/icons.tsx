@@ -51,6 +51,28 @@ export function SkipIcon({ className }: IconProps) {
   );
 }
 
+export function TrashIcon({ className }: IconProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.6}
+      viewBox="0 0 24 24"
+    >
+      <path d="M4.5 7h15" strokeLinecap="round" />
+      <path d="M9.5 7V5a1.5 1.5 0 0 1 1.5-1.5h2A1.5 1.5 0 0 1 14.5 5v2" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M6.5 7 7.3 19a1.5 1.5 0 0 0 1.5 1.4h6.4a1.5 1.5 0 0 0 1.5-1.4L17.5 7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="M10.2 11v5.5M13.8 11v5.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export function BookmarkIcon({
   className,
   filled,

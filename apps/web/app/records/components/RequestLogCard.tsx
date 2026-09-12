@@ -1,13 +1,35 @@
+import { MoreMenu } from "ui/MoreMenu";
 import { AuthorLabel } from "../../components/shared/AuthorLabel";
+import { TrashIcon } from "../../components/shared/icons";
 import { authorDisplayLabel, authorProfileHref } from "../../lib/author-label";
 import { formatTimestamp } from "../../lib/format";
 import type { MyRequestLogEntryDto } from "../../lib/requests/api";
 
-export function RequestLogCard({ entry }: { entry: MyRequestLogEntryDto }) {
+type RequestLogCardProps = {
+  entry: MyRequestLogEntryDto;
+  onDeleteRequest(requestId: string): void;
+};
+
+export function RequestLogCard({ entry, onDeleteRequest }: RequestLogCardProps) {
   return (
     <li className="space-y-3 rounded-xl border border-line bg-background px-4 py-4 shadow-sm sm:px-5">
       <article className="max-w-[85%] space-y-1.5 self-start rounded-lg border border-line bg-surface px-4 py-3 sm:max-w-[70%]">
-        <p className="text-xs font-semibold text-muted">내 고민</p>
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs font-semibold text-muted">내 고민</p>
+          {!entry.request.removed && (
+            <MoreMenu
+              ariaLabel="내 고민 도구"
+              items={[
+                {
+                  key: "delete",
+                  icon: <TrashIcon className="h-4 w-4" />,
+                  label: "삭제하기",
+                  onClick: () => onDeleteRequest(entry.request.id),
+                },
+              ]}
+            />
+          )}
+        </div>
         <p className="text-sm leading-6 text-foreground">{entry.request.body}</p>
         <time
           className="block text-xs text-muted"

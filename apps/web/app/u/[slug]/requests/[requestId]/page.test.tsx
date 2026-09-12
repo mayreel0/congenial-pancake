@@ -37,9 +37,11 @@ function makeItem(overrides: Partial<FeedItemDto> = {}): FeedItemDto {
 function installFakeBackend({
   item,
   status = 200,
+  neverResolve = false,
 }: {
   item?: FeedItemDto;
   status?: number;
+  neverResolve?: boolean;
 }) {
   const fetchMock = vi.fn(
     (input: RequestInfo | URL): Promise<MockResponse> => {
@@ -50,6 +52,7 @@ function installFakeBackend({
       }
 
       if (url.includes("/requests/")) {
+        if (neverResolve) return new Promise(() => {});
         if (status >= 400) {
           return Promise.resolve(jsonResponse(status, { statusCode: status }));
         }
@@ -105,6 +108,19 @@ describe("RequestDetailPage", () => {
     expect(
       screen.getByRole("link", { name: "← 남긴 고민" }),
     ).toHaveAttribute("href", "/u/%EB%AF%BC%EB%93%A4%EB%A0%88-D59D/requests");
+  });
+
+  it("shows a skeleton, not empty content, while the thread is loading", async () => {
+    vi.mocked(useParams).mockReturnValue({
+      slug: "민들레-D59D",
+      requestId: "request-1",
+    });
+    installFakeBackend({ neverResolve: true });
+
+    const { container } = render(<RequestDetailPage />);
+
+    await screen.findByRole("link", { name: "← 남긴 고민" });
+    expect(container.querySelectorAll(".animate-pulse").length).toBeGreaterThan(0);
   });
 
   it("shows a not-found message when the request isn't this owner's own revealed post", async () => {

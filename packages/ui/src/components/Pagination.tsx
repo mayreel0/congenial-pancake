@@ -38,6 +38,17 @@ function pageNumbers(current: number, total: number): (number | "ellipsis")[] {
 const buttonBaseClassName =
   "inline-flex h-9 min-w-9 items-center justify-center rounded-lg px-2 text-sm transition disabled:cursor-not-allowed disabled:opacity-40";
 
+// Every consumer's list sits below its own filters/heading, so "scroll up"
+// means the whole page, not just the list — scrolling here (rather than
+// making each of the 5 call sites do it) is what lets none of them need a
+// ref or any other wiring for this.
+function scrollToTop(): void {
+  const reduceMotion = window.matchMedia(
+    "(prefers-reduced-motion: reduce)",
+  ).matches;
+  window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+}
+
 // Always renders (even at totalPages === 1) — the page-size selector needs
 // to stay reachable regardless of how many pages the current size produces,
 // e.g. someone on a single page of 10 might still want to switch to 50.
@@ -49,6 +60,16 @@ export function Pagination({
   onPageChange,
   onPageSizeChange,
 }: PaginationProps) {
+  function handlePageChange(nextPage: number): void {
+    onPageChange(nextPage);
+    scrollToTop();
+  }
+
+  function handlePageSizeChange(nextPageSize: number): void {
+    onPageSizeChange(nextPageSize);
+    scrollToTop();
+  }
+
   return (
     <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
       <label className="flex items-center gap-2 text-xs text-muted">
@@ -56,7 +77,7 @@ export function Pagination({
         <select
           className="rounded-lg border border-line bg-surface px-2 py-1 text-sm text-foreground outline-none focus:border-primary"
           value={pageSize}
-          onChange={(event) => onPageSizeChange(Number(event.currentTarget.value))}
+          onChange={(event) => handlePageSizeChange(Number(event.currentTarget.value))}
         >
           {pageSizeOptions.map((size) => (
             <option key={size} value={size}>
@@ -71,7 +92,7 @@ export function Pagination({
           className={`${buttonBaseClassName} text-muted hover:bg-surface-muted`}
           disabled={page <= 1}
           type="button"
-          onClick={() => onPageChange(page - 1)}
+          onClick={() => handlePageChange(page - 1)}
         >
           ‹
         </button>
@@ -93,7 +114,7 @@ export function Pagination({
               }
               key={entry}
               type="button"
-              onClick={() => onPageChange(entry)}
+              onClick={() => handlePageChange(entry)}
             >
               {entry}
             </button>
@@ -104,7 +125,7 @@ export function Pagination({
           className={`${buttonBaseClassName} text-muted hover:bg-surface-muted`}
           disabled={page >= totalPages}
           type="button"
-          onClick={() => onPageChange(page + 1)}
+          onClick={() => handlePageChange(page + 1)}
         >
           ›
         </button>

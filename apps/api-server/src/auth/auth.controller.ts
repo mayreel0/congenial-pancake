@@ -20,23 +20,20 @@ import { ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
 import type { Request, Response } from 'express';
 import type { Env } from '../config/env.schema';
-import {
-  EmailSendFailedException,
-  OAuthExchangeFailedException,
-} from '../common/exceptions/app.exception';
+import { OAuthExchangeFailedException } from '../common/exceptions/app.exception';
 import { AuthService } from './auth.service';
 import type { AuthenticatedRequest } from './authenticated-request';
 import { CurrentUser } from './current-user.decorator';
+import { CompleteSignupDto } from './dto/complete-signup.dto';
 import { LoginDto } from './dto/login.dto';
 import { SignupDto } from './dto/signup.dto';
 import { UserResponseDto, toUserResponseDto } from './dto/user-response.dto';
-import { EmailVerificationService } from './email-verification/email-verification.service';
 import { OAuthProviderRegistry } from './oauth/oauth-provider-registry';
 import { PasswordResetService } from './password-reset/password-reset.service';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { UpdateNicknameDto } from './dto/update-nickname.dto';
-import { VerifyEmailDto } from './dto/verify-email.dto';
 import { UpdateProfileVisibilityDto } from './dto/update-profile-visibility.dto';
+import { WithdrawDto } from './dto/withdraw.dto';
 import { clearSessionCookie, setSessionCookie } from './session-cookie';
 import { SessionGuard } from './session.guard';
 import { SessionService } from './session.service';
@@ -44,6 +41,11 @@ import { UsersService } from '../users/users.service';
 
 const OAUTH_STATE_COOKIE = 'oauth_state';
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
+// Set alongside oauth_state only when a valid session already exists at
+// /auth/:provider — signals "link this to my current account" rather than
+// "log me in." Same short TTL as the state cookie since it only needs to
+// survive one redirect round trip.
+const OAUTH_LINK_INTENT_COOKIE = 'oauth_link_intent';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -54,30 +56,49 @@ export class AuthController {
     private readonly usersService: UsersService,
     private readonly oauthProviders: OAuthProviderRegistry,
     private readonly passwordResetService: PasswordResetService,
-    private readonly emailVerificationService: EmailVerificationService,
     private readonly config: ConfigService<Env, true>,
   ) {}
 
-  // Tighter than the app-wide default — signup/login are the classic
-  // brute-force/spam targets, so this budget is IP-per-route, not shared
-  // with the rest of the app's 100/60s.
+  // Requests a signup — creates nothing yet, just emails a link. See
+  // AuthService.requestSignup for why (nobody can claim/squat an email
+  // this way). Tighter than the app-wide default — signup/login are the
+  // classic brute-force/spam targets, so this budget is IP-per-route, not
+  // shared with the rest of the app's 100/60s.
   @Throttle({ default: { ttl: 60_000, limit: 5 } })
   @Post('signup')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async signup(@Body() dto: SignupDto): Promise<void> {
+    await this.authService.requestSignup(dto);
+  }
+
+  // Consumes the link signup sent — this is what actually creates the
+  // account (already verified) and logs it straight in.
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
+  @Post('complete-signup')
   @HttpCode(HttpStatus.CREATED)
   @ZodResponse({ status: HttpStatus.CREATED, type: UserResponseDto })
-  async signup(
-    @Body() dto: SignupDto,
+  async completeSignup(
+    @Body() dto: CompleteSignupDto,
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ): Promise<UserResponseDto> {
-    const { user, session } = await this.authService.signup(
-      dto,
+    const { user, session } = await this.authService.completeSignup(
+      dto.token,
+      dto.password,
       req.headers['user-agent'],
     );
     setSessionCookie(res, this.config, session.token, session.expiresAt);
     const nicknameChangeAvailableAt =
       await this.usersService.nicknameChangeAvailableAt(user);
-    return toUserResponseDto(user, nicknameChangeAvailableAt);
+    const linkedProviders = await this.authService.getLinkedProviders(user.id);
+    const deletionGracePeriodEndsAt =
+      this.usersService.deletionGracePeriodEndsAt(user);
+    return toUserResponseDto(
+      user,
+      nicknameChangeAvailableAt,
+      linkedProviders,
+      deletionGracePeriodEndsAt,
+    );
   }
 
   @Throttle({ default: { ttl: 60_000, limit: 5 } })
@@ -96,7 +117,15 @@ export class AuthController {
     setSessionCookie(res, this.config, session.token, session.expiresAt);
     const nicknameChangeAvailableAt =
       await this.usersService.nicknameChangeAvailableAt(user);
-    return toUserResponseDto(user, nicknameChangeAvailableAt);
+    const linkedProviders = await this.authService.getLinkedProviders(user.id);
+    const deletionGracePeriodEndsAt =
+      this.usersService.deletionGracePeriodEndsAt(user);
+    return toUserResponseDto(
+      user,
+      nicknameChangeAvailableAt,
+      linkedProviders,
+      deletionGracePeriodEndsAt,
+    );
   }
 
   // Public — the token itself (not a session) is the proof of authorization,
@@ -107,42 +136,6 @@ export class AuthController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async resetPassword(@Body() dto: ResetPasswordDto): Promise<void> {
     await this.passwordResetService.resetPassword(dto.token, dto.password);
-  }
-
-  // Public — the token itself is the proof of authorization, same as
-  // reset-password. Issued automatically on signup (AuthService.signup)
-  // and re-issuable via resend-verification below.
-  @Throttle({ default: { ttl: 60_000, limit: 5 } })
-  @Post('verify-email')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  async verifyEmail(@Body() dto: VerifyEmailDto): Promise<void> {
-    await this.emailVerificationService.verifyEmail(dto.token);
-  }
-
-  @Throttle({ default: { ttl: 60_000, limit: 5 } })
-  @Post('resend-verification')
-  @UseGuards(SessionGuard)
-  @HttpCode(HttpStatus.NO_CONTENT)
-  async resendVerification(@CurrentUser() userId: string): Promise<void> {
-    const user = await this.usersService.findById(userId);
-    if (!user) {
-      throw new InternalServerErrorException(
-        'Session references a missing user.',
-      );
-    }
-    if (user.emailVerifiedAt) return;
-    // Unlike signup (which swallows the same underlying failure so a flaky
-    // provider never blocks account creation), a resend is a deliberate
-    // request the user is waiting on — they deserve real feedback if it
-    // didn't go out, not a silent no-op or a generic 500.
-    try {
-      await this.emailVerificationService.sendVerificationEmail(
-        user.id,
-        user.email,
-      );
-    } catch {
-      throw new EmailSendFailedException();
-    }
   }
 
   @Post('logout')
@@ -159,6 +152,55 @@ export class AuthController {
     clearSessionCookie(res, this.config);
   }
 
+  // Always logs the caller out everywhere immediately (see
+  // AuthService.requestWithdrawal) — dto.immediate additionally scrubs
+  // the account right away instead of just starting the 30-day grace
+  // period. Either way there's nothing left in the response to return.
+  @Post('withdraw')
+  @UseGuards(SessionGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async withdraw(
+    @CurrentUser() userId: string,
+    @Body() dto: WithdrawDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<void> {
+    await this.authService.requestWithdrawal(userId, dto.immediate ?? false);
+    clearSessionCookie(res, this.config);
+  }
+
+  // Only reachable with a live session, which itself already proves the
+  // grace period hasn't been finalized yet (a scrubbed account's session
+  // was revoked the moment withdrawal — immediate or not — was
+  // requested). The frontend only calls this from the restore dialog
+  // GET /auth/me's deletionGracePeriodEndsAt triggers, but nothing here
+  // depends on that being true — see AuthService.restoreAccount.
+  @Post('restore-account')
+  @UseGuards(SessionGuard)
+  @HttpCode(HttpStatus.OK)
+  @ZodResponse({ type: UserResponseDto })
+  async restoreAccount(
+    @CurrentUser() userId: string,
+  ): Promise<UserResponseDto> {
+    await this.authService.restoreAccount(userId);
+    const user = await this.usersService.findById(userId);
+    if (!user) {
+      throw new InternalServerErrorException(
+        'Session references a missing user.',
+      );
+    }
+    const nicknameChangeAvailableAt =
+      await this.usersService.nicknameChangeAvailableAt(user);
+    const linkedProviders = await this.authService.getLinkedProviders(user.id);
+    const deletionGracePeriodEndsAt =
+      this.usersService.deletionGracePeriodEndsAt(user);
+    return toUserResponseDto(
+      user,
+      nicknameChangeAvailableAt,
+      linkedProviders,
+      deletionGracePeriodEndsAt,
+    );
+  }
+
   @Get('me')
   @UseGuards(SessionGuard)
   @ZodResponse({ type: UserResponseDto })
@@ -171,7 +213,15 @@ export class AuthController {
     }
     const nicknameChangeAvailableAt =
       await this.usersService.nicknameChangeAvailableAt(user);
-    return toUserResponseDto(user, nicknameChangeAvailableAt);
+    const linkedProviders = await this.authService.getLinkedProviders(user.id);
+    const deletionGracePeriodEndsAt =
+      this.usersService.deletionGracePeriodEndsAt(user);
+    return toUserResponseDto(
+      user,
+      nicknameChangeAvailableAt,
+      linkedProviders,
+      deletionGracePeriodEndsAt,
+    );
   }
 
   // No reveal/anonymity behavior yet — this only lets a signed-in user set
@@ -188,7 +238,15 @@ export class AuthController {
     const user = await this.usersService.updateNickname(userId, dto.nickname);
     const nicknameChangeAvailableAt =
       await this.usersService.nicknameChangeAvailableAt(user);
-    return toUserResponseDto(user, nicknameChangeAvailableAt);
+    const linkedProviders = await this.authService.getLinkedProviders(user.id);
+    const deletionGracePeriodEndsAt =
+      this.usersService.deletionGracePeriodEndsAt(user);
+    return toUserResponseDto(
+      user,
+      nicknameChangeAvailableAt,
+      linkedProviders,
+      deletionGracePeriodEndsAt,
+    );
   }
 
   // Independent per-field switches — three for the public profile
@@ -206,7 +264,15 @@ export class AuthController {
     const user = await this.usersService.updateProfileVisibility(userId, dto);
     const nicknameChangeAvailableAt =
       await this.usersService.nicknameChangeAvailableAt(user);
-    return toUserResponseDto(user, nicknameChangeAvailableAt);
+    const linkedProviders = await this.authService.getLinkedProviders(user.id);
+    const deletionGracePeriodEndsAt =
+      this.usersService.deletionGracePeriodEndsAt(user);
+    return toUserResponseDto(
+      user,
+      nicknameChangeAvailableAt,
+      linkedProviders,
+      deletionGracePeriodEndsAt,
+    );
   }
 
   // One pair of routes for every provider (google/kakao/naver) instead of
@@ -215,10 +281,11 @@ export class AuthController {
   // Express's route-registration-order matching can't let :provider shadow
   // them.
   @Get(':provider')
-  oauthRedirect(
+  async oauthRedirect(
     @Param('provider') provider: string,
+    @Req() req: Request,
     @Res() res: Response,
-  ): void {
+  ): Promise<void> {
     if (!this.oauthProviders.isKnown(provider)) throw new NotFoundException();
     const oauthProvider = this.oauthProviders.get(provider);
 
@@ -228,6 +295,27 @@ export class AuthController {
       maxAge: OAUTH_STATE_TTL_MS,
       sameSite: 'lax',
     });
+
+    // A valid session already at this point means this is "connect this
+    // provider to my account" (e.g. from /me), not "log me in" — the
+    // callback below re-checks the live session again rather than trusting
+    // this cookie alone, so it's only a hint carried across the redirect.
+    const sessionToken = req.cookies?.[
+      this.config.get('SESSION_COOKIE_NAME', { infer: true })
+    ] as string | undefined;
+    const session = sessionToken
+      ? await this.sessionService.validateToken(sessionToken)
+      : null;
+    if (session) {
+      res.cookie(OAUTH_LINK_INTENT_COOKIE, '1', {
+        httpOnly: true,
+        maxAge: OAUTH_STATE_TTL_MS,
+        sameSite: 'lax',
+      });
+    } else {
+      res.clearCookie(OAUTH_LINK_INTENT_COOKIE);
+    }
+
     res.redirect(oauthProvider.getAuthorizeUrl(state));
   }
 
@@ -243,7 +331,10 @@ export class AuthController {
     const code = req.query.code;
     const state = req.query.state;
     const cookieState = req.cookies?.[OAUTH_STATE_COOKIE] as string | undefined;
+    const linkIntent = req.cookies?.[OAUTH_LINK_INTENT_COOKIE] as
+      string | undefined;
     res.clearCookie(OAUTH_STATE_COOKIE);
+    res.clearCookie(OAUTH_LINK_INTENT_COOKIE);
 
     if (
       typeof code !== 'string' ||
@@ -254,12 +345,42 @@ export class AuthController {
     }
 
     const profile = await oauthProvider.exchangeCode(code, state);
-    const { session } = await this.authService.loginWithOAuth(
-      provider,
-      profile,
-      req.headers['user-agent'],
-    );
+    const webUrl = this.config.get('WEB_PUBLIC_URL', { infer: true });
+
+    if (linkIntent) {
+      // Re-validate the session *now*, at the callback — the account to
+      // link to must come from a live session token, never from anything
+      // that round-tripped through the OAuth redirect (state/cookies an
+      // attacker could otherwise try to forge to link onto someone else's
+      // account). If the session lapsed in the meantime, fall through to
+      // a normal login attempt below instead of erroring.
+      const sessionToken = req.cookies?.[
+        this.config.get('SESSION_COOKIE_NAME', { infer: true })
+      ] as string | undefined;
+      const session = sessionToken
+        ? await this.sessionService.validateToken(sessionToken)
+        : null;
+      if (session) {
+        await this.authService.linkOAuth(session.userId, provider, profile);
+        res.redirect(`${webUrl}/me?linked=${provider}`);
+        return;
+      }
+    }
+
+    const { session, linkedExistingAccount } =
+      await this.authService.loginWithOAuth(
+        provider,
+        profile,
+        req.headers['user-agent'],
+      );
     setSessionCookie(res, this.config, session.token, session.expiresAt);
-    res.redirect(`${this.config.get('WEB_PUBLIC_URL', { infer: true })}/today`);
+    // A merge into an existing verified account is a "surprise" worth
+    // explaining (see the AuthService.loginWithOAuth comment above) — land
+    // on /me, which already shows the account this session is now on,
+    // rather than /today where nothing calls it out. A routine login/
+    // fresh signup has nothing to explain, so it keeps the normal target.
+    res.redirect(
+      linkedExistingAccount ? `${webUrl}/me?merged=1` : `${webUrl}/today`,
+    );
   }
 }

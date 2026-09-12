@@ -10,19 +10,25 @@ type ResetPasswordBodyProps = {
   password: string;
   error: string | null;
   fieldError: string | undefined;
+  // Raw validity, independent of whether the field has been touched yet
+  // (unlike `fieldError`, which only shows once touched) — gates the
+  // submit button so it starts disabled on an empty field.
+  hasFieldErrors: boolean;
+  // Min-display-duration version of `status === "pending"` (via
+  // useMinDisplayDuration in the parent) — appears the same instant status
+  // does, just held a little longer so a fast reset doesn't flash.
+  showSpinner: boolean;
   onPasswordChange(value: string): void;
   onSubmit(event: React.FormEvent): void;
 };
-
-// Early returns instead of a nested ternary — matches
-// apps/admin/app/components/AdminStatusGate.tsx's pattern for a 3+-way
-// conditional render.
 export function ResetPasswordBody({
   token,
   status,
   password,
   error,
   fieldError,
+  hasFieldErrors,
+  showSpinner,
   onPasswordChange,
   onSubmit,
 }: ResetPasswordBodyProps) {
@@ -59,8 +65,13 @@ export function ResetPasswordBody({
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
-      <Button disabled={status === "pending"} fullWidth type="submit">
-        {status === "pending" ? "처리 중" : "비밀번호 설정"}
+      <Button
+        disabled={hasFieldErrors || showSpinner}
+        fullWidth
+        pending={showSpinner}
+        type="submit"
+      >
+        비밀번호 설정
       </Button>
     </form>
   );

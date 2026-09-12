@@ -2,7 +2,7 @@ import type {
   AuthorDisplayDto,
   DayCountsResponseDto,
   FeedItemResponseDto,
-  FeedReplyResponseDto,
+  HeldRequestResponseDto,
   MyRequestLogEntryDto as SharedMyRequestLogEntryDto,
   RequestResponseDto,
 } from "shared/dto";
@@ -12,6 +12,7 @@ import type { PaginatedDto } from "../pagination";
 export type { AuthorDisplayDto };
 
 export type RequestDto = RequestResponseDto;
+export type HeldRequestDto = HeldRequestResponseDto;
 
 export function listRequests(): Promise<RequestDto[]> {
   return apiFetch<RequestDto[]>("/requests");
@@ -53,14 +54,9 @@ export function holdRequest(requestId: string): Promise<RequestDto | null> {
   });
 }
 
-export function fetchHeldRequests(): Promise<RequestDto[]> {
-  return apiFetch<RequestDto[]>("/requests/held");
+export function fetchHeldRequests(): Promise<HeldRequestDto[]> {
+  return apiFetch<HeldRequestDto[]>("/requests/held");
 }
-
-// authorSlot identifies a repeat author only within this one thread — see
-// apps/api/src/requests/feed-author-slots.ts. It carries no identity beyond
-// that; the frontend maps it to a randomly-picked display nickname.
-export type FeedReplyDto = FeedReplyResponseDto;
 
 export type FeedItemDto = FeedItemResponseDto;
 
@@ -128,4 +124,13 @@ export function fetchMyRequestDayCounts(
 ): Promise<DayCountsDto> {
   const params = new URLSearchParams({ from, to });
   return apiFetch<DayCountsDto>(`/requests/mine/counts?${params.toString()}`);
+}
+
+// See docs/decisions/2026-09-09-onseol-own-content-deletion-decisions.md —
+// the request row itself stays (replies to it are preserved), only its body
+// is replaced everywhere with a fixed placeholder from then on.
+export function deleteOwnRequest(requestId: string): Promise<void> {
+  return apiFetch<void>(`/requests/${requestId}/delete-own`, {
+    method: "POST",
+  });
 }

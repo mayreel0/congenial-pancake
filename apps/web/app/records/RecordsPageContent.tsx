@@ -21,8 +21,6 @@ type RecordsContentProps = {
   onTabChange(tab: RecordsTab): void;
 };
 
-// Early return instead of a nested ternary — matches
-// apps/admin/app/components/AdminStatusGate.tsx's pattern.
 function RecordsContent({ status, tab, onTabChange }: RecordsContentProps) {
   if (status === "authenticated") {
     return (

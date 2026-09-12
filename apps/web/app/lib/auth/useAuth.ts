@@ -3,12 +3,15 @@
 import { useRouter } from "next/navigation";
 import type { CurrentUser, ProfileVisibilityPatch } from "../api";
 import {
+  useCompleteSignupMutation,
   useCurrentUserQuery,
   useLoginMutation,
   useLogoutMutation,
+  useRestoreAccountMutation,
   useSignupMutation,
   useUpdateNicknameMutation,
   useUpdateProfileVisibilityMutation,
+  useWithdrawMutation,
 } from "./queries";
 
 type AuthStatus = "loading" | "authenticated" | "anonymous";
@@ -17,11 +20,14 @@ type UseAuthResult = {
   status: AuthStatus;
   user: CurrentUser | null;
   login(email: string, password: string): Promise<void>;
-  signup(email: string, password: string): Promise<void>;
+  signup(email: string): Promise<void>;
+  completeSignup(token: string, password: string): Promise<void>;
   logout(): Promise<void>;
   refresh(): Promise<void>;
   updateNickname(nickname: string): Promise<void>;
   updateProfileVisibility(patch: ProfileVisibilityPatch): Promise<void>;
+  withdraw(immediate?: boolean): Promise<void>;
+  restoreAccount(): Promise<void>;
 };
 
 function toAuthStatus(isPending: boolean, hasUser: boolean): AuthStatus {
@@ -35,9 +41,12 @@ export function useAuth(): UseAuthResult {
   const meQuery = useCurrentUserQuery();
   const loginMutation = useLoginMutation();
   const signupMutation = useSignupMutation();
+  const completeSignupMutation = useCompleteSignupMutation();
   const logoutMutation = useLogoutMutation();
   const updateNicknameMutation = useUpdateNicknameMutation();
   const updateProfileVisibilityMutation = useUpdateProfileVisibilityMutation();
+  const withdrawMutation = useWithdrawMutation();
+  const restoreAccountMutation = useRestoreAccountMutation();
 
   const status = toAuthStatus(meQuery.isPending, Boolean(meQuery.data));
 
@@ -45,8 +54,12 @@ export function useAuth(): UseAuthResult {
     await loginMutation.mutateAsync({ email, password });
   }
 
-  async function signup(email: string, password: string): Promise<void> {
-    await signupMutation.mutateAsync({ email, password });
+  async function signup(email: string): Promise<void> {
+    await signupMutation.mutateAsync(email);
+  }
+
+  async function completeSignup(token: string, password: string): Promise<void> {
+    await completeSignupMutation.mutateAsync({ token, password });
   }
 
   async function logout(): Promise<void> {
@@ -70,14 +83,25 @@ export function useAuth(): UseAuthResult {
     await updateProfileVisibilityMutation.mutateAsync(patch);
   }
 
+  async function withdraw(immediate?: boolean): Promise<void> {
+    await withdrawMutation.mutateAsync(immediate);
+  }
+
+  async function restoreAccount(): Promise<void> {
+    await restoreAccountMutation.mutateAsync();
+  }
+
   return {
     status,
     user: meQuery.data ?? null,
     login,
     signup,
+    completeSignup,
     logout,
     refresh,
     updateNickname,
     updateProfileVisibility,
+    withdraw,
+    restoreAccount,
   };
 }

@@ -11,8 +11,6 @@ type LandingHeaderNavProps = {
   logout(): Promise<void>;
 };
 
-// Early return instead of a nested ternary — matches
-// apps/admin/app/components/AdminStatusGate.tsx's pattern.
 function LandingHeaderNav({ status, user, logout }: LandingHeaderNavProps) {
   if (status === "authenticated" && user) {
     return (

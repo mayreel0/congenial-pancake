@@ -1,0 +1,203 @@
+name: Deploy apps/api-server
+
+# Automatic on push to v1 that touches api-server (or its shared
+# workspace dep) — mirrors how Vercel already auto-deploys apps/web and
+# apps/admin on merge, since there's no equivalent managed platform doing
+# that for the EC2-hosted API. workflow_dispatch is the manual fallback,
+# same convention as redeploy-web.yml/redeploy-admin.yml — also the only
+# way to trigger a deploy for a push that doesn't itself touch these
+# paths (e.g. merging this workflow file for the first time).
+on:
+  push:
+    branches: [v1]
+    paths:
+      - "apps/api-server/**"
+      - "packages/shared/**"
+  workflow_dispatch:
+
+# Two overlapping deploys would race on the same container name on the
+# same instance (both trying to stop/rm/run "onseol-api") — queue instead
+# of running in parallel, never cancel a deploy already in flight.
+concurrency:
+  group: deploy-api
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ap-northeast-2
+  ECR_REPOSITORY: 769949044374.dkr.ecr.ap-northeast-2.amazonaws.com/onseol-api
+  APP_PORT: 3001
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # Required for GitHub to issue this run its own OIDC token — nothing
+    # to configure beyond this; no AWS credential is stored anywhere.
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+
+      # No stored AWS credential — this exchanges GitHub's own short-lived
+      # OIDC token for temporary AWS credentials, scoped to exactly what
+      # infra/terraform/github-oidc.tf's role trust policy allows (only
+      # runs against this repo's v1 branch) and to exactly the
+      # permissions its inline policy grants (ECR push + this one SSM
+      # document + EC2 describe — not the AdministratorAccess used
+      # locally for Terraform).
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::769949044374:role/onseol-api-github-deploy
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: aws-actions/amazon-ecr-login@v2
+
+      # Build context is the repo root (packages/shared is a workspace
+      # dependency) — same as the local build command documented at the
+      # top of apps/api-server/Dockerfile. Tagged with the commit SHA
+      # (traceable, rollback-able) as well as :latest (what the EC2
+      # instance actually pulls).
+      - name: Build and push image
+        run: |
+          docker build --platform linux/amd64 \
+            -f apps/api-server/Dockerfile \
+            -t "$ECR_REPOSITORY:$GITHUB_SHA" \
+            -t "$ECR_REPOSITORY:latest" \
+            .
+          docker push "$ECR_REPOSITORY:$GITHUB_SHA"
+          docker push "$ECR_REPOSITORY:latest"
+
+      # No SSH/port 22 on this instance (see infra/terraform/ec2.tf) —
+      # SSM Session Manager is the only access path, same as how this
+      # instance was originally set up and migrated by hand. The
+      # container replaces itself in place; the image's own CMD runs
+      # drizzle-kit migrate before starting the app (see Dockerfile), so
+      # this step doesn't need its own DB connectivity at all.
+      # Looked up by tag rather than hardcoded — this instance gets torn
+      # down and recreated between sessions to save cost (see
+      # infra/terraform/README.md's "Tearing down the ALB" section) and
+      # after any `terraform apply` that replaces it (AMI/subnet/etc.
+      # changes), so a fixed instance ID would silently go stale.
+      - name: Look up the EC2 instance
+        run: |
+          INSTANCE_ID=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=onseol-api" "Name=instance-state-name,Values=running" \
+            --query "Reservations[0].Instances[0].InstanceId" --output text)
+          if [ -z "$INSTANCE_ID" ] || [ "$INSTANCE_ID" = "None" ]; then
+            echo "::error::실행 중인 onseol-api EC2 인스턴스를 찾지 못했습니다."
+            exit 1
+          fi
+          echo "EC2_INSTANCE_ID=$INSTANCE_ID" >> "$GITHUB_ENV"
+
+      # RDS's managed master password (rds.tf's manage_master_user_password)
+      # rotates on its own every 7 days by default — found the hard way
+      # (2026-09-09) when a rotation invalidated the password baked into
+      # /etc/onseol-api.env at instance boot and every deploy afterward
+      # crash-looped on "applying migrations..." until the instance was
+      # replaced. Looked up by DB identifier rather than hardcoded, same
+      # reasoning as the EC2 instance lookup above — the secret ARN would
+      # change if this DB instance were ever replaced.
+      - name: Look up the RDS secret and endpoint
+        run: |
+          DB_SECRET_ARN=$(aws rds describe-db-instances \
+            --db-instance-identifier onseol-db \
+            --query "DBInstances[0].MasterUserSecret.SecretArn" --output text)
+          DB_ENDPOINT=$(aws rds describe-db-instances \
+            --db-instance-identifier onseol-db \
+            --query "DBInstances[0].Endpoint.Address" --output text)
+          DB_PORT=$(aws rds describe-db-instances \
+            --db-instance-identifier onseol-db \
+            --query "DBInstances[0].Endpoint.Port" --output text)
+          if [ -z "$DB_SECRET_ARN" ] || [ "$DB_SECRET_ARN" = "None" ]; then
+            echo "::error::onseol-db의 마스터 비밀번호 시크릿 ARN을 찾지 못했습니다."
+            exit 1
+          fi
+          echo "DB_SECRET_ARN=$DB_SECRET_ARN" >> "$GITHUB_ENV"
+          echo "DB_ENDPOINT=$DB_ENDPOINT:$DB_PORT" >> "$GITHUB_ENV"
+
+      - name: Redeploy container over SSM
+        run: |
+          # Built with jq rather than hand-escaped shell quoting inside
+          # --parameters — SSM's shorthand syntax doesn't parse a
+          # bracketed JSON array, and manually escaping quotes through
+          # two more layers (YAML block scalar, then bash) is exactly
+          # the kind of thing that silently breaks.
+          #
+          # /etc/onseol-api.env is written once by the EC2 user-data
+          # script at instance boot and otherwise just sits on disk — a
+          # plain restart reuses whatever was baked in at boot, so
+          # rotating an SSM parameter (e.g. RESEND_API_KEY) had no way to
+          # reach a running instance short of replacing it via `terraform
+          # apply`. Found the hard way: RESEND_API_KEY/SES_FROM_EMAIL
+          # were set to their real values in SSM but the container kept
+          # sending with the CHANGE_ME placeholder from boot. The refresh
+          # loop below re-fetches every app_secret (ssm.tf's
+          # app_secret_names — each name uppercases exactly to its env
+          # var name, e.g. resend_api_key -> RESEND_API_KEY) and rewrites
+          # just those lines in place before every redeploy. Uses awk
+          # (matching on the key up to the first "=", replacing the whole
+          # line) rather than sed, since a secret value containing "&",
+          # "\", or extra "=" would corrupt a sed replacement string.
+          # DATABASE_URL gets the same treatment, separately, right below
+          # — it isn't a plain string like the app secrets, it has to be
+          # rebuilt from the RDS-managed secret's {username,password} JSON
+          # (same recipe as infra/terraform/templates/user-data.sh.tftpl).
+          # This closes the exact gap found the hard way on 2026-09-09: the
+          # master password auto-rotates every 7 days, but a plain restart
+          # was still reusing whatever was baked in at boot, so it silently
+          # went stale and crash-looped the container on every deploy after
+          # a rotation until the instance was replaced. CORS_ORIGIN etc.
+          # are still left untouched — those only change via a
+          # Terraform-driven instance replacement.
+          COMMANDS_JSON=$(jq -n \
+            --arg registry "${ECR_REPOSITORY%%/*}" \
+            --arg image "$ECR_REPOSITORY:latest" \
+            --arg region "$AWS_REGION" \
+            --arg port "$APP_PORT" \
+            --arg dbSecretArn "$DB_SECRET_ARN" \
+            --arg dbEndpoint "$DB_ENDPOINT" \
+            '{commands: [
+              ("aws ecr get-login-password --region " + $region + " | docker login --username AWS --password-stdin " + $registry),
+              ("for NAME in google_client_id google_client_secret kakao_client_id kakao_client_secret naver_client_id naver_client_secret admin_user_ids resend_api_key resend_from_email ses_from_email; do KEY=$(echo \"$NAME\" | tr a-z A-Z); VALUE=$(aws ssm get-parameter --region " + $region + " --name \"/onseol/prod/$NAME\" --with-decryption --query Parameter.Value --output text); awk -v k=\"$KEY\" -v v=\"$VALUE\" '\''BEGIN{FS=OFS=\"=\"} $1==k{$0=k\"=\"v} 1'\'' /etc/onseol-api.env > /etc/onseol-api.env.new && mv /etc/onseol-api.env.new /etc/onseol-api.env; done"),
+              ("DB_SECRET=$(aws secretsmanager get-secret-value --region " + $region + " --secret-id \"" + $dbSecretArn + "\" --query SecretString --output text); DB_USER=$(echo \"$DB_SECRET\" | python3 -c '\''import sys,json;print(json.load(sys.stdin)[\"username\"])'\''); DB_PASSWORD=$(echo \"$DB_SECRET\" | python3 -c '\''import sys,json,urllib.parse;print(urllib.parse.quote(json.load(sys.stdin)[\"password\"],safe=\"\"))'\''); NEW_URL=\"postgres://$DB_USER:$DB_PASSWORD@" + $dbEndpoint + "/onseol?sslmode=require\"; awk -v k=\"DATABASE_URL\" -v v=\"$NEW_URL\" '\''BEGIN{FS=OFS=\"=\"} $1==k{$0=k\"=\"v} 1'\'' /etc/onseol-api.env > /etc/onseol-api.env.new && mv /etc/onseol-api.env.new /etc/onseol-api.env"),
+              "chmod 600 /etc/onseol-api.env",
+              ("docker pull " + $image),
+              "docker stop onseol-api || true",
+              "docker rm onseol-api || true",
+              ("docker run -d --name onseol-api --restart unless-stopped --env-file /etc/onseol-api.env -p " + $port + ":" + $port + " " + $image)
+            ]}')
+
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids "$EC2_INSTANCE_ID" \
+            --document-name "AWS-RunShellScript" \
+            --parameters "$COMMANDS_JSON" \
+            --query "Command.CommandId" --output text)
+          echo "SSM command: $COMMAND_ID"
+
+          for _ in $(seq 1 30); do
+            STATUS=$(aws ssm get-command-invocation \
+              --command-id "$COMMAND_ID" --instance-id "$EC2_INSTANCE_ID" \
+              --query "Status" --output text 2>/dev/null || echo "Pending")
+            [ "$STATUS" != "Pending" ] && [ "$STATUS" != "InProgress" ] && break
+            sleep 5
+          done
+
+          aws ssm get-command-invocation \
+            --command-id "$COMMAND_ID" --instance-id "$EC2_INSTANCE_ID" \
+            --query "{Status:Status,Stdout:StandardOutputContent,Stderr:StandardErrorContent}" \
+            --output json
+
+          [ "$STATUS" = "Success" ] || (echo "::error::SSM 배포 명령이 $STATUS 상태로 끝났습니다." && exit 1)
+
+      # The container includes its own migrate-then-start step, so a
+      # clean 200 here is real end-to-end confirmation, not just "the
+      # process is up."
+      - name: Health check
+        run: |
+          for _ in $(seq 1 12); do
+            CODE=$(curl -s -o /dev/null -w "%{http_code}" https://api.onseol.com/health || echo "000")
+            [ "$CODE" = "200" ] && echo "healthy" && exit 0
+            sleep 5
+          done
+          echo "::error::/health가 200을 반환하지 않았습니다."
+          exit 1

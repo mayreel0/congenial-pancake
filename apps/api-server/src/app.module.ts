@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import { Module } from '@nestjs/common';
 import { APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import type { Request } from 'express';
 import { ZodSerializerInterceptor } from 'nestjs-zod';
@@ -54,6 +55,11 @@ import { ZodValidationPipe } from './common/zod-validation';
       },
     ]),
     ConfigModule,
+    // Global — AccountDeletionCronService (in AuthModule) is the only
+    // consumer today, but registering it once here (rather than per-module)
+    // is what the docs recommend and keeps any future @Cron() job from
+    // needing its own forRoot() call.
+    ScheduleModule.forRoot(),
     DatabaseModule,
     AuthModule,
     HealthModule,

@@ -15,6 +15,18 @@
   --primary-foreground: #ffffff;
   --accent: #7d5f4f;
   --muted: #676d63;
+  /* Only real use so far is the 회원탈퇴 button — see
+     docs/decisions/2026-09-09-onseol-account-withdrawal-decisions.md.
+     Light and dark deliberately use different treatments, not just a
+     lightened hue: a plain red outline reads as muddy/complementary-clash
+     against this palette's greenish dark surface, so dark additionally
+     carries a faint always-on background tint (destructive-bg) that a
+     bare color-mix()/opacity utility on one shared color couldn't express
+     — light's resting bg is transparent, dark's isn't. Confirmed via a
+     real-token visual comparison artifact before picking this pair. */
+  --destructive: #dc2626;
+  --destructive-bg: transparent;
+  --destructive-bg-hover: rgba(220, 38, 38, 0.1);
 }
 
 @theme inline {
@@ -27,6 +39,9 @@
   --color-primary-foreground: var(--primary-foreground);
   --color-accent: var(--accent);
   --color-muted: var(--muted);
+  --color-destructive: var(--destructive);
+  --color-destructive-bg: var(--destructive-bg);
+  --color-destructive-bg-hover: var(--destructive-bg-hover);
   --font-sans: var(--font-pretendard);
   --font-mono: ui-monospace, "SFMono-Regular", Menlo, monospace;
 }
@@ -42,6 +57,9 @@
     --primary-foreground: #101411;
     --accent: #d29a78;
     --muted: #b5beb2;
+    --destructive: #f87171;
+    --destructive-bg: rgba(248, 113, 113, 0.12);
+    --destructive-bg-hover: rgba(248, 113, 113, 0.2);
   }
 }
 
@@ -60,6 +78,9 @@
   --primary-foreground: #101411;
   --accent: #d29a78;
   --muted: #b5beb2;
+  --destructive: #f87171;
+  --destructive-bg: rgba(248, 113, 113, 0.12);
+  --destructive-bg-hover: rgba(248, 113, 113, 0.2);
 }
 
 :root[data-theme="light"] {
@@ -72,11 +93,25 @@
   --primary-foreground: #ffffff;
   --accent: #7d5f4f;
   --muted: #676d63;
+  --destructive: #dc2626;
+  --destructive-bg: transparent;
+  --destructive-bg-hover: rgba(220, 38, 38, 0.1);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
+}
+
+/* Browsers default <a> to a pointer cursor but not button/select/label —
+   Tailwind v4's preflight doesn't add it either. Individual `cursor-pointer`
+   classes were never actually used anywhere in the codebase (confirmed via
+   repo-wide grep), so this is a real, global gap rather than a
+   case-by-case oversight — see program-wide UX audit, 2026-09-09. */
+button:not(:disabled),
+select,
+label:has(input[type="checkbox"]) {
+  cursor: pointer;
 }
 
 @keyframes onseol-soft-wipe {
@@ -144,6 +179,123 @@ body {
   }
 }
 
+/* Anchored dropdowns/menus that pop up near their trigger — MoreMenu,
+   HeatmapCalendarField's calendar popover, ServiceNav's profile dropdown
+   and mobile nav panel. Kept mounted for POPOVER_EXIT_MS (see
+   packages/ui/src/hooks/useAnimatedPresence.ts) after closing so this
+   leave animation actually gets to play instead of an instant unmount. */
+@keyframes onseol-popover-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes onseol-popover-leave {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.97);
+  }
+}
+
+.onseol-popover-enter {
+  animation: onseol-popover-enter 150ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.onseol-popover-leave {
+  animation: onseol-popover-leave 120ms ease-in forwards;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .onseol-popover-enter,
+  .onseol-popover-leave {
+    animation: none;
+  }
+}
+
+/* Modal dialogs (ActionConfirmDialog, AccountRestoreDialog) — backdrop and
+   box animate separately since the backdrop is a plain fade while the box
+   also scales/shifts slightly. */
+@keyframes onseol-dialog-backdrop-enter {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes onseol-dialog-backdrop-leave {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes onseol-dialog-box-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes onseol-dialog-box-leave {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(0.96) translateY(4px);
+  }
+}
+
+.onseol-dialog-backdrop-enter {
+  animation: onseol-dialog-backdrop-enter 150ms ease-out;
+}
+
+.onseol-dialog-backdrop-leave {
+  animation: onseol-dialog-backdrop-leave 120ms ease-in forwards;
+}
+
+.onseol-dialog-box-enter {
+  animation: onseol-dialog-box-enter 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.onseol-dialog-box-leave {
+  animation: onseol-dialog-box-leave 120ms ease-in forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .onseol-dialog-backdrop-enter,
+  .onseol-dialog-backdrop-leave,
+  .onseol-dialog-box-enter,
+  .onseol-dialog-box-leave {
+    animation: none;
+  }
+}
+
 @keyframes onseol-typing-dot {
   0%,
   80%,
@@ -166,5 +318,42 @@ body {
   .onseol-typing-dot {
     animation: none;
     opacity: 0.6;
+  }
+}
+
+/* Tailwind's own animate-spin utility (ui/Button's pending spinner) has no
+   built-in prefers-reduced-motion handling — this is an unlayered rule, so
+   per CSS cascade layers it wins over Tailwind's own @layer utilities
+   regardless of source order or specificity (same mechanism already
+   relied on for the cursor-pointer override above). */
+@media (prefers-reduced-motion: reduce) {
+  .animate-spin {
+    animation: none;
+  }
+}
+
+/* Swapping between two differently-sized blocks (e.g. NicknameSection's
+   display view <-> edit form) with a smooth height transition, no JS
+   measurement: both blocks stay mounted, each wrapped in its own
+   single-track grid toggling that track between 0fr (collapsed) and 1fr
+   (its own natural height) — only one side is ever 1fr at a time, so the
+   parent's total height transitions smoothly as a side effect. The nested
+   opacity fade keeps the incoming content from feeling like a hard
+   clip-reveal while its row grows. */
+.onseol-collapse-row {
+  overflow: hidden;
+  transition: grid-template-rows 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.onseol-collapse-row > * {
+  min-height: 0;
+  overflow: hidden;
+  transition: opacity 150ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .onseol-collapse-row,
+  .onseol-collapse-row > * {
+    transition: none;
   }
 }

@@ -3,7 +3,10 @@
 import { useState, type FormEvent } from "react";
 import { Button } from "ui/Button";
 import { TextField } from "ui/TextField";
-import type { SettingsResponseDto } from "shared/dto";
+import { useFieldValidation } from "ui/useFieldValidation";
+import { BUTTON_PENDING_MIN_MS, useMinDisplayDuration } from "ui/useMinDisplayDuration";
+import { updateSettingsSchema, type SettingsResponseDto } from "shared/dto";
+import { parseFieldErrors } from "shared/zod-form";
 import type { useAdminSettings } from "./useAdminSettings";
 
 type FormState = {
@@ -13,7 +16,10 @@ type FormState = {
   nicknameCooldownDays: string;
 };
 
-const FIELDS: Array<{
+// Exported so SettingsReview's loading skeleton can render the same real
+// labels/hints (only the input values themselves need to be skeleton'd)
+// without duplicating this list.
+export const FIELDS: Array<{
   key: keyof FormState;
   label: string;
   hint: string;
@@ -36,8 +42,8 @@ const FIELDS: Array<{
   },
   {
     key: "guestReplyLimit",
-    label: "비회원·미인증 회원 답장 총량 제한",
-    hint: "비회원 또는 이메일 미인증 회원 한 명이 전체 온설을 통틀어 남길 수 있는 답장 개수입니다.",
+    label: "비회원 답장 총량 제한",
+    hint: "비회원 한 명이 전체 온설을 통틀어 남길 수 있는 답장 개수입니다.",
     min: 1,
     max: 50,
   },
@@ -64,6 +70,7 @@ type SettingsFormProps = {
   updating: boolean;
   updateError: string | null;
   update: ReturnType<typeof useAdminSettings>["update"];
+  onSaved(): void;
 };
 
 // Only mounted once settings has actually loaded (see SettingsReview), and
@@ -79,60 +86,62 @@ export function SettingsForm({
   updating,
   updateError,
   update,
+  onSaved,
 }: SettingsFormProps) {
   const [form, setForm] = useState<FormState>(() => toFormState(settings));
-  const [saved, setSaved] = useState(false);
+  const { touchAll, visibleError } = useFieldValidation<keyof FormState>();
+
+  const values = {
+    queueFreshnessHours: Number(form.queueFreshnessHours),
+    queueReplyCap: Number(form.queueReplyCap),
+    guestReplyLimit: Number(form.guestReplyLimit),
+    nicknameCooldownDays: Number(form.nicknameCooldownDays),
+  };
+  const fieldErrors = parseFieldErrors(updateSettingsSchema, values);
+  const showSpinner = useMinDisplayDuration(updating, BUTTON_PENDING_MIN_MS);
 
   async function handleSubmit(event: FormEvent): Promise<void> {
     event.preventDefault();
-    setSaved(false);
+    touchAll(FIELDS.map((field) => field.key));
+    if (Object.keys(fieldErrors).length > 0) return;
 
-    await update({
-      queueFreshnessHours: Number(form.queueFreshnessHours),
-      queueReplyCap: Number(form.queueReplyCap),
-      guestReplyLimit: Number(form.guestReplyLimit),
-      nicknameCooldownDays: Number(form.nicknameCooldownDays),
-    });
-    setSaved(true);
+    await update(values);
+    onSaved();
   }
 
   return (
-    <>
-      <h1 className="text-lg font-semibold text-foreground">설정</h1>
-      <form
-        className="space-y-6"
-        onSubmit={(event) => void handleSubmit(event)}
+    <form
+      className="space-y-6"
+      onSubmit={(event) => void handleSubmit(event)}
+    >
+      {FIELDS.map((field) => (
+        <TextField
+          error={visibleError(field.key, fieldErrors)}
+          hint={field.hint}
+          id={field.key}
+          key={field.key}
+          label={field.label}
+          max={field.max}
+          min={field.min}
+          required
+          type="number"
+          value={form[field.key]}
+          width="compact"
+          onChange={(event) =>
+            setForm({ ...form, [field.key]: event.currentTarget.value })
+          }
+        />
+      ))}
+
+      {updateError && <p className="text-sm text-red-600">{updateError}</p>}
+
+      <Button
+        disabled={Object.keys(fieldErrors).length > 0 || showSpinner}
+        pending={showSpinner}
+        type="submit"
       >
-        {FIELDS.map((field) => (
-          <TextField
-            hint={field.hint}
-            id={field.key}
-            key={field.key}
-            label={field.label}
-            max={field.max}
-            min={field.min}
-            required
-            type="number"
-            value={form[field.key]}
-            width="compact"
-            onChange={(event) => {
-              setSaved(false);
-              setForm({ ...form, [field.key]: event.currentTarget.value });
-            }}
-          />
-        ))}
-
-        {updateError && (
-          <p className="text-sm text-red-600">{updateError}</p>
-        )}
-        {!updateError && saved && (
-          <p className="text-sm text-primary">저장했어요.</p>
-        )}
-
-        <Button disabled={updating} type="submit">
-          {updating ? "저장 중" : "저장"}
-        </Button>
-      </form>
-    </>
+        저장
+      </Button>
+    </form>
   );
 }

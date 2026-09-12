@@ -2,7 +2,7 @@
 
 import { MoreMenu } from "ui/MoreMenu";
 import { AuthorLabel } from "../../components/shared/AuthorLabel";
-import { formatTimestamp } from "../../lib/format";
+import { formatRelativeTime } from "../../lib/format";
 import { ArchiveIcon, FlagIcon } from "../../components/shared/icons";
 
 type RequestBubbleProps = {
@@ -59,7 +59,7 @@ export function RequestBubble({
         dateTime={request.createdAt}
         suppressHydrationWarning
       >
-        {formatTimestamp(request.createdAt)}
+        {formatRelativeTime(request.createdAt)}
       </time>
     </article>
   );

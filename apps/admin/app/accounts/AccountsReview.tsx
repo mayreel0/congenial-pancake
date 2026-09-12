@@ -1,20 +1,19 @@
 "use client";
 
-import { AdminNav } from "../components/AdminNav";
+import { AdminShell } from "../components/AdminShell";
 import { AdminStatusGate } from "../components/AdminStatusGate";
-import { useAuth } from "../lib/auth/useAuth";
+import { useAdminAccess } from "../lib/admin/useAdminAccess";
 import { AccountForm } from "./AccountForm";
 import { useAccountsAdmin } from "./useAccountsAdmin";
 
 export function AccountsReview() {
-  const auth = useAuth();
+  const access = useAdminAccess();
   const admin = useAccountsAdmin();
 
   return (
-    <div className="min-h-dvh bg-background text-foreground">
-      <AdminNav activePath="/accounts" />
+    <AdminShell activePath="/accounts">
       <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-5 py-10 sm:px-8">
-        <AdminStatusGate status={admin.status} login={auth.login}>
+        <AdminStatusGate status={access.status}>
           <AccountForm
             issueError={admin.issueError}
             issueLink={admin.issueLink}
@@ -24,6 +23,6 @@ export function AccountsReview() {
           />
         </AdminStatusGate>
       </main>
-    </div>
+    </AdminShell>
   );
 }

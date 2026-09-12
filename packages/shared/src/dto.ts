@@ -60,6 +60,16 @@ export const requestResponseSchema = z.object({
 });
 export type RequestResponseDto = z.infer<typeof requestResponseSchema>;
 
+// GET /requests/held — expiresAt is computed server-side from the
+// *current* queueFreshnessHours setting at request time, not frozen at
+// hold time, matching how the backend's own freshness-window query
+// already works (an admin changing the setting shifts every held item's
+// effective expiry immediately, not just newly-held ones).
+export const heldRequestResponseSchema = requestResponseSchema.extend({
+  expiresAt: z.string(),
+});
+export type HeldRequestResponseDto = z.infer<typeof heldRequestResponseSchema>;
+
 // POST /requests/:requestId/replies body.
 export const createReplySchema = z
   .object({
@@ -101,11 +111,19 @@ export type FeedItemResponseDto = z.infer<typeof feedItemResponseSchema>;
 // myAnswerLogEntrySchema, since a request can have many replies (an answer
 // log entry is always exactly one request + one reply). No authorSlot here
 // — this is the viewer's own private list, not a shared thread.
+// `removed` lets the frontend tell "already self-deleted, body is now the
+// fixed placeholder" apart from "body just happens to read like the
+// placeholder" — see docs/decisions/2026-09-09-onseol-own-content-deletion-
+// decisions.md. True for the request item when its author deleted it
+// (backed by `contentRemoved`), and for a reply item when its author
+// deleted it (backed by `deletedAt`) — same field name, different backing
+// column depending on which item it's set on.
 const myRequestLogItemSchema = z.object({
   id: z.string(),
   body: z.string(),
   createdAt: z.string(),
   author: authorDisplaySchema,
+  removed: z.boolean(),
 });
 export const myRequestLogEntrySchema = z.object({
   request: myRequestLogItemSchema,
@@ -114,16 +132,19 @@ export const myRequestLogEntrySchema = z.object({
 export type MyRequestLogEntryDto = z.infer<typeof myRequestLogEntrySchema>;
 
 // "내 기록" → 내가 남긴 답변: flattened (always exactly one request + one
-// reply per entry, unlike the request-log's one-to-many).
+// reply per entry, unlike the request-log's one-to-many). requestRemoved/
+// replyRemoved mirror myRequestLogItemSchema's `removed` — see its comment.
 export const myAnswerLogEntrySchema = z.object({
   requestId: z.string(),
   requestBody: z.string(),
   requestCreatedAt: z.string(),
   requestAuthor: authorDisplaySchema,
+  requestRemoved: z.boolean(),
   replyId: z.string(),
   replyBody: z.string(),
   replyCreatedAt: z.string(),
   replyAuthor: authorDisplaySchema,
+  replyRemoved: z.boolean(),
 });
 export type MyAnswerLogEntryDto = z.infer<typeof myAnswerLogEntrySchema>;
 
@@ -131,13 +152,28 @@ const EMAIL_MESSAGE = "올바른 이메일 형식이 아닙니다.";
 const PASSWORD_MESSAGE = "비밀번호는 8자 이상이어야 합니다.";
 
 // POST /auth/signup, POST /auth/login bodies — identical shape.
+// POST /auth/signup body — email only. Nothing is created yet at this
+// point (see AuthService.requestSignup) — a password is only ever
+// collected once the emailed link is consumed (completeSignupSchema
+// below), so nobody can claim an email they don't control.
 export const signupSchema = z
   .object({
     email: z.string().email(EMAIL_MESSAGE),
-    password: z.string().min(8, PASSWORD_MESSAGE),
   })
   .strict();
 export type SignupInput = z.infer<typeof signupSchema>;
+
+// POST /auth/complete-signup body — same shape as resetPasswordSchema
+// (token proves authorization, then a password), but kept as its own
+// schema since the two represent different actions (creating a brand-new
+// account vs. changing an existing one).
+export const completeSignupSchema = z
+  .object({
+    token: z.string(),
+    password: z.string().min(8, PASSWORD_MESSAGE),
+  })
+  .strict();
+export type CompleteSignupInput = z.infer<typeof completeSignupSchema>;
 
 export const loginSchema = z
   .object({
@@ -193,12 +229,36 @@ export type CreateReportInput = z.infer<typeof createReportSchema>;
 
 // PATCH /admin/settings body — each field independent/optional, same
 // reasoning as updateProfileVisibilitySchema.
+const QUEUE_FRESHNESS_HOURS_MESSAGE = "1~720 사이의 정수를 입력해주세요.";
+const QUEUE_REPLY_CAP_MESSAGE = "1~50 사이의 정수를 입력해주세요.";
+const GUEST_REPLY_LIMIT_MESSAGE = "1~50 사이의 정수를 입력해주세요.";
+const NICKNAME_COOLDOWN_DAYS_MESSAGE = "1~90 사이의 정수를 입력해주세요.";
 export const updateSettingsSchema = z
   .object({
-    queueFreshnessHours: z.number().int().min(1).max(720).optional(),
-    queueReplyCap: z.number().int().min(1).max(50).optional(),
-    guestReplyLimit: z.number().int().min(1).max(50).optional(),
-    nicknameCooldownDays: z.number().int().min(1).max(90).optional(),
+    queueFreshnessHours: z
+      .number(QUEUE_FRESHNESS_HOURS_MESSAGE)
+      .int(QUEUE_FRESHNESS_HOURS_MESSAGE)
+      .min(1, QUEUE_FRESHNESS_HOURS_MESSAGE)
+      .max(720, QUEUE_FRESHNESS_HOURS_MESSAGE)
+      .optional(),
+    queueReplyCap: z
+      .number(QUEUE_REPLY_CAP_MESSAGE)
+      .int(QUEUE_REPLY_CAP_MESSAGE)
+      .min(1, QUEUE_REPLY_CAP_MESSAGE)
+      .max(50, QUEUE_REPLY_CAP_MESSAGE)
+      .optional(),
+    guestReplyLimit: z
+      .number(GUEST_REPLY_LIMIT_MESSAGE)
+      .int(GUEST_REPLY_LIMIT_MESSAGE)
+      .min(1, GUEST_REPLY_LIMIT_MESSAGE)
+      .max(50, GUEST_REPLY_LIMIT_MESSAGE)
+      .optional(),
+    nicknameCooldownDays: z
+      .number(NICKNAME_COOLDOWN_DAYS_MESSAGE)
+      .int(NICKNAME_COOLDOWN_DAYS_MESSAGE)
+      .min(1, NICKNAME_COOLDOWN_DAYS_MESSAGE)
+      .max(90, NICKNAME_COOLDOWN_DAYS_MESSAGE)
+      .optional(),
   })
   .strict();
 export type UpdateSettingsInput = z.infer<typeof updateSettingsSchema>;
@@ -232,9 +292,21 @@ export const userResponseSchema = z.object({
   showRepliesOnProfile: z.boolean(),
   showCountsOnProfile: z.boolean(),
   nicknameVisible: z.boolean(),
-  emailVerified: z.boolean(),
+  linkedProviders: z.array(z.enum(['google', 'kakao', 'naver'])),
+  // Null unless the account is mid-withdrawal grace period — the frontend
+  // treats a non-null value as "show the restore-or-log-out dialog",
+  // regardless of which page this response came back on.
+  deletionGracePeriodEndsAt: z.string().nullable(),
 });
 export type UserResponseDto = z.infer<typeof userResponseSchema>;
+
+// POST /auth/withdraw body.
+export const withdrawSchema = z
+  .object({
+    immediate: z.boolean().optional(),
+  })
+  .strict();
+export type WithdrawInput = z.infer<typeof withdrawSchema>;
 
 // GET/PATCH /admin/settings response.
 export const settingsResponseSchema = z.object({

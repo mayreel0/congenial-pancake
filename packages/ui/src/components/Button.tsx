@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
+import { SpinnerIcon } from "../icons";
 
 // "primary" was the only style found duplicated across apps/web and
 // apps/admin (bg-primary + shadow-sm + hover:opacity-90 + disabled state)
@@ -7,8 +8,11 @@ import type { ButtonHTMLAttributes, ReactNode } from "react";
 // "secondary" was added once a second real need showed up (a cancel action
 // next to a primary submit, e.g. NicknameSection's edit form) — an
 // outlined/muted button using the same border/surface tokens as the rest
-// of the UI, not a bespoke color.
-export type ButtonVariant = "primary" | "secondary";
+// of the UI, not a bespoke color. "ghost" the same way, once a borderless
+// muted-text button turned up hand-rolled in two places (ActionConfirmDialog's
+// 취소, AccountRestoreDialog's 로그아웃) during the program-wide UX audit's
+// input/button pending-state round, 2026-09-10.
+export type ButtonVariant = "primary" | "secondary" | "ghost";
 export type ButtonSize = "sm" | "md";
 
 const SIZE_CLASSES: Record<ButtonSize, string> = {
@@ -20,6 +24,7 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   primary: "bg-primary text-primary-foreground shadow-sm hover:opacity-90",
   secondary:
     "border border-line bg-surface text-foreground hover:bg-surface-muted",
+  ghost: "text-muted hover:bg-surface-muted",
 };
 
 function buttonClassName(
@@ -41,6 +46,12 @@ type ButtonOwnProps = {
   variant?: ButtonVariant;
   size?: ButtonSize;
   fullWidth?: boolean;
+  // Shows a spinner instead of swapping the label to "저장하는 중" etc. —
+  // the label stays rendered (just invisible) so the button keeps its
+  // resting size instead of resizing to fit different pending text. Also
+  // disables the button, so callers no longer need their own
+  // `disabled={pending}` for this (see program-wide UX audit, 2026-09-09).
+  pending?: boolean;
   children: ReactNode;
 };
 
@@ -71,6 +82,8 @@ export function Button(props: ButtonProps) {
     );
   }
 
+  const { pending } = props;
+
   // Bound only to exclude them from `rest` below — no-unused-vars doesn't
   // recognize destructuring-to-omit as a use.
   /* eslint-disable @typescript-eslint/no-unused-vars */
@@ -78,14 +91,33 @@ export function Button(props: ButtonProps) {
     variant: _variant,
     size: _size,
     fullWidth: _fullWidth,
+    pending: _pending,
     children: _children,
     href: _href,
     ...rest
   } = props;
   /* eslint-enable @typescript-eslint/no-unused-vars */
   return (
-    <button className={className} type="button" {...rest}>
-      {children}
+    <button
+      type="button"
+      {...rest}
+      aria-busy={pending || undefined}
+      className={`relative ${className}`}
+      disabled={pending || rest.disabled}
+    >
+      {/* opacity-0, not `invisible` (visibility:hidden) — the latter
+          strips this text from the accessible-name computation, so a
+          screen reader would announce the button as unlabeled while
+          pending. Opacity doesn't affect that, only the visual result. */}
+      <span className={pending ? "opacity-0" : ""}>{children}</span>
+      {pending && (
+        <span
+          aria-hidden="true"
+          className="absolute inset-0 flex items-center justify-center"
+        >
+          <SpinnerIcon className="h-4 w-4 animate-spin" />
+        </span>
+      )}
     </button>
   );
 }

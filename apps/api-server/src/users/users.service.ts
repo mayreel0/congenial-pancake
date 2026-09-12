@@ -9,6 +9,7 @@ import {
 } from './users.repository';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
+export const WITHDRAWAL_GRACE_PERIOD_DAYS = 30;
 
 @Injectable()
 export class UsersService {
@@ -74,6 +75,10 @@ export class UsersService {
     return this.usersRepository.updatePasswordHash(id, passwordHash);
   }
 
+  clearPasswordHash(id: string): Promise<void> {
+    return this.usersRepository.clearPasswordHash(id);
+  }
+
   // Setting a nickname for the first time (from null) is always free —
   // only a change to an already-set nickname is rate-limited, checked
   // against when it was last changed. Cooldown length is admin-tunable
@@ -134,5 +139,34 @@ export class UsersService {
       user.nicknameChangedAt.getTime() +
         settings.nicknameCooldownDays * MS_PER_DAY,
     );
+  }
+
+  // Null unless the account is mid-grace-period — AuthController.me
+  // surfaces this on every response so the frontend can gate with the
+  // restore-or-log-out dialog regardless of which page a pending-deletion
+  // login lands on, without any special-casing in login/loginWithOAuth
+  // themselves (see docs/decisions for the withdrawal round).
+  deletionGracePeriodEndsAt(user: User): Date | null {
+    if (!user.deletionRequestedAt) return null;
+    return new Date(
+      user.deletionRequestedAt.getTime() +
+        WITHDRAWAL_GRACE_PERIOD_DAYS * MS_PER_DAY,
+    );
+  }
+
+  requestDeletion(id: string): Promise<void> {
+    return this.usersRepository.requestDeletion(id);
+  }
+
+  restoreAccount(id: string): Promise<void> {
+    return this.usersRepository.restoreAccount(id);
+  }
+
+  scrubForDeletion(id: string): Promise<void> {
+    return this.usersRepository.scrubForDeletion(id);
+  }
+
+  findPendingDeletionBefore(cutoff: Date): Promise<User[]> {
+    return this.usersRepository.findPendingDeletionBefore(cutoff);
   }
 }

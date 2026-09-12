@@ -8,6 +8,7 @@ import {
 } from "@tanstack/react-query";
 import {
   createRequest,
+  deleteOwnRequest,
   fetchFeed,
   fetchFeedDayCounts,
   fetchHeldRequests,
@@ -133,6 +134,17 @@ export function useMyRequestLogQuery(
     queryKey: requestKeys.mine(from, to, page, pageSize),
     queryFn: () => fetchMyRequestLog(from, to, page, pageSize),
     placeholderData: keepPreviousData,
+  });
+}
+
+export function useDeleteOwnRequestMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (requestId: string) => deleteOwnRequest(requestId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: requestKeys.mineAll });
+    },
   });
 }
 

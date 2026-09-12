@@ -3,17 +3,13 @@
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { resetPasswordSchema } from "shared/dto";
-import { ApiError, resetPassword } from "../lib/api";
-import { useFieldValidation } from "../lib/useFieldValidation";
-import { parseFieldErrors } from "../lib/zod-form";
+import { errorMessage, resetPassword } from "../lib/api";
+import { useFieldValidation } from "ui/useFieldValidation";
+import { BUTTON_PENDING_MIN_MS, useMinDisplayDuration } from "ui/useMinDisplayDuration";
+import { parseFieldErrors } from "shared/zod-form";
 import { ResetPasswordBody, type ResetPasswordStatus } from "./ResetPasswordBody";
 
 type Field = "password";
-
-function errorMessage(error: unknown): string {
-  if (error instanceof ApiError) return error.message;
-  return "요청을 처리하지 못했습니다. 잠시 후 다시 시도해주세요.";
-}
 
 export function ResetPasswordForm() {
   const searchParams = useSearchParams();
@@ -26,6 +22,10 @@ export function ResetPasswordForm() {
     token: token ?? "",
     password,
   });
+  const showSpinner = useMinDisplayDuration(
+    status === "pending",
+    BUTTON_PENDING_MIN_MS,
+  );
 
   async function handleSubmit(event: React.FormEvent): Promise<void> {
     event.preventDefault();
@@ -57,7 +57,9 @@ export function ResetPasswordForm() {
         <ResetPasswordBody
           error={error}
           fieldError={visibleError("password", fieldErrors)}
+          hasFieldErrors={Object.keys(fieldErrors).length > 0}
           password={password}
+          showSpinner={showSpinner}
           status={status}
           token={token}
           onPasswordChange={setPassword}

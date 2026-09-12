@@ -244,7 +244,11 @@ describe("ReadFeed", () => {
         name: "신고하기",
       }),
     );
-    fireEvent.click(screen.getByRole("button", { name: "취소" }));
+    fireEvent.click(
+      within(screen.getByRole("dialog")).getByRole("button", {
+        name: "취소",
+      }),
+    );
     expect(screen.getByText("요청 본문")).toBeInTheDocument();
 
     fireEvent.click(replyMoreButton);
@@ -253,7 +257,11 @@ describe("ReadFeed", () => {
         name: "신고하기",
       }),
     );
-    fireEvent.click(screen.getByRole("button", { name: "신고하기" }));
+    fireEvent.click(
+      within(screen.getByRole("dialog")).getByRole("button", {
+        name: "신고하기",
+      }),
+    );
 
     await waitFor(() =>
       expect(screen.queryByText("요청 본문")).not.toBeInTheDocument(),

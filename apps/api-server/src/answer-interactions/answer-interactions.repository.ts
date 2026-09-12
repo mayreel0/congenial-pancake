@@ -4,8 +4,6 @@ import { DRIZZLE } from '../database/database.constants';
 import type { Database } from '../database/database.types';
 import { answerInteractions, requests } from '../database/schema';
 
-export type AnswerInteraction = typeof answerInteractions.$inferSelect;
-
 @Injectable()
 export class AnswerInteractionsRepository {
   constructor(@Inject(DRIZZLE) private readonly db: Database) {}
@@ -45,7 +43,12 @@ export class AnswerInteractionsRepository {
   // A held request silently drops out of the holder's held list once it ages
   // past the same freshness window that excludes it from everyone else's
   // queue — otherwise it could sit here indefinitely, long after it's gone
-  // stale for everyone else.
+  // stale for everyone else. Same reasoning applies to a request its author
+  // self-deletes after it was held: RepliesService.create already refuses
+  // to let anyone reply to it, so leaving it in the held list would just
+  // strand the holder on an item that errors the moment they try to answer
+  // it (see docs/decisions/2026-09-09-onseol-own-content-deletion-
+  // decisions.md).
   findHeldForAuthor(authorId: string, freshnessHours: number) {
     const freshnessCutoff = new Date(
       Date.now() - freshnessHours * 60 * 60 * 1000,
@@ -59,6 +62,7 @@ export class AnswerInteractionsRepository {
         and(
           eq(answerInteractions.authorId, authorId),
           eq(answerInteractions.status, 'held'),
+          eq(requests.contentRemoved, false),
           gt(requests.createdAt, freshnessCutoff),
         ),
       );

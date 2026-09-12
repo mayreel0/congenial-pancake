@@ -9,7 +9,8 @@
   "exports": {
     "./pagination": "./src/pagination.ts",
     "./kst-date": "./src/kst-date.ts",
-    "./dto": "./src/dto.ts"
+    "./dto": "./src/dto.ts",
+    "./zod-form": "./src/zod-form.ts"
   },
   "dependencies": {
     "zod": "^4.4.3"

@@ -2,6 +2,8 @@
 
 Project-wide rules live in the root `AGENTS.md`.
 
+This package is consumed by both `apps/api-server` and `apps/web`, so it's the right place for any "why does this behave this way" explanation both sides need — write it once here at the definition, not duplicated at each call site (see root `AGENTS.md`'s "Code Comments").
+
 ## What belongs here
 
 Only logic genuinely identical on both sides of the API boundary — currently `pagination.ts` (the `PaginatedDto<T>` envelope shape, page-size whitelist, and query-string parsing), `kst-date.ts` (`isValidDateString`/`yesterdayKstDateString`), and `dto.ts` (zod schemas — see below). Each app keeps its own app-specific extensions locally rather than here: `apps/api-server/src/common/kst-date.ts` still owns `kstDayRange`/`kstDateRange` (SQL date-range builders, backend-only), `apps/web/app/lib/kst-date.ts` still owns `addDaysToDateString`/`formatKoreanDate` (UI date-string arithmetic/formatting, frontend-only). Both apps' local files re-export the shared subset rather than redeclaring it — a thin shim, same pattern `apps/web/app/lib/api.ts`/`format.ts` already use for `packages/api`/`packages/utils`. Don't move an app-specific helper here just because it looks similar in shape to something on the other side — only genuinely-identical logic belongs here (see `docs/decisions/2026-09-01-onseol-shared-package-spike-decisions.md` for the kst-date split reasoning).

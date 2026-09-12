@@ -3,7 +3,7 @@ import {
   NicknameRequiredException,
   ReplyAlreadySubmittedException,
   ReplyGuestLimitExceededException,
-  ReplyUnverifiedLimitExceededException,
+  ReplyNotFoundException,
   RequestNotFoundException,
 } from '../common/exceptions/app.exception';
 import type { RequestRecord } from '../requests/requests.repository';
@@ -24,6 +24,7 @@ function makeRequest(overrides: Partial<RequestRecord> = {}): RequestRecord {
     createdAt: new Date('2026-08-21T00:00:00.000Z'),
     hidden: false,
     deletedAt: null,
+    contentRemoved: false,
     reviewedAt: null,
     anonymous: true,
     ...overrides,
@@ -61,6 +62,8 @@ function makeUser(overrides: Partial<User> = {}): User {
     showCountsOnProfile: true,
     nicknameVisible: true,
     createdAt: new Date('2026-08-21T00:00:00.000Z'),
+    deletionRequestedAt: null,
+    deletedAt: null,
     ...overrides,
   };
 }
@@ -92,9 +95,10 @@ describe('RepliesService', () => {
       findVisibleByRequestId: jest.fn(),
       findByRequestAndAuthor: jest.fn(),
       countByGuest: jest.fn(),
-      countByAuthor: jest.fn(),
       setHidden: jest.fn(),
       findMine: jest.fn(),
+      findById: jest.fn(),
+      softDelete: jest.fn(),
     } as unknown as jest.Mocked<RepliesRepository>;
     requestsService = {
       findVisibleById: jest.fn(),
@@ -121,6 +125,21 @@ describe('RepliesService', () => {
   describe('create', () => {
     it('throws when the target request does not exist or is hidden', async () => {
       requestsService.findVisibleById.mockResolvedValue(undefined);
+
+      await expect(
+        repliesService.create(
+          'request-1',
+          { body: '내용' },
+          'user-1',
+          'unused-guest-id',
+        ),
+      ).rejects.toBeInstanceOf(RequestNotFoundException);
+    });
+
+    it('throws when the target request was self-deleted by its author', async () => {
+      requestsService.findVisibleById.mockResolvedValue(
+        makeRequest({ contentRemoved: true }),
+      );
 
       await expect(
         repliesService.create(
@@ -172,41 +191,6 @@ describe('RepliesService', () => {
         'user-1',
         undefined,
       );
-    });
-
-    it('throws when an unverified member already replied 5 times total, across any requests', async () => {
-      requestsService.findVisibleById.mockResolvedValue(makeRequest());
-      usersService.findById.mockResolvedValue(
-        makeUser({ emailVerifiedAt: null }),
-      );
-      repliesRepository.countByAuthor.mockResolvedValue(5);
-
-      await expect(
-        repliesService.create(
-          'request-1',
-          { body: '내용' },
-          'user-1',
-          'unused-guest-id',
-        ),
-      ).rejects.toBeInstanceOf(ReplyUnverifiedLimitExceededException);
-    });
-
-    it('does not cap a verified member even past the guest/unverified limit', async () => {
-      requestsService.findVisibleById.mockResolvedValue(makeRequest());
-      repliesRepository.findByRequestAndAuthor.mockResolvedValue(undefined);
-      usersService.findById.mockResolvedValue(makeUser());
-      const created = makeReply({ authorId: 'user-1' });
-      repliesRepository.create.mockResolvedValue(created);
-
-      const result = await repliesService.create(
-        'request-1',
-        { body: '내용' },
-        'user-1',
-        'unused-guest-id',
-      );
-
-      expect(repliesRepository.countByAuthor).not.toHaveBeenCalled();
-      expect(result).toEqual(created);
     });
 
     it('creates a named reply when the user opts out of anonymity and has a nickname', async () => {
@@ -352,6 +336,38 @@ describe('RepliesService', () => {
         {},
         { page: 1, pageSize: 20 },
       );
+    });
+  });
+
+  describe('deleteOwn', () => {
+    it('soft-deletes the reply when the caller is the author', async () => {
+      repliesRepository.findById.mockResolvedValue(
+        makeReply({ id: 'reply-1', authorId: 'user-1' }),
+      );
+
+      await repliesService.deleteOwn('user-1', 'reply-1');
+
+      expect(repliesRepository.softDelete).toHaveBeenCalledWith('reply-1');
+    });
+
+    it('throws NotFound without deleting when the caller is not the author', async () => {
+      repliesRepository.findById.mockResolvedValue(
+        makeReply({ id: 'reply-1', authorId: 'user-1' }),
+      );
+
+      await expect(
+        repliesService.deleteOwn('someone-else', 'reply-1'),
+      ).rejects.toBeInstanceOf(ReplyNotFoundException);
+      expect(repliesRepository.softDelete).not.toHaveBeenCalled();
+    });
+
+    it('throws NotFound when the reply does not exist', async () => {
+      repliesRepository.findById.mockResolvedValue(undefined);
+
+      await expect(
+        repliesService.deleteOwn('user-1', 'missing'),
+      ).rejects.toBeInstanceOf(ReplyNotFoundException);
+      expect(repliesRepository.softDelete).not.toHaveBeenCalled();
     });
   });
 });

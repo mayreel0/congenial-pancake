@@ -16,6 +16,13 @@ Not from `infra/terraform` — `docker build`'s context has to be the repo root 
 
 ## First-time apply — order matters
 
+Copy `terraform.tfvars.example` to `terraform.tfvars` (gitignored — never commit this) and fill in `admin_subdomain`. It's the one variable with no default (see the comment on it in `variables.tf` for why: this repo is public, and a guessable admin URL defeats the point). Every other variable already has a sensible default.
+
+```bash
+cp infra/terraform/terraform.tfvars.example infra/terraform/terraform.tfvars
+# then edit infra/terraform/terraform.tfvars and set admin_subdomain
+```
+
 The EC2 instance's boot script (`templates/user-data.sh.tftpl`) `docker pull`s the app image on first boot. If nothing's been pushed to ECR yet, that pull fails and the instance comes up with no container running. So the ECR repo has to exist and hold an image *before* the EC2 instance is created:
 
 ```bash
@@ -34,21 +41,26 @@ terraform -chdir=infra/terraform apply   # everything else
 
 ## After apply: set the real app secrets
 
-`ssm.tf` creates 7 SecureString parameters under `/onseol/prod/` as `CHANGE_ME` placeholders (Terraform never manages their real values — see the comment in `ssm.tf` for why). Set the real ones once:
+`ssm.tf` creates 10 SecureString parameters under `/onseol/prod/` as `CHANGE_ME` placeholders (Terraform never manages their real values — see the comment in `ssm.tf` for why). Set the real ones once:
 
 ```bash
-aws ssm put-parameter --name /onseol/prod/google_client_id     --type SecureString --overwrite --value "..."
-aws ssm put-parameter --name /onseol/prod/google_client_secret --type SecureString --overwrite --value "..."
-aws ssm put-parameter --name /onseol/prod/kakao_client_id      --type SecureString --overwrite --value "..."
-aws ssm put-parameter --name /onseol/prod/kakao_client_secret  --type SecureString --overwrite --value "..."
-aws ssm put-parameter --name /onseol/prod/naver_client_id      --type SecureString --overwrite --value "..."
-aws ssm put-parameter --name /onseol/prod/naver_client_secret  --type SecureString --overwrite --value "..."
-aws ssm put-parameter --name /onseol/prod/admin_user_ids       --type SecureString --overwrite --value "..."
+aws ssm put-parameter --name /onseol/prod/google_client_id      --type SecureString --overwrite --value "..."
+aws ssm put-parameter --name /onseol/prod/google_client_secret  --type SecureString --overwrite --value "..."
+aws ssm put-parameter --name /onseol/prod/kakao_client_id       --type SecureString --overwrite --value "..."
+aws ssm put-parameter --name /onseol/prod/kakao_client_secret   --type SecureString --overwrite --value "..."
+aws ssm put-parameter --name /onseol/prod/naver_client_id       --type SecureString --overwrite --value "..."
+aws ssm put-parameter --name /onseol/prod/naver_client_secret   --type SecureString --overwrite --value "..."
+aws ssm put-parameter --name /onseol/prod/admin_user_ids        --type SecureString --overwrite --value "..."
+aws ssm put-parameter --name /onseol/prod/resend_api_key        --type SecureString --overwrite --value "..."
+aws ssm put-parameter --name /onseol/prod/resend_from_email     --type SecureString --overwrite --value "온설 <no-reply@onseol.com>"
+aws ssm put-parameter --name /onseol/prod/ses_from_email        --type SecureString --overwrite --value "온설 <no-reply@onseol.com>"
 ```
 
-Each OAuth provider's redirect URI also needs to be registered as `https://api.onseol.com/auth/<provider>/callback` in that provider's own developer console.
+Each OAuth provider's redirect URI also needs to be registered as `https://api.onseol.com/auth/<provider>/callback` in that provider's own developer console. `resend_api_key` should be a Resend key scoped to **Sending access** only (not Full access) — the API server only ever sends mail through it.
 
-The EC2 instance only reads these at boot — after changing one, redeploy the instance (see below) to pick it up.
+After changing one, redeploy (see below) to pick it up — `deploy-api.yml`'s redeploy step re-fetches all 10 of these from SSM and rewrites them into the running container's env file before restarting, so a plain "Run workflow" (no code change needed) is enough to roll out a rotated secret. Everything else in the env file (`DATABASE_URL`, `CORS_ORIGIN`, etc.) is still only set at instance boot, since those only change via a Terraform-driven instance replacement anyway.
+
+**SES is still in sandbox mode** (`aws sesv2 get-account` → `ProductionAccessEnabled: false`) — it can only deliver to recipient addresses/domains that are themselves verified in SES. Resend is the primary provider and unaffected by this, but the SES fallback (`ses.tf`) will silently fail to reach real users' inboxes until [production access is requested](https://docs.aws.amazon.com/ses/latest/dg/request-production-access.html) through AWS Support.
 
 ## Running DB migrations
 
@@ -74,19 +86,49 @@ Same tunnel works for `pnpm --filter api-server db:studio` if you want to inspec
 
 ## Redeploying after a code change
 
-No CI pipeline yet — build, push, and restart by hand:
+Automatic now — `.github/workflows/deploy-api.yml` runs on every push to `v1` that touches `apps/api-server/**` or `packages/shared/**`: builds the image, pushes it to ECR, and redeploys it on the EC2 instance over SSM (same commands as below, run remotely — no SSH). Authenticates to AWS via OIDC (`github-oidc.tf`'s `onseol-api-github-deploy` role) rather than a stored access key — no GitHub secret to set up, the role's trust policy already restricts it to workflow runs against this repo's `v1` branch, and its permissions are scoped to just ECR push + this one SSM document + EC2 describe. A merge that doesn't touch those paths — or a first-time setup — won't trigger it; use the workflow's manual "Run workflow" button (Actions tab) for those.
+
+DB migrations run automatically too, as the container's own startup step (`drizzle-kit migrate` before `node dist/src/main` — see the `Dockerfile`'s runtime stage) — no separate SSM tunnel step needed for a routine deploy. The tunnel approach in the section above is still how you'd run migrations *without* a full deploy (e.g. inspecting or fixing something by hand).
+
+The equivalent manual sequence, if you ever need to redeploy without CI (e.g. debugging the pipeline itself). Refreshes the same SSM-backed secrets `deploy-api.yml` does before restarting the container — skip that part only if you know the running container's env is already current:
 
 ```bash
 REPO_URL=$(terraform -chdir=infra/terraform output -raw ecr_repository_url)
 docker build --platform linux/amd64 -f apps/api-server/Dockerfile -t "$REPO_URL:latest" .
 docker push "$REPO_URL:latest"
 
-INSTANCE_ID=$(terraform -chdir=infra/terraform output -raw ec2_instance_id)
-aws ssm send-command --instance-ids "$INSTANCE_ID" --document-name "AWS-RunShellScript" \
-  --parameters 'commands=["docker pull '"$REPO_URL"':latest","docker stop onseol-api","docker rm onseol-api","docker run -d --name onseol-api --restart unless-stopped --env-file /etc/onseol-api.env -p 3001:3001 '"$REPO_URL"':latest"]'
+INSTANCE_ID=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=onseol-api" "Name=instance-state-name,Values=running" --query "Reservations[0].Instances[0].InstanceId" --output text)
+
+# jq rather than hand-escaped shell quoting — SSM's shorthand syntax
+# doesn't parse a bracketed JSON array.
+COMMANDS_JSON=$(jq -n \
+  --arg region "ap-northeast-2" \
+  --arg image "$REPO_URL:latest" \
+  '{commands: [
+    ("for NAME in google_client_id google_client_secret kakao_client_id kakao_client_secret naver_client_id naver_client_secret admin_user_ids resend_api_key resend_from_email ses_from_email; do KEY=$(echo \"$NAME\" | tr a-z A-Z); VALUE=$(aws ssm get-parameter --region " + $region + " --name \"/onseol/prod/$NAME\" --with-decryption --query Parameter.Value --output text); awk -v k=\"$KEY\" -v v=\"$VALUE\" '\''BEGIN{FS=OFS=\"=\"} $1==k{$0=k\"=\"v} 1'\'' /etc/onseol-api.env > /etc/onseol-api.env.new && mv /etc/onseol-api.env.new /etc/onseol-api.env; done"),
+    "chmod 600 /etc/onseol-api.env",
+    ("docker pull " + $image),
+    "docker stop onseol-api || true",
+    "docker rm onseol-api || true",
+    ("docker run -d --name onseol-api --restart unless-stopped --env-file /etc/onseol-api.env -p 3001:3001 " + $image)
+  ]}')
+
+aws ssm send-command --instance-ids "$INSTANCE_ID" --document-name "AWS-RunShellScript" --parameters "$COMMANDS_JSON"
 ```
 
-Phase 2's Auto Scaling Group will replace this manual restart with an instance refresh.
+Phase 2's Auto Scaling Group will replace the SSM-based restart with an instance refresh — the build/push half of the pipeline stays the same.
+
+## Viewing container logs
+
+No SSH — same SSM route as everything else above:
+
+```bash
+INSTANCE_ID=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=onseol-api" "Name=instance-state-name,Values=running" --query "Reservations[0].Instances[0].InstanceId" --output text)
+COMMAND_ID=$(aws ssm send-command --instance-ids "$INSTANCE_ID" --document-name "AWS-RunShellScript" \
+  --parameters '{"commands":["docker logs --tail 300 onseol-api"]}' --query "Command.CommandId" --output text)
+sleep 5
+aws ssm get-command-invocation --command-id "$COMMAND_ID" --instance-id "$INSTANCE_ID" --query "StandardOutputContent" --output text
+```
 
 ## Tearing down the ALB to stop paying for it between sessions
 

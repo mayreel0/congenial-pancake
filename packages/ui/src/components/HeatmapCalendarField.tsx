@@ -2,6 +2,10 @@
 
 import { useState } from "react";
 import { useDismissOnOutsideClick } from "../hooks/useDismissOnOutsideClick";
+import {
+  POPOVER_EXIT_MS,
+  useAnimatedPresence,
+} from "../hooks/useAnimatedPresence";
 import { HeatmapCalendar, type HeatmapCalendarProps } from "./HeatmapCalendar";
 
 type HeatmapCalendarFieldProps = HeatmapCalendarProps & {
@@ -27,6 +31,7 @@ export function HeatmapCalendarField(props: HeatmapCalendarFieldProps) {
   const containerRef = useDismissOnOutsideClick<HTMLDivElement>(open, () =>
     setOpen(false),
   );
+  const shouldRender = useAnimatedPresence(open, POPOVER_EXIT_MS);
 
   const displayText = calendarProps.selected
     ? formatDate(calendarProps.selected)
@@ -44,8 +49,13 @@ export function HeatmapCalendarField(props: HeatmapCalendarFieldProps) {
       >
         {displayText}
       </button>
-      {open && (
-        <div className="absolute left-0 top-full z-20 mt-2 w-72 rounded-lg border border-line bg-surface p-3 shadow-sm">
+      {shouldRender && (
+        <div
+          aria-label={`${label} 달력`}
+          className={`absolute left-0 top-full z-20 mt-2 w-72 rounded-lg border border-line bg-surface p-3 shadow-sm ${
+            open ? "onseol-popover-enter" : "onseol-popover-leave"
+          }`}
+        >
           <HeatmapCalendar
             {...calendarProps}
             onSelect={(date) => {

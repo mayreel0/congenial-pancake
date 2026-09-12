@@ -3,6 +3,10 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Skeleton } from "ui/Skeleton";
+import {
+  SKELETON_MIN_DISPLAY_MS,
+  useMinDisplayDuration,
+} from "ui/useMinDisplayDuration";
 import { ServiceNav } from "../../../../components/navigation/ServiceNav";
 import { ApiError } from "../../../../lib/api";
 import { buildFeedItemLabels } from "../../../../lib/feed-item-labels";
@@ -15,10 +19,13 @@ type ReplyDetailBodyProps = {
   replyId: string;
 };
 
-// Early return per branch instead of a nested ternary — matches
-// apps/admin/app/components/AdminStatusGate.tsx's pattern.
 function ReplyDetailBody({ query, replyId }: ReplyDetailBodyProps) {
-  if (query.isPending) {
+  const showSkeleton = useMinDisplayDuration(
+    query.isPending,
+    SKELETON_MIN_DISPLAY_MS,
+  );
+
+  if (showSkeleton) {
     return (
       <div className="space-y-3 rounded-lg border border-line bg-surface px-4 py-5 shadow-sm">
         <Skeleton className="h-4 w-2/3" />

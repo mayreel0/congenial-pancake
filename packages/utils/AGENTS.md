@@ -2,6 +2,8 @@
 
 Project-wide rules live in the root `AGENTS.md`. See `docs/decisions/2026-08-25-onseol-shared-ui-package-decisions.md` for the full reasoning (originally lived inside `packages/ui`, split out once that name stopped fitting non-React code).
 
+This package is consumed by both `apps/web` and `apps/admin`, so it's the right place for any "why does this behave this way" explanation both apps need — write it once here at the definition, not duplicated at each app's call site (see root `AGENTS.md`'s "Code Comments").
+
 ## Named `utils`, not `util`
 
 `util` is a Node.js built-in core module name. A workspace package named `util` risks being shadowed by the built-in during module resolution depending on the resolver (Node's own resolution always prefers the built-in for a bare `util` specifier). Named this package `utils` (plural) from the start to avoid the collision entirely — don't rename it to `util`.
@@ -12,4 +14,4 @@ Plain TS, no React, no app-specific logic: currently just `formatTimestamp`. Onl
 
 ## No build step
 
-Same pattern as `packages/ui`/`packages/api-client`: `package.json`'s `exports` maps `"."` straight to `src/index.ts`, no `tsc` build. Consuming apps transpile this package as part of their own build (`transpilePackages: ["ui", "api-client", "utils"]` in each app's `next.config.ts`).
+Same pattern as `packages/ui`/`packages/api`: `package.json`'s `exports` maps `"."` straight to `src/index.ts`, no `tsc` build. Consuming apps transpile this package as part of their own build (`transpilePackages: ["ui", "api", "utils", "shared"]` in each app's `next.config.ts`).

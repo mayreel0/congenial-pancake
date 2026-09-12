@@ -1,8 +1,7 @@
 "use client";
 
-import { ApiError } from "./lib/api";
-import { useAuth } from "./lib/auth/useAuth";
 import type { AdminReplyResponseDto, AdminRequestResponseDto } from "shared/dto";
+import { useAdminAccess } from "./lib/admin/useAdminAccess";
 import {
   useDeleteReplyMutation,
   useDeleteRequestMutation,
@@ -12,7 +11,10 @@ import {
 } from "./lib/admin/queries";
 
 type UseAdminReviewResult = {
-  status: "loading" | "signedOut" | "forbidden" | "ready";
+  // "is this session even allowed to see this" lives in useAdminAccess now
+  // (shared across every admin page) — this only covers the in-between
+  // window after access is confirmed but the queue GET is still in flight.
+  isLoadingQueue: boolean;
   hiddenRequests: AdminRequestResponseDto[];
   hiddenReplies: AdminReplyResponseDto[];
   restoreRequest(id: string): Promise<void>;
@@ -21,22 +23,9 @@ type UseAdminReviewResult = {
   deleteReply(id: string): Promise<void>;
 };
 
-function toStatus(
-  authStatus: ReturnType<typeof useAuth>["status"],
-  forbidden: boolean,
-): UseAdminReviewResult["status"] {
-  if (authStatus === "loading") return "loading";
-  if (authStatus === "anonymous") return "signedOut";
-  if (forbidden) return "forbidden";
-  return "ready";
-}
-
-// 화이트리스트(ADMIN_USER_IDS) 여부는 서버만 알고 있어 클라이언트가 미리
-// 판단할 수 없다 — 로그인 상태에서 쿼리를 실행해보고 403이면 권한 없음으로
-// 처리한다. See docs/decisions/2026-08-25-onseol-admin-moderation-decisions.md.
 export function useAdminReview(): UseAdminReviewResult {
-  const { status: authStatus } = useAuth();
-  const enabled = authStatus === "authenticated";
+  const { status } = useAdminAccess();
+  const enabled = status === "ready";
 
   const hiddenQuery = useHiddenModerationQueueQuery(enabled);
   const restoreRequestMutation = useRestoreRequestMutation();
@@ -44,15 +33,8 @@ export function useAdminReview(): UseAdminReviewResult {
   const restoreReplyMutation = useRestoreReplyMutation();
   const deleteReplyMutation = useDeleteReplyMutation();
 
-  const forbidden =
-    hiddenQuery.error instanceof ApiError &&
-    (hiddenQuery.error.statusCode === 403 ||
-      hiddenQuery.error.statusCode === 401);
-
-  const status = toStatus(authStatus, forbidden);
-
   return {
-    status,
+    isLoadingQueue: hiddenQuery.isLoading,
     hiddenRequests: hiddenQuery.data?.requests ?? [],
     hiddenReplies: hiddenQuery.data?.replies ?? [],
     restoreRequest: (id) => restoreRequestMutation.mutateAsync(id),

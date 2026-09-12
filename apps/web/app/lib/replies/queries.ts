@@ -10,6 +10,7 @@ import {
 import { requestKeys } from "../requests/queries";
 import {
   createReply,
+  deleteOwnReply,
   fetchMyAnswerLog,
   fetchMyReplyDayCounts,
   fetchSavedReplyIds,
@@ -17,7 +18,7 @@ import {
   unsaveReply,
 } from "./api";
 
-export const replyKeys = {
+const replyKeys = {
   // Prefix key — pass to invalidateQueries to match every mine(...) variant
   // regardless of its from/to/page/pageSize args.
   mineAll: ["replies", "mine"] as const,
@@ -27,7 +28,7 @@ export const replyKeys = {
     page: number,
     pageSize: number,
   ) => ["replies", "mine", from ?? null, to ?? null, page, pageSize] as const,
-  // HeatmapCalendar day counts — keyed by the visible month's from/to.
+  // See requests/queries.ts's identical feedCounts key for why.
   mineCounts: (from: string, to: string) =>
     ["replies", "mineCounts", from, to] as const,
   saved: ["replies", "saved"] as const,
@@ -97,8 +98,26 @@ export function useCreateReplyMutation() {
   });
 }
 
-// Saved replies are member-only — pass enabled: false for guests instead of
-// letting the query fire and 401.
+// See requests/queries.ts's identical useHeldRequestsQuery for why (member-
+// only — pass enabled: false for guests instead of letting the query fire
+// and 401).
+export function useDeleteOwnReplyMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      requestId,
+      replyId,
+    }: {
+      requestId: string;
+      replyId: string;
+    }) => deleteOwnReply(requestId, replyId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: replyKeys.mineAll });
+    },
+  });
+}
+
 export function useSavedReplyIdsQuery(enabled: boolean) {
   return useQuery({
     queryKey: replyKeys.saved,

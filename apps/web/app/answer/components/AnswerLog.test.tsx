@@ -100,6 +100,8 @@ describe("AnswerLog date dividers", () => {
         isTyping={false}
         leavingRequestId={null}
         hasOlderEntries={false}
+        isLoadingAnswerLog={false}
+        isLoadingCurrentTarget={false}
         isLoadingOlderEntries={false}
         loadingNext={false}
         onLoadOlderEntries={() => {}}
@@ -155,6 +157,8 @@ describe("AnswerLog date dividers", () => {
         isTyping={false}
         leavingRequestId={null}
         hasOlderEntries={false}
+        isLoadingAnswerLog={false}
+        isLoadingCurrentTarget={false}
         isLoadingOlderEntries={false}
         loadingNext={false}
         onLoadOlderEntries={() => {}}
@@ -180,6 +184,8 @@ describe("AnswerLog date dividers", () => {
         isTyping={false}
         leavingRequestId={null}
         hasOlderEntries={false}
+        isLoadingAnswerLog={false}
+        isLoadingCurrentTarget={false}
         isLoadingOlderEntries={false}
         loadingNext={false}
         onLoadOlderEntries={() => {}}

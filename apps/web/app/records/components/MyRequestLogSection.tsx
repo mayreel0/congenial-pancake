@@ -1,11 +1,15 @@
+import { useState } from "react";
+import { ActionConfirmDialog } from "ui/ActionConfirmDialog";
 import { Button } from "ui/Button";
 import { HeatmapCalendarField } from "ui/HeatmapCalendarField";
 import { Pagination } from "ui/Pagination";
 import { Skeleton } from "ui/Skeleton";
+import { toast } from "ui/useToast";
 import { daysInMonthAnchor, formatKoreanDate } from "../../lib/kst-date";
 import { PAGE_SIZE_OPTIONS } from "../../lib/pagination";
 import type { MyRequestLogEntryDto } from "../../lib/requests/api";
 import {
+  useDeleteOwnRequestMutation,
   useMyRequestDayCountsQuery,
   useMyRequestLogQuery,
 } from "../../lib/requests/queries";
@@ -15,11 +19,10 @@ import { RequestLogCard } from "./RequestLogCard";
 type RequestLogBodyProps = {
   loading: boolean;
   entries: MyRequestLogEntryDto[];
+  onDeleteRequest(requestId: string): void;
 };
 
-// Early return instead of a nested ternary — matches
-// apps/admin/app/components/AdminStatusGate.tsx's pattern.
-function RequestLogBody({ loading, entries }: RequestLogBodyProps) {
+function RequestLogBody({ loading, entries, onDeleteRequest }: RequestLogBodyProps) {
   if (loading) {
     return (
       <div className="space-y-4">
@@ -51,7 +54,11 @@ function RequestLogBody({ loading, entries }: RequestLogBodyProps) {
   return (
     <ol className="space-y-4">
       {entries.map((entry) => (
-        <RequestLogCard entry={entry} key={entry.request.id} />
+        <RequestLogCard
+          entry={entry}
+          key={entry.request.id}
+          onDeleteRequest={onDeleteRequest}
+        />
       ))}
     </ol>
   );
@@ -77,6 +84,20 @@ export function MyRequestLogSection() {
     monthDays[0],
     monthDays[monthDays.length - 1],
   );
+  const deleteRequest = useDeleteOwnRequestMutation();
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+
+  async function confirmDelete() {
+    if (!pendingDeleteId) return;
+    const id = pendingDeleteId;
+    setPendingDeleteId(null);
+    try {
+      await deleteRequest.mutateAsync(id);
+      toast.success("삭제했어요.");
+    } catch (error) {
+      toast.error(error);
+    }
+  }
 
   return (
     <section className="space-y-4" aria-labelledby="my-request-log-heading">
@@ -118,6 +139,7 @@ export function MyRequestLogSection() {
       <RequestLogBody
         entries={data?.items ?? []}
         loading={requestLog.isPending || requestLog.isLoading}
+        onDeleteRequest={setPendingDeleteId}
       />
       {data && (
         <Pagination
@@ -129,6 +151,13 @@ export function MyRequestLogSection() {
           onPageSizeChange={setPageSize}
         />
       )}
+      <ActionConfirmDialog
+        confirmLabel="삭제하기"
+        message="이 글을 삭제할까요? 삭제하면 글 내용은 사라지고, 이미 달린 답변은 그대로 남아요."
+        open={pendingDeleteId !== null}
+        onCancel={() => setPendingDeleteId(null)}
+        onConfirm={() => void confirmDelete()}
+      />
     </section>
   );
 }

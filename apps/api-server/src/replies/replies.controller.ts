@@ -11,8 +11,10 @@ import {
 import { ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
 import { GuestId } from '../common/decorators/guest-id.decorator';
+import { CurrentUser } from '../auth/current-user.decorator';
 import { OptionalCurrentUser } from '../auth/optional-current-user.decorator';
 import { OptionalSessionGuard } from '../auth/optional-session.guard';
+import { SessionGuard } from '../auth/session.guard';
 import { UsersService } from '../users/users.service';
 import { CreateReplyDto } from './dto/create-reply.dto';
 import { ReplyResponseDto, toReplyResponseDto } from './dto/reply-response.dto';
@@ -64,5 +66,16 @@ export class RepliesController {
     const replies = await this.repliesService.findVisibleByRequestId(requestId);
     const nicknameByUserId = await this.nicknameMapFor(replies);
     return replies.map((reply) => toReplyResponseDto(reply, nicknameByUserId));
+  }
+
+  // Member-only — see RepliesService.deleteOwn.
+  @Post(':id/delete-own')
+  @UseGuards(SessionGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteOwn(
+    @Param('id') id: string,
+    @CurrentUser() userId: string,
+  ): Promise<void> {
+    await this.repliesService.deleteOwn(userId, id);
   }
 }

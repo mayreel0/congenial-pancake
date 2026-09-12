@@ -8,6 +8,7 @@
   },
   "exports": {
     "./ActionConfirmDialog": "./src/components/ActionConfirmDialog.tsx",
+    "./GlobalToast": "./src/components/GlobalToast.tsx",
     "./HeatmapCalendar": "./src/components/HeatmapCalendar.tsx",
     "./HeatmapCalendarField": "./src/components/HeatmapCalendarField.tsx",
     "./MoreMenu": "./src/components/MoreMenu.tsx",
@@ -17,7 +18,16 @@
     "./Skeleton": "./src/components/Skeleton.tsx",
     "./TextField": "./src/components/TextField.tsx",
     "./Toggle": "./src/components/Toggle.tsx",
-    "./useDismissOnOutsideClick": "./src/hooks/useDismissOnOutsideClick.ts"
+    "./Toast": "./src/components/Toast.tsx",
+    "./useAnimatedPresence": "./src/hooks/useAnimatedPresence.ts",
+    "./useDismissOnOutsideClick": "./src/hooks/useDismissOnOutsideClick.ts",
+    "./useFieldValidation": "./src/hooks/useFieldValidation.ts",
+    "./useMinDisplayDuration": "./src/hooks/useMinDisplayDuration.ts",
+    "./useToast": "./src/hooks/useToast.ts"
+  },
+  "dependencies": {
+    "api": "workspace:*",
+    "shared": "workspace:*"
   },
   "peerDependencies": {
     "@tanstack/react-query": "^5.101.4",

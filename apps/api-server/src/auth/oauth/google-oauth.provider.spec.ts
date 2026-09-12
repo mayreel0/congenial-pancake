@@ -84,5 +84,43 @@ describe('GoogleOAuthProvider', () => {
         OAuthExchangeFailedException,
       );
     });
+
+    it('throws when Google reports the email as unverified', async () => {
+      fetchMock
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ access_token: 'at' }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              sub: 'google-123',
+              email: 'user@example.com',
+              email_verified: false,
+            }),
+        });
+
+      await expect(provider.exchangeCode('the-code')).rejects.toBeInstanceOf(
+        OAuthExchangeFailedException,
+      );
+    });
+
+    it('accepts the email when email_verified is absent (older/undocumented responses)', async () => {
+      fetchMock
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ access_token: 'at' }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () =>
+            Promise.resolve({ sub: 'google-123', email: 'user@example.com' }),
+        });
+
+      const profile = await provider.exchangeCode('the-code');
+
+      expect(profile.email).toBe('user@example.com');
+    });
   });
 });

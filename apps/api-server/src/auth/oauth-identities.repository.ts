@@ -23,6 +23,12 @@ export class OAuthIdentitiesRepository {
     });
   }
 
+  findByUserId(userId: string): Promise<OAuthIdentity[]> {
+    return this.db.query.oauthIdentities.findMany({
+      where: eq(oauthIdentities.userId, userId),
+    });
+  }
+
   async create(
     userId: string,
     provider: Provider,
@@ -33,5 +39,13 @@ export class OAuthIdentitiesRepository {
       .values({ userId, provider, providerAccountId })
       .returning();
     return identity;
+  }
+
+  // Account deletion — frees up (provider, providerAccountId) so the same
+  // social account can sign up fresh under a new 온설 account later.
+  async deleteAllForUser(userId: string): Promise<void> {
+    await this.db
+      .delete(oauthIdentities)
+      .where(eq(oauthIdentities.userId, userId));
   }
 }

@@ -1,6 +1,6 @@
 export type RecordsTab = "requests" | "replies";
 
-export const RECORDS_TABS: { id: RecordsTab; label: string }[] = [
+const RECORDS_TABS: { id: RecordsTab; label: string }[] = [
   { id: "requests", label: "내가 남긴 고민" },
   { id: "replies", label: "내가 남긴 답변" },
 ];

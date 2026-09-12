@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, isNull, lt } from 'drizzle-orm';
 import { DRIZZLE } from '../database/database.constants';
 import type { Database } from '../database/database.types';
 import { users } from '../database/schema';
@@ -58,6 +58,18 @@ export class UsersRepository {
     await this.db.update(users).set({ passwordHash }).where(eq(users.id, id));
   }
 
+  // Only ever called when an OAuth login takes over a still-unverified
+  // password account (see AuthService.loginWithOAuth) — the password on
+  // file was never actually proven to belong to whoever just showed up
+  // with real OAuth proof, so it's cleared rather than left as a
+  // lingering way back in for whoever originally set it.
+  async clearPasswordHash(id: string): Promise<void> {
+    await this.db
+      .update(users)
+      .set({ passwordHash: null })
+      .where(eq(users.id, id));
+  }
+
   async updateNickname(id: string, nickname: string): Promise<User> {
     const [user] = await this.db
       .update(users)
@@ -92,5 +104,51 @@ export class UsersRepository {
       .update(users)
       .set({ emailVerifiedAt: new Date() })
       .where(eq(users.id, id));
+  }
+
+  // Starts the 30-day grace period — nothing else about the row changes
+  // yet (see users.schema.ts).
+  async requestDeletion(id: string): Promise<void> {
+    await this.db
+      .update(users)
+      .set({ deletionRequestedAt: new Date() })
+      .where(eq(users.id, id));
+  }
+
+  async restoreAccount(id: string): Promise<void> {
+    await this.db
+      .update(users)
+      .set({ deletionRequestedAt: null })
+      .where(eq(users.id, id));
+  }
+
+  // The actual scrub, shared by both the immediate-deletion path and
+  // AccountDeletionCronService once the grace period lapses. email is
+  // replaced (not nulled) since the column is NOT NULL UNIQUE — a
+  // synthesized value keyed on the row's own id is guaranteed unique
+  // without a schema change. requests/replies authored by this user are
+  // deliberately untouched — see the comment on users.schema.ts's
+  // deletedAt column.
+  async scrubForDeletion(id: string): Promise<void> {
+    await this.db
+      .update(users)
+      .set({
+        email: `deleted-${id}@deleted.invalid`,
+        nickname: null,
+        passwordHash: null,
+        deletedAt: new Date(),
+      })
+      .where(eq(users.id, id));
+  }
+
+  // Accounts whose grace period is over and haven't been finalized yet —
+  // AccountDeletionCronService's daily sweep.
+  findPendingDeletionBefore(cutoff: Date): Promise<User[]> {
+    return this.db.query.users.findMany({
+      where: and(
+        lt(users.deletionRequestedAt, cutoff),
+        isNull(users.deletedAt),
+      ),
+    });
   }
 }

@@ -3,18 +3,19 @@
 import { useState } from "react";
 import { updateNicknameSchema } from "shared/dto";
 import { Button } from "ui/Button";
+import { Skeleton } from "ui/Skeleton";
 import { TextField } from "ui/TextField";
-import { ApiError } from "../../lib/api";
+import {
+  BUTTON_PENDING_MIN_MS,
+  SKELETON_MIN_DISPLAY_MS,
+  useMinDisplayDuration,
+} from "ui/useMinDisplayDuration";
+import { errorMessage } from "../../lib/api";
 import { useAuth } from "../../lib/auth/useAuth";
-import { useFieldValidation } from "../../lib/useFieldValidation";
-import { parseFieldErrors } from "../../lib/zod-form";
+import { useFieldValidation } from "ui/useFieldValidation";
+import { parseFieldErrors } from "shared/zod-form";
 
 type Field = "nickname";
-
-function errorMessage(error: unknown): string {
-  if (error instanceof ApiError) return error.message;
-  return "요청을 처리하지 못했습니다. 잠시 후 다시 시도해주세요.";
-}
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -35,7 +36,7 @@ function cooldownDaysRemaining(availableAt: string | null): number | null {
 // only covers the nickname's actual text and its change cooldown, so it can
 // stay a self-contained <form> with no cross-component state.
 export function NicknameSection() {
-  const { user, updateNickname } = useAuth();
+  const { user, updateNickname, status } = useAuth();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
   const [pending, setPending] = useState(false);
@@ -44,6 +45,29 @@ export function NicknameSection() {
   const fieldErrors = parseFieldErrors(updateNicknameSchema, {
     nickname: draft.trim(),
   });
+  const showSkeleton = useMinDisplayDuration(
+    status === "loading",
+    SKELETON_MIN_DISPLAY_MS,
+  );
+  const showSpinner = useMinDisplayDuration(pending, BUTTON_PENDING_MIN_MS);
+
+  if (showSkeleton) {
+    return (
+      <section className="space-y-3 rounded-lg border border-line bg-surface px-4 py-5 shadow-sm">
+        <div className="space-y-1">
+          <h2 className="text-sm font-semibold text-foreground">닉네임</h2>
+          <p className="text-xs text-muted">
+            글이나 답장을 남길 때, 익명 대신 이 닉네임으로 남길지 매번 선택할
+            수 있어요.
+          </p>
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <Skeleton className="h-5 w-32" />
+          <Skeleton className="h-10 w-16" />
+        </div>
+      </section>
+    );
+  }
 
   if (!user) return null;
 
@@ -91,68 +115,85 @@ export function NicknameSection() {
         </p>
       </div>
 
-      {editing ? (
-        <form className="space-y-3" onSubmit={(event) => void handleSubmit(event)}>
-          <TextField
-            error={visibleError("nickname", fieldErrors)}
-            id="nickname"
-            label="닉네임"
-            maxLength={20}
-            value={draft}
-            width="compact"
-            onChange={(event) => setDraft(event.currentTarget.value)}
-          />
-          {error && <p className="text-xs text-red-600">{error}</p>}
-          <div className="flex gap-2">
-            <Button
-              disabled={pending || Object.keys(fieldErrors).length > 0}
-              size="sm"
-              type="submit"
-            >
-              {pending ? "저장하는 중" : "저장"}
-            </Button>
-            <Button
-              disabled={pending}
-              size="sm"
-              type="button"
-              variant="secondary"
-              onClick={cancelEditing}
-            >
-              취소
-            </Button>
-          </div>
-        </form>
-      ) : (
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-sm text-foreground">
-              {user.nickname ? (
-                <>
-                  {user.nickname}
-                  <span className="text-muted">#{user.nicknameDiscriminator}</span>
-                </>
-              ) : (
-                <span className="text-muted">아직 설정한 닉네임이 없어요.</span>
-              )}
-            </p>
-            {cooldownActive && (
-              <p className="text-xs text-muted">
-                {daysRemaining}일 후에 다시 바꿀 수 있어요.
+      <div
+        aria-hidden={editing}
+        className="onseol-collapse-row grid"
+        inert={editing}
+        style={{ gridTemplateRows: editing ? "0fr" : "1fr" }}
+      >
+        <div style={{ opacity: editing ? 0 : 1 }}>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm text-foreground">
+                {user.nickname ? (
+                  <>
+                    {user.nickname}
+                    <span className="text-muted">#{user.nicknameDiscriminator}</span>
+                  </>
+                ) : (
+                  <span className="text-muted">아직 설정한 닉네임이 없어요.</span>
+                )}
               </p>
-            )}
-          </div>
-          <div className="shrink-0">
-            <Button
-              disabled={cooldownActive}
-              size="sm"
-              type="button"
-              onClick={startEditing}
-            >
-              {user.nickname ? "수정" : "설정하기"}
-            </Button>
+              {cooldownActive && (
+                <p className="text-xs text-muted">
+                  {daysRemaining}일 후에 다시 바꿀 수 있어요.
+                </p>
+              )}
+            </div>
+            <div className="shrink-0">
+              <Button
+                disabled={cooldownActive}
+                size="sm"
+                type="button"
+                onClick={startEditing}
+              >
+                {user.nickname ? "수정" : "설정하기"}
+              </Button>
+            </div>
           </div>
         </div>
-      )}
+      </div>
+
+      <div
+        aria-hidden={!editing}
+        className="onseol-collapse-row grid"
+        inert={!editing}
+        style={{ gridTemplateRows: editing ? "1fr" : "0fr" }}
+      >
+        <div style={{ opacity: editing ? 1 : 0 }}>
+          <form className="space-y-3" onSubmit={(event) => void handleSubmit(event)}>
+            <TextField
+              error={visibleError("nickname", fieldErrors)}
+              id="nickname"
+              label="닉네임"
+              maxLength={20}
+              value={draft}
+              width="compact"
+              onChange={(event) => setDraft(event.currentTarget.value)}
+            />
+            {error && <p className="text-xs text-red-600">{error}</p>}
+            <div className="flex gap-2">
+              <Button
+                disabled={Object.keys(fieldErrors).length > 0 || showSpinner}
+                pending={showSpinner}
+                size="sm"
+                type="submit"
+              >
+                저장
+              </Button>
+              <Button
+                disabled={showSpinner}
+                size="sm"
+                type="button"
+                variant="secondary"
+                onClick={cancelEditing}
+              >
+                취소
+              </Button>
+            </div>
+          </form>
+        </div>
+      </div>
     </section>
   );
 }

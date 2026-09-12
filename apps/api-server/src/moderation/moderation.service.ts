@@ -4,7 +4,7 @@ import { RequestsService } from '../requests/requests.service';
 
 // Distinct reporters required before a request/reply is auto-hidden — see
 // docs/decisions/2026-08-21-onseol-db-and-moderation-decisions.md.
-export const AUTO_HIDE_REPORTER_THRESHOLD = 3;
+const AUTO_HIDE_REPORTER_THRESHOLD = 3;
 
 export type ReportTargetType = 'request' | 'reply';
 

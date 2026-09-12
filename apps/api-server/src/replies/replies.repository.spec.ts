@@ -132,7 +132,11 @@ describe('RepliesRepository', () => {
       );
 
       expect(rowsChain.where).toHaveBeenCalledWith(
-        and(eq(replies.authorId, 'user-1'), undefined),
+        and(
+          eq(replies.authorId, 'user-1'),
+          isNull(replies.deletedAt),
+          undefined,
+        ),
       );
       expect(rowsChain.orderBy).toHaveBeenCalledWith(desc(replies.createdAt));
       expect(rowsChain.limit).toHaveBeenCalledWith(10);
@@ -157,6 +161,7 @@ describe('RepliesRepository', () => {
       expect(countChain.where).toHaveBeenCalledWith(
         and(
           eq(replies.guestId, 'guest-1'),
+          isNull(replies.deletedAt),
           and(gte(replies.createdAt, start), lt(replies.createdAt, end)),
         ),
       );
