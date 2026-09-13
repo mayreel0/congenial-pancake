@@ -22,9 +22,32 @@ const pretendard = localFont({
   display: "swap",
 });
 
+const TITLE = "온설";
+const DESCRIPTION = "짧은 위로 요청과 담백한 답장을 주고받는 서비스";
+
 export const metadata: Metadata = {
-  title: "온설",
-  description: "짧은 위로 요청과 담백한 답장을 주고받는 서비스",
+  // OG 이미지의 상대 경로(app/opengraph-image.tsx)를 절대 URL로 바꾸는 데 쓰임 —
+  // Vercel 프리뷰가 아니라 실제 서비스 도메인으로 고정.
+  metadataBase: new URL("https://onseol.com"),
+  title: TITLE,
+  description: DESCRIPTION,
+  keywords: ["온설", "고민 상담", "익명 위로", "감정 공유", "따뜻한 답장"],
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: TITLE,
+    description: DESCRIPTION,
+    url: "/",
+    siteName: TITLE,
+    locale: "ko_KR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: TITLE,
+    description: DESCRIPTION,
+  },
 };
 
 type RootLayoutProps = {
