@@ -11,7 +11,7 @@ function mockStats(body: unknown) {
 }
 
 describe("ActivityStats", () => {
-  it("shows today/total counts for requests and replies, plus waiting-for-reply", async () => {
+  it("shows cumulative totals and how many are waiting for a reply, as sentences", async () => {
     mockStats({
       requests: { today: 1, total: 42 },
       replies: { today: 2, total: 88 },
@@ -20,12 +20,27 @@ describe("ActivityStats", () => {
 
     render(<ActivityStats />);
 
-    expect(await screen.findByText("42")).toBeInTheDocument();
-    expect(screen.getByText("88")).toBeInTheDocument();
-    expect(screen.getByText("1")).toBeInTheDocument();
-    expect(screen.getByText("2")).toBeInTheDocument();
-    expect(screen.getByText("3")).toBeInTheDocument();
-    expect(screen.getByText("답변을 기다리는 글")).toBeInTheDocument();
+    expect(
+      await screen.findByText("지금까지 42개의 이야기가 남겨졌고, 88개의 따뜻한 답장이 도착했어요."),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("지금 3개의 이야기가 답장을 기다리고 있어요."),
+    ).toBeInTheDocument();
+  });
+
+  it("omits the waiting-for-reply line when nothing is waiting", async () => {
+    mockStats({
+      requests: { today: 0, total: 42 },
+      replies: { today: 0, total: 88 },
+      waitingForReply: 0,
+    });
+
+    render(<ActivityStats />);
+
+    await screen.findByText("지금까지 42개의 이야기가 남겨졌고, 88개의 따뜻한 답장이 도착했어요.");
+    expect(
+      screen.queryByText(/답장을 기다리고 있어요/),
+    ).not.toBeInTheDocument();
   });
 
   it("renders nothing when the fetch fails, instead of an error state", async () => {
