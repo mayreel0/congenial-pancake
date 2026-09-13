@@ -3,70 +3,38 @@
 import { Skeleton } from "ui/Skeleton";
 import { useLandingStatsQuery } from "../../lib/landing/queries";
 
-type StatCellProps = {
-  label: string;
-  value: number;
-};
-
-function StatCell({ label, value }: StatCellProps) {
-  return (
-    <div className="rounded-lg border border-line bg-surface px-4 py-3 shadow-sm">
-      <dt className="text-sm text-muted">{label}</dt>
-      <dd className="mt-2 text-2xl font-semibold text-foreground">{value}</dd>
-    </div>
-  );
-}
-
-function StatCellSkeleton() {
-  return (
-    <div className="space-y-2 rounded-lg border border-line bg-surface px-4 py-3 shadow-sm">
-      <Skeleton className="h-4 w-16" />
-      <Skeleton className="h-7 w-10" />
-    </div>
-  );
-}
-
-// A public marketing section — a failed fetch just hides this rather than
-// showing an error, so a network hiccup never breaks the landing page.
-// Five cells total, grouped as two rows (cumulative totals, then today's
-// activity + the current waiting-for-reply count) — a "이번 달" middle
-// tier used to sit between these but felt like empty filler without a
-// caption under each cell, so it was dropped rather than re-adding copy.
+// 원래 5개짜리 KPI 카드 그리드였는데, "온설의 나머지 UI는 감정적이고
+// 조용한데 랜딩만 갑자기 SaaS 대시보드가 된다"는 지적(2026-09-14)에 따라
+// /today의 "오늘 N개의 이야기가 남겨졌고..." 자연어 표현을 그대로 가져옴 —
+// 숫자를 나열하기보다 "사람들이 실제로 여기 있다"는 느낌을 주는 쪽이 톤에
+// 맞다고 판단. 오늘의 요청/답장 개수는 /today 자체가 이미 보여주므로 여기서는
+// 누적 총합(첫인상에서 규모감을 주는 것)과 "답장을 기다리는 글"(방문자에게
+// 답하러 갈 이유를 주는 것)만 남김.
 export function ActivityStats() {
   const { data, isPending, isError } = useLandingStatsQuery();
 
   if (isError) return null;
 
+  if (isPending) {
+    return (
+      <div className="space-y-2">
+        <Skeleton className="h-6 w-80" />
+        <Skeleton className="h-5 w-56" />
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-3">
-      <dl className="grid grid-cols-2 gap-3">
-        {isPending ? (
-          <>
-            <StatCellSkeleton />
-            <StatCellSkeleton />
-          </>
-        ) : (
-          <>
-            <StatCell label="누적 위로 요청" value={data.requests.total} />
-            <StatCell label="누적 답장" value={data.replies.total} />
-          </>
-        )}
-      </dl>
-      <dl className="grid grid-cols-3 gap-3">
-        {isPending ? (
-          <>
-            <StatCellSkeleton />
-            <StatCellSkeleton />
-            <StatCellSkeleton />
-          </>
-        ) : (
-          <>
-            <StatCell label="오늘의 위로 요청" value={data.requests.today} />
-            <StatCell label="오늘의 답장" value={data.replies.today} />
-            <StatCell label="답변을 기다리는 글" value={data.waitingForReply} />
-          </>
-        )}
-      </dl>
+    <div className="space-y-1.5">
+      <p className="text-lg text-muted">
+        지금까지 {data.requests.total}개의 이야기가 남겨졌고,{" "}
+        {data.replies.total}개의 따뜻한 답장이 도착했어요.
+      </p>
+      {data.waitingForReply > 0 && (
+        <p className="text-sm text-muted">
+          지금 {data.waitingForReply}개의 이야기가 답장을 기다리고 있어요.
+        </p>
+      )}
     </div>
   );
 }
