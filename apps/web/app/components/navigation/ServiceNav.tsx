@@ -5,7 +5,8 @@ import { useState } from "react";
 import { useDismissOnOutsideClick } from "ui/useDismissOnOutsideClick";
 import { POPOVER_EXIT_MS, useAnimatedPresence } from "ui/useAnimatedPresence";
 import { useAuth } from "../../lib/auth/useAuth";
-import { accountNavItems, landingEntryLinks, serviceNavItems } from "./routes";
+import { ProfileMenu } from "./ProfileMenu";
+import { accountNavItems, serviceNavItems } from "./routes";
 
 type ServiceNavProps = {
   activePath: string;
@@ -13,95 +14,6 @@ type ServiceNavProps = {
 
 function isActive(activePath: string, href: string) {
   return activePath === href || activePath.startsWith(`${href}/`);
-}
-
-type ProfileAreaProps = {
-  activePath: string;
-  status: ReturnType<typeof useAuth>["status"];
-  user: ReturnType<typeof useAuth>["user"];
-  profileMenuOpen: boolean;
-  profileMenuRef: React.RefObject<HTMLDivElement | null>;
-  onToggleProfileMenu(): void;
-  onCloseProfileMenu(): void;
-  logout(): Promise<void>;
-};
-
-function ProfileArea({
-  activePath,
-  status,
-  user,
-  profileMenuOpen,
-  profileMenuRef,
-  onToggleProfileMenu,
-  onCloseProfileMenu,
-  logout,
-}: ProfileAreaProps) {
-  const shouldRenderMenu = useAnimatedPresence(
-    profileMenuOpen,
-    POPOVER_EXIT_MS,
-  );
-
-  if (status === "authenticated" && user) {
-    return (
-      <div className="relative" ref={profileMenuRef}>
-        <button
-          aria-expanded={profileMenuOpen}
-          aria-label="프로필 메뉴"
-          className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground transition hover:opacity-90"
-          type="button"
-          onClick={onToggleProfileMenu}
-        >
-          {user.email.charAt(0).toUpperCase()}
-        </button>
-        {shouldRenderMenu && (
-          <div
-            aria-label="프로필"
-            className={`absolute right-0 top-full z-20 mt-1 w-44 overflow-hidden rounded-lg border border-line bg-surface shadow-sm ${
-              profileMenuOpen ? "onseol-popover-enter" : "onseol-popover-leave"
-            }`}
-          >
-            <p className="truncate border-b border-line px-3 py-2 text-xs text-muted">
-              {user.email}
-            </p>
-            {accountNavItems.map((item) => (
-              <Link
-                aria-current={isActive(activePath, item.href) ? "page" : undefined}
-                className="block px-3 py-2 text-sm text-foreground transition hover:bg-surface-muted aria-[current=page]:bg-surface-muted"
-                href={item.href}
-                key={item.href}
-                onClick={onCloseProfileMenu}
-              >
-                {item.label}
-              </Link>
-            ))}
-            <button
-              className="block w-full px-3 py-2 text-left text-sm text-foreground transition hover:bg-surface-muted"
-              type="button"
-              onClick={() => {
-                onCloseProfileMenu();
-                void logout();
-              }}
-            >
-              로그아웃
-            </button>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  if (status === "anonymous") {
-    return (
-      <Link
-        className="inline-flex h-9 items-center justify-center rounded-lg px-3 text-sm font-semibold text-muted transition hover:bg-surface-muted hover:text-foreground"
-        href={landingEntryLinks.login}
-      >
-        로그인
-      </Link>
-    );
-  }
-
-  return null;
 }
 
 export function ServiceNav({ activePath }: ServiceNavProps) {
@@ -177,15 +89,15 @@ export function ServiceNav({ activePath }: ServiceNavProps) {
           </nav>
         </div>
         <nav aria-label="개인 영역" className="flex items-center gap-1">
-          <ProfileArea
+          <ProfileMenu
             activePath={activePath}
             logout={logout}
-            profileMenuOpen={profileMenuOpen}
-            profileMenuRef={profileMenuRef}
+            menuRef={profileMenuRef}
+            open={profileMenuOpen}
             status={status}
             user={user}
-            onCloseProfileMenu={() => setProfileMenuOpen(false)}
-            onToggleProfileMenu={() => setProfileMenuOpen((open) => !open)}
+            onClose={() => setProfileMenuOpen(false)}
+            onToggle={() => setProfileMenuOpen((open) => !open)}
           />
         </nav>
       </div>
