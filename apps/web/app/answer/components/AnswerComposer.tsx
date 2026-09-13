@@ -68,7 +68,7 @@ export function AnswerComposer({
         if (Object.keys(fieldErrors).length === 0) onSubmit();
       }}
     >
-      <div className="mx-auto w-full max-w-6xl">
+      <div className="mx-auto w-full max-w-3xl">
         <p className="pb-2 text-xs text-muted">
           정답을 쓰지 않아도 됩니다. 짧게 들었다는 말이면 충분해요.
         </p>

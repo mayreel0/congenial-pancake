@@ -144,7 +144,7 @@ export function AnswerSession() {
           onSkip={(requestId) => requestAction("skip", requestId)}
         />
         {prototype.canManageCurrentRequest && (
-          <div className="pointer-events-none absolute inset-x-0 top-3 z-10 mx-auto flex w-full max-w-6xl justify-end px-5 sm:px-8">
+          <div className="pointer-events-none absolute inset-x-0 top-3 z-10 mx-auto flex w-full max-w-3xl justify-end px-5 sm:px-8">
             <div className="pointer-events-auto relative" ref={holdPanelRef}>
               {prototype.isLoadingHeldRequests ? (
                 <Skeleton className="h-7 w-20 rounded-full" />
