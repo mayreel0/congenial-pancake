@@ -16,12 +16,14 @@ describe("LandingPage", () => {
     expect(
       await within(header).findByRole("link", { name: "로그인" }),
     ).toHaveAttribute("href", "/login");
+    // The header's own entry CTA was dropped as a duplicate of the hero's
+    // EntryActions ("웹에서 시작하기") — only "로그인" belongs here now.
     expect(
-      within(header).getByRole("link", { name: "웹에서 시작하기" }),
-    ).toHaveAttribute("href", "/today");
+      within(header).queryByRole("link", { name: "웹에서 시작하기" }),
+    ).not.toBeInTheDocument();
   });
 
-  it("shows the user's email and a logout button when authenticated", async () => {
+  it("shows an avatar linking into the app when authenticated, not email/logout", async () => {
     (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
       status: 200,
@@ -36,10 +38,16 @@ describe("LandingPage", () => {
     render(<LandingPage />);
 
     const header = screen.getByRole("banner");
-    expect(await within(header).findByText("test@example.com")).toBeInTheDocument();
     expect(
-      within(header).getByRole("button", { name: "로그아웃" }),
-    ).toBeInTheDocument();
+      await within(header).findByRole("link", { name: "온설로 이동" }),
+    ).toHaveAttribute("href", "/today");
+    expect(within(header).getByText("T")).toBeInTheDocument(); // avatar initial
+    expect(
+      within(header).queryByText("test@example.com"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(header).queryByRole("button", { name: "로그아웃" }),
+    ).not.toBeInTheDocument();
     expect(
       within(header).queryByRole("link", { name: "로그인" }),
     ).not.toBeInTheDocument();
