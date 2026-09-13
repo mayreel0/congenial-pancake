@@ -6,15 +6,21 @@
 @source "../../../packages/ui/src";
 
 :root {
-  --background: #f6f7f4;
-  --foreground: #242520;
+  /* 2026-09-14 색 팔레트 개편: primary가 차가운 초록(#365f50)이었는데,
+     "온설"의 "온"(따뜻함)이라는 이름/톤과 안 맞는다는 문제 제기로 브라운
+     계열로 교체(기존 accent였던 브라운을 승격, 초록은 무디한 세이지로
+     내려 accent 자리로). 실제 UI 조각(네비/버튼/카드)에 입힌 여러 후보를
+     비교하고 WCAG 대비까지 맥락별로 확인한 뒤 확정 — 후보 비교/대비 계산
+     과정은 이 세션의 대화 기록 참고, 별도 decision 문서는 아직 없음. */
+  --background: #faf7f2;
+  --foreground: #2b2620;
   --surface: #ffffff;
-  --surface-muted: #eef2ec;
-  --line: #d9dfd5;
-  --primary: #365f50;
+  --surface-muted: #f0eae0;
+  --line: #e4dccf;
+  --primary: #825c48;
   --primary-foreground: #ffffff;
-  --accent: #7d5f4f;
-  --muted: #676d63;
+  --accent: #788a7b;
+  --muted: #7a7166;
   /* Only real use so far is the 회원탈퇴 button — see
      docs/decisions/2026-09-09-onseol-account-withdrawal-decisions.md.
      Light and dark deliberately use different treatments, not just a
@@ -47,16 +53,22 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #151816;
-    --foreground: #f0f2ed;
-    --surface: #20251f;
-    --surface-muted: #2a312a;
-    --line: #3a443b;
-    --primary: #8ab9a5;
-    --primary-foreground: #101411;
-    --accent: #d29a78;
-    --muted: #b5beb2;
+  :root:not([data-theme="light"]) {
+    /* 어두운 배경도 완전한 무채색 대신 아주 어두운 warm-brown 톤으로 —
+       라이트와 마찬가지로 브랜드의 따뜻한 정체성이 다크모드에서도 남게. */
+    --background: #171411;
+    --foreground: #f2ece4;
+    --surface: #211c18;
+    --surface-muted: #2a241e;
+    --line: #3b332b;
+    /* 라이트의 primary(#825c48)를 다크에 그대로 쓰면 배경 대비가 부족해서,
+       같은 색상(hue)을 유지한 채 명도만 올림 — 배경(#171411) 대비
+       6.2:1, 카드(#211c18) 대비 5.8:1로 WCAG AA(4.5:1) 여유 있게 통과
+       (버튼/텍스트/포커스링 등 실제 쓰임새별로 확인 완료). */
+    --primary: #be8c71;
+    --primary-foreground: #171411;
+    --accent: #9fb09f;
+    --muted: #b0a797;
     --destructive: #f87171;
     --destructive-bg: rgba(248, 113, 113, 0.12);
     --destructive-bg-hover: rgba(248, 113, 113, 0.2);
@@ -65,34 +77,34 @@
 
 /*
  * Explicit override for contexts that need to force a theme regardless of
- * OS preference (currently: the Storybook theme toolbar). The app itself
- * doesn't set data-theme anywhere, so this has no effect on production.
+ * OS preference — /settings의 테마 선택(app/lib/site-settings.ts)이 실제로
+ * 이걸 쓴다(원래는 Storybook 툴바 전용이었지만 이후 /settings에서도 재사용).
  */
 :root[data-theme="dark"] {
-  --background: #151816;
-  --foreground: #f0f2ed;
-  --surface: #20251f;
-  --surface-muted: #2a312a;
-  --line: #3a443b;
-  --primary: #8ab9a5;
-  --primary-foreground: #101411;
-  --accent: #d29a78;
-  --muted: #b5beb2;
+  --background: #171411;
+  --foreground: #f2ece4;
+  --surface: #211c18;
+  --surface-muted: #2a241e;
+  --line: #3b332b;
+  --primary: #be8c71;
+  --primary-foreground: #171411;
+  --accent: #9fb09f;
+  --muted: #b0a797;
   --destructive: #f87171;
   --destructive-bg: rgba(248, 113, 113, 0.12);
   --destructive-bg-hover: rgba(248, 113, 113, 0.2);
 }
 
 :root[data-theme="light"] {
-  --background: #f6f7f4;
-  --foreground: #242520;
+  --background: #faf7f2;
+  --foreground: #2b2620;
   --surface: #ffffff;
-  --surface-muted: #eef2ec;
-  --line: #d9dfd5;
-  --primary: #365f50;
+  --surface-muted: #f0eae0;
+  --line: #e4dccf;
+  --primary: #825c48;
   --primary-foreground: #ffffff;
-  --accent: #7d5f4f;
-  --muted: #676d63;
+  --accent: #788a7b;
+  --muted: #7a7166;
   --destructive: #dc2626;
   --destructive-bg: transparent;
   --destructive-bg-hover: rgba(220, 38, 38, 0.1);
