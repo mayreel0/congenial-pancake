@@ -6,17 +6,15 @@
 @source "../../../packages/ui/src";
 
 :root {
-  /* apps/web과 동일한 팔레트 개편 — 2026-09-14, 브랜드 primary를 차가운
-     초록에서 브라운 계열로 교체. apps/web/app/globals.css 쪽 주석 참고. */
-  --background: #faf7f2;
-  --foreground: #2b2620;
+  --background: #f6f7f4;
+  --foreground: #242520;
   --surface: #ffffff;
-  --surface-muted: #f0eae0;
-  --line: #e4dccf;
-  --primary: #825c48;
+  --surface-muted: #eef2ec;
+  --line: #d9dfd5;
+  --primary: #365f50;
   --primary-foreground: #ffffff;
-  --accent: #788a7b;
-  --muted: #7a7166;
+  --accent: #7d5f4f;
+  --muted: #676d63;
 }
 
 @theme inline {
@@ -33,15 +31,15 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #171411;
-    --foreground: #f2ece4;
-    --surface: #211c18;
-    --surface-muted: #2a241e;
-    --line: #3b332b;
-    --primary: #be8c71;
-    --primary-foreground: #171411;
-    --accent: #9fb09f;
-    --muted: #b0a797;
+    --background: #151816;
+    --foreground: #f0f2ed;
+    --surface: #20251f;
+    --surface-muted: #2a312a;
+    --line: #3a443b;
+    --primary: #8ab9a5;
+    --primary-foreground: #101411;
+    --accent: #d29a78;
+    --muted: #b5beb2;
   }
 }
 
