@@ -6,9 +6,11 @@ import {
   HttpStatus,
   Param,
   Post,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import type { Request } from 'express';
 import { ZodResponse } from 'nestjs-zod';
 import { GuestId } from '../common/decorators/guest-id.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
@@ -29,6 +31,17 @@ export class RepliesController {
     private readonly usersService: UsersService,
   ) {}
 
+  // app.module.ts의 ThrottlerModule skipIf와 같은 이중 게이트(운영에서는
+  // 절대 안 켜짐, 토큰을 직접 설정해야만 동작) — moderation dry-run 학습
+  // 데이터에 부하테스트 트래픽이 섞이지 않게 표시만 해준다. LOAD_TEST_BYPASS_TOKEN은
+  // env.schema에 없는 값이라(app.module.ts와 동일하게) process.env를 직접 읽는다.
+  private isLoadTestRequest(request: Request): boolean {
+    if (process.env.NODE_ENV === 'production') return false;
+    const token = process.env.LOAD_TEST_BYPASS_TOKEN;
+    if (!token) return false;
+    return request.headers['x-load-test-bypass'] === token;
+  }
+
   private nicknameMapFor(
     records: Pick<ReplyRecord, 'authorId'>[],
   ): Promise<Map<string, string | null>> {
@@ -47,12 +60,14 @@ export class RepliesController {
     @Body() dto: CreateReplyDto,
     @OptionalCurrentUser() userId: string | undefined,
     @GuestId() guestId: string,
+    @Req() request: Request,
   ): Promise<ReplyResponseDto> {
     const reply = await this.repliesService.create(
       requestId,
       dto,
       userId,
       guestId,
+      this.isLoadTestRequest(request),
     );
     const nicknameByUserId = await this.nicknameMapFor([reply]);
     return toReplyResponseDto(reply, nicknameByUserId);
