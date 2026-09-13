@@ -188,7 +188,12 @@ export function SettingsPageContent() {
             설정
           </h1>
         </section>
-        {status === "authenticated" ? (
+        {/* "loading"을 "authenticated"와 똑같이 취급 — /settings는 어차피
+            거의 항상 로그인된 사람만 들어오는 경로라서, /auth/me가 응답하기
+            전 잠깐의 "loading" 순간에 "로그인하면..." 게스트 문구를 먼저
+            보여줬다가 authenticated로 바뀌면 폼으로 튀는 깜빡임이 있었음
+            (2026-09-14, 사용자 리포트). MePageContent와 같은 낙관적 렌더링. */}
+        {status === "loading" || status === "authenticated" ? (
           settings && <SettingsForm settings={settings} onChange={setSettings} />
         ) : (
           <section className="space-y-3">

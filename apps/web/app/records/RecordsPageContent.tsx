@@ -22,7 +22,13 @@ type RecordsContentProps = {
 };
 
 function RecordsContent({ status, tab, onTabChange }: RecordsContentProps) {
-  if (status === "authenticated") {
+  // "loading"을 "authenticated"와 똑같이 취급 — /records는 어차피 거의
+  // 항상 로그인된 사람만 들어오는 경로라서, /auth/me가 응답하기 전 잠깐의
+  // "loading" 순간에 빈 화면(이전엔 여기서 return null로 떨어짐)이나 게스트
+  // 문구가 먼저 보였다가 튀는 깜빡임을 없앤다(2026-09-14, 사용자 리포트).
+  // MePageContent와 같은 낙관적 렌더링 — 내부 섹션(MyRequestLogSection 등)이
+  // 각자 자기 데이터 로딩의 스켈레톤을 이미 갖고 있음.
+  if (status === "loading" || status === "authenticated") {
     return (
       <>
         <section className="space-y-3">
