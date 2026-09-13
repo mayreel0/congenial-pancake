@@ -6,6 +6,9 @@ import {
   ReplyNotFoundException,
   RequestNotFoundException,
 } from '../common/exceptions/app.exception';
+import type { ReplyContentModerationService } from '../moderation/reply-content/reply-content-moderation.service';
+import type { ReplyModerationLogService } from '../moderation/reply-content/reply-moderation-log.service';
+import type { ModerationResult } from '../moderation/reply-content/reply-content-moderation.types';
 import type { RequestRecord } from '../requests/requests.repository';
 import type { RequestsService } from '../requests/requests.service';
 import type { SettingsService } from '../settings/settings.service';
@@ -86,6 +89,8 @@ describe('RepliesService', () => {
   let answerInteractionsService: jest.Mocked<AnswerInteractionsService>;
   let settingsService: jest.Mocked<SettingsService>;
   let usersService: jest.Mocked<UsersService>;
+  let replyContentModerationService: jest.Mocked<ReplyContentModerationService>;
+  let replyModerationLogService: jest.Mocked<ReplyModerationLogService>;
   let repliesService: RepliesService;
 
   beforeEach(() => {
@@ -112,6 +117,20 @@ describe('RepliesService', () => {
     usersService = {
       findById: jest.fn().mockResolvedValue(makeUser()),
     } as unknown as jest.Mocked<UsersService>;
+    replyContentModerationService = {
+      moderate: jest.fn().mockResolvedValue({
+        action: 'allow',
+        reason: '',
+        categories: [],
+        severity: 0,
+        confidence: 1,
+        suggestions: [],
+        telemetry: { shouldPersistForTraining: true },
+      } satisfies ModerationResult),
+    } as unknown as jest.Mocked<ReplyContentModerationService>;
+    replyModerationLogService = {
+      recordDryRunResult: jest.fn().mockResolvedValue(undefined),
+    } as unknown as jest.Mocked<ReplyModerationLogService>;
 
     repliesService = new RepliesService(
       repliesRepository,
@@ -119,8 +138,18 @@ describe('RepliesService', () => {
       answerInteractionsService,
       settingsService,
       usersService,
+      replyContentModerationService,
+      replyModerationLogService,
     );
   });
+
+  // moderateInBackground is fire-and-forget (never awaited by create()) —
+  // flush the microtask queue so its .then()/.catch() chain settles before
+  // asserting on the mocks it calls.
+  async function flushMicrotasks(): Promise<void> {
+    await Promise.resolve();
+    await Promise.resolve();
+  }
 
   describe('create', () => {
     it('throws when the target request does not exist or is hidden', async () => {
@@ -286,6 +315,79 @@ describe('RepliesService', () => {
         undefined,
         'guest-1',
       );
+    });
+
+    it('fires a background moderation dry-run and logs the result, without affecting the response', async () => {
+      requestsService.findVisibleById.mockResolvedValue(makeRequest());
+      repliesRepository.findByRequestAndAuthor.mockResolvedValue(undefined);
+      const created = makeReply({ authorId: 'user-1', body: '괜찮아요.' });
+      repliesRepository.create.mockResolvedValue(created);
+
+      const result = await repliesService.create(
+        'request-1',
+        { body: '괜찮아요.' },
+        'user-1',
+        'unused-guest-id',
+      );
+      await flushMicrotasks();
+
+      expect(result).toEqual(created); // create() never waits on moderation
+      expect(replyContentModerationService.moderate).toHaveBeenCalledWith({
+        text: '괜찮아요.',
+        surface: 'reply',
+        metadata: { source: 'user' },
+      });
+      expect(replyModerationLogService.recordDryRunResult).toHaveBeenCalledWith(
+        created.id,
+        await replyContentModerationService.moderate.mock.results[0].value,
+      );
+    });
+
+    it('tags load-test traffic so it can be excluded from moderation training data', async () => {
+      requestsService.findVisibleById.mockResolvedValue(makeRequest());
+      repliesRepository.countByGuest.mockResolvedValue(0);
+      repliesRepository.create.mockResolvedValue(
+        makeReply({ guestId: 'guest-1', body: '내용' }),
+      );
+
+      await repliesService.create(
+        'request-1',
+        { body: '내용' },
+        undefined,
+        'guest-1',
+        true,
+      );
+      await flushMicrotasks();
+
+      expect(replyContentModerationService.moderate).toHaveBeenCalledWith({
+        text: '내용',
+        surface: 'reply',
+        metadata: { isLoadTest: true, source: 'load_test' },
+      });
+    });
+
+    it('logs (not throws) when the moderation dry-run call fails', async () => {
+      requestsService.findVisibleById.mockResolvedValue(makeRequest());
+      repliesRepository.countByGuest.mockResolvedValue(0);
+      repliesRepository.create.mockResolvedValue(
+        makeReply({ guestId: 'guest-1' }),
+      );
+      replyContentModerationService.moderate.mockRejectedValue(
+        new Error('boom'),
+      );
+
+      const result = await repliesService.create(
+        'request-1',
+        { body: '내용' },
+        undefined,
+        'guest-1',
+      );
+      await flushMicrotasks();
+
+      expect(result).toBeDefined(); // the reply itself still succeeded
+      expect(
+        replyModerationLogService.recordDryRunResult,
+      ).not.toHaveBeenCalled();
     });
   });
 

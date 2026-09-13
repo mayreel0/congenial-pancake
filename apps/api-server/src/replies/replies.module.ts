@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { AnswerInteractionsModule } from '../answer-interactions/answer-interactions.module';
 import { AuthModule } from '../auth/auth.module';
 import { DatabaseModule } from '../database/database.module';
+import { ReplyContentModerationModule } from '../moderation/reply-content-moderation.module';
 import { RequestsModule } from '../requests/requests.module';
 import { SettingsModule } from '../settings/settings.module';
 import { UsersModule } from '../users/users.module';
@@ -18,6 +19,7 @@ import { RepliesService } from './replies.service';
     AnswerInteractionsModule,
     SettingsModule,
     UsersModule,
+    ReplyContentModerationModule,
   ],
   controllers: [RepliesController, RepliesMineController],
   providers: [RepliesRepository, RepliesService],

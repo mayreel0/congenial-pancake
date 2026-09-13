@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { AnswerInteractionsService } from '../answer-interactions/answer-interactions.service';
 import {
   NicknameRequiredException,
@@ -7,6 +7,8 @@ import {
   ReplyNotFoundException,
   RequestNotFoundException,
 } from '../common/exceptions/app.exception';
+import { ReplyContentModerationService } from '../moderation/reply-content/reply-content-moderation.service';
+import { ReplyModerationLogService } from '../moderation/reply-content/reply-moderation-log.service';
 import type {
   DateRange,
   DayCount,
@@ -26,19 +28,47 @@ import {
 
 @Injectable()
 export class RepliesService {
+  private readonly logger = new Logger(RepliesService.name);
+
   constructor(
     private readonly repliesRepository: RepliesRepository,
     private readonly requestsService: RequestsService,
     private readonly answerInteractionsService: AnswerInteractionsService,
     private readonly settingsService: SettingsService,
     private readonly usersService: UsersService,
+    private readonly replyContentModerationService: ReplyContentModerationService,
+    private readonly replyModerationLogService: ReplyModerationLogService,
   ) {}
+
+  // Dry-run 전용 — 결과를 절대 await하지 않는다. 답장 등록 응답 시간에
+  // 영향을 주면 안 되고(사용자 확인, 2026-09-14), moderation 호출이 실패해도
+  // 답장 자체는 이미 저장·반환된 뒤라 사용자에게 아무 영향이 없어야 한다.
+  private moderateInBackground(reply: ReplyRecord, isLoadTest: boolean): void {
+    this.replyContentModerationService
+      .moderate({
+        text: reply.body,
+        surface: 'reply',
+        metadata: isLoadTest
+          ? { isLoadTest: true, source: 'load_test' }
+          : { source: 'user' },
+      })
+      .then((result) =>
+        this.replyModerationLogService.recordDryRunResult(reply.id, result),
+      )
+      .catch((error) => {
+        this.logger.error(
+          `Reply moderation dry-run failed for reply ${reply.id}`,
+          error instanceof Error ? error.stack : error,
+        );
+      });
+  }
 
   async create(
     requestId: string,
     dto: CreateReplyDto,
     userId: string | undefined,
     guestId: string,
+    isLoadTest = false,
   ): Promise<ReplyRecord> {
     const request = await this.requestsService.findVisibleById(requestId);
     // A self-deleted request must not be replyable, even via a direct call
@@ -83,6 +113,7 @@ export class RepliesService {
         userId,
         undefined,
       );
+      this.moderateInBackground(reply, isLoadTest);
       return reply;
     }
 
@@ -106,6 +137,7 @@ export class RepliesService {
       undefined,
       guestId,
     );
+    this.moderateInBackground(reply, isLoadTest);
     return reply;
   }
 

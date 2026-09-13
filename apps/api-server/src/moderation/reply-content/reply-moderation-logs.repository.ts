@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { desc, eq } from 'drizzle-orm';
+import { desc, eq, gte } from 'drizzle-orm';
 import { DRIZZLE } from '../../database/database.constants';
 import type { Database } from '../../database/database.types';
 import { replyModerationLogs } from '../../database/schema';
@@ -43,6 +43,16 @@ export class ReplyModerationLogsRepository {
       .select()
       .from(replyModerationLogs)
       .where(eq(replyModerationLogs.replyId, replyId))
+      .orderBy(desc(replyModerationLogs.createdAt));
+  }
+
+  // moderation:report CLI — every dry-run decision recorded since a given
+  // point in time, newest first.
+  findSince(since: Date): Promise<ReplyModerationLogRecord[]> {
+    return this.db
+      .select()
+      .from(replyModerationLogs)
+      .where(gte(replyModerationLogs.createdAt, since))
       .orderBy(desc(replyModerationLogs.createdAt));
   }
 }

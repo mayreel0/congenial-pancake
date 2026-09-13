@@ -1,10 +1,11 @@
 jest.mock('drizzle-orm', () => ({
   desc: jest.fn((arg: unknown) => ({ op: 'desc', arg })),
   eq: jest.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
+  gte: jest.fn((left: unknown, right: unknown) => ({ op: 'gte', left, right })),
   sql: jest.fn(() => ({ op: 'sql' })),
 }));
 
-import { desc, eq } from 'drizzle-orm';
+import { desc, eq, gte } from 'drizzle-orm';
 import type { Database } from '../../database/database.types';
 import { replyModerationLogs } from '../../database/schema';
 import { ReplyModerationLogsRepository } from './reply-moderation-logs.repository';
@@ -75,6 +76,25 @@ describe('ReplyModerationLogsRepository', () => {
     expect(from).toHaveBeenCalledWith(replyModerationLogs);
     expect(where).toHaveBeenCalledWith(
       eq(replyModerationLogs.replyId, 'reply-1'),
+    );
+    expect(orderBy).toHaveBeenCalledWith(desc(replyModerationLogs.createdAt));
+  });
+
+  it('lists every log recorded since a given point in time, newest-first', async () => {
+    const rows = [{ id: 'log-2' }, { id: 'log-1' }];
+    const orderBy = jest.fn().mockResolvedValue(rows);
+    const where = jest.fn(() => ({ orderBy }));
+    const from = jest.fn(() => ({ where }));
+    const select = jest.fn(() => ({ from }));
+    const db = { select } as unknown as Database;
+    const repository = new ReplyModerationLogsRepository(db);
+    const since = new Date('2026-09-07T00:00:00.000Z');
+
+    await expect(repository.findSince(since)).resolves.toEqual(rows);
+
+    expect(from).toHaveBeenCalledWith(replyModerationLogs);
+    expect(where).toHaveBeenCalledWith(
+      gte(replyModerationLogs.createdAt, since),
     );
     expect(orderBy).toHaveBeenCalledWith(desc(replyModerationLogs.createdAt));
   });
