@@ -53,6 +53,32 @@ describe('NotificationsService', () => {
       });
       expect(result).toEqual(created);
     });
+
+    it("emits the new notification to that user's open stream", async () => {
+      const created = makeNotification({ userId: 'author-1' });
+      repository.create.mockResolvedValue(created);
+      const received: unknown[] = [];
+      service.stream('author-1').subscribe((notification) => {
+        received.push(notification);
+      });
+
+      await service.createReplyReceived('author-1', 'request-1', 'reply-1');
+
+      expect(received).toEqual([created]);
+    });
+
+    it("does not emit to a different user's stream", async () => {
+      const created = makeNotification({ userId: 'author-1' });
+      repository.create.mockResolvedValue(created);
+      const received: unknown[] = [];
+      service.stream('someone-else').subscribe((notification) => {
+        received.push(notification);
+      });
+
+      await service.createReplyReceived('author-1', 'request-1', 'reply-1');
+
+      expect(received).toEqual([]);
+    });
   });
 
   describe('findMine', () => {
