@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { Button } from "ui/Button";
 import { Toggle } from "ui/Toggle";
 import { ServiceNav } from "../components/navigation/ServiceNav";
+import { AuthCheckingSkeleton } from "../components/shared/AuthCheckingSkeleton";
+import { SettingsFormSkeleton } from "./components/SettingsFormSkeleton";
 import {
   SEASON_LABELS,
   SEASONS,
@@ -164,6 +166,38 @@ function SettingsForm({ settings, onChange }: SettingsFormProps) {
   );
 }
 
+type SettingsBodyProps = {
+  status: ReturnType<typeof useAuth>["status"];
+  settings: SiteSettings | null;
+  onChange(next: SiteSettings): void;
+};
+
+// 로그인 필요 페이지의 공통 4단계(2026-09-14 확정 원칙): 로그인 확인 중 →
+// 중립 로딩 / 확인 후 비로그인 → 로그인 필요 / 로그인 + 데이터 로딩 중 →
+// (실제 화면 모양) 스켈레톤 / 데이터 준비 → 실제 화면. "loading"을
+// "authenticated"처럼 취급해 폼을 먼저 그려버리면(이전 방식) 비로그인
+// 사용자에게도 실제로 동작하는 폼이 잠깐 보였다가 사라지는 문제가 있었음.
+function SettingsBody({ status, settings, onChange }: SettingsBodyProps) {
+  if (status === "loading") return <AuthCheckingSkeleton />;
+
+  if (status === "authenticated") {
+    return settings ? (
+      <SettingsForm settings={settings} onChange={onChange} />
+    ) : (
+      <SettingsFormSkeleton />
+    );
+  }
+
+  return (
+    <section className="space-y-3">
+      <p className="max-w-xl leading-7 text-muted">
+        로그인하면 설정을 바꿀 수 있습니다.
+      </p>
+      <Button href="/login">로그인</Button>
+    </section>
+  );
+}
+
 export function SettingsPageContent() {
   const { status } = useAuth();
   const [settings, setSettings] = useState<SiteSettings | null>(null);
@@ -188,21 +222,7 @@ export function SettingsPageContent() {
             설정
           </h1>
         </section>
-        {/* "loading"을 "authenticated"와 똑같이 취급 — /settings는 어차피
-            거의 항상 로그인된 사람만 들어오는 경로라서, /auth/me가 응답하기
-            전 잠깐의 "loading" 순간에 "로그인하면..." 게스트 문구를 먼저
-            보여줬다가 authenticated로 바뀌면 폼으로 튀는 깜빡임이 있었음
-            (2026-09-14, 사용자 리포트). MePageContent와 같은 낙관적 렌더링. */}
-        {status === "loading" || status === "authenticated" ? (
-          settings && <SettingsForm settings={settings} onChange={setSettings} />
-        ) : (
-          <section className="space-y-3">
-            <p className="max-w-xl leading-7 text-muted">
-              로그인하면 설정을 바꿀 수 있습니다.
-            </p>
-            <Button href="/login">로그인</Button>
-          </section>
-        )}
+        <SettingsBody settings={settings} status={status} onChange={setSettings} />
       </main>
     </div>
   );

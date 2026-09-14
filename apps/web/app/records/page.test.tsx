@@ -12,10 +12,12 @@ function installFakeBackend({
   loggedIn,
   replies = [],
   requestLog = [],
+  neverResolveAuth = false,
 }: {
   loggedIn: boolean;
   replies?: unknown[];
   requestLog?: unknown[];
+  neverResolveAuth?: boolean;
 }) {
   const fetchMock = vi.fn(
     (input: RequestInfo | URL, init?: RequestInit): Promise<MockResponse> => {
@@ -23,6 +25,7 @@ function installFakeBackend({
       const method = init?.method ?? "GET";
 
       if (url.endsWith("/auth/me")) {
+        if (neverResolveAuth) return new Promise(() => {});
         if (!loggedIn) {
           return Promise.resolve(jsonResponse(401, { code: "UNAUTHORIZED" }));
         }
@@ -95,6 +98,26 @@ describe("RecordsPage", () => {
       ]),
     );
     expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
+  });
+
+  it("shows a generic loading skeleton and doesn't fetch records yet while auth is still resolving", async () => {
+    const fetchMock = installFakeBackend({ loggedIn: true, neverResolveAuth: true });
+
+    const { container } = render(<RecordsPage />);
+
+    expect(
+      await screen.findByRole("heading", { name: "내 기록" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("로그인하면 내 기록을 볼 수 있습니다."),
+    ).not.toBeInTheDocument();
+    expect(container.querySelectorAll(".animate-pulse").length).toBeGreaterThan(0);
+    expect(
+      fetchMock.mock.calls.some(([input]) =>
+        (typeof input === "string" ? input : input.toString()).includes("/mine"),
+      ),
+    ).toBe(false);
   });
 
   it("defaults to the 내가 남긴 고민 tab", async () => {

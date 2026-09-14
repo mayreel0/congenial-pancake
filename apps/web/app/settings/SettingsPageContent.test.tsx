@@ -12,6 +12,23 @@ function mockAuthenticated(email = "test@example.com") {
 }
 
 describe("SettingsPageContent", () => {
+  it("shows a generic loading skeleton, not the form or the login prompt, while auth is still resolving", async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockReturnValueOnce(
+      new Promise(() => {}),
+    );
+
+    const { container } = render(<SettingsPageContent />);
+
+    expect(
+      await screen.findByRole("heading", { name: "설정" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("테마")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("로그인하면 설정을 바꿀 수 있습니다."),
+    ).not.toBeInTheDocument();
+    expect(container.querySelectorAll(".animate-pulse").length).toBeGreaterThan(0);
+  });
+
   it("prompts login for a guest instead of showing the form", async () => {
     render(<SettingsPageContent />);
 
