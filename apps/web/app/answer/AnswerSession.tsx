@@ -125,7 +125,7 @@ export function AnswerSession() {
   return (
     <div className="flex h-dvh flex-col bg-background text-foreground">
       <ServiceNav activePath="/answer" />
-      <div className="relative flex min-h-0 flex-1 flex-col">
+      <div className="onseol-fade-in relative flex min-h-0 flex-1 flex-col">
         <AnswerLog
           authorLabels={authorLabels}
           canManageCurrentRequest={prototype.canManageCurrentRequest}

@@ -217,7 +217,7 @@ export default function ProfilePage() {
   return (
     <div className="min-h-dvh bg-background text-foreground">
       <ServiceNav activePath="/u" />
-      <main className="mx-auto flex min-h-[calc(100dvh-3.5rem)] w-full max-w-3xl flex-col gap-8 px-5 py-10 sm:px-8">
+      <main className="onseol-fade-in mx-auto flex min-h-[calc(100dvh-3.5rem)] w-full max-w-3xl flex-col gap-8 px-5 py-10 sm:px-8">
         <ProfileContent slug={params.slug} />
       </main>
     </div>
