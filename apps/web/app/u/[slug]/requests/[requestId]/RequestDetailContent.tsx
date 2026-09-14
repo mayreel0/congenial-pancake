@@ -77,7 +77,7 @@ export function RequestDetailContent() {
   return (
     <div className="min-h-dvh bg-background text-foreground">
       <ServiceNav activePath="/u" />
-      <main className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-5 py-10 sm:px-8">
+      <main className="onseol-fade-in mx-auto flex w-full max-w-3xl flex-col gap-4 px-5 py-10 sm:px-8">
         {parsed ? (
           <>
             <Link

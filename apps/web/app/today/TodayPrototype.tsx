@@ -25,7 +25,7 @@ export function TodayPrototype() {
   return (
     <div className="min-h-dvh bg-background text-foreground">
       <ServiceNav activePath="/today" />
-      <main className="flex min-h-[calc(100dvh-3.5rem-1px)] px-5 py-10 sm:items-center sm:px-8">
+      <main className="onseol-fade-in flex min-h-[calc(100dvh-3.5rem-1px)] px-5 py-10 sm:items-center sm:px-8">
         <section
           className="mx-auto grid min-h-[calc(100dvh-8.5rem-1px)] w-full max-w-3xl grid-rows-[1fr_auto_auto] gap-7 text-center sm:min-h-0 sm:grid-rows-none sm:gap-8"
           data-testid="today-entry-layout"
@@ -74,7 +74,7 @@ export function TodayPrototype() {
           {prototype.isLoadingEntryMessages ? (
             <Skeleton className="mx-auto h-5 w-64" />
           ) : (
-            <p className="text-sm text-muted">
+            <p className="onseol-fade-in text-sm text-muted">
               오늘 {requestCount}개의 이야기가 남겨졌고, {replyCount}개의 답장이
               도착했어요.
             </p>

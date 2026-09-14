@@ -124,7 +124,7 @@ export function RepliesListContent() {
   return (
     <div className="min-h-dvh bg-background text-foreground">
       <ServiceNav activePath="/u" />
-      <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-5 py-10 sm:px-8">
+      <main className="onseol-fade-in mx-auto flex w-full max-w-3xl flex-col gap-6 px-5 py-10 sm:px-8">
         {parsed ? (
           <>
             <div className="space-y-3">

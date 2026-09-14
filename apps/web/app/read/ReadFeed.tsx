@@ -34,7 +34,7 @@ function ReadFeedBody({
 }: ReadFeedBodyProps) {
   if (feed.isLoading) {
     return (
-      <div className="space-y-4">
+      <div className="onseol-fade-in space-y-4">
         {[0, 1, 2].map((key) => (
           <div
             className="space-y-3 rounded-lg border border-line bg-surface px-4 py-5 shadow-sm"
@@ -51,14 +51,19 @@ function ReadFeedBody({
 
   if (feed.readFeed.length === 0) {
     return (
-      <p className="py-16 text-center text-sm text-muted">
+      <p className="onseol-fade-in py-16 text-center text-sm text-muted">
         이 날 읽을 수 있는 온설이 없어요.
       </p>
     );
   }
 
+  // day nav 하나로도 이 컴포넌트 전체가 리렌더되긴 하지만, 개별 스레드는
+  // 여전히 request.id로 key가 잡혀있어서 겹치는 스레드(있을 일은 없지만)는
+  // 리마운트되지 않음 — 날짜 전체가 바뀌는 전환이므로 바깥 wrapper
+  // 자체를 currentDate로 다시 key잡아 항상 새로 마운트되게 해서 fade가
+  // 매번 재생되게 함(스켈레톤/빈 상태 사이를 오갈 때도 동일 원리).
   return (
-    <>
+    <div className="onseol-fade-in space-y-4" key={feed.currentDate}>
       {feed.readFeed.map((item) => (
         <ReadThread
           authorLabels={buildFeedItemLabels(item)}
@@ -71,7 +76,7 @@ function ReadFeedBody({
           onToggleSaveReply={onToggleSaveReply}
         />
       ))}
-    </>
+    </div>
   );
 }
 
@@ -111,7 +116,7 @@ export function ReadFeed() {
   return (
     <div className="min-h-dvh bg-background text-foreground">
       <ServiceNav activePath="/read" />
-      <main className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-5 py-10 sm:px-8">
+      <main className="onseol-fade-in mx-auto flex w-full max-w-3xl flex-col gap-4 px-5 py-10 sm:px-8">
         <section className="space-y-3">
           <p className="text-sm text-muted">온설</p>
           <h1 className="text-2xl font-semibold tracking-normal sm:text-4xl">
