@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import localFont from "next/font/local";
-import Script from "next/script";
 import { GlobalToast } from "ui/GlobalToast";
 import { QueryProvider } from "ui/QueryProvider";
 import { AccountRestoreDialog } from "./components/AccountRestoreDialog";
@@ -55,9 +54,18 @@ type RootLayoutProps = {
 };
 
 // /settings의 테마 설정(app/lib/site-settings.ts)을 하이드레이션 전에
-// 적용 — 그 모듈을 그대로 import할 수 없는 위치(beforeInteractive 인라인
-// 스크립트)라 저장 키/형식을 손으로 맞춰뒀다. site-settings.ts의
-// STORAGE_KEY나 SiteSettings.theme 필드를 바꾸면 이 문자열도 같이 고칠 것.
+// 적용 — 그 모듈을 그대로 import할 수 없는 위치(인라인 스크립트)라 저장
+// 키/형식을 손으로 맞춰뒀다. site-settings.ts의 STORAGE_KEY나
+// SiteSettings.theme 필드를 바꾸면 이 문자열도 같이 고칠 것.
+//
+// next/script의 beforeInteractive 전략을 처음 썼었는데(실제 프로덕션
+// 빌드로 확인, 2026-09-14), 그건 진짜 동기 실행 <script>가 아니라
+// `self.__next_s.push([...])`로 코드를 데이터로 밀어넣고 Next 런타임이
+// 나중에 처리하는 방식이라 첫 페인트 전에 실행된다는 보장이 없었다 —
+// 시스템이 다크인데 라이트를 저장해둔 사용자가 새로고침할 때마다 다크로
+// 잠깐 번쩍이는 원인이었음. 다크모드 라이브러리들이 쓰는 방식대로
+// dangerouslySetInnerHTML로 진짜 순수 <script> 태그를 직접 렌더링해야
+// 브라우저가 파싱하는 즉시(첫 페인트 전에) 동기 실행한다.
 const THEME_BOOTSTRAP_SCRIPT = `
 (function () {
   try {
@@ -82,9 +90,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">
-        <Script id="theme-bootstrap" strategy="beforeInteractive">
-          {THEME_BOOTSTRAP_SCRIPT}
-        </Script>
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP_SCRIPT }} />
         <QueryProvider>
           <AccountRestoreDialog />
           {children}
