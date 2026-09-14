@@ -3,7 +3,6 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import { Button } from "ui/Button";
-import { ServiceNav } from "../components/navigation/ServiceNav";
 import { AuthCheckingSpinner } from "../components/shared/AuthCheckingSpinner";
 import { OAUTH_PROVIDER_NAMES_KO } from "../components/shared/oauthProviders";
 import { formatJoinedDate } from "../lib/format";
@@ -112,11 +111,8 @@ export function MePageContent() {
   }, [notice, router]);
 
   return (
-    <div className="min-h-dvh bg-background text-foreground">
-      <ServiceNav activePath="/me" />
-      <main className="mx-auto w-full max-w-3xl px-5 py-10 sm:px-8">
-        <MeContent key={status} notice={notice} status={status} user={user} />
-      </main>
-    </div>
+    <main className="mx-auto w-full max-w-3xl px-5 py-10 sm:px-8">
+      <MeContent key={status} notice={notice} status={status} user={user} />
+    </main>
   );
 }

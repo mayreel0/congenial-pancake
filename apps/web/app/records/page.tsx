@@ -1,10 +1,24 @@
 import { Suspense } from "react";
+import { ServiceNav } from "../components/navigation/ServiceNav";
+import { AuthCheckingSpinner } from "../components/shared/AuthCheckingSpinner";
 import { RecordsPageContent } from "./RecordsPageContent";
 
+// See app/me/page.tsx's identical comment for why ServiceNav sits outside
+// the Suspense boundary and why the fallback reuses AuthCheckingSpinner
+// instead of fallback={null}.
 export default function RecordsPage() {
   return (
-    <Suspense fallback={null}>
-      <RecordsPageContent />
-    </Suspense>
+    <div className="min-h-dvh bg-background text-foreground">
+      <ServiceNav activePath="/records" />
+      <Suspense
+        fallback={
+          <main className="mx-auto w-full max-w-3xl px-5 py-10 sm:px-8">
+            <AuthCheckingSpinner />
+          </main>
+        }
+      >
+        <RecordsPageContent />
+      </Suspense>
+    </div>
   );
 }

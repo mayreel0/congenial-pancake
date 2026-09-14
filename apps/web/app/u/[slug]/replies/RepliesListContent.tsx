@@ -8,7 +8,6 @@ import {
   SKELETON_MIN_DISPLAY_MS,
   useMinDisplayDuration,
 } from "ui/useMinDisplayDuration";
-import { ServiceNav } from "../../../components/navigation/ServiceNav";
 import { ApiError } from "../../../lib/api";
 import {
   PAGE_SIZE_OPTIONS,
@@ -122,43 +121,40 @@ export function RepliesListContent() {
   }
 
   return (
-    <div className="min-h-dvh bg-background text-foreground">
-      <ServiceNav activePath="/u" />
-      <main className="onseol-fade-in mx-auto flex w-full max-w-3xl flex-col gap-6 px-5 py-10 sm:px-8">
-        {parsed ? (
-          <>
-            <div className="space-y-3">
-              <Link
-                className="text-sm text-muted hover:underline"
-                href={`/u/${encodeURIComponent(`${parsed.nickname}-${parsed.discriminator}`)}`}
-              >
-                ← {parsed.nickname}#{parsed.discriminator}
-              </Link>
-              <h1 className="text-2xl font-semibold tracking-normal sm:text-4xl">
-                남긴 답변
-              </h1>
-            </div>
-            <RepliesListItems
-              profileHref={`/u/${encodeURIComponent(`${parsed.nickname}-${parsed.discriminator}`)}`}
-              query={query}
+    <main className="onseol-fade-in mx-auto flex w-full max-w-3xl flex-col gap-6 px-5 py-10 sm:px-8">
+      {parsed ? (
+        <>
+          <div className="space-y-3">
+            <Link
+              className="text-sm text-muted hover:underline"
+              href={`/u/${encodeURIComponent(`${parsed.nickname}-${parsed.discriminator}`)}`}
+            >
+              ← {parsed.nickname}#{parsed.discriminator}
+            </Link>
+            <h1 className="text-2xl font-semibold tracking-normal sm:text-4xl">
+              남긴 답변
+            </h1>
+          </div>
+          <RepliesListItems
+            profileHref={`/u/${encodeURIComponent(`${parsed.nickname}-${parsed.discriminator}`)}`}
+            query={query}
+          />
+          {!showSkeleton && query.data && (
+            <Pagination
+              page={page}
+              pageSize={pageSize}
+              pageSizeOptions={PAGE_SIZE_OPTIONS}
+              totalPages={query.data.totalPages}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
             />
-            {!showSkeleton && query.data && (
-              <Pagination
-                page={page}
-                pageSize={pageSize}
-                pageSizeOptions={PAGE_SIZE_OPTIONS}
-                totalPages={query.data.totalPages}
-                onPageChange={setPage}
-                onPageSizeChange={setPageSize}
-              />
-            )}
-          </>
-        ) : (
-          <p className="max-w-xl leading-7 text-muted">
-            잘못된 프로필 주소입니다.
-          </p>
-        )}
-      </main>
-    </div>
+          )}
+        </>
+      ) : (
+        <p className="max-w-xl leading-7 text-muted">
+          잘못된 프로필 주소입니다.
+        </p>
+      )}
+    </main>
   );
 }
