@@ -212,7 +212,7 @@ export function AnswerLog({
 
   return (
     <div
-      className="mx-auto flex w-full min-h-0 max-w-6xl flex-1 flex-col-reverse gap-4 overflow-y-auto px-5 py-6 sm:px-8"
+      className="mx-auto flex w-full min-h-0 max-w-3xl flex-1 flex-col-reverse gap-4 overflow-y-auto px-5 py-6 sm:px-8"
       data-testid="answer-log"
       ref={containerRef}
     >
