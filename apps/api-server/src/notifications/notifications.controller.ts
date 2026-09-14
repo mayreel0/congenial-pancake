@@ -75,17 +75,20 @@ export class NotificationsController {
   }
 
   // Real-time half — see unread-count's comment for the polling half this
-  // pairs with. One open HTTP connection per viewer; SessionGuard already
-  // covers this route the same as every other one on this controller (the
-  // frontend's EventSource must be opened with withCredentials so the
-  // session cookie rides along, since it's a cross-origin connection in
-  // production).
+  // pairs with. Deliberately just a "something changed" ping (the id, not
+  // the full response DTO) — the stream's raw NotificationRecord isn't
+  // joined with its request body the way findMine's list is, and the
+  // frontend already refetches the list/count on any signal rather than
+  // rendering this payload directly, so there's no reason to duplicate
+  // that join here. One open HTTP connection per viewer; SessionGuard
+  // already covers this route the same as every other one on this
+  // controller (the frontend's EventSource must be opened with
+  // withCredentials so the session cookie rides along, since it's a
+  // cross-origin connection in production).
   @Sse('stream')
   stream(@CurrentUser() userId: string): Observable<MessageEvent> {
-    return this.notificationsService.stream(userId).pipe(
-      map((notification) => ({
-        data: toNotificationResponseDto(notification),
-      })),
-    );
+    return this.notificationsService
+      .stream(userId)
+      .pipe(map((notification) => ({ data: { id: notification.id } })));
   }
 }
