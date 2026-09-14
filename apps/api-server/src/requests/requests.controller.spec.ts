@@ -1,4 +1,5 @@
 import type { AnswerInteractionsService } from '../answer-interactions/answer-interactions.service';
+import { RequestNotFoundException } from '../common/exceptions/app.exception';
 import { kstDayRange, yesterdayKstDateString } from '../common/kst-date';
 import type { UsersService } from '../users/users.service';
 import type { ReplyRecord, RequestRecord } from './requests.repository';
@@ -47,6 +48,7 @@ describe('RequestsController', () => {
     requestsService = {
       findMine: jest.fn(),
       findFeed: jest.fn(),
+      findFeedItemById: jest.fn(),
     } as unknown as jest.Mocked<RequestsService>;
     answerInteractionsService =
       {} as unknown as jest.Mocked<AnswerInteractionsService>;
@@ -204,6 +206,45 @@ describe('RequestsController', () => {
         totalItems: 1,
         totalPages: 1,
       });
+    });
+  });
+
+  describe('mineThread', () => {
+    it('returns the full thread when the caller owns the request', async () => {
+      requestsService.findFeedItemById.mockResolvedValue({
+        request: makeRequest({ id: 'request-1', authorId: 'user-1' }),
+        replies: [makeReply({ authorId: null, guestId: 'guest-1' })],
+      });
+      usersService.nicknameMapFor.mockResolvedValue(new Map());
+
+      const result = await controller.mineThread('user-1', 'request-1');
+
+      expect(requestsService.findFeedItemById).toHaveBeenCalledWith(
+        'request-1',
+      );
+      expect(usersService.nicknameMapFor).toHaveBeenCalledWith(['user-1']);
+      expect(result.request.id).toBe('request-1');
+      expect(result.replies).toHaveLength(1);
+    });
+
+    it('throws NotFound when the request does not exist', async () => {
+      requestsService.findFeedItemById.mockResolvedValue(undefined);
+
+      await expect(
+        controller.mineThread('user-1', 'missing'),
+      ).rejects.toBeInstanceOf(RequestNotFoundException);
+    });
+
+    it('throws NotFound (not the other author’s data) when the caller does not own the request', async () => {
+      requestsService.findFeedItemById.mockResolvedValue({
+        request: makeRequest({ id: 'request-1', authorId: 'someone-else' }),
+        replies: [],
+      });
+
+      await expect(
+        controller.mineThread('user-1', 'request-1'),
+      ).rejects.toBeInstanceOf(RequestNotFoundException);
+      expect(usersService.nicknameMapFor).not.toHaveBeenCalled();
     });
   });
 });
