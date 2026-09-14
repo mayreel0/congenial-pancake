@@ -565,7 +565,13 @@ describe("AnswerSession", () => {
 
     // Still mid-flight (the older page hasn't resolved yet) — a skeleton
     // bubble pair should show above the sentinel instead of nothing.
-    expect(container.querySelectorAll(".animate-pulse").length).toBeGreaterThan(0);
+    // React Query's isFetchingNextPage flip isn't guaranteed to have
+    // flushed to a render within the same act() block above (confirmed
+    // flaky under full-suite load, ~1/3 runs) — wait for it explicitly
+    // instead of asserting immediately.
+    await waitFor(() => {
+      expect(container.querySelectorAll(".animate-pulse").length).toBeGreaterThan(0);
+    });
     expect(screen.queryByText("예전에 남긴 고민")).not.toBeInTheDocument();
 
     resolveOlderPage!();
