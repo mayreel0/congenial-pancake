@@ -3,12 +3,16 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  type MessageEvent,
   Post,
   Query,
+  Sse,
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
+import type { Observable } from 'rxjs';
+import { map } from 'rxjs';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { SessionGuard } from '../auth/session.guard';
 import {
@@ -68,5 +72,20 @@ export class NotificationsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async markAllRead(@CurrentUser() userId: string): Promise<void> {
     await this.notificationsService.markAllRead(userId);
+  }
+
+  // Real-time half — see unread-count's comment for the polling half this
+  // pairs with. One open HTTP connection per viewer; SessionGuard already
+  // covers this route the same as every other one on this controller (the
+  // frontend's EventSource must be opened with withCredentials so the
+  // session cookie rides along, since it's a cross-origin connection in
+  // production).
+  @Sse('stream')
+  stream(@CurrentUser() userId: string): Observable<MessageEvent> {
+    return this.notificationsService.stream(userId).pipe(
+      map((notification) => ({
+        data: toNotificationResponseDto(notification),
+      })),
+    );
   }
 }
