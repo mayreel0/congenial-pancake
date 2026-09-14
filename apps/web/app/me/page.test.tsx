@@ -101,31 +101,29 @@ describe("MePage", () => {
     );
   });
 
-  it("shows a skeleton, not a blank page, while auth is still resolving", async () => {
+  it("shows a generic skeleton, not the member-only sections or the login prompt, while auth is still resolving", async () => {
     installFakeBackend({ loggedIn: true, neverResolveAuth: true });
 
     const { container } = render(<MePage />);
 
-    // Headings and every section's own title render immediately — only the
-    // fields that actually need `user` (email/date, linked-provider tiles,
-    // nickname value, visibility toggles) turn into skeletons.
+    // While we don't yet know if this is a guest or a member, only a
+    // generic spinner renders — no title (a fixed title next to a loading
+    // spinner reads oddly once the page stopped vertically centering, see
+    // AuthCheckingSpinner's own comment) and no member-only section (which
+    // would flash away into the login prompt for an actual guest) and not
+    // the login prompt itself (which would flash away for an actual
+    // member).
+    await screen.findByTestId("auth-checking-spinner");
+    expect(screen.queryByRole("heading", { name: "내 정보" })).not.toBeInTheDocument();
     expect(
-      await screen.findByRole("heading", { name: "내 정보" }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "연동된 계정" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "닉네임" })).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { name: "닉네임 공개 설정" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { name: "공개 프로필 설정" }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "회원탈퇴" })).toBeInTheDocument();
+      screen.queryByRole("heading", { name: "연동된 계정" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "닉네임" })).not.toBeInTheDocument();
     expect(screen.queryByText("member@example.com")).not.toBeInTheDocument();
     expect(
       screen.queryByText("로그인하면 내 정보를 볼 수 있습니다."),
     ).not.toBeInTheDocument();
-    expect(container.querySelectorAll(".animate-pulse").length).toBeGreaterThan(0);
+    expect(container.querySelector('[data-testid="auth-checking-spinner"]')).toBeInTheDocument();
   });
 
   it("shows the member's email and joined date", async () => {

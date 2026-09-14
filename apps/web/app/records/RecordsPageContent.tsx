@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Button } from "ui/Button";
 import { ServiceNav } from "../components/navigation/ServiceNav";
+import { AuthCheckingSpinner } from "../components/shared/AuthCheckingSpinner";
 import { useAuth } from "../lib/auth/useAuth";
 import { MyAnswerLogSection } from "./components/MyAnswerLogSection";
 import { MyRequestLogSection } from "./components/MyRequestLogSection";
@@ -22,15 +23,27 @@ type RecordsContentProps = {
 };
 
 function RecordsContent({ status, tab, onTabChange }: RecordsContentProps) {
-  // "loading"을 "authenticated"와 똑같이 취급 — /records는 어차피 거의
-  // 항상 로그인된 사람만 들어오는 경로라서, /auth/me가 응답하기 전 잠깐의
-  // "loading" 순간에 빈 화면(이전엔 여기서 return null로 떨어짐)이나 게스트
-  // 문구가 먼저 보였다가 튀는 깜빡임을 없앤다(2026-09-14, 사용자 리포트).
-  // MePageContent와 같은 낙관적 렌더링 — 내부 섹션(MyRequestLogSection 등)이
-  // 각자 자기 데이터 로딩의 스켈레톤을 이미 갖고 있음.
-  if (status === "loading" || status === "authenticated") {
+  // 로그인 필요 페이지의 공통 4단계(2026-09-14 확정 원칙): 로그인 확인
+  // 중 → 중립 로딩, 확인 후 비로그인 → 로그인 필요, 로그인 + 데이터
+  // 로딩 중 → 스켈레톤(MyRequestLogSection 등이 각자 갖고 있음), 데이터
+  // 준비 → 실제 화면. "loading"에서 섹션을 먼저 마운트해버리면(이전
+  // 방식) 아직 로그인 여부도 모르는 채로 /requests·replies/mine을
+  // 호출해버려서, 비로그인 사용자에게 401 이후의 "아직 없습니다" 같은
+  // 틀린 빈 상태가 잠깐 보일 수 있었음 — status가 authenticated로
+  // 확정되기 전엔 아예 마운트하지 않는다. loading 동안은 타이틀도 같이
+  // 감춤(2026-09-14 피드백) — 페이지가 더 이상 세로 중앙 정렬을 쓰지
+  // 않으므로, 로딩 스피너가 타이틀 자리에 그대로 놓이면 됨.
+  if (status === "loading") {
     return (
-      <>
+      <div className="onseol-fade-in">
+        <AuthCheckingSpinner />
+      </div>
+    );
+  }
+
+  if (status === "authenticated") {
+    return (
+      <div className="onseol-fade-in flex flex-col gap-8">
         <section className="space-y-3">
           <p className="text-sm text-muted">온설</p>
           <h1 className="text-2xl font-semibold tracking-normal sm:text-4xl">
@@ -39,26 +52,22 @@ function RecordsContent({ status, tab, onTabChange }: RecordsContentProps) {
         </section>
         <RecordsTabs active={tab} onChange={onTabChange} />
         {tab === "requests" ? <MyRequestLogSection /> : <MyAnswerLogSection />}
-      </>
+      </div>
     );
   }
 
-  if (status === "anonymous") {
-    return (
-      <section className="space-y-3">
-        <p className="text-sm text-muted">온설</p>
-        <h1 className="text-2xl font-semibold tracking-normal sm:text-4xl">
-          내 기록
-        </h1>
-        <p className="max-w-xl leading-7 text-muted">
-          로그인하면 내 기록을 볼 수 있습니다.
-        </p>
-        <Button href="/login">로그인</Button>
-      </section>
-    );
-  }
-
-  return null;
+  return (
+    <section className="onseol-fade-in space-y-3">
+      <p className="text-sm text-muted">온설</p>
+      <h1 className="text-2xl font-semibold tracking-normal sm:text-4xl">
+        내 기록
+      </h1>
+      <p className="max-w-xl leading-7 text-muted">
+        로그인하면 내 기록을 볼 수 있습니다.
+      </p>
+      <Button href="/login">로그인</Button>
+    </section>
+  );
 }
 
 export function RecordsPageContent() {
@@ -83,8 +92,13 @@ export function RecordsPageContent() {
   return (
     <div className="min-h-dvh bg-background text-foreground">
       <ServiceNav activePath="/records" />
-      <main className="mx-auto flex min-h-[calc(100dvh-3.5rem)] w-full max-w-3xl flex-col justify-center gap-8 px-5 py-10 sm:px-8">
-        <RecordsContent status={status} tab={tab} onTabChange={handleTabChange} />
+      <main className="mx-auto w-full max-w-3xl px-5 py-10 sm:px-8">
+        <RecordsContent
+          key={status}
+          status={status}
+          tab={tab}
+          onTabChange={handleTabChange}
+        />
       </main>
     </div>
   );
