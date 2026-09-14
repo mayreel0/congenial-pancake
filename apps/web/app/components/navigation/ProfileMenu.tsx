@@ -41,7 +41,7 @@ export function ProfileMenu({
 
   if (status === "authenticated" && user) {
     return (
-      <div className="relative" ref={menuRef}>
+      <div className="onseol-fade-in relative" ref={menuRef}>
         <button
           aria-expanded={open}
           aria-label="프로필 메뉴"
@@ -91,7 +91,7 @@ export function ProfileMenu({
   if (status === "anonymous") {
     return (
       <Link
-        className="inline-flex h-9 items-center justify-center rounded-lg px-3 text-sm font-semibold text-muted transition hover:bg-surface-muted hover:text-foreground"
+        className="onseol-fade-in inline-flex h-9 items-center justify-center rounded-lg px-3 text-sm font-semibold text-muted transition hover:bg-surface-muted hover:text-foreground"
         href={landingEntryLinks.login}
       >
         로그인
