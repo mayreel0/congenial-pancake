@@ -1,14 +1,25 @@
+import { json } from 'express';
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { AppExceptionFilter } from './common/filters/app-exception.filter';
+import { csrfOriginMiddleware } from './common/middleware/csrf-origin.middleware';
 import { guestIdMiddleware } from './common/middleware/guest-id.middleware';
 import type { Env } from './config/env.schema';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  // bodyParser: false + a JSON-only parser below — the session/guest_id
+  // cookies are SameSite=None in production (frontend/backend are
+  // different origins), so a form-urlencoded or multipart body would let a
+  // cross-site <form> POST ride those cookies and get parsed just like a
+  // real request (confirmed locally before this existed). The real
+  // frontend (packages/api's apiFetch) only ever sends application/json,
+  // so this drops no legitimate traffic.
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    bodyParser: false,
+  });
   const config = app.get(ConfigService<Env, true>);
 
   if (config.get('NODE_ENV', { infer: true }) === 'production') {
@@ -19,6 +30,10 @@ async function bootstrap() {
   }
 
   app.use(cookieParser());
+  app.use(json());
+  // Runs before guestIdMiddleware/CORS — a request with a spoofed/foreign
+  // Origin never needs a guest_id cookie or a CORS decision at all.
+  app.use(csrfOriginMiddleware(config));
   app.use(guestIdMiddleware(config));
   app.enableCors({
     origin: config.get('CORS_ORIGIN', { infer: true }),
