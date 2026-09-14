@@ -74,7 +74,7 @@ export function TodayPrototype() {
           {prototype.isLoadingEntryMessages ? (
             <Skeleton className="mx-auto h-5 w-64" />
           ) : (
-            <p className="text-sm text-muted">
+            <p className="onseol-fade-in text-sm text-muted">
               오늘 {requestCount}개의 이야기가 남겨졌고, {replyCount}개의 답장이
               도착했어요.
             </p>
