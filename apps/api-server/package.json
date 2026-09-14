@@ -41,6 +41,7 @@
     "class-validator": "^0.15.1",
     "cookie-parser": "^1.4.7",
     "drizzle-orm": "^0.45.2",
+    "express": "^5.2.1",
     "nestjs-zod": "^5.5.0",
     "openai": "^7.10.0",
     "postgres": "^3.4.9",
