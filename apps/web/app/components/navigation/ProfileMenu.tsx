@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { RefObject } from "react";
+import { Skeleton } from "ui/Skeleton";
 import { POPOVER_EXIT_MS, useAnimatedPresence } from "ui/useAnimatedPresence";
 import { useAuth } from "../../lib/auth/useAuth";
 import { accountNavItems, landingEntryLinks } from "./routes";
@@ -98,5 +99,9 @@ export function ProfileMenu({
     );
   }
 
-  return null;
+  // status === "loading" — /auth/me hasn't resolved yet, so neither the
+  // avatar nor the 로그인 link is correct yet. A same-sized round skeleton
+  // keeps the header from flashing empty and holds the layout steady
+  // regardless of which one it resolves to.
+  return <Skeleton className="h-9 w-9 rounded-full" />;
 }
