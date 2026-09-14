@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { ServiceNav } from "../components/navigation/ServiceNav";
 import { ActionConfirmDialog } from "ui/ActionConfirmDialog";
 import { HeatmapCalendarField } from "ui/HeatmapCalendarField";
 import { Pagination } from "ui/Pagination";
@@ -114,8 +113,7 @@ export function ReadFeed() {
   }
 
   return (
-    <div className="min-h-dvh bg-background text-foreground">
-      <ServiceNav activePath="/read" />
+    <>
       <main className="onseol-fade-in mx-auto flex w-full max-w-3xl flex-col gap-4 px-5 py-10 sm:px-8">
         <section className="space-y-3">
           <p className="text-sm text-muted">온설</p>
@@ -165,6 +163,6 @@ export function ReadFeed() {
         onCancel={() => setPendingReport(null)}
         onConfirm={() => void confirmPendingReport()}
       />
-    </div>
+    </>
   );
 }

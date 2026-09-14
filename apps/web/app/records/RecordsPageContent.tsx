@@ -3,7 +3,6 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Button } from "ui/Button";
-import { ServiceNav } from "../components/navigation/ServiceNav";
 import { AuthCheckingSpinner } from "../components/shared/AuthCheckingSpinner";
 import { useAuth } from "../lib/auth/useAuth";
 import { MyAnswerLogSection } from "./components/MyAnswerLogSection";
@@ -90,16 +89,13 @@ export function RecordsPageContent() {
   }
 
   return (
-    <div className="min-h-dvh bg-background text-foreground">
-      <ServiceNav activePath="/records" />
-      <main className="mx-auto w-full max-w-3xl px-5 py-10 sm:px-8">
-        <RecordsContent
-          key={status}
-          status={status}
-          tab={tab}
-          onTabChange={handleTabChange}
-        />
-      </main>
-    </div>
+    <main className="mx-auto w-full max-w-3xl px-5 py-10 sm:px-8">
+      <RecordsContent
+        key={status}
+        status={status}
+        tab={tab}
+        onTabChange={handleTabChange}
+      />
+    </main>
   );
 }
