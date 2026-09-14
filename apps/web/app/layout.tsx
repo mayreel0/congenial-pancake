@@ -4,6 +4,7 @@ import localFont from "next/font/local";
 import { GlobalToast } from "ui/GlobalToast";
 import { QueryProvider } from "ui/QueryProvider";
 import { AccountRestoreDialog } from "./components/AccountRestoreDialog";
+import { PageFadeIn } from "./components/PageFadeIn";
 import "./globals.css";
 
 // Pretendard, not next/font/google's Geist — Geist only ships a Latin
@@ -93,7 +94,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP_SCRIPT }} />
         <QueryProvider>
           <AccountRestoreDialog />
-          {children}
+          <PageFadeIn>{children}</PageFadeIn>
           <GlobalToast />
         </QueryProvider>
       </body>
