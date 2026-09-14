@@ -61,7 +61,7 @@ describe("ServiceNav", () => {
     ).toHaveAttribute("aria-current", "page");
   });
 
-  it("opens mobile menu with service links plus account links when authenticated", async () => {
+  it("opens mobile menu with only service links, even when authenticated", async () => {
     mockAuthenticated();
     render(<ServiceNav activePath="/today" />);
     await screen.findByRole("button", { name: "프로필 메뉴" });
@@ -72,16 +72,19 @@ describe("ServiceNav", () => {
     expect(
       within(mobileMenu).getByRole("link", { name: "남기기" }),
     ).toHaveAttribute("href", "/today");
+    // Account destinations (내 정보/내 기록/설정) deliberately excluded —
+    // the profile avatar sits at every screen size (no md:hidden), so
+    // adding them here too would just duplicate the same three links.
     expect(
-      within(mobileMenu).getByRole("link", { name: "내 정보" }),
-    ).toHaveAttribute("href", "/me");
+      within(mobileMenu).queryByRole("link", { name: "내 정보" }),
+    ).not.toBeInTheDocument();
     expect(
-      within(mobileMenu).getByRole("link", { name: "내 기록" }),
-    ).toHaveAttribute("href", "/records");
+      within(mobileMenu).queryByRole("link", { name: "내 기록" }),
+    ).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "메뉴 닫기" })).toBeInTheDocument();
   });
 
-  it("hides account links from the mobile menu when anonymous", async () => {
+  it("hides account links from the mobile menu when anonymous too", async () => {
     render(<ServiceNav activePath="/today" />);
     await screen.findByRole("link", { name: "로그인" });
 

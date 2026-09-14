@@ -6,7 +6,7 @@ import { useDismissOnOutsideClick } from "ui/useDismissOnOutsideClick";
 import { POPOVER_EXIT_MS, useAnimatedPresence } from "ui/useAnimatedPresence";
 import { useAuth } from "../../lib/auth/useAuth";
 import { ProfileMenu } from "./ProfileMenu";
-import { accountNavItems, serviceNavItems } from "./routes";
+import { serviceNavItems } from "./routes";
 
 type ServiceNavProps = {
   activePath: string;
@@ -109,10 +109,13 @@ export function ServiceNav({ activePath }: ServiceNavProps) {
           }`}
         >
           <div className="mx-auto grid w-full max-w-6xl gap-1">
-            {[
-              ...serviceNavItems,
-              ...(status === "authenticated" ? accountNavItems : []),
-            ].map((item) => {
+            {/* accountNavItems deliberately excluded here — ProfileMenu's
+                avatar (this header's "개인 영역" nav) has no md:hidden, so
+                it's already visible and gives access to 내 정보/내 기록/설정
+                at every screen size, mobile included. Adding them here too
+                just duplicated the same three destinations in two places on
+                mobile (confirmed via real screenshot, 2026-09-14). */}
+            {serviceNavItems.map((item) => {
               const active = isActive(activePath, item.href);
 
               return (
