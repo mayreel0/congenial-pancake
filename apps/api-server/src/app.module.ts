@@ -20,6 +20,7 @@ import { DatabaseModule } from './database/database.module';
 import { HealthModule } from './health/health.module';
 import { LandingModule } from './landing/landing.module';
 import { ModerationModule } from './moderation/moderation.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { ProfileModule } from './profile/profile.module';
 import { RepliesModule } from './replies/replies.module';
 import { ReportsModule } from './reports/reports.module';
@@ -72,6 +73,7 @@ import { ZodValidationPipe } from './common/zod-validation';
     AdminModule,
     ProfileModule,
     LandingModule,
+    NotificationsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

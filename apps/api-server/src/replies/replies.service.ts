@@ -9,6 +9,7 @@ import {
 } from '../common/exceptions/app.exception';
 import { ReplyContentModerationService } from '../moderation/reply-content/reply-content-moderation.service';
 import { ReplyModerationLogService } from '../moderation/reply-content/reply-moderation-log.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import type {
   DateRange,
   DayCount,
@@ -38,7 +39,31 @@ export class RepliesService {
     private readonly usersService: UsersService,
     private readonly replyContentModerationService: ReplyContentModerationService,
     private readonly replyModerationLogService: ReplyModerationLogService,
+    private readonly notificationsService: NotificationsService,
   ) {}
+
+  // Only a member request author can be notified later (a guest has no
+  // session to check back with), and replying to your own request
+  // shouldn't notify yourself. Fire-and-forget like moderateInBackground —
+  // the reply itself is already saved by the time this runs, so a
+  // notification-row failure must never surface as a failed reply
+  // submission.
+  private notifyRequestAuthor(
+    requestAuthorId: string | null,
+    requestId: string,
+    reply: ReplyRecord,
+    replierUserId: string | undefined,
+  ): void {
+    if (!requestAuthorId || requestAuthorId === replierUserId) return;
+    this.notificationsService
+      .createReplyReceived(requestAuthorId, requestId, reply.id)
+      .catch((error) => {
+        this.logger.error(
+          `Failed to create reply-received notification for reply ${reply.id}`,
+          error instanceof Error ? error.stack : error,
+        );
+      });
+  }
 
   // Dry-run 전용 — 결과를 절대 await하지 않는다. 답장 등록 응답 시간에
   // 영향을 주면 안 되고(사용자 확인, 2026-09-14), moderation 호출이 실패해도
@@ -114,6 +139,7 @@ export class RepliesService {
         undefined,
       );
       this.moderateInBackground(reply, isLoadTest);
+      this.notifyRequestAuthor(request.authorId, requestId, reply, userId);
       return reply;
     }
 
@@ -138,6 +164,7 @@ export class RepliesService {
       guestId,
     );
     this.moderateInBackground(reply, isLoadTest);
+    this.notifyRequestAuthor(request.authorId, requestId, reply, undefined);
     return reply;
   }
 

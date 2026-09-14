@@ -416,3 +416,24 @@ export const dayCountsResponseSchema = z.object({
   days: z.array(z.object({ date: z.string(), count: z.number() })),
 });
 export type DayCountsResponseDto = z.infer<typeof dayCountsResponseSchema>;
+
+// GET /notifications — 'reply_received' is the only `type` today; requestId/
+// replyId are nullable so a future notification kind that points at
+// something else can leave both null rather than needing a schema change.
+export const notificationResponseSchema = z.object({
+  id: z.string(),
+  type: z.string(),
+  requestId: z.string().nullable(),
+  replyId: z.string().nullable(),
+  createdAt: z.string(),
+  readAt: z.string().nullable(),
+});
+export type NotificationResponseDto = z.infer<
+  typeof notificationResponseSchema
+>;
+
+// GET /notifications/unread-count — polled badge count.
+export const unreadCountResponseSchema = z.object({
+  count: z.number(),
+});
+export type UnreadCountResponseDto = z.infer<typeof unreadCountResponseSchema>;

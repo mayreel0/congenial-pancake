@@ -9,6 +9,7 @@ import {
 import type { ReplyContentModerationService } from '../moderation/reply-content/reply-content-moderation.service';
 import type { ReplyModerationLogService } from '../moderation/reply-content/reply-moderation-log.service';
 import type { ModerationResult } from '../moderation/reply-content/reply-content-moderation.types';
+import type { NotificationsService } from '../notifications/notifications.service';
 import type { RequestRecord } from '../requests/requests.repository';
 import type { RequestsService } from '../requests/requests.service';
 import type { SettingsService } from '../settings/settings.service';
@@ -91,6 +92,7 @@ describe('RepliesService', () => {
   let usersService: jest.Mocked<UsersService>;
   let replyContentModerationService: jest.Mocked<ReplyContentModerationService>;
   let replyModerationLogService: jest.Mocked<ReplyModerationLogService>;
+  let notificationsService: jest.Mocked<NotificationsService>;
   let repliesService: RepliesService;
 
   beforeEach(() => {
@@ -131,6 +133,9 @@ describe('RepliesService', () => {
     replyModerationLogService = {
       recordDryRunResult: jest.fn().mockResolvedValue(undefined),
     } as unknown as jest.Mocked<ReplyModerationLogService>;
+    notificationsService = {
+      createReplyReceived: jest.fn().mockResolvedValue(undefined),
+    } as unknown as jest.Mocked<NotificationsService>;
 
     repliesService = new RepliesService(
       repliesRepository,
@@ -140,6 +145,7 @@ describe('RepliesService', () => {
       usersService,
       replyContentModerationService,
       replyModerationLogService,
+      notificationsService,
     );
   });
 
@@ -388,6 +394,90 @@ describe('RepliesService', () => {
       expect(
         replyModerationLogService.recordDryRunResult,
       ).not.toHaveBeenCalled();
+    });
+
+    it('notifies the request author (member) when someone else replies', async () => {
+      requestsService.findVisibleById.mockResolvedValue(
+        makeRequest({ authorId: 'author-1' }),
+      );
+      repliesRepository.countByGuest.mockResolvedValue(0);
+      const created = makeReply({ id: 'reply-1', guestId: 'guest-1' });
+      repliesRepository.create.mockResolvedValue(created);
+
+      await repliesService.create(
+        'request-1',
+        { body: '내용' },
+        undefined,
+        'guest-1',
+      );
+      await flushMicrotasks();
+
+      expect(notificationsService.createReplyReceived).toHaveBeenCalledWith(
+        'author-1',
+        'request-1',
+        'reply-1',
+      );
+    });
+
+    it('does not notify when the request author replies to their own request', async () => {
+      requestsService.findVisibleById.mockResolvedValue(
+        makeRequest({ authorId: 'user-1' }),
+      );
+      repliesRepository.findByRequestAndAuthor.mockResolvedValue(undefined);
+      repliesRepository.create.mockResolvedValue(
+        makeReply({ authorId: 'user-1' }),
+      );
+
+      await repliesService.create(
+        'request-1',
+        { body: '내용' },
+        'user-1',
+        'unused-guest-id',
+      );
+      await flushMicrotasks();
+
+      expect(notificationsService.createReplyReceived).not.toHaveBeenCalled();
+    });
+
+    it('does not notify when the request author is a guest', async () => {
+      requestsService.findVisibleById.mockResolvedValue(
+        makeRequest({ authorId: null, guestId: 'requester-guest' }),
+      );
+      repliesRepository.countByGuest.mockResolvedValue(0);
+      repliesRepository.create.mockResolvedValue(makeReply());
+
+      await repliesService.create(
+        'request-1',
+        { body: '내용' },
+        undefined,
+        'guest-1',
+      );
+      await flushMicrotasks();
+
+      expect(notificationsService.createReplyReceived).not.toHaveBeenCalled();
+    });
+
+    it('logs (not throws) when notifying the request author fails', async () => {
+      requestsService.findVisibleById.mockResolvedValue(
+        makeRequest({ authorId: 'author-1' }),
+      );
+      repliesRepository.countByGuest.mockResolvedValue(0);
+      repliesRepository.create.mockResolvedValue(
+        makeReply({ guestId: 'guest-1' }),
+      );
+      notificationsService.createReplyReceived.mockRejectedValue(
+        new Error('boom'),
+      );
+
+      const result = await repliesService.create(
+        'request-1',
+        { body: '내용' },
+        undefined,
+        'guest-1',
+      );
+      await flushMicrotasks();
+
+      expect(result).toBeDefined(); // the reply itself still succeeded
     });
   });
 
