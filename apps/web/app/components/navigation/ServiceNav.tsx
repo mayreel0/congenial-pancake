@@ -5,7 +5,6 @@ import { useState } from "react";
 import { useDismissOnOutsideClick } from "ui/useDismissOnOutsideClick";
 import { POPOVER_EXIT_MS, useAnimatedPresence } from "ui/useAnimatedPresence";
 import { useAuth } from "../../lib/auth/useAuth";
-import { NotificationBell } from "./NotificationBell";
 import { ProfileMenu } from "./ProfileMenu";
 import { serviceNavItems } from "./routes";
 
@@ -90,7 +89,6 @@ export function ServiceNav({ activePath }: ServiceNavProps) {
           </nav>
         </div>
         <nav aria-label="개인 영역" className="flex items-center gap-1">
-          <NotificationBell />
           <ProfileMenu
             activePath={activePath}
             logout={logout}

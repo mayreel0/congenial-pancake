@@ -14,6 +14,7 @@ import {
   fetchHeldRequests,
   fetchMyRequestDayCounts,
   fetchMyRequestLog,
+  fetchMyRequestThread,
   fetchQueueCandidate,
   holdRequest,
   listRequests,
@@ -41,6 +42,8 @@ export const requestKeys = {
     ["requests", "feedCounts", from, to] as const,
   mineCounts: (from: string, to: string) =>
     ["requests", "mineCounts", from, to] as const,
+  mineThread: (requestId: string) =>
+    ["requests", "mineThread", requestId] as const,
 };
 
 export function useRequestsQuery() {
@@ -145,6 +148,13 @@ export function useDeleteOwnRequestMutation() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: requestKeys.mineAll });
     },
+  });
+}
+
+export function useMyRequestThreadQuery(requestId: string) {
+  return useQuery({
+    queryKey: requestKeys.mineThread(requestId),
+    queryFn: () => fetchMyRequestThread(requestId),
   });
 }
 

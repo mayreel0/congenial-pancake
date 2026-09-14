@@ -19,7 +19,7 @@ import type { PublicReplyItemDto } from "../../../lib/profile/api";
 import { usePublicRepliesQuery } from "../../../lib/profile/queries";
 import { parseProfileSlug } from "../../../lib/profile/slug";
 import { useUrlState } from "../../../lib/useUrlState";
-import { ProfileListItemLink } from "../components/ProfileListItemLink";
+import { ProfileListItemLink } from "../../../components/shared/ProfileListItemLink";
 
 type RepliesListUrlKey = "page" | "pageSize";
 
