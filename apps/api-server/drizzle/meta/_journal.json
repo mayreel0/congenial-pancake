@@ -148,6 +148,13 @@
       "when": 1789254034094,
       "tag": "0020_colossal_blacklash",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1789405948893,
+      "tag": "0021_glossy_slipstream",
+      "breakpoints": true
     }
   ]
 }

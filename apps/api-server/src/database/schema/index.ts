@@ -10,3 +10,4 @@ export * from './saved-replies.schema';
 export * from './settings.schema';
 export * from './password-reset-tokens.schema';
 export * from './pending-signups.schema';
+export * from './notifications.schema';

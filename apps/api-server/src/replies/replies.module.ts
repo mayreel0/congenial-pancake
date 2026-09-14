@@ -3,6 +3,7 @@ import { AnswerInteractionsModule } from '../answer-interactions/answer-interact
 import { AuthModule } from '../auth/auth.module';
 import { DatabaseModule } from '../database/database.module';
 import { ReplyContentModerationModule } from '../moderation/reply-content-moderation.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { RequestsModule } from '../requests/requests.module';
 import { SettingsModule } from '../settings/settings.module';
 import { UsersModule } from '../users/users.module';
@@ -20,6 +21,7 @@ import { RepliesService } from './replies.service';
     SettingsModule,
     UsersModule,
     ReplyContentModerationModule,
+    NotificationsModule,
   ],
   controllers: [RepliesController, RepliesMineController],
   providers: [RepliesRepository, RepliesService],
