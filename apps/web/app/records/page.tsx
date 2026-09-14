@@ -1,17 +1,22 @@
 import { Suspense } from "react";
 import { ServiceNav } from "../components/navigation/ServiceNav";
+import { AuthCheckingSpinner } from "../components/shared/AuthCheckingSpinner";
 import { RecordsPageContent } from "./RecordsPageContent";
 
-// ServiceNav renders here, outside the Suspense boundary — see MePage's
-// identical comment (app/me/page.tsx) for why: RecordsPageContent's
-// useSearchParams() needs a Suspense boundary above it, and Suspense's
-// fallback replaces its entire subtree while pending, which used to blank
-// out the header too when ServiceNav lived inside that subtree.
+// See app/me/page.tsx's identical comment for why ServiceNav sits outside
+// the Suspense boundary and why the fallback reuses AuthCheckingSpinner
+// instead of fallback={null}.
 export default function RecordsPage() {
   return (
     <div className="min-h-dvh bg-background text-foreground">
       <ServiceNav activePath="/records" />
-      <Suspense fallback={null}>
+      <Suspense
+        fallback={
+          <main className="mx-auto w-full max-w-3xl px-5 py-10 sm:px-8">
+            <AuthCheckingSpinner />
+          </main>
+        }
+      >
         <RecordsPageContent />
       </Suspense>
     </div>
