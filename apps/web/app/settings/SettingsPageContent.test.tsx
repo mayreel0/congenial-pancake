@@ -19,9 +19,8 @@ describe("SettingsPageContent", () => {
 
     const { container } = render(<SettingsPageContent />);
 
-    expect(
-      await screen.findByRole("heading", { name: "설정" }),
-    ).toBeInTheDocument();
+    await screen.findByTestId("auth-checking-spinner");
+    expect(screen.queryByRole("heading", { name: "설정" })).not.toBeInTheDocument();
     expect(screen.queryByText("테마")).not.toBeInTheDocument();
     expect(
       screen.queryByText("로그인하면 설정을 바꿀 수 있습니다."),

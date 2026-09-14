@@ -105,9 +105,8 @@ describe("RecordsPage", () => {
 
     const { container } = render(<RecordsPage />);
 
-    expect(
-      await screen.findByRole("heading", { name: "내 기록" }),
-    ).toBeInTheDocument();
+    await screen.findByTestId("auth-checking-spinner");
+    expect(screen.queryByRole("heading", { name: "내 기록" })).not.toBeInTheDocument();
     expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
     expect(
       screen.queryByText("로그인하면 내 기록을 볼 수 있습니다."),

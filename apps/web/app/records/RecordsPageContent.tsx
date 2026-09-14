@@ -30,16 +30,14 @@ function RecordsContent({ status, tab, onTabChange }: RecordsContentProps) {
   // 방식) 아직 로그인 여부도 모르는 채로 /requests·replies/mine을
   // 호출해버려서, 비로그인 사용자에게 401 이후의 "아직 없습니다" 같은
   // 틀린 빈 상태가 잠깐 보일 수 있었음 — status가 authenticated로
-  // 확정되기 전엔 아예 마운트하지 않는다.
+  // 확정되기 전엔 아예 마운트하지 않는다. loading 동안은 타이틀도 같이
+  // 감춤(2026-09-14 피드백) — 페이지가 더 이상 세로 중앙 정렬을 쓰지
+  // 않으므로, 로딩 스피너가 타이틀 자리에 그대로 놓이면 됨.
   if (status === "loading") {
     return (
-      <section className="onseol-fade-in space-y-3">
-        <p className="text-sm text-muted">온설</p>
-        <h1 className="text-2xl font-semibold tracking-normal sm:text-4xl">
-          내 기록
-        </h1>
+      <div className="onseol-fade-in">
         <AuthCheckingSpinner />
-      </section>
+      </div>
     );
   }
 
@@ -94,7 +92,7 @@ export function RecordsPageContent() {
   return (
     <div className="min-h-dvh bg-background text-foreground">
       <ServiceNav activePath="/records" />
-      <main className="mx-auto flex min-h-[calc(100dvh-3.5rem)] w-full max-w-3xl flex-col justify-center gap-8 px-5 py-10 sm:px-8">
+      <main className="mx-auto w-full max-w-3xl px-5 py-10 sm:px-8">
         <RecordsContent
           key={status}
           status={status}

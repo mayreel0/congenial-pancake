@@ -172,11 +172,24 @@ type SettingsBodyProps = {
   onChange(next: SiteSettings): void;
 };
 
+function PageTitle() {
+  return (
+    <>
+      <p className="text-sm text-muted">온설</p>
+      <h1 className="text-2xl font-semibold tracking-normal sm:text-4xl">
+        설정
+      </h1>
+    </>
+  );
+}
+
 // 로그인 필요 페이지의 공통 4단계(2026-09-14 확정 원칙): 로그인 확인 중 →
 // 중립 로딩 / 확인 후 비로그인 → 로그인 필요 / 로그인 + 데이터 로딩 중 →
-// (실제 화면 모양) 스켈레톤 / 데이터 준비 → 실제 화면. "loading"을
-// "authenticated"처럼 취급해 폼을 먼저 그려버리면(이전 방식) 비로그인
-// 사용자에게도 실제로 동작하는 폼이 잠깐 보였다가 사라지는 문제가 있었음.
+// (실제 화면 모양) 스켈레톤 / 데이터 준비 → 실제 화면. "loading" 동안은
+// 타이틀도 같이 감춤(2026-09-14, 사용자 피드백: 타이틀 아래 스피너를
+// 붙이는 구성 자체가 어색하다는 지적) — 페이지 자체도 세로 중앙 정렬을
+// 걷어내고 위에서부터 쌓이는 구조로 바꿔서, 로딩 중엔 그 자리에 스피너
+// 한 줄만 놓이면 되게 함.
 function SettingsBody({ status, settings, onChange }: SettingsBodyProps) {
   if (status === "loading") {
     return (
@@ -188,7 +201,10 @@ function SettingsBody({ status, settings, onChange }: SettingsBodyProps) {
 
   if (status === "authenticated") {
     return (
-      <div className="onseol-fade-in">
+      <div className="onseol-fade-in space-y-8">
+        <section className="space-y-3">
+          <PageTitle />
+        </section>
         {settings ? (
           <SettingsForm settings={settings} onChange={onChange} />
         ) : (
@@ -200,6 +216,7 @@ function SettingsBody({ status, settings, onChange }: SettingsBodyProps) {
 
   return (
     <section className="onseol-fade-in space-y-3">
+      <PageTitle />
       <p className="max-w-xl leading-7 text-muted">
         로그인하면 설정을 바꿀 수 있습니다.
       </p>
@@ -225,13 +242,7 @@ export function SettingsPageContent() {
   return (
     <div className="min-h-dvh bg-background text-foreground">
       <ServiceNav activePath="/settings" />
-      <main className="mx-auto flex min-h-[calc(100dvh-3.5rem)] w-full max-w-2xl flex-col justify-center gap-8 px-5 py-10 sm:px-8">
-        <section className="space-y-3">
-          <p className="text-sm text-muted">온설</p>
-          <h1 className="text-2xl font-semibold tracking-normal sm:text-4xl">
-            설정
-          </h1>
-        </section>
+      <main className="mx-auto w-full max-w-2xl px-5 py-10 sm:px-8">
         <SettingsBody
           key={status === "authenticated" ? `authenticated-${settings ? "ready" : "loading"}` : status}
           settings={settings}

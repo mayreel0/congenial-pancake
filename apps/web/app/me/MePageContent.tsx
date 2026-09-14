@@ -33,19 +33,21 @@ function PageTitle() {
 }
 
 function MeContent({ status, user, notice }: MeContentProps) {
-  // "loading" (still resolving /auth/me) gets a generic skeleton, never the
-  // member-only section shapes below — a guest landing here for the first
+  // "loading" (still resolving /auth/me) gets a generic spinner, never the
+  // member-only section shapes below (a guest landing here for the first
   // time shouldn't see "연동된 계정"/"닉네임" placeholders that then vanish
-  // into a login prompt. Once we know the viewer is authenticated, `user`
-  // is already populated (toAuthStatus in useAuth.ts derives "authenticated"
-  // from having data), so there's no separate "authenticated but data still
-  // loading" gap here to cover with its own skeleton.
+  // into a login prompt) and no title either (2026-09-14 피드백: 타이틀 아래
+  // 스피너를 붙이는 구성 자체가 어색함) — the page no longer vertically
+  // centers its content, so the loading spinner just sits where the title
+  // normally would, at the top. Once we know the viewer is authenticated,
+  // `user` is already populated (toAuthStatus in useAuth.ts derives
+  // "authenticated" from having data), so there's no separate "authenticated
+  // but data still loading" gap here to cover with its own skeleton.
   if (status === "loading") {
     return (
-      <section className="onseol-fade-in space-y-3">
-        <PageTitle />
+      <div className="onseol-fade-in">
         <AuthCheckingSpinner />
-      </section>
+      </div>
     );
   }
 
@@ -112,7 +114,7 @@ export function MePageContent() {
   return (
     <div className="min-h-dvh bg-background text-foreground">
       <ServiceNav activePath="/me" />
-      <main className="mx-auto flex min-h-[calc(100dvh-3.5rem)] w-full max-w-3xl flex-col justify-center gap-8 px-5 py-10 sm:px-8">
+      <main className="mx-auto w-full max-w-3xl px-5 py-10 sm:px-8">
         <MeContent key={status} notice={notice} status={status} user={user} />
       </main>
     </div>

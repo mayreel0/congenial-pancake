@@ -106,14 +106,15 @@ describe("MePage", () => {
 
     const { container } = render(<MePage />);
 
-    // While we don't yet know if this is a guest or a member, only the
-    // title and a generic skeleton render — not any member-only section
-    // (which would flash away into the login prompt for an actual guest)
-    // and not the login prompt itself (which would flash away for an
-    // actual member).
-    expect(
-      await screen.findByRole("heading", { name: "내 정보" }),
-    ).toBeInTheDocument();
+    // While we don't yet know if this is a guest or a member, only a
+    // generic spinner renders — no title (a fixed title next to a loading
+    // spinner reads oddly once the page stopped vertically centering, see
+    // AuthCheckingSpinner's own comment) and no member-only section (which
+    // would flash away into the login prompt for an actual guest) and not
+    // the login prompt itself (which would flash away for an actual
+    // member).
+    await screen.findByTestId("auth-checking-spinner");
+    expect(screen.queryByRole("heading", { name: "내 정보" })).not.toBeInTheDocument();
     expect(
       screen.queryByRole("heading", { name: "연동된 계정" }),
     ).not.toBeInTheDocument();
