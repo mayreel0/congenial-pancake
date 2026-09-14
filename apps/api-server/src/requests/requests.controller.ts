@@ -17,6 +17,7 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import { OptionalCurrentUser } from '../auth/optional-current-user.decorator';
 import { OptionalSessionGuard } from '../auth/optional-session.guard';
 import { SessionGuard } from '../auth/session.guard';
+import { RequestNotFoundException } from '../common/exceptions/app.exception';
 import {
   isValidDateString,
   kstDateRange,
@@ -206,6 +207,29 @@ export class RequestsController {
       kstDateRange(from, to),
     );
     return toDayCountsResponseDto(from, to, rows);
+  }
+
+  // Deep-link target for the reply-notification bell — same full-thread
+  // shape /requests/feed and /u/[slug]'s thread routes already return
+  // (findFeedItemById), just gated by ownership instead of public-profile
+  // visibility. Declared after mine/counts (a literal path) so it doesn't
+  // shadow it — Nest matches routes in registration order.
+  @Get('mine/:requestId')
+  @UseGuards(SessionGuard)
+  async mineThread(
+    @CurrentUser() userId: string,
+    @Param('requestId') requestId: string,
+  ): Promise<FeedItemResponseDto> {
+    const item = await this.requestsService.findFeedItemById(requestId);
+    if (!item || item.request.authorId !== userId) {
+      throw new RequestNotFoundException();
+    }
+    const authorIds = [
+      item.request.authorId,
+      ...item.replies.map((reply) => reply.authorId),
+    ].filter((id): id is string => id !== null);
+    const nicknameByUserId = await this.usersService.nicknameMapFor(authorIds);
+    return toFeedItemDto(item, nicknameByUserId);
   }
 
   // The single next request this viewer should answer — see
