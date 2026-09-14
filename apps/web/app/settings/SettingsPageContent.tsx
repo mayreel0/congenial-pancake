@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Button } from "ui/Button";
 import { Toggle } from "ui/Toggle";
 import { ServiceNav } from "../components/navigation/ServiceNav";
-import { AuthCheckingSkeleton } from "../components/shared/AuthCheckingSkeleton";
+import { AuthCheckingSpinner } from "../components/shared/AuthCheckingSpinner";
 import { SettingsFormSkeleton } from "./components/SettingsFormSkeleton";
 import {
   SEASON_LABELS,
@@ -178,18 +178,28 @@ type SettingsBodyProps = {
 // "authenticated"처럼 취급해 폼을 먼저 그려버리면(이전 방식) 비로그인
 // 사용자에게도 실제로 동작하는 폼이 잠깐 보였다가 사라지는 문제가 있었음.
 function SettingsBody({ status, settings, onChange }: SettingsBodyProps) {
-  if (status === "loading") return <AuthCheckingSkeleton />;
+  if (status === "loading") {
+    return (
+      <div className="onseol-fade-in">
+        <AuthCheckingSpinner />
+      </div>
+    );
+  }
 
   if (status === "authenticated") {
-    return settings ? (
-      <SettingsForm settings={settings} onChange={onChange} />
-    ) : (
-      <SettingsFormSkeleton />
+    return (
+      <div className="onseol-fade-in">
+        {settings ? (
+          <SettingsForm settings={settings} onChange={onChange} />
+        ) : (
+          <SettingsFormSkeleton />
+        )}
+      </div>
     );
   }
 
   return (
-    <section className="space-y-3">
+    <section className="onseol-fade-in space-y-3">
       <p className="max-w-xl leading-7 text-muted">
         로그인하면 설정을 바꿀 수 있습니다.
       </p>
@@ -222,7 +232,12 @@ export function SettingsPageContent() {
             설정
           </h1>
         </section>
-        <SettingsBody settings={settings} status={status} onChange={setSettings} />
+        <SettingsBody
+          key={status === "authenticated" ? `authenticated-${settings ? "ready" : "loading"}` : status}
+          settings={settings}
+          status={status}
+          onChange={setSettings}
+        />
       </main>
     </div>
   );

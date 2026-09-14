@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Button } from "ui/Button";
 import { ServiceNav } from "../components/navigation/ServiceNav";
-import { AuthCheckingSkeleton } from "../components/shared/AuthCheckingSkeleton";
+import { AuthCheckingSpinner } from "../components/shared/AuthCheckingSpinner";
 import { useAuth } from "../lib/auth/useAuth";
 import { MyAnswerLogSection } from "./components/MyAnswerLogSection";
 import { MyRequestLogSection } from "./components/MyRequestLogSection";
@@ -33,19 +33,19 @@ function RecordsContent({ status, tab, onTabChange }: RecordsContentProps) {
   // 확정되기 전엔 아예 마운트하지 않는다.
   if (status === "loading") {
     return (
-      <section className="space-y-3">
+      <section className="onseol-fade-in space-y-3">
         <p className="text-sm text-muted">온설</p>
         <h1 className="text-2xl font-semibold tracking-normal sm:text-4xl">
           내 기록
         </h1>
-        <AuthCheckingSkeleton />
+        <AuthCheckingSpinner />
       </section>
     );
   }
 
   if (status === "authenticated") {
     return (
-      <>
+      <div className="onseol-fade-in flex flex-col gap-8">
         <section className="space-y-3">
           <p className="text-sm text-muted">온설</p>
           <h1 className="text-2xl font-semibold tracking-normal sm:text-4xl">
@@ -54,12 +54,12 @@ function RecordsContent({ status, tab, onTabChange }: RecordsContentProps) {
         </section>
         <RecordsTabs active={tab} onChange={onTabChange} />
         {tab === "requests" ? <MyRequestLogSection /> : <MyAnswerLogSection />}
-      </>
+      </div>
     );
   }
 
   return (
-    <section className="space-y-3">
+    <section className="onseol-fade-in space-y-3">
       <p className="text-sm text-muted">온설</p>
       <h1 className="text-2xl font-semibold tracking-normal sm:text-4xl">
         내 기록
@@ -95,7 +95,12 @@ export function RecordsPageContent() {
     <div className="min-h-dvh bg-background text-foreground">
       <ServiceNav activePath="/records" />
       <main className="mx-auto flex min-h-[calc(100dvh-3.5rem)] w-full max-w-3xl flex-col justify-center gap-8 px-5 py-10 sm:px-8">
-        <RecordsContent status={status} tab={tab} onTabChange={handleTabChange} />
+        <RecordsContent
+          key={status}
+          status={status}
+          tab={tab}
+          onTabChange={handleTabChange}
+        />
       </main>
     </div>
   );

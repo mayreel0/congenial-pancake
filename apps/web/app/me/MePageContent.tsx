@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import { Button } from "ui/Button";
 import { ServiceNav } from "../components/navigation/ServiceNav";
-import { AuthCheckingSkeleton } from "../components/shared/AuthCheckingSkeleton";
+import { AuthCheckingSpinner } from "../components/shared/AuthCheckingSpinner";
 import { OAUTH_PROVIDER_NAMES_KO } from "../components/shared/oauthProviders";
 import { formatJoinedDate } from "../lib/format";
 import { useAuth } from "../lib/auth/useAuth";
@@ -42,16 +42,16 @@ function MeContent({ status, user, notice }: MeContentProps) {
   // loading" gap here to cover with its own skeleton.
   if (status === "loading") {
     return (
-      <section className="space-y-3">
+      <section className="onseol-fade-in space-y-3">
         <PageTitle />
-        <AuthCheckingSkeleton />
+        <AuthCheckingSpinner />
       </section>
     );
   }
 
   if (status === "authenticated" && user) {
     return (
-      <>
+      <div className="onseol-fade-in flex flex-col gap-8">
         <section className="space-y-3">
           <PageTitle />
           <div className="space-y-1 text-muted">
@@ -67,12 +67,12 @@ function MeContent({ status, user, notice }: MeContentProps) {
           <ProfileVisibilitySection />
         </VisibilityDraftProvider>
         <WithdrawalSection />
-      </>
+      </div>
     );
   }
 
   return (
-    <section className="space-y-3">
+    <section className="onseol-fade-in space-y-3">
       <PageTitle />
       <p className="max-w-xl leading-7 text-muted">
         로그인하면 내 정보를 볼 수 있습니다.
@@ -113,7 +113,7 @@ export function MePageContent() {
     <div className="min-h-dvh bg-background text-foreground">
       <ServiceNav activePath="/me" />
       <main className="mx-auto flex min-h-[calc(100dvh-3.5rem)] w-full max-w-3xl flex-col justify-center gap-8 px-5 py-10 sm:px-8">
-        <MeContent notice={notice} status={status} user={user} />
+        <MeContent key={status} notice={notice} status={status} user={user} />
       </main>
     </div>
   );

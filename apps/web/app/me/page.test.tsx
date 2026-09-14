@@ -122,7 +122,7 @@ describe("MePage", () => {
     expect(
       screen.queryByText("로그인하면 내 정보를 볼 수 있습니다."),
     ).not.toBeInTheDocument();
-    expect(container.querySelectorAll(".animate-pulse").length).toBeGreaterThan(0);
+    expect(container.querySelector('[data-testid="auth-checking-spinner"]')).toBeInTheDocument();
   });
 
   it("shows the member's email and joined date", async () => {

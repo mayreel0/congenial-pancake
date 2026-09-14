@@ -151,6 +151,30 @@ label:has(input[type="checkbox"]) {
   }
 }
 
+/* Plain opacity fade for swapping between a login-required page's
+   loading/authenticated/guest branches — each branch is a structurally
+   different tree, so React already mounts a fresh node per transition and
+   this just softens that swap instead of a hard cut. */
+@keyframes onseol-fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.onseol-fade-in {
+  animation: onseol-fade-in 200ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .onseol-fade-in {
+    animation: none;
+  }
+}
+
 @keyframes onseol-bubble-enter {
   from {
     opacity: 0;

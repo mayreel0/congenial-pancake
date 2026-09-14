@@ -26,7 +26,7 @@ describe("SettingsPageContent", () => {
     expect(
       screen.queryByText("로그인하면 설정을 바꿀 수 있습니다."),
     ).not.toBeInTheDocument();
-    expect(container.querySelectorAll(".animate-pulse").length).toBeGreaterThan(0);
+    expect(container.querySelector('[data-testid="auth-checking-spinner"]')).toBeInTheDocument();
   });
 
   it("prompts login for a guest instead of showing the form", async () => {
