@@ -4,6 +4,7 @@ import type { PagedResult, Pagination } from '../requests/requests.repository';
 import {
   NotificationsRepository,
   type NotificationRecord,
+  type NotificationWithRequest,
 } from './notifications.repository';
 
 const REPLY_RECEIVED = 'reply_received';
@@ -51,7 +52,7 @@ export class NotificationsService {
   findMine(
     userId: string,
     pagination: Pagination,
-  ): Promise<PagedResult<NotificationRecord>> {
+  ): Promise<PagedResult<NotificationWithRequest>> {
     return this.notificationsRepository.findMine(userId, pagination);
   }
 
