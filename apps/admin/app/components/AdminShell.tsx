@@ -8,6 +8,7 @@ import { useAuth } from "../lib/auth/useAuth";
 
 const NAV_ITEMS = [
   { href: "/review", label: "신고 검토" },
+  { href: "/requests", label: "고민 관리" },
   { href: "/settings", label: "설정" },
   { href: "/accounts", label: "계정" },
 ];
