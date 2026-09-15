@@ -1,14 +1,42 @@
-import { fireEvent, render, screen, within } from "../../lib/test-utils";
+import { fireEvent, render, screen, waitFor, within } from "../../lib/test-utils";
 import { describe, expect, it, vi } from "vitest";
 import { ServiceNav } from "./ServiceNav";
 
-function mockAuthenticated(email = "test@example.com") {
-  (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-    ok: true,
-    status: 200,
-    json: () =>
-      Promise.resolve({ id: "1", email, createdAt: "2026-08-20T00:00:00.000Z" }),
-  });
+function mockAuthenticated(
+  email = "test@example.com",
+  unreadCount = 0,
+) {
+  (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(
+    (input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input.toString();
+
+      if (url.includes("/auth/me")) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () =>
+            Promise.resolve({
+              id: "1",
+              email,
+              createdAt: "2026-08-20T00:00:00.000Z",
+            }),
+        });
+      }
+      if (url.includes("/notifications/unread-count")) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({ count: unreadCount }),
+        });
+      }
+
+      return Promise.resolve({
+        ok: false,
+        status: 401,
+        json: () => Promise.resolve({}),
+      });
+    },
+  );
 }
 
 describe("ServiceNav", () => {
@@ -139,5 +167,37 @@ describe("ServiceNav", () => {
     expect(
       within(profileMenu).getByRole("button", { name: "로그아웃" }),
     ).toBeInTheDocument();
+  });
+
+  it("shows a red dot on the avatar when there are unread notifications", async () => {
+    mockAuthenticated("test@example.com", 2);
+    const { container } = render(<ServiceNav activePath="/today" />);
+
+    await screen.findByRole("button", { name: "프로필 메뉴" });
+    await waitFor(() => {
+      expect(container.querySelector(".bg-destructive")).toBeInTheDocument();
+    });
+  });
+
+  it("shows no dot on the avatar when there are no unread notifications", async () => {
+    mockAuthenticated("test@example.com", 0);
+    const { container } = render(<ServiceNav activePath="/today" />);
+
+    await screen.findByRole("button", { name: "프로필 메뉴" });
+    expect(container.querySelector(".bg-destructive")).not.toBeInTheDocument();
+  });
+
+  it("shows an 알림 link with an unread badge in the profile menu", async () => {
+    mockAuthenticated("test@example.com", 3);
+    render(<ServiceNav activePath="/today" />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "프로필 메뉴" }));
+
+    const profileMenu = screen.getByLabelText("프로필");
+    const notificationsLink = within(profileMenu).getByRole("link", {
+      name: /알림/,
+    });
+    expect(notificationsLink).toHaveAttribute("href", "/notifications");
+    expect(await within(notificationsLink).findByText("3")).toBeInTheDocument();
   });
 });

@@ -19,7 +19,7 @@ import type { PublicRequestItemDto } from "../../../lib/profile/api";
 import { usePublicRequestsQuery } from "../../../lib/profile/queries";
 import { parseProfileSlug } from "../../../lib/profile/slug";
 import { useUrlState } from "../../../lib/useUrlState";
-import { ProfileListItemLink } from "../components/ProfileListItemLink";
+import { ProfileListItemLink } from "../../../components/shared/ProfileListItemLink";
 
 type RequestsListUrlKey = "page" | "pageSize";
 

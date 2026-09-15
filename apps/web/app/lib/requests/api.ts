@@ -134,3 +134,11 @@ export function deleteOwnRequest(requestId: string): Promise<void> {
     method: "POST",
   });
 }
+
+// Deep-link target for the notification bell — the full thread for one of
+// the viewer's own requests, owner-scoped (404s for anything not theirs,
+// same as /u/[slug]'s public thread routes but checking authorship instead
+// of profile visibility).
+export function fetchMyRequestThread(requestId: string): Promise<FeedItemDto> {
+  return apiFetch<FeedItemDto>(`/requests/mine/${requestId}`);
+}

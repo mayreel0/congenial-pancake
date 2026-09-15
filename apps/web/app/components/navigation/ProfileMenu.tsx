@@ -5,7 +5,14 @@ import type { RefObject } from "react";
 import { Skeleton } from "ui/Skeleton";
 import { POPOVER_EXIT_MS, useAnimatedPresence } from "ui/useAnimatedPresence";
 import { useAuth } from "../../lib/auth/useAuth";
+import { useUnreadCountQuery } from "../../lib/notifications/queries";
 import { accountNavItems, landingEntryLinks } from "./routes";
+
+const MAX_BADGE_COUNT = 9;
+
+function badgeLabel(count: number): string {
+  return count > MAX_BADGE_COUNT ? `${MAX_BADGE_COUNT}+` : String(count);
+}
 
 function isActive(activePath: string, href: string) {
   return activePath === href || activePath.startsWith(`${href}/`);
@@ -38,6 +45,8 @@ export function ProfileMenu({
   logout,
 }: ProfileMenuProps) {
   const shouldRenderMenu = useAnimatedPresence(open, POPOVER_EXIT_MS);
+  const unreadCountQuery = useUnreadCountQuery(status === "authenticated");
+  const unreadCount = unreadCountQuery.data?.count ?? 0;
 
   if (status === "authenticated" && user) {
     return (
@@ -45,11 +54,17 @@ export function ProfileMenu({
         <button
           aria-expanded={open}
           aria-label="프로필 메뉴"
-          className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground transition hover:opacity-90"
+          className="relative inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground transition hover:opacity-90"
           type="button"
           onClick={onToggle}
         >
           {user.email.charAt(0).toUpperCase()}
+          {unreadCount > 0 && (
+            <span
+              aria-hidden="true"
+              className="absolute right-0 top-0 h-2.5 w-2.5 rounded-full bg-destructive ring-2 ring-background"
+            />
+          )}
         </button>
         {shouldRenderMenu && (
           <div
@@ -61,6 +76,19 @@ export function ProfileMenu({
             <p className="truncate border-b border-line px-3 py-2 text-xs text-muted">
               {user.email}
             </p>
+            <Link
+              aria-current={isActive(activePath, "/notifications") ? "page" : undefined}
+              className="flex items-center justify-between px-3 py-2 text-sm text-foreground transition hover:bg-surface-muted aria-[current=page]:bg-surface-muted"
+              href="/notifications"
+              onClick={onClose}
+            >
+              <span>알림</span>
+              {unreadCount > 0 && (
+                <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-xs font-semibold leading-none text-white">
+                  {badgeLabel(unreadCount)}
+                </span>
+              )}
+            </Link>
             {accountNavItems.map((item) => (
               <Link
                 aria-current={isActive(activePath, item.href) ? "page" : undefined}
