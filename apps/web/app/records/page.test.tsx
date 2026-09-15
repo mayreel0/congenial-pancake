@@ -1,3 +1,4 @@
+import { useSearchParams } from "next/navigation";
 import { fireEvent, render, screen, waitFor, within } from "../lib/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import RecordsPage from "./page";
@@ -78,10 +79,24 @@ async function switchToRepliesTab() {
   fireEvent.click(await screen.findByRole("tab", { name: "내가 남긴 답변" }));
 }
 
+// useSearchParams() really returns Next's ReadonlyURLSearchParams, but a
+// plain URLSearchParams satisfies every method this file's component code
+// actually calls (.get) — casting keeps the mock call sites readable
+// instead of importing Next's type just for this.
+function mockSearchParams(query = ""): void {
+  vi.mocked(useSearchParams).mockReturnValue(
+    new URLSearchParams(query) as unknown as ReturnType<typeof useSearchParams>,
+  );
+}
+
 describe("RecordsPage", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.useRealTimers();
+    // Some tests below override this mock's return value with a specific
+    // ?tab= — reset so it doesn't leak into unrelated tests later in this
+    // file.
+    mockSearchParams();
   });
 
   it("shows the login prompt to anonymous visitors", async () => {
@@ -294,6 +309,82 @@ describe("RecordsPage", () => {
     expect(
       screen.queryByText("요즘 마음이 자꾸 가라앉아요."),
     ).not.toBeInTheDocument();
+  });
+
+  // Regression test — clicking a link to /records?tab=replies while
+  // /records?tab=requests is already mounted (same route, no remount) used
+  // to leave the tab stuck on 내가 남긴 고민 even though the URL changed
+  // underneath it.
+  it("switches tabs when the URL's ?tab= changes on an already-mounted page", async () => {
+    installFakeBackend({
+      loggedIn: true,
+      requestLog: [
+        {
+          request: {
+            id: "request-1",
+            body: "요즘 마음이 자꾸 가라앉아요.",
+            createdAt: "2026-08-20T10:15:00.000Z",
+            author: { anonymous: true },
+          },
+          replies: [],
+        },
+      ],
+      replies: [
+        {
+          requestId: "request-2",
+          requestBody: "오늘도 무사히 지나갔어요.",
+          requestCreatedAt: "2026-08-20T10:15:00.000Z",
+          replyId: "reply-1",
+          replyBody: "잘 하셨어요.",
+          replyCreatedAt: "2026-08-21T11:30:00.000Z",
+        },
+      ],
+    });
+
+    const { rerender } = render(<RecordsPage />);
+    expect(await screen.findByText("요즘 마음이 자꾸 가라앉아요.")).toBeInTheDocument();
+
+    // Simulate a same-route navigation to a different ?tab= from elsewhere
+    // (e.g. a <Link>) — this page doesn't remount, so the only signal is a
+    // new useSearchParams() return value.
+    mockSearchParams("tab=replies");
+    rerender(<RecordsPage />);
+
+    expect(await screen.findByText("오늘도 무사히 지나갔어요.")).toBeInTheDocument();
+    expect(
+      screen.queryByText("요즘 마음이 자꾸 가라앉아요."),
+    ).not.toBeInTheDocument();
+  });
+
+  it("does not bounce the tab back while router.replace hasn't caught up with a click yet", async () => {
+    // The mocked router never actually updates useSearchParams() after
+    // replace() (see next/navigation mock in vitest.setup.ts) — this test
+    // pins that same "URL never catches up" condition and confirms the
+    // clicked tab still sticks, matching real behavior where searchParams
+    // only updates a tick after the click, not stale-reverting in between.
+    installFakeBackend({
+      loggedIn: true,
+      requestLog: [
+        {
+          request: {
+            id: "request-1",
+            body: "요즘 마음이 자꾸 가라앉아요.",
+            createdAt: "2026-08-20T10:15:00.000Z",
+            author: { anonymous: true },
+          },
+          replies: [],
+        },
+      ],
+    });
+
+    render(<RecordsPage />);
+    await screen.findByText("요즘 마음이 자꾸 가라앉아요.");
+
+    await switchToRepliesTab();
+
+    expect(
+      await screen.findByRole("tab", { name: "내가 남긴 답변", selected: true }),
+    ).toBeInTheDocument();
   });
 
   it("filters 내가 남긴 고민 by date range (resetting to page 1) and paginates via 번호 페이지", async () => {
