@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatTimestamp } from "../../../lib/format";
+import { formatTimestamp } from "../../lib/format";
 
 type ProfileListItemLinkProps = {
   href: string;
