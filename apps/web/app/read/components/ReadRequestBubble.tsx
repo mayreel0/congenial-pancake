@@ -38,7 +38,7 @@ export function ReadRequestBubble({
           />
         )}
       </div>
-      <p className="text-sm leading-6 text-foreground">{request.body}</p>
+      <p className="whitespace-pre-line text-sm leading-6 text-foreground">{request.body}</p>
       <time
         className="block text-xs text-muted"
         dateTime={request.createdAt}

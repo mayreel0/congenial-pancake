@@ -64,7 +64,7 @@ export function ReadReplyBubble({
             />
           )}
         </div>
-        <p className="text-sm leading-6 text-foreground">{reply.body}</p>
+        <p className="whitespace-pre-line text-sm leading-6 text-foreground">{reply.body}</p>
         <time
           className="block text-xs text-muted"
           dateTime={reply.createdAt}

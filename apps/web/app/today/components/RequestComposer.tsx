@@ -1,12 +1,13 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState } from "react";
-import { createRequestSchema } from "shared/dto";
+import { createRequestSchema, MAX_BODY_NEWLINES } from "shared/dto";
 import { Button } from "ui/Button";
 import { Skeleton } from "ui/Skeleton";
 import { Toggle } from "ui/Toggle";
 import { BUTTON_PENDING_MIN_MS, useMinDisplayDuration } from "ui/useMinDisplayDuration";
 import { parseFieldErrors } from "shared/zod-form";
+import { clampNewlines } from "../../lib/text";
 
 const MIN_TEXTAREA_HEIGHT = 44;
 const MAX_TEXTAREA_HEIGHT = 128;
@@ -107,7 +108,10 @@ export function RequestComposer({
           rows={1}
           value={localValue}
           onChange={(event) => {
-            const nextValue = event.currentTarget.value;
+            const nextValue = clampNewlines(
+              event.currentTarget.value,
+              MAX_BODY_NEWLINES,
+            );
             setDraftState({ propValue: value, localValue: nextValue });
             onChange(nextValue);
           }}

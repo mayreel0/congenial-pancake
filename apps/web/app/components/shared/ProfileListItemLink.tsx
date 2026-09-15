@@ -25,7 +25,7 @@ export function ProfileListItemLink({
         href={href}
       >
         <p className="text-xs font-semibold text-muted">{eyebrow}</p>
-        <p className="text-sm leading-6 text-foreground">{body}</p>
+        <p className="whitespace-pre-line text-sm leading-6 text-foreground">{body}</p>
         <time
           className="block text-xs text-muted"
           dateTime={createdAt}

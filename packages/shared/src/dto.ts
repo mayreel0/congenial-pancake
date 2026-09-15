@@ -28,6 +28,18 @@ export const authorDisplaySchema = z.discriminatedUnion("anonymous", [
 ]);
 export type AuthorDisplayDto = z.infer<typeof authorDisplaySchema>;
 
+// Shared by createRequestSchema/createReplySchema below and by apps/web's
+// composers (which clamp further newline keystrokes client-side instead of
+// just silently disabling submit once this is exceeded — see
+// apps/web/app/lib/text.ts's clampNewlines). A bare line-count cap, not
+// "N consecutive blank lines," since that's what actually bounds how tall
+// a wall-of-blank-lines post can get.
+export const MAX_BODY_NEWLINES = 4;
+
+function countNewlines(value: string): number {
+  return (value.match(/\n/g) ?? []).length;
+}
+
 // POST /requests body — mirrors the limits that used to live as
 // class-validator decorators on apps/api-server's CreateRequestDto.
 // anonymous defaults to true (anonymous) in the service when omitted — a
@@ -38,7 +50,11 @@ export const createRequestSchema = z
     body: z
       .string()
       .min(1, "내용을 입력해주세요.")
-      .max(500, "500자 이하로 입력해주세요."),
+      .max(500, "500자 이하로 입력해주세요.")
+      .refine(
+        (value) => countNewlines(value) <= MAX_BODY_NEWLINES,
+        `줄바꿈은 최대 ${MAX_BODY_NEWLINES}번까지 가능해요.`,
+      ),
     anonymous: z.boolean().optional(),
   })
   .strict();
@@ -76,7 +92,11 @@ export const createReplySchema = z
     body: z
       .string()
       .min(1, "내용을 입력해주세요.")
-      .max(500, "500자 이하로 입력해주세요."),
+      .max(500, "500자 이하로 입력해주세요.")
+      .refine(
+        (value) => countNewlines(value) <= MAX_BODY_NEWLINES,
+        `줄바꿈은 최대 ${MAX_BODY_NEWLINES}번까지 가능해요.`,
+      ),
     anonymous: z.boolean().optional(),
   })
   .strict();

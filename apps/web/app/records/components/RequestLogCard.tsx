@@ -30,7 +30,7 @@ export function RequestLogCard({ entry, onDeleteRequest }: RequestLogCardProps) 
             />
           )}
         </div>
-        <p className="text-sm leading-6 text-foreground">{entry.request.body}</p>
+        <p className="whitespace-pre-line text-sm leading-6 text-foreground">{entry.request.body}</p>
         <time
           className="block text-xs text-muted"
           dateTime={entry.request.createdAt}
@@ -50,7 +50,7 @@ export function RequestLogCard({ entry, onDeleteRequest }: RequestLogCardProps) 
                   href={authorProfileHref(reply.author)}
                   label={authorDisplayLabel(reply.author, "익명")}
                 />
-                <p className="text-sm leading-6 text-foreground">{reply.body}</p>
+                <p className="whitespace-pre-line text-sm leading-6 text-foreground">{reply.body}</p>
                 <time
                   className="block text-xs text-muted"
                   dateTime={reply.createdAt}
