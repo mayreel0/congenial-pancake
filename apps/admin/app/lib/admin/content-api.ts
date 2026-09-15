@@ -1,4 +1,9 @@
-import type { AdminContentStatus, AdminRequestListItemDto } from "shared/dto";
+import type {
+  AdminContentStatus,
+  AdminReplyListItemDto,
+  AdminRequestListItemDto,
+  ReplyModerationActionDto,
+} from "shared/dto";
 import type { PaginatedDto } from "shared/pagination";
 import { apiFetch } from "../api";
 
@@ -28,5 +33,20 @@ export function fetchAdminRequests(
   const query = toSearchParams(filters);
   return apiFetch<PaginatedDto<AdminRequestListItemDto>>(
     `/admin/requests${query ? `?${query}` : ""}`,
+  );
+}
+
+export type AdminReplyListFilters = AdminRequestListFilters & {
+  action?: ReplyModerationActionDto;
+};
+
+export function fetchAdminReplies(
+  filters: AdminReplyListFilters,
+): Promise<PaginatedDto<AdminReplyListItemDto>> {
+  const params = new URLSearchParams(toSearchParams(filters));
+  if (filters.action) params.set("action", filters.action);
+  const query = params.toString();
+  return apiFetch<PaginatedDto<AdminReplyListItemDto>>(
+    `/admin/replies${query ? `?${query}` : ""}`,
   );
 }
