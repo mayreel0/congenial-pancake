@@ -8,7 +8,9 @@ import {
   eq,
   gt,
   gte,
+  ilike,
   inArray,
+  isNotNull,
   isNull,
   lt,
   ne,
@@ -40,6 +42,34 @@ export type QueueCandidateLimits = {
   freshnessHours: number;
   replyCap: number;
 };
+
+// admin's "고민 관리" — unlike every other list in this repository, not
+// scoped to visible/own/public content: an admin needs to find *anything*,
+// reported or not. status is undefined for "no filter", matching
+// dateRangeCondition's convention for its own fields.
+export type AdminContentStatusFilter = 'visible' | 'hidden' | 'deleted';
+export type AdminListFilters = {
+  q?: string;
+  range: DateRange;
+  status?: AdminContentStatusFilter;
+};
+
+function adminStatusCondition(
+  hiddenColumn: typeof requests.hidden,
+  deletedAtColumn: typeof requests.deletedAt,
+  status: AdminContentStatusFilter | undefined,
+) {
+  switch (status) {
+    case 'deleted':
+      return isNotNull(deletedAtColumn);
+    case 'hidden':
+      return and(eq(hiddenColumn, true), isNull(deletedAtColumn));
+    case 'visible':
+      return and(eq(hiddenColumn, false), isNull(deletedAtColumn));
+    default:
+      return undefined;
+  }
+}
 
 // `start`/`end` are both optional (/records' date range defaults to
 // unbounded) — undefined here means "no filter", not "match nothing".
@@ -267,6 +297,53 @@ export class RequestsRepository {
       })),
       totalItems,
     };
+  }
+
+  // admin's "고민 관리" — every request regardless of hidden/deletedAt/
+  // contentRemoved, with a total (all-time, not just visible) replyCount so
+  // an admin can gauge engagement on hidden/deleted content too. Search is
+  // a plain ILIKE on body — this is an admin-only, low-traffic list, not
+  // worth a real full-text-search setup at this scale.
+  async findAllForAdmin(
+    filters: AdminListFilters,
+    pagination: Pagination,
+  ): Promise<PagedResult<RequestWithReplyCount>> {
+    const whereClause = and(
+      filters.q ? ilike(requests.body, `%${filters.q}%`) : undefined,
+      dateRangeCondition(requests.createdAt, filters.range),
+      adminStatusCondition(requests.hidden, requests.deletedAt, filters.status),
+    );
+
+    const [{ value: totalItems }] = await this.db
+      .select({ value: count(requests.id) })
+      .from(requests)
+      .where(whereClause);
+
+    if (totalItems === 0) return { items: [], totalItems: 0 };
+
+    const items = await this.db
+      .select({
+        id: requests.id,
+        body: requests.body,
+        authorId: requests.authorId,
+        guestId: requests.guestId,
+        createdAt: requests.createdAt,
+        hidden: requests.hidden,
+        deletedAt: requests.deletedAt,
+        contentRemoved: requests.contentRemoved,
+        reviewedAt: requests.reviewedAt,
+        anonymous: requests.anonymous,
+        replyCount: count(replies.id),
+      })
+      .from(requests)
+      .leftJoin(replies, eq(replies.requestId, requests.id))
+      .where(whereClause)
+      .groupBy(requests.id)
+      .orderBy(desc(requests.createdAt))
+      .limit(pagination.pageSize)
+      .offset((pagination.page - 1) * pagination.pageSize);
+
+    return { items, totalItems };
   }
 
   // HeatmapCalendar for /read: per-KST-day count of feed items (requests
