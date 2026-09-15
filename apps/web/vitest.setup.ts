@@ -57,7 +57,12 @@ vi.mock("next/navigation", () => ({
     prefetch: vi.fn(),
   }),
   usePathname: () => "/",
-  useSearchParams: () => new URLSearchParams(),
+  // vi.fn() (not a plain arrow fn) so a test can override the current query
+  // string per-test/per-render via
+  // vi.mocked(useSearchParams).mockReturnValue(new URLSearchParams("...")) —
+  // e.g. RecordsPageContent's regression test for staying in sync with a
+  // ?tab= change on an already-mounted page.
+  useSearchParams: vi.fn(() => new URLSearchParams()),
   // vi.fn() (not a plain arrow fn) so a test that needs a specific dynamic
   // route param (e.g. /u/[slug]) can override it per-test via
   // vi.mocked(useParams).mockReturnValue({ slug: "..." }) — other mocks

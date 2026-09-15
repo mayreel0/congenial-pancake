@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "ui/Button";
 import { AuthCheckingSpinner } from "../components/shared/AuthCheckingSpinner";
 import { useAuth } from "../lib/auth/useAuth";
@@ -82,8 +82,30 @@ export function RecordsPageContent() {
     const param = searchParams.get("tab");
     return isRecordsTab(param) ? param : DEFAULT_TAB;
   });
+  // Tracks the tab value *we* last intentionally set (via a click below, or
+  // this same sync effect), independent of React's render timing — lets the
+  // sync effect below tell "searchParams just hasn't caught up with our own
+  // click yet" apart from "the URL changed for some other reason" without
+  // depending on `tab` itself (which would re-fire this effect on every
+  // click and briefly bounce the tab back to the pre-click value, since
+  // router.replace()'s URL update isn't synchronous with setTab()).
+  const lastSyncedTabRef = useRef(tab);
+
+  // A same-route navigation to a different ?tab= (e.g. a Link from
+  // elsewhere pointing at /records?tab=requests while this page is already
+  // mounted showing 답변) doesn't remount this component, so the seed-once
+  // useState above never re-runs on its own — sync it explicitly whenever
+  // Next.js hands back a new searchParams.
+  useEffect(() => {
+    const param = searchParams.get("tab");
+    if (isRecordsTab(param) && param !== lastSyncedTabRef.current) {
+      lastSyncedTabRef.current = param;
+      setTab(param);
+    }
+  }, [searchParams]);
 
   function handleTabChange(next: RecordsTab) {
+    lastSyncedTabRef.current = next;
     setTab(next);
     router.replace(`/records?tab=${next}`, { scroll: false });
   }
