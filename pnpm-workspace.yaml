@@ -9,6 +9,16 @@ overrides:
   # unrelated tests). We don't use jest-dom through Storybook itself, so
   # force everyone onto the version apps/web actually depends on.
   "@testing-library/jest-dom": ^7.0.1
+  # Transitive via express/body-parser and next's optional image
+  # optimizer — bumped past known DoS/RCE advisories (GHSA-x5fp-wj9c-mxmx,
+  # GHSA-4mjr-xmp4-gh2g, GHSA-rgj7-g3m4-5g8c). See pnpm audit.
+  "qs": ">=6.16.0"
+  "sharp": ">=0.35.4"
+  # Bundled by @nestjs/platform-express but unused (no file-upload
+  # endpoints in this app) — bumped anyway since it's a zero-risk patch
+  # bump (GHSA-wc9g-mqfw-jrwm, GHSA-qfvm-cv95-jqjf, GHSA-qvfw-j98x-7q72,
+  # GHSA-535w-7cp7-47q4).
+  "multer": ">=2.3.0"
 publicHoistPattern:
   - next
 allowBuilds:
