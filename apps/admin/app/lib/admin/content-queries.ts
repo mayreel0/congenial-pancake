@@ -1,15 +1,19 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { deleteRequest, restoreRequest } from "./api";
+import { deleteReply, deleteRequest, restoreReply, restoreRequest } from "./api";
 import {
+  fetchAdminReplies,
   fetchAdminRequests,
+  type AdminReplyListFilters,
   type AdminRequestListFilters,
 } from "./content-api";
 
 const adminContentKeys = {
   requests: (filters: AdminRequestListFilters) =>
     ["admin", "requests", filters] as const,
+  replies: (filters: AdminReplyListFilters) =>
+    ["admin", "replies", filters] as const,
 };
 
 export function useAdminRequestsQuery(
@@ -42,6 +46,40 @@ export function useAdminDeleteRequestMutation() {
   const invalidate = useInvalidateAdminRequests();
   return useMutation({
     mutationFn: (id: string) => deleteRequest(id),
+    onSuccess: () => void invalidate(),
+  });
+}
+
+export function useAdminRepliesQuery(
+  filters: AdminReplyListFilters,
+  enabled: boolean,
+) {
+  return useQuery({
+    queryKey: adminContentKeys.replies(filters),
+    queryFn: () => fetchAdminReplies(filters),
+    enabled,
+    retry: false,
+  });
+}
+
+function useInvalidateAdminReplies() {
+  const queryClient = useQueryClient();
+  return () =>
+    queryClient.invalidateQueries({ queryKey: ["admin", "replies"] });
+}
+
+export function useAdminRestoreReplyMutation() {
+  const invalidate = useInvalidateAdminReplies();
+  return useMutation({
+    mutationFn: (id: string) => restoreReply(id),
+    onSuccess: () => void invalidate(),
+  });
+}
+
+export function useAdminDeleteReplyMutation() {
+  const invalidate = useInvalidateAdminReplies();
+  return useMutation({
+    mutationFn: (id: string) => deleteReply(id),
     onSuccess: () => void invalidate(),
   });
 }
