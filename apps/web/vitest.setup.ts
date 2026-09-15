@@ -25,6 +25,25 @@ export class MockIntersectionObserver implements IntersectionObserver {
   takeRecords = vi.fn(() => [] as IntersectionObserverEntry[]);
 }
 
+// jsdom has no real EventSource — useNotificationStream (ProfileMenu, for
+// every authenticated render) needs one to exist so construction doesn't
+// throw. Exported so a test can grab the most recent instance and manually
+// invoke onmessage to simulate a server push.
+export class MockEventSource {
+  static instances: MockEventSource[] = [];
+  onmessage: ((event: MessageEvent) => void) | null = null;
+  onerror: ((event: Event) => void) | null = null;
+
+  constructor(
+    public url: string,
+    public eventSourceInitDict?: EventSourceInit,
+  ) {
+    MockEventSource.instances.push(this);
+  }
+
+  close = vi.fn();
+}
+
 // AuthContext (and /login) call useRouter() — there's no real Next.js App
 // Router in a plain RTL render, so every component that renders AuthProvider
 // (effectively the whole app) needs this mocked.
@@ -54,6 +73,8 @@ vi.mock("next/navigation", () => ({
 beforeEach(() => {
   MockIntersectionObserver.instances = [];
   vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
+  MockEventSource.instances = [];
+  vi.stubGlobal("EventSource", MockEventSource);
   // jsdom has neither — ui/Pagination's scroll-to-top-on-page-change reads
   // matchMedia (which jsdom doesn't implement at all, so leaving it unstubbed
   // would throw rather than just warn) and calls scrollTo.

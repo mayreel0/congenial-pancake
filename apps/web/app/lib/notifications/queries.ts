@@ -7,13 +7,16 @@ import {
   markAllNotificationsRead,
 } from "./api";
 
-// 답장이 달리면 useNotificationStream(다음 PR)이 실시간으로 이 값을
-// invalidate하지만, 그 연결이 끊겼거나 아예 없던 동안 놓친 알림까지
-// 잡아내는 보완책으로 60초 폴링은 그대로 유지한다.
+// 답장이 달리면 useNotificationStream이 실시간으로 이 값을 invalidate하지만,
+// 그 연결이 끊겼거나 아예 없던 동안 놓친 알림까지 잡아내는 보완책으로 60초
+// 폴링은 그대로 유지한다.
 const UNREAD_COUNT_POLL_MS = 60_000;
 
-const notificationKeys = {
+export const notificationKeys = {
   unreadCount: ["notifications", "unreadCount"] as const,
+  // 페이지/페이지크기 무관하게 모든 list(...) 변형을 한 번에 invalidate하기
+  // 위한 prefix 키 — useNotificationStream이 이걸로 무효화한다.
+  listAll: ["notifications", "list"] as const,
   list: (page: number, pageSize: number) =>
     ["notifications", "list", page, pageSize] as const,
 };
