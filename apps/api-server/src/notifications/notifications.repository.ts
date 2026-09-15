@@ -2,10 +2,18 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 import { DRIZZLE } from '../database/database.constants';
 import type { Database } from '../database/database.types';
-import { notifications } from '../database/schema';
+import { notifications, requests } from '../database/schema';
 import type { PagedResult, Pagination } from '../requests/requests.repository';
 
 export type NotificationRecord = typeof notifications.$inferSelect;
+
+// findMine's item shape — the joined request's body/contentRemoved, not
+// yet run through visibleRequestBody() (that happens at the DTO layer,
+// same as every other response mapper — see common/request-content.ts).
+export type NotificationWithRequest = NotificationRecord & {
+  requestBody: string;
+  requestContentRemoved: boolean;
+};
 
 @Injectable()
 export class NotificationsRepository {
@@ -24,15 +32,29 @@ export class NotificationsRepository {
       .then((rows) => rows[0]);
   }
 
+  // Joins requests (inner — every notification today is 'reply_received',
+  // which always has a requestId) so the list can show which of the
+  // viewer's own posts got the reply, not just the bare fact that one did.
   async findMine(
     userId: string,
     { page, pageSize }: Pagination,
-  ): Promise<PagedResult<NotificationRecord>> {
+  ): Promise<PagedResult<NotificationWithRequest>> {
     const where = eq(notifications.userId, userId);
     const [items, [{ count }]] = await Promise.all([
       this.db
-        .select()
+        .select({
+          id: notifications.id,
+          userId: notifications.userId,
+          type: notifications.type,
+          requestId: notifications.requestId,
+          replyId: notifications.replyId,
+          createdAt: notifications.createdAt,
+          readAt: notifications.readAt,
+          requestBody: requests.body,
+          requestContentRemoved: requests.contentRemoved,
+        })
         .from(notifications)
+        .innerJoin(requests, eq(requests.id, notifications.requestId))
         .where(where)
         .orderBy(desc(notifications.createdAt))
         .limit(pageSize)

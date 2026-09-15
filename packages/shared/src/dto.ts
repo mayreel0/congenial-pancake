@@ -425,6 +425,11 @@ export const notificationResponseSchema = z.object({
   type: z.string(),
   requestId: z.string().nullable(),
   replyId: z.string().nullable(),
+  // The viewer's own request body (already run through visibleRequestBody
+  // server-side, same placeholder-on-delete rule as everywhere else) — so
+  // a notification reads as "OO에 답장이 도착했어요" for a specific post,
+  // not just a generic fact with nothing to distinguish it from any other.
+  requestBody: z.string(),
   createdAt: z.string(),
   readAt: z.string().nullable(),
 });
