@@ -9,6 +9,7 @@ import { UsersService } from '../users/users.service';
 import type { CreateRequestDto } from './dto/create-request.dto';
 import {
   RequestsRepository,
+  type AdminListFilters,
   type DateRange,
   type DayCount,
   type FeedItem,
@@ -122,6 +123,13 @@ export class RequestsService {
 
   softDelete(id: string): Promise<void> {
     return this.requestsRepository.softDelete(id);
+  }
+
+  findAllForAdmin(
+    filters: AdminListFilters,
+    pagination: Pagination,
+  ): Promise<PagedResult<RequestWithReplyCount>> {
+    return this.requestsRepository.findAllForAdmin(filters, pagination);
   }
 
   // Member-only self-service delete — see requests.schema.ts's
