@@ -6,6 +6,7 @@ import { Skeleton } from "ui/Skeleton";
 import { POPOVER_EXIT_MS, useAnimatedPresence } from "ui/useAnimatedPresence";
 import { useAuth } from "../../lib/auth/useAuth";
 import { useUnreadCountQuery } from "../../lib/notifications/queries";
+import { useNotificationStream } from "../../lib/notifications/useNotificationStream";
 import { accountNavItems, landingEntryLinks } from "./routes";
 
 const MAX_BADGE_COUNT = 9;
@@ -47,6 +48,14 @@ export function ProfileMenu({
   const shouldRenderMenu = useAnimatedPresence(open, POPOVER_EXIT_MS);
   const unreadCountQuery = useUnreadCountQuery(status === "authenticated");
   const unreadCount = unreadCountQuery.data?.count ?? 0;
+  // One SSE connection for however many times ProfileMenu is mounted
+  // (ServiceNav + LandingHeader) — both call this hook, but each opens its
+  // own EventSource, which is one-per-mounted-instance rather than
+  // truly singleton. In practice only one of ServiceNav/LandingHeader is
+  // ever mounted at a time (they're alternate headers for different route
+  // groups), so this stays at one real connection despite not being a
+  // shared singleton by construction.
+  useNotificationStream(status === "authenticated");
 
   if (status === "authenticated" && user) {
     return (
