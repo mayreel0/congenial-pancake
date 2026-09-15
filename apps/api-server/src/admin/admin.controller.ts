@@ -16,7 +16,8 @@ import { ZodResponse } from 'nestjs-zod';
 import { PasswordResetService } from '../auth/password-reset/password-reset.service';
 import { SessionGuard } from '../auth/session.guard';
 import { UsersService } from '../users/users.service';
-import type { AdminContentStatus } from 'shared/dto';
+import type { AdminContentStatus, ReplyModerationActionDto } from 'shared/dto';
+import { replyModerationActionSchema } from 'shared/dto';
 import { isValidDateString, kstDateRange } from '../common/kst-date';
 import {
   parsePageParam,
@@ -35,6 +36,10 @@ import {
   toSettingsResponseDto,
 } from '../settings/dto/settings.dto';
 import { AdminGuard } from './admin.guard';
+import {
+  toAdminReplyListItemDto,
+  type AdminReplyListItemDto,
+} from './dto/admin-reply-list-item.dto';
 import {
   toAdminRequestListItemDto,
   type AdminRequestListItemDto,
@@ -59,6 +64,17 @@ function parseStatusFilter(
 ): AdminContentStatusFilter | undefined {
   return ADMIN_CONTENT_STATUS_VALUES.includes(status as AdminContentStatus)
     ? (status as AdminContentStatusFilter)
+    : undefined;
+}
+
+const REPLY_MODERATION_ACTION_VALUES = replyModerationActionSchema.options;
+function parseActionFilter(
+  action: string | undefined,
+): ReplyModerationActionDto | undefined {
+  return REPLY_MODERATION_ACTION_VALUES.includes(
+    action as ReplyModerationActionDto,
+  )
+    ? (action as ReplyModerationActionDto)
     : undefined;
 }
 
@@ -167,6 +183,45 @@ export class AdminController {
       'request',
       (item) => item.id,
       toAdminRequestListItemDto,
+    );
+
+    return toPaginatedDto(dtoItems, page, totalItems, pageSize);
+  }
+
+  // "답변 관리" — every reply regardless of report/hidden status, with its
+  // AI 사전검토(dry-run) 판정을 같이 반환. Same restore/delete endpoints below
+  // work on rows found here too.
+  @Get('replies')
+  async listReplies(
+    @Query('q') q: string | undefined,
+    @Query('from') fromParam: string | undefined,
+    @Query('to') toParam: string | undefined,
+    @Query('status') statusParam: string | undefined,
+    @Query('action') actionParam: string | undefined,
+    @Query('page') pageParam: string | undefined,
+    @Query('pageSize') pageSizeParam: string | undefined,
+  ): Promise<PaginatedDto<AdminReplyListItemDto>> {
+    const from =
+      fromParam && isValidDateString(fromParam) ? fromParam : undefined;
+    const to = toParam && isValidDateString(toParam) ? toParam : undefined;
+    const page = parsePageParam(pageParam);
+    const pageSize = parsePageSizeParam(pageSizeParam);
+
+    const { items, totalItems } = await this.repliesService.findAllForAdmin(
+      {
+        q: q?.trim() || undefined,
+        range: kstDateRange(from, to),
+        status: parseStatusFilter(statusParam),
+        action: parseActionFilter(actionParam),
+      },
+      { page, pageSize },
+    );
+
+    const dtoItems = await this.enrichWithReportCount(
+      items,
+      'reply',
+      (item) => item.reply.id,
+      toAdminReplyListItemDto,
     );
 
     return toPaginatedDto(dtoItems, page, totalItems, pageSize);

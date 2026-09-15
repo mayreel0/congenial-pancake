@@ -6,6 +6,7 @@ import {
   desc,
   eq,
   gte,
+  ilike,
   isNull,
   lt,
   sql,
@@ -13,15 +14,23 @@ import {
 } from 'drizzle-orm';
 import { DRIZZLE } from '../database/database.constants';
 import type { Database } from '../database/database.types';
-import { replies, requests } from '../database/schema';
+import { replies, replyModerationLogs, requests } from '../database/schema';
+import type { ModerationAction } from '../moderation/reply-content/reply-content-moderation.types';
 import type {
+  AdminContentStatusFilter,
   DateRange,
   DayCount,
   PagedResult,
   Pagination,
   RequestRecord,
 } from '../requests/requests.repository';
+import { adminStatusCondition } from '../requests/requests.repository';
 import type { ViewerIdentity } from '../requests/requests.repository';
+
+type ReplyModerationLogRecord = typeof replyModerationLogs.$inferSelect;
+export type ReplyWithRequestAndModeration = ReplyWithRequest & {
+  moderation: ReplyModerationLogRecord | null;
+};
 
 export type CreateReplyInput = {
   requestId: string;
@@ -119,6 +128,65 @@ export class RepliesRepository {
       .innerJoin(requests, eq(requests.id, replies.requestId))
       .where(and(eq(replies.hidden, true), isNull(replies.deletedAt)))
       .orderBy(asc(replies.createdAt));
+  }
+
+  // admin's "답변 관리" — every reply regardless of hidden/deletedAt, with
+  // its most recent moderation dry-run verdict (if any) attached. Action
+  // filtering is a plain WHERE on the left-joined log row rather than a
+  // DISTINCT-ON-latest subquery: moderation only ever runs once per reply
+  // today (see RepliesService.moderateInBackground, called once at
+  // creation, never re-run), so "has a log with this action" and "this
+  // reply's current action" are the same thing in practice. If re-running
+  // moderation on an existing reply ever becomes a feature, this will need
+  // a real "latest per reply" join instead.
+  async findAllForAdmin(
+    filters: {
+      q?: string;
+      range: DateRange;
+      status?: AdminContentStatusFilter;
+      action?: ModerationAction;
+    },
+    pagination: Pagination,
+  ): Promise<PagedResult<ReplyWithRequestAndModeration>> {
+    const whereClause = and(
+      filters.q ? ilike(replies.body, `%${filters.q}%`) : undefined,
+      dateRangeCondition(replies.createdAt, filters.range),
+      adminStatusCondition(replies.hidden, replies.deletedAt, filters.status),
+      filters.action
+        ? eq(replyModerationLogs.action, filters.action)
+        : undefined,
+    );
+
+    const [{ value: totalItems }] = await this.db
+      .select({ value: count(replies.id) })
+      .from(replies)
+      .innerJoin(requests, eq(requests.id, replies.requestId))
+      .leftJoin(
+        replyModerationLogs,
+        eq(replyModerationLogs.replyId, replies.id),
+      )
+      .where(whereClause);
+
+    if (totalItems === 0) return { items: [], totalItems: 0 };
+
+    const rows = await this.db
+      .select({
+        reply: replies,
+        request: requests,
+        moderation: replyModerationLogs,
+      })
+      .from(replies)
+      .innerJoin(requests, eq(requests.id, replies.requestId))
+      .leftJoin(
+        replyModerationLogs,
+        eq(replyModerationLogs.replyId, replies.id),
+      )
+      .where(whereClause)
+      .orderBy(desc(replies.createdAt))
+      .limit(pagination.pageSize)
+      .offset((pagination.page - 1) * pagination.pageSize);
+
+    return { items: rows, totalItems };
   }
 
   async restore(id: string): Promise<void> {

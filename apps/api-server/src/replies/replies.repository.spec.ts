@@ -5,6 +5,12 @@ jest.mock('drizzle-orm', () => ({
   desc: jest.fn((arg: unknown) => ({ op: 'desc', arg })),
   eq: jest.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
   gte: jest.fn((left: unknown, right: unknown) => ({ op: 'gte', left, right })),
+  ilike: jest.fn((left: unknown, right: unknown) => ({
+    op: 'ilike',
+    left,
+    right,
+  })),
+  isNotNull: jest.fn((arg: unknown) => ({ op: 'isNotNull', arg })),
   isNull: jest.fn((arg: unknown) => ({ op: 'isNull', arg })),
   lt: jest.fn((left: unknown, right: unknown) => ({ op: 'lt', left, right })),
   // schema/index.ts now transitively pulls in reply-moderation-logs.schema.ts,
@@ -19,9 +25,9 @@ jest.mock('drizzle-orm', () => ({
   })),
 }));
 
-import { and, desc, eq, gte, isNull, lt } from 'drizzle-orm';
+import { and, desc, eq, gte, ilike, isNotNull, isNull, lt } from 'drizzle-orm';
 import type { Database } from '../database/database.types';
-import { replies, requests } from '../database/schema';
+import { replies, replyModerationLogs, requests } from '../database/schema';
 import { RepliesRepository } from './replies.repository';
 
 describe('RepliesRepository', () => {
@@ -176,6 +182,103 @@ describe('RepliesRepository', () => {
         ),
       );
       expect(result).toEqual({ items: [], totalItems: 0 });
+    });
+  });
+
+  describe('findAllForAdmin', () => {
+    function makeCountChain(totalItems: number) {
+      const where = jest.fn().mockResolvedValue([{ value: totalItems }]);
+      const leftJoin = jest.fn(() => ({ where }));
+      const innerJoin = jest.fn(() => ({ leftJoin }));
+      const from = jest.fn(() => ({ innerJoin }));
+      return { from, innerJoin, leftJoin, where };
+    }
+
+    function makeRowsChain(rows: unknown[]) {
+      const offset = jest.fn().mockResolvedValue(rows);
+      const limit = jest.fn(() => ({ offset }));
+      const orderBy = jest.fn(() => ({ limit }));
+      const where = jest.fn(() => ({ orderBy }));
+      const leftJoin = jest.fn(() => ({ where }));
+      const innerJoin = jest.fn(() => ({ leftJoin }));
+      const from = jest.fn(() => ({ innerJoin }));
+      return { from, innerJoin, leftJoin, where, orderBy, limit, offset };
+    }
+
+    it('filters by search/date/status/action and paginates', async () => {
+      const rows = [
+        {
+          reply: { id: 'reply-1' },
+          request: { id: 'request-1' },
+          moderation: { action: 'block' },
+        },
+      ];
+      const countChain = makeCountChain(1);
+      const rowsChain = makeRowsChain(rows);
+      const select = jest
+        .fn()
+        .mockReturnValueOnce({ from: countChain.from })
+        .mockReturnValueOnce({ from: rowsChain.from });
+      const db = { select } as unknown as Database;
+      const repository = new RepliesRepository(db);
+
+      const result = await repository.findAllForAdmin(
+        { q: '나쁜말', range: {}, status: 'visible', action: 'block' },
+        { page: 1, pageSize: 10 },
+      );
+
+      const expectedWhere = and(
+        ilike(replies.body, '%나쁜말%'),
+        undefined,
+        and(eq(replies.hidden, false), isNull(replies.deletedAt)),
+        eq(replyModerationLogs.action, 'block'),
+      );
+      expect(countChain.where).toHaveBeenCalledWith(expectedWhere);
+      expect(rowsChain.where).toHaveBeenCalledWith(expectedWhere);
+      expect(rowsChain.innerJoin).toHaveBeenCalledWith(
+        requests,
+        eq(requests.id, replies.requestId),
+      );
+      expect(rowsChain.leftJoin).toHaveBeenCalledWith(
+        replyModerationLogs,
+        eq(replyModerationLogs.replyId, replies.id),
+      );
+      expect(result).toEqual({ items: rows, totalItems: 1 });
+    });
+
+    it('treats a "deleted" status filter as deletedAt IS NOT NULL, with no action filter', async () => {
+      const countChain = makeCountChain(1);
+      const rowsChain = makeRowsChain([]);
+      const select = jest
+        .fn()
+        .mockReturnValueOnce({ from: countChain.from })
+        .mockReturnValueOnce({ from: rowsChain.from });
+      const db = { select } as unknown as Database;
+      const repository = new RepliesRepository(db);
+
+      await repository.findAllForAdmin(
+        { range: {}, status: 'deleted' },
+        { page: 1, pageSize: 10 },
+      );
+
+      expect(countChain.where).toHaveBeenCalledWith(
+        and(undefined, undefined, isNotNull(replies.deletedAt), undefined),
+      );
+    });
+
+    it('skips the row query when nothing matches', async () => {
+      const countChain = makeCountChain(0);
+      const select = jest.fn().mockReturnValueOnce({ from: countChain.from });
+      const db = { select } as unknown as Database;
+      const repository = new RepliesRepository(db);
+
+      const result = await repository.findAllForAdmin(
+        { range: {} },
+        { page: 1, pageSize: 10 },
+      );
+
+      expect(result).toEqual({ items: [], totalItems: 0 });
+      expect(select).toHaveBeenCalledTimes(1);
     });
   });
 });

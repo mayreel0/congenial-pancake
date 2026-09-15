@@ -54,9 +54,11 @@ export type AdminListFilters = {
   status?: AdminContentStatusFilter;
 };
 
-function adminStatusCondition(
-  hiddenColumn: typeof requests.hidden,
-  deletedAtColumn: typeof requests.deletedAt,
+// Exported for RepliesRepository.findAllForAdmin, whose replies.hidden/
+// deletedAt columns share this exact same tri-state shape.
+export function adminStatusCondition(
+  hiddenColumn: typeof requests.hidden | typeof replies.hidden,
+  deletedAtColumn: typeof requests.deletedAt | typeof replies.deletedAt,
   status: AdminContentStatusFilter | undefined,
 ) {
   switch (status) {
