@@ -115,4 +115,38 @@ describe("ReadThread", () => {
       screen.queryByRole("button", { name: "더보기" }),
     ).not.toBeInTheDocument();
   });
+
+  it("preserves line breaks typed into a request or reply body", () => {
+    const multilineItem: FeedItemDto = {
+      ...item,
+      request: { ...item.request, body: "첫 줄\n둘째 줄" },
+      replies: [{ ...item.replies[0], body: "답장 첫 줄\n답장 둘째 줄" }],
+    };
+
+    render(
+      <ReadThread
+        authorLabels={new Map()}
+        item={multilineItem}
+        savedReplyIds={new Set()}
+        showActions={false}
+        onReportReply={() => {}}
+        onReportRequest={() => {}}
+        onToggleSaveReply={() => {}}
+      />,
+    );
+
+    // getByText's default normalizer collapses whitespace (including \n)
+    // before matching, which would defeat the point of this test — a
+    // function matcher reads the raw textContent instead.
+    function findByExactText(text: string) {
+      return screen.getByText(
+        (_content, element) => element?.textContent === text,
+      );
+    }
+
+    expect(findByExactText("첫 줄\n둘째 줄")).toHaveClass("whitespace-pre-line");
+    expect(findByExactText("답장 첫 줄\n답장 둘째 줄")).toHaveClass(
+      "whitespace-pre-line",
+    );
+  });
 });

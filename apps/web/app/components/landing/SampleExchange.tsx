@@ -68,13 +68,13 @@ export function SampleExchange() {
       <div className="mt-4 space-y-4">
         <div>
           <p className="text-xs text-muted">위로 요청</p>
-          <p className="mt-1 text-base leading-7 text-foreground">
+          <p className="mt-1 whitespace-pre-line text-base leading-7 text-foreground">
             {exchange.request.body}
           </p>
         </div>
         <div className="rounded-lg bg-surface-muted p-4">
           <p className="text-xs text-muted">답장</p>
-          <p className="mt-1 text-base leading-7 text-foreground">
+          <p className="mt-1 whitespace-pre-line text-base leading-7 text-foreground">
             {exchange.reply.body}
           </p>
         </div>

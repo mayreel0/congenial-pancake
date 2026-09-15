@@ -1,12 +1,13 @@
 "use client";
 
 import { useLayoutEffect, useRef } from "react";
-import { createReplySchema } from "shared/dto";
+import { createReplySchema, MAX_BODY_NEWLINES } from "shared/dto";
 import { Button } from "ui/Button";
 import { Skeleton } from "ui/Skeleton";
 import { Toggle } from "ui/Toggle";
 import { BUTTON_PENDING_MIN_MS, useMinDisplayDuration } from "ui/useMinDisplayDuration";
 import { parseFieldErrors } from "shared/zod-form";
+import { clampNewlines } from "../../lib/text";
 
 const MIN_TEXTAREA_HEIGHT = 44;
 const MAX_TEXTAREA_HEIGHT = 128;
@@ -114,7 +115,9 @@ export function AnswerComposer({
             ref={textareaRef}
             rows={1}
             value={value}
-            onChange={(event) => onChange(event.target.value)}
+            onChange={(event) =>
+              onChange(clampNewlines(event.target.value, MAX_BODY_NEWLINES))
+            }
           />
           <div className="shrink-0">
             <Button

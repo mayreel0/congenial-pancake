@@ -89,6 +89,29 @@ describe("RequestComposer", () => {
     expect(onSubmit).toHaveBeenCalledWith("모바일에서 입력한 온설입니다.");
   });
 
+  it("clamps typed newlines at the shared cap instead of letting the field silently fail validation", () => {
+    const onChange = vi.fn();
+
+    render(
+      <RequestComposer
+        status="idle"
+        isLoadingNickname={false}
+        nickname={null}
+        anonymous={false}
+        onToggleAnonymous={vi.fn()}
+        value=""
+        onChange={onChange}
+        onSubmit={vi.fn()}
+      />,
+    );
+
+    fireEvent.input(screen.getByLabelText("오늘 어떤 말을 듣고 싶나요?"), {
+      target: { value: "한\n두\n세\n네\n다섯\n여섯째 줄까지 눌러봄" },
+    });
+
+    expect(onChange).toHaveBeenCalledWith("한\n두\n세\n네\n다섯");
+  });
+
   it("expands the textarea as the request grows and resets when cleared", () => {
     const { rerender } = render(
       <RequestComposer

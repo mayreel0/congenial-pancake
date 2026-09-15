@@ -10,7 +10,7 @@ export function ProfilePostCard({ eyebrow, body, createdAt }: ProfilePostCardPro
   return (
     <li className="space-y-1.5 rounded-lg border border-line bg-surface px-4 py-3 shadow-sm">
       <p className="text-xs font-semibold text-muted">{eyebrow}</p>
-      <p className="text-sm leading-6 text-foreground">{body}</p>
+      <p className="whitespace-pre-line text-sm leading-6 text-foreground">{body}</p>
       <time
         className="block text-xs text-muted"
         dateTime={createdAt}
