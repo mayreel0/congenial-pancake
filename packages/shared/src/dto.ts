@@ -411,6 +411,44 @@ export type AdminRequestListItemDto = z.infer<
   typeof adminRequestListItemSchema
 >;
 
+// Mirrors apps/api-server's ModerationAction/ModerationCategory unions
+// (reply-content-moderation.types.ts) — duplicated here rather than
+// imported since packages/shared can't depend on apps/api-server code.
+export const replyModerationActionSchema = z.enum([
+  'allow',
+  'suggest_rewrite',
+  'block',
+  'uncertain',
+]);
+export type ReplyModerationActionDto = z.infer<
+  typeof replyModerationActionSchema
+>;
+
+export const adminReplyModerationSchema = z.object({
+  action: replyModerationActionSchema,
+  categories: z.array(z.string()),
+  severity: z.number(),
+  confidence: z.number(),
+  reason: z.string(),
+  suggestions: z.array(z.string()),
+  createdAt: z.string(),
+});
+export type AdminReplyModerationDto = z.infer<
+  typeof adminReplyModerationSchema
+>;
+
+export const adminReplyListItemSchema = z.object({
+  id: z.string(),
+  requestId: z.string(),
+  requestBody: z.string(),
+  body: z.string(),
+  createdAt: z.string(),
+  status: adminContentStatusSchema,
+  reportCount: z.number(),
+  moderation: adminReplyModerationSchema.nullable(),
+});
+export type AdminReplyListItemDto = z.infer<typeof adminReplyListItemSchema>;
+
 // GET /public/stats (landing page) — no auth, counts only, never anything
 // author-identifying.
 const landingCountsSchema = z.object({

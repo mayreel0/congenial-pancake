@@ -9,8 +9,10 @@ import {
 } from '../common/exceptions/app.exception';
 import { ReplyContentModerationService } from '../moderation/reply-content/reply-content-moderation.service';
 import { ReplyModerationLogService } from '../moderation/reply-content/reply-moderation-log.service';
+import type { ModerationAction } from '../moderation/reply-content/reply-content-moderation.types';
 import { NotificationsService } from '../notifications/notifications.service';
 import type {
+  AdminContentStatusFilter,
   DateRange,
   DayCount,
   PagedResult,
@@ -25,6 +27,7 @@ import {
   RepliesRepository,
   type ReplyRecord,
   type ReplyWithRequest,
+  type ReplyWithRequestAndModeration,
 } from './replies.repository';
 
 @Injectable()
@@ -219,6 +222,18 @@ export class RepliesService {
 
   softDelete(id: string): Promise<void> {
     return this.repliesRepository.softDelete(id);
+  }
+
+  findAllForAdmin(
+    filters: {
+      q?: string;
+      range: DateRange;
+      status?: AdminContentStatusFilter;
+      action?: ModerationAction;
+    },
+    pagination: Pagination,
+  ): Promise<PagedResult<ReplyWithRequestAndModeration>> {
+    return this.repliesRepository.findAllForAdmin(filters, pagination);
   }
 
   // Member-only self-service delete. Unlike a request's contentRemoved
