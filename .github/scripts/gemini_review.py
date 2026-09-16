@@ -107,6 +107,17 @@ def run_diff(base_sha: str, head_sha: str) -> str:
     return diff
 
 
+def extract_gemini_error_message(raw_detail: str) -> str | None:
+    """Pull the human-readable message out of Gemini's {"error": {...}}
+    body, e.g. "This model is currently experiencing high demand." —
+    falls back to None (caller shows the raw body instead) if the
+    response isn't the shape we expect."""
+    try:
+        return json.loads(raw_detail)["error"]["message"]
+    except (json.JSONDecodeError, KeyError, TypeError):
+        return None
+
+
 def call_gemini(api_key: str, model: str, diff: str) -> dict:
     prompt = REVIEW_INSTRUCTIONS.format(max_comments=MAX_COMMENTS) + (
         f"\n\n[이번 PR의 diff]\n```diff\n{diff}\n```\n"
@@ -242,28 +253,33 @@ def main() -> int:
     try:
         review = call_gemini(api_key, model, diff)
     except urllib.error.HTTPError as error:
-        detail = error.read().decode("utf-8", errors="replace")
-        print(f"::warning::Gemini API 호출 실패: {error} — {detail[:2000]}")
+        raw_detail = error.read().decode("utf-8", errors="replace")
+        reason = extract_gemini_error_message(raw_detail) or raw_detail[:500]
+        print(f"::error::Gemini API 호출 실패: HTTP {error.code} — {raw_detail[:2000]}")
         post_summary_comment(
             repo,
             pr_number,
             github_token,
-            "Gemini API 호출에 실패해서 이번 라운드는 리뷰를 남기지 못했어요. "
-            "GEMINI_API_KEY 설정이나 워크플로 로그를 확인해주세요.",
+            f"Gemini API 호출에 실패해서 이번 라운드는 리뷰를 남기지 못했어요.\n\n"
+            f"- 상태 코드: `{error.code}`\n"
+            f"- 사유: {reason}",
             [],
         )
-        return 0
+        # Not a required status check (see branch protection) — this just
+        # makes the failure visible as a red ✗ in the PR checks list
+        # instead of a silent green check that actually did nothing.
+        return 1
     except (urllib.error.URLError, KeyError, json.JSONDecodeError) as error:
-        print(f"::warning::Gemini API 호출 실패: {error}")
+        print(f"::error::Gemini API 호출 실패: {error!r}")
         post_summary_comment(
             repo,
             pr_number,
             github_token,
-            "Gemini API 호출에 실패해서 이번 라운드는 리뷰를 남기지 못했어요. "
-            "GEMINI_API_KEY 설정이나 워크플로 로그를 확인해주세요.",
+            f"Gemini API 호출에 실패해서 이번 라운드는 리뷰를 남기지 못했어요.\n\n"
+            f"- 사유: `{error!r}`",
             [],
         )
-        return 0
+        return 1
 
     summary = review.get("summary", "").strip() or "리뷰할 내용을 찾지 못했어요."
     comments = review.get("comments", [])[:MAX_COMMENTS]
