@@ -153,7 +153,7 @@ describe("AdminRequests", () => {
   });
 
   it("restores a request", async () => {
-    installFakeBackend(makePage([makeItem()]));
+    installFakeBackend(makePage([makeItem({ status: "hidden" })]));
     render(<AdminRequests />);
     await screen.findByText("오늘 조금 힘들었어요.");
 
@@ -162,6 +162,39 @@ describe("AdminRequests", () => {
     await waitFor(() =>
       expect(screen.getByText("복구했어요.")).toBeInTheDocument(),
     );
+  });
+
+  it("hides the 복구 button for a visible item and 영구 삭제 for a deleted one", async () => {
+    installFakeBackend(
+      makePage([
+        makeItem({ id: "req-visible", status: "visible" }),
+        makeItem({
+          id: "req-deleted",
+          body: "이미 삭제된 고민이에요.",
+          status: "deleted",
+        }),
+      ]),
+    );
+    render(<AdminRequests />);
+    await screen.findByText("오늘 조금 힘들었어요.");
+
+    const visibleRow = screen.getByText("오늘 조금 힘들었어요.").closest("tr")!;
+    expect(
+      within(visibleRow).queryByRole("button", { name: "복구" }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(visibleRow).getByRole("button", { name: "영구 삭제" }),
+    ).toBeInTheDocument();
+
+    const deletedRow = screen
+      .getByText("이미 삭제된 고민이에요.")
+      .closest("tr")!;
+    expect(
+      within(deletedRow).getByRole("button", { name: "복구" }),
+    ).toBeInTheDocument();
+    expect(
+      within(deletedRow).queryByRole("button", { name: "영구 삭제" }),
+    ).not.toBeInTheDocument();
   });
 
   it("requires confirmation before permanently deleting a request", async () => {

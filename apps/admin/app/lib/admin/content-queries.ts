@@ -24,10 +24,18 @@ export function useAdminRequestsQuery(
   });
 }
 
+// Also invalidates the 신고 검토 큐(["admin","moderation","hidden"]) — it
+// reads the exact same underlying rows via a separate query key, so a
+// restore/delete here would otherwise leave that other screen showing a
+// stale entry until its own next unrelated refetch.
 function useInvalidateAdminRequests() {
   const queryClient = useQueryClient();
-  return () =>
-    queryClient.invalidateQueries({ queryKey: ["admin", "requests"] });
+  return () => {
+    void queryClient.invalidateQueries({ queryKey: ["admin", "requests"] });
+    void queryClient.invalidateQueries({
+      queryKey: ["admin", "moderation", "hidden"],
+    });
+  };
 }
 
 export function useAdminRestoreRequestMutation() {
