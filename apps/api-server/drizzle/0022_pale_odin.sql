@@ -1,0 +1,1 @@
+CREATE INDEX "reply_moderation_logs_reply_id_idx" ON "reply_moderation_logs" USING btree ("reply_id");
