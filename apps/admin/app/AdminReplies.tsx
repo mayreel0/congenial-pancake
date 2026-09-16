@@ -8,7 +8,9 @@ import type {
 } from "shared/dto";
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS } from "shared/pagination";
 import { ActionConfirmDialog } from "ui/ActionConfirmDialog";
+import { HeatmapCalendarField } from "ui/HeatmapCalendarField";
 import { Pagination } from "ui/Pagination";
+import { Select } from "ui/Select";
 import { Skeleton } from "ui/Skeleton";
 import { TextField } from "ui/TextField";
 import { useDebouncedValue } from "ui/useDebouncedValue";
@@ -16,6 +18,12 @@ import { toast } from "ui/useToast";
 import { formatTimestamp } from "utils";
 import { AdminShell } from "./components/AdminShell";
 import { AdminStatusGate } from "./components/AdminStatusGate";
+import {
+  addDaysToDateString,
+  formatKoreanDate,
+  monthAnchorOf,
+  yesterdayKstDateString,
+} from "./lib/kst-date";
 import {
   useAdminDeleteReplyMutation,
   useAdminRepliesQuery,
@@ -60,7 +68,7 @@ function RowActions({ status, onRestore, onDelete }: RowActionsProps) {
     <div className="flex justify-end gap-2">
       {status !== "visible" && (
         <button
-          className="inline-flex h-8 items-center justify-center rounded-lg border border-line px-3 text-xs font-semibold text-foreground transition hover:bg-surface-muted"
+          className="inline-flex h-8 items-center justify-center whitespace-nowrap rounded-lg border border-line px-3 text-xs font-semibold text-foreground transition hover:bg-surface-muted"
           type="button"
           onClick={onRestore}
         >
@@ -69,7 +77,7 @@ function RowActions({ status, onRestore, onDelete }: RowActionsProps) {
       )}
       {status !== "deleted" && (
         <button
-          className="inline-flex h-8 items-center justify-center rounded-lg border border-line px-3 text-xs font-semibold text-red-600 transition hover:bg-surface-muted"
+          className="inline-flex h-8 items-center justify-center whitespace-nowrap rounded-lg border border-line px-3 text-xs font-semibold text-red-600 transition hover:bg-surface-muted"
           type="button"
           onClick={onDelete}
         >
@@ -203,6 +211,9 @@ export function AdminReplies() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [calendarMonth, setCalendarMonth] = useState(() =>
+    monthAnchorOf(addDaysToDateString(yesterdayKstDateString(), 1)),
+  );
   const debouncedQ = useDebouncedValue(q, 300);
 
   const repliesQuery = useAdminRepliesQuery(
@@ -244,7 +255,7 @@ export function AdminReplies() {
 
   return (
     <AdminShell activePath="/replies">
-      <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-5 py-10 sm:px-8">
+      <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-5 py-10 sm:px-8">
         <h1 className="text-lg font-semibold text-foreground">답변 관리</h1>
 
         <div className="flex flex-wrap items-end gap-3">
@@ -253,77 +264,69 @@ export function AdminReplies() {
             label="검색"
             placeholder="답변 검색어"
             value={q}
-            width="compact"
+            width="search"
             onChange={(event) => {
               setQ(event.target.value);
               setPage(1);
             }}
           />
-          <TextField
-            id="admin-replies-from"
+          <HeatmapCalendarField
+            counts={[]}
+            formatDate={formatKoreanDate}
             label="시작일"
-            type="date"
-            value={from}
-            width="compact"
-            onChange={(event) => {
-              setFrom(event.target.value);
+            maxDate={to || undefined}
+            month={calendarMonth}
+            placeholder="시작일을 선택하세요"
+            selected={from || undefined}
+            onMonthChange={setCalendarMonth}
+            onSelect={(date) => {
+              setFrom(date);
               setPage(1);
             }}
           />
-          <TextField
-            id="admin-replies-to"
+          <HeatmapCalendarField
+            counts={[]}
+            formatDate={formatKoreanDate}
             label="종료일"
-            type="date"
-            value={to}
-            width="compact"
-            onChange={(event) => {
-              setTo(event.target.value);
+            minDate={from || undefined}
+            month={calendarMonth}
+            placeholder="종료일을 선택하세요"
+            selected={to || undefined}
+            onMonthChange={setCalendarMonth}
+            onSelect={(date) => {
+              setTo(date);
               setPage(1);
             }}
           />
-          <label
-            className="flex flex-col gap-1 text-sm text-muted"
-            htmlFor="admin-replies-status"
+          <Select
+            id="admin-replies-status"
+            label="상태"
+            value={status}
+            onChange={(event) => {
+              setStatus(event.target.value as AdminContentStatus | "");
+              setPage(1);
+            }}
           >
-            상태
-            <select
-              className="rounded-lg border border-line bg-surface px-2 py-1.5 text-sm text-foreground"
-              id="admin-replies-status"
-              value={status}
-              onChange={(event) => {
-                setStatus(event.target.value as AdminContentStatus | "");
-                setPage(1);
-              }}
-            >
-              <option value="">전체</option>
-              <option value="visible">정상</option>
-              <option value="hidden">숨김</option>
-              <option value="deleted">삭제됨</option>
-            </select>
-          </label>
-          <label
-            className="flex flex-col gap-1 text-sm text-muted"
-            htmlFor="admin-replies-action"
+            <option value="">전체</option>
+            <option value="visible">정상</option>
+            <option value="hidden">숨김</option>
+            <option value="deleted">삭제됨</option>
+          </Select>
+          <Select
+            id="admin-replies-action"
+            label="AI 검토"
+            value={action}
+            onChange={(event) => {
+              setAction(event.target.value as ReplyModerationActionDto | "");
+              setPage(1);
+            }}
           >
-            AI 검토
-            <select
-              className="rounded-lg border border-line bg-surface px-2 py-1.5 text-sm text-foreground"
-              id="admin-replies-action"
-              value={action}
-              onChange={(event) => {
-                setAction(
-                  event.target.value as ReplyModerationActionDto | "",
-                );
-                setPage(1);
-              }}
-            >
-              <option value="">전체</option>
-              <option value="allow">정상</option>
-              <option value="suggest_rewrite">순화 제안</option>
-              <option value="block">차단 권장</option>
-              <option value="uncertain">애매함</option>
-            </select>
-          </label>
+            <option value="">전체</option>
+            <option value="allow">정상</option>
+            <option value="suggest_rewrite">순화 제안</option>
+            <option value="block">차단 권장</option>
+            <option value="uncertain">애매함</option>
+          </Select>
         </div>
 
         <AdminStatusGate status={access.status}>

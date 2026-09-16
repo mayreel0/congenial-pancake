@@ -6,11 +6,15 @@ import type { InputHTMLAttributes } from "react";
 // presence rather than a separate prop, since that's true for every real
 // call site today — see docs/decisions/2026-08-26-onseol-refactoring-pass-
 // decisions.md.
-export type TextFieldWidth = "full" | "compact";
+export type TextFieldWidth = "full" | "compact" | "search";
 
 const WIDTH_CLASSES: Record<TextFieldWidth, string> = {
   full: "w-full",
   compact: "w-40",
+  // A free-text search box needs more room to type in than a date/select
+  // filter next to it — 160px (compact) reads as clipped the moment
+  // someone types more than a couple of words.
+  search: "w-64",
 };
 
 type TextFieldProps = {

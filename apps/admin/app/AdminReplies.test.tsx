@@ -167,6 +167,36 @@ describe("AdminReplies", () => {
     );
   });
 
+  it("sends a picked date range as query params", async () => {
+    const fetchMock = installFakeBackend(makePage([makeItem()]));
+    render(<AdminReplies />);
+    await screen.findByText("저도 그런 적 있어요.");
+    fetchMock.mockClear();
+
+    fireEvent.click(screen.getByRole("button", { name: "시작일" }));
+    fireEvent.click(
+      within(screen.getByLabelText("시작일 달력")).getByRole("button", {
+        name: /-10 /,
+      }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "종료일" }));
+    fireEvent.click(
+      within(screen.getByLabelText("종료일 달력")).getByRole("button", {
+        name: /-20 /,
+      }),
+    );
+
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(
+          (call) =>
+            String(call[0]).includes("from=") &&
+            String(call[0]).includes("to="),
+        ),
+      ).toBe(true),
+    );
+  });
+
   it("restores a reply", async () => {
     installFakeBackend(makePage([makeItem({ status: "hidden" })]));
     render(<AdminReplies />);
