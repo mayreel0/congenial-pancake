@@ -68,4 +68,17 @@ export class ReportsService {
   ): Promise<number> {
     return this.reportsRepository.countDistinctReporters(targetType, targetId);
   }
+
+  // Batched sibling of the above — every admin list screen
+  // (AdminController.enrichWithReportCount) uses this instead now, one
+  // query per page load instead of one per row.
+  countDistinctReportersBatch(
+    targetType: ReportTargetType,
+    targetIds: string[],
+  ): Promise<Map<string, number>> {
+    return this.reportsRepository.countDistinctReportersBatch(
+      targetType,
+      targetIds,
+    );
+  }
 }

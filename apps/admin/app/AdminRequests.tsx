@@ -30,27 +30,34 @@ const TH_CLASS =
 const TD_CLASS = "border-b border-line px-3 py-3 align-top text-sm";
 
 type RowActionsProps = {
+  status: AdminContentStatus;
   onRestore(): void;
   onDelete(): void;
 };
 
-function RowActions({ onRestore, onDelete }: RowActionsProps) {
+// 이미 정상인 글에 "복구"를, 이미 삭제된 글에 "영구 삭제"를 보여주는 건 의미 없는
+// API 호출로만 이어지므로 상태별로 실제 쓸 수 있는 액션만 노출한다.
+function RowActions({ status, onRestore, onDelete }: RowActionsProps) {
   return (
     <div className="flex justify-end gap-2">
-      <button
-        className="inline-flex h-8 items-center justify-center rounded-lg border border-line px-3 text-xs font-semibold text-foreground transition hover:bg-surface-muted"
-        type="button"
-        onClick={onRestore}
-      >
-        복구
-      </button>
-      <button
-        className="inline-flex h-8 items-center justify-center rounded-lg border border-line px-3 text-xs font-semibold text-red-600 transition hover:bg-surface-muted"
-        type="button"
-        onClick={onDelete}
-      >
-        영구 삭제
-      </button>
+      {status !== "visible" && (
+        <button
+          className="inline-flex h-8 items-center justify-center rounded-lg border border-line px-3 text-xs font-semibold text-foreground transition hover:bg-surface-muted"
+          type="button"
+          onClick={onRestore}
+        >
+          복구
+        </button>
+      )}
+      {status !== "deleted" && (
+        <button
+          className="inline-flex h-8 items-center justify-center rounded-lg border border-line px-3 text-xs font-semibold text-red-600 transition hover:bg-surface-muted"
+          type="button"
+          onClick={onDelete}
+        >
+          영구 삭제
+        </button>
+      )}
     </div>
   );
 }
@@ -123,6 +130,7 @@ function RequestsTable({
               </td>
               <td className={TD_CLASS}>
                 <RowActions
+                  status={item.status}
                   onDelete={() => onDelete(item.id)}
                   onRestore={() => onRestore(item.id)}
                 />
