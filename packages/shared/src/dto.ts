@@ -391,6 +391,26 @@ export const adminReplyResponseSchema = z.object({
 });
 export type AdminReplyResponseDto = z.infer<typeof adminReplyResponseSchema>;
 
+// Admin content-management dashboards ("고민 관리"/"답변 관리") — unlike the
+// moderation queue above, these list *every* request/reply regardless of
+// report status, so each item needs an explicit status (the queue's rows
+// are always hidden by definition, so it never needed one). Same
+// anonymity rule: no authorId/guestId here either.
+export const adminContentStatusSchema = z.enum(['visible', 'hidden', 'deleted']);
+export type AdminContentStatus = z.infer<typeof adminContentStatusSchema>;
+
+export const adminRequestListItemSchema = z.object({
+  id: z.string(),
+  body: z.string(),
+  createdAt: z.string(),
+  status: adminContentStatusSchema,
+  replyCount: z.number(),
+  reportCount: z.number(),
+});
+export type AdminRequestListItemDto = z.infer<
+  typeof adminRequestListItemSchema
+>;
+
 // GET /public/stats (landing page) — no auth, counts only, never anything
 // author-identifying.
 const landingCountsSchema = z.object({

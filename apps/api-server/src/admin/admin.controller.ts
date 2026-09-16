@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
@@ -15,9 +16,18 @@ import { ZodResponse } from 'nestjs-zod';
 import { PasswordResetService } from '../auth/password-reset/password-reset.service';
 import { SessionGuard } from '../auth/session.guard';
 import { UsersService } from '../users/users.service';
+import type { AdminContentStatus } from 'shared/dto';
+import { isValidDateString, kstDateRange } from '../common/kst-date';
+import {
+  parsePageParam,
+  parsePageSizeParam,
+  toPaginatedDto,
+  type PaginatedDto,
+} from '../common/pagination.dto';
 import { ReportsService } from '../reports/reports.service';
 import { RepliesService } from '../replies/replies.service';
 import { RequestsService } from '../requests/requests.service';
+import type { AdminContentStatusFilter } from '../requests/requests.repository';
 import { SettingsService } from '../settings/settings.service';
 import { UpdateSettingsDto } from '../settings/dto/update-settings.dto';
 import {
@@ -25,6 +35,10 @@ import {
   toSettingsResponseDto,
 } from '../settings/dto/settings.dto';
 import { AdminGuard } from './admin.guard';
+import {
+  toAdminRequestListItemDto,
+  type AdminRequestListItemDto,
+} from './dto/admin-request-list-item.dto';
 import {
   toAdminReplyResponseDto,
   type AdminReplyResponseDto,
@@ -34,6 +48,19 @@ import {
   type AdminRequestResponseDto,
 } from './dto/admin-request.dto';
 import { IssuePasswordResetLinkDto } from './dto/issue-password-reset-link.dto';
+
+const ADMIN_CONTENT_STATUS_VALUES: AdminContentStatus[] = [
+  'visible',
+  'hidden',
+  'deleted',
+];
+function parseStatusFilter(
+  status: string | undefined,
+): AdminContentStatusFilter | undefined {
+  return ADMIN_CONTENT_STATUS_VALUES.includes(status as AdminContentStatus)
+    ? (status as AdminContentStatusFilter)
+    : undefined;
+}
 
 export type HiddenModerationQueueDto = {
   requests: AdminRequestResponseDto[];
@@ -91,21 +118,60 @@ export class AdminController {
     return { requests, replies };
   }
 
-  private enrichWithReportCount<T, D>(
+  // One batched report-count query per call, not one per row — a page-size
+  // list here used to mean 10-50 individual `SELECT count(*)` round-trips.
+  private async enrichWithReportCount<T, D>(
     items: T[],
     targetType: 'request' | 'reply',
     idOf: (item: T) => string,
     toDto: (item: T, reportCount: number) => D,
   ): Promise<D[]> {
-    return Promise.all(
-      items.map(async (item) => {
-        const reportCount = await this.reportsService.countDistinctReporters(
-          targetType,
-          idOf(item),
-        );
-        return toDto(item, reportCount);
-      }),
+    if (items.length === 0) return [];
+    const countByTargetId =
+      await this.reportsService.countDistinctReportersBatch(
+        targetType,
+        items.map(idOf),
+      );
+    return items.map((item) =>
+      toDto(item, countByTargetId.get(idOf(item)) ?? 0),
     );
+  }
+
+  // "고민 관리" — every request regardless of report/hidden status, unlike
+  // moderation/hidden above which is only the auto-hidden queue. Same
+  // restore/delete endpoints below work on rows found here too.
+  @Get('requests')
+  async listRequests(
+    @Query('q') q: string | undefined,
+    @Query('from') fromParam: string | undefined,
+    @Query('to') toParam: string | undefined,
+    @Query('status') statusParam: string | undefined,
+    @Query('page') pageParam: string | undefined,
+    @Query('pageSize') pageSizeParam: string | undefined,
+  ): Promise<PaginatedDto<AdminRequestListItemDto>> {
+    const from =
+      fromParam && isValidDateString(fromParam) ? fromParam : undefined;
+    const to = toParam && isValidDateString(toParam) ? toParam : undefined;
+    const page = parsePageParam(pageParam);
+    const pageSize = parsePageSizeParam(pageSizeParam);
+
+    const { items, totalItems } = await this.requestsService.findAllForAdmin(
+      {
+        q: q?.trim() || undefined,
+        range: kstDateRange(from, to),
+        status: parseStatusFilter(statusParam),
+      },
+      { page, pageSize },
+    );
+
+    const dtoItems = await this.enrichWithReportCount(
+      items,
+      'request',
+      (item) => item.id,
+      toAdminRequestListItemDto,
+    );
+
+    return toPaginatedDto(dtoItems, page, totalItems, pageSize);
   }
 
   @Post('requests/:id/restore')
