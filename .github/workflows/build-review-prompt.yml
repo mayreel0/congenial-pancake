@@ -1,0 +1,39 @@
+name: Build PR Review Prompt
+
+# Manual only — no automatic Gemini API calls. Gemini's free tier (RPM 5 /
+# RPD 20, same on both 2.5-flash and 3.8-flash) is too small to run
+# automatically on every PR push, and paying for higher quota wasn't
+# judged worth it for this project's scale. This workflow only automates
+# the tedious part (diff extraction + lockfile/generated-file exclusion +
+# assembling the review-checklist prompt) into the run's Summary tab — a
+# person copies that into Antigravity (or any other chat UI) by hand.
+# Needs no secrets: only reads PR metadata with the default GITHUB_TOKEN.
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "리뷰 프롬프트를 만들 PR 번호"
+        required: true
+        type: number
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  build-prompt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build review prompt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+        run: python3 .github/scripts/build_review_prompt.py

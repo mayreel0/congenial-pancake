@@ -49,5 +49,9 @@ next-env.d.ts
 .pnpm-store/
 .superpowers/
 
+# python (.github/scripts/*.py)
+__pycache__/
+*.pyc
+
 *storybook.log
 storybook-static
