@@ -70,10 +70,15 @@ export function useAdminRepliesQuery(
   });
 }
 
+// Also invalidates the 신고 검토 큐 — see useInvalidateAdminRequests' comment.
 function useInvalidateAdminReplies() {
   const queryClient = useQueryClient();
-  return () =>
-    queryClient.invalidateQueries({ queryKey: ["admin", "replies"] });
+  return () => {
+    void queryClient.invalidateQueries({ queryKey: ["admin", "replies"] });
+    void queryClient.invalidateQueries({
+      queryKey: ["admin", "moderation", "hidden"],
+    });
+  };
 }
 
 export function useAdminRestoreReplyMutation() {

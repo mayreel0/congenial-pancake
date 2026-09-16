@@ -168,7 +168,7 @@ describe("AdminReplies", () => {
   });
 
   it("restores a reply", async () => {
-    installFakeBackend(makePage([makeItem()]));
+    installFakeBackend(makePage([makeItem({ status: "hidden" })]));
     render(<AdminReplies />);
     await screen.findByText("저도 그런 적 있어요.");
 
@@ -177,6 +177,39 @@ describe("AdminReplies", () => {
     await waitFor(() =>
       expect(screen.getByText("복구했어요.")).toBeInTheDocument(),
     );
+  });
+
+  it("hides the 복구 button for a visible item and 영구 삭제 for a deleted one", async () => {
+    installFakeBackend(
+      makePage([
+        makeItem({ id: "reply-visible", status: "visible" }),
+        makeItem({
+          id: "reply-deleted",
+          body: "이미 삭제된 답변이에요.",
+          status: "deleted",
+        }),
+      ]),
+    );
+    render(<AdminReplies />);
+    await screen.findByText("저도 그런 적 있어요.");
+
+    const visibleRow = screen.getByText("저도 그런 적 있어요.").closest("tr")!;
+    expect(
+      within(visibleRow).queryByRole("button", { name: "복구" }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(visibleRow).getByRole("button", { name: "영구 삭제" }),
+    ).toBeInTheDocument();
+
+    const deletedRow = screen
+      .getByText("이미 삭제된 답변이에요.")
+      .closest("tr")!;
+    expect(
+      within(deletedRow).getByRole("button", { name: "복구" }),
+    ).toBeInTheDocument();
+    expect(
+      within(deletedRow).queryByRole("button", { name: "영구 삭제" }),
+    ).not.toBeInTheDocument();
   });
 
   it("requires confirmation before permanently deleting a reply", async () => {
