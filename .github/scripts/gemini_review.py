@@ -213,7 +213,19 @@ def main() -> int:
 
     try:
         review = call_gemini(api_key, model, diff)
-    except (urllib.error.HTTPError, urllib.error.URLError, KeyError, json.JSONDecodeError) as error:
+    except urllib.error.HTTPError as error:
+        detail = error.read().decode("utf-8", errors="replace")
+        print(f"::warning::Gemini API 호출 실패: {error} — {detail[:2000]}")
+        post_summary_comment(
+            repo,
+            pr_number,
+            github_token,
+            "Gemini API 호출에 실패해서 이번 라운드는 리뷰를 남기지 못했어요. "
+            "GEMINI_API_KEY 설정이나 워크플로 로그를 확인해주세요.",
+            [],
+        )
+        return 0
+    except (urllib.error.URLError, KeyError, json.JSONDecodeError) as error:
         print(f"::warning::Gemini API 호출 실패: {error}")
         post_summary_comment(
             repo,
