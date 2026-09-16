@@ -152,6 +152,39 @@ describe("AdminRequests", () => {
     );
   });
 
+  it("sends a picked date range as query params", async () => {
+    const fetchMock = installFakeBackend(makePage([makeItem()]));
+    render(<AdminRequests />);
+    await screen.findByText("오늘 조금 힘들었어요.");
+    fetchMock.mockClear();
+
+    // Two independent HeatmapCalendarField popovers (see /records' own
+    // test for the same pattern) — day 10/20 always exist in any month's
+    // grid regardless of what "today" happens to be.
+    fireEvent.click(screen.getByRole("button", { name: "시작일" }));
+    fireEvent.click(
+      within(screen.getByLabelText("시작일 달력")).getByRole("button", {
+        name: /-10 /,
+      }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "종료일" }));
+    fireEvent.click(
+      within(screen.getByLabelText("종료일 달력")).getByRole("button", {
+        name: /-20 /,
+      }),
+    );
+
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(
+          (call) =>
+            String(call[0]).includes("from=") &&
+            String(call[0]).includes("to="),
+        ),
+      ).toBe(true),
+    );
+  });
+
   it("restores a request", async () => {
     installFakeBackend(makePage([makeItem({ status: "hidden" })]));
     render(<AdminRequests />);

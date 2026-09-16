@@ -15,6 +15,7 @@
     "./QueryProvider": "./src/providers/QueryProvider.tsx",
     "./Button": "./src/components/Button.tsx",
     "./Pagination": "./src/components/Pagination.tsx",
+    "./Select": "./src/components/Select.tsx",
     "./Skeleton": "./src/components/Skeleton.tsx",
     "./TextField": "./src/components/TextField.tsx",
     "./Toggle": "./src/components/Toggle.tsx",
