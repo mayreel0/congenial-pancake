@@ -71,6 +71,15 @@ function adminStatusCondition(
   }
 }
 
+// A raw search term dropped into a `%term%` ILIKE pattern lets `%`/`_`
+// act as SQL wildcards instead of literal characters — someone searching
+// for a literal "50%" would otherwise silently get a substring match
+// instead. `\` is escaped too since it's the escape character being
+// introduced here.
+function escapeLikePattern(pattern: string): string {
+  return pattern.replace(/[\\%_]/g, '\\$&');
+}
+
 // `start`/`end` are both optional (/records' date range defaults to
 // unbounded) — undefined here means "no filter", not "match nothing".
 function dateRangeCondition(
@@ -309,7 +318,9 @@ export class RequestsRepository {
     pagination: Pagination,
   ): Promise<PagedResult<RequestWithReplyCount>> {
     const whereClause = and(
-      filters.q ? ilike(requests.body, `%${filters.q}%`) : undefined,
+      filters.q
+        ? ilike(requests.body, `%${escapeLikePattern(filters.q)}%`)
+        : undefined,
       dateRangeCondition(requests.createdAt, filters.range),
       adminStatusCondition(requests.hidden, requests.deletedAt, filters.status),
     );

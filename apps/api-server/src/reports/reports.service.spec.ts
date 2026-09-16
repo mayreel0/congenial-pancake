@@ -66,6 +66,7 @@ describe('ReportsService', () => {
       create: jest.fn(),
       findByTargetAndReporter: jest.fn(),
       countDistinctReporters: jest.fn(),
+      countDistinctReportersBatch: jest.fn(),
     } as unknown as jest.Mocked<ReportsRepository>;
     requestsService = {
       findVisibleById: jest.fn(),
@@ -187,6 +188,23 @@ describe('ReportsService', () => {
         'request-1',
         reviewedAt,
       );
+    });
+  });
+
+  describe('countDistinctReportersBatch', () => {
+    it('delegates to the repository', async () => {
+      const countMap = new Map([['request-1', 3]]);
+      reportsRepository.countDistinctReportersBatch.mockResolvedValue(countMap);
+
+      const result = await reportsService.countDistinctReportersBatch(
+        'request',
+        ['request-1'],
+      );
+
+      expect(
+        reportsRepository.countDistinctReportersBatch,
+      ).toHaveBeenCalledWith('request', ['request-1']);
+      expect(result).toBe(countMap);
     });
   });
 });
