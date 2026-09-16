@@ -139,11 +139,11 @@ def call_gemini(api_key: str, model: str, diff: str) -> dict:
     url = GEMINI_ENDPOINT_TEMPLATE.format(model=model)
     request_bytes = json.dumps(body).encode("utf-8")
 
+    retry_delays = [0, *GEMINI_RETRY_DELAYS_SECONDS]
     last_error: urllib.error.HTTPError | None = None
-    for attempt, delay in enumerate([0, *GEMINI_RETRY_DELAYS_SECONDS]):
-        if delay:
-            print(f"Gemini 503(UNAVAILABLE) — {delay}초 후 재시도 ({attempt}/{len(GEMINI_RETRY_DELAYS_SECONDS)})")
-            time.sleep(delay)
+    for attempt in range(len(retry_delays)):
+        if attempt > 0:
+            time.sleep(retry_delays[attempt])
         request = urllib.request.Request(
             url,
             data=request_bytes,
@@ -159,9 +159,16 @@ def call_gemini(api_key: str, model: str, diff: str) -> dict:
             text = payload["candidates"][0]["content"]["parts"][0]["text"]
             return json.loads(text)
         except urllib.error.HTTPError as error:
-            if error.code != 503:
+            # 503(모델 과부하) 외에 429(RESOURCE_EXHAUSTED)와 502/504(일시적
+            # 게이트웨이 오류)도 같은 종류의 "잠깐 후 다시 하면 되는" 실패임 —
+            # 실제 리뷰(#238)에서 이 확장을 제안받아 반영.
+            if error.code not in (429, 500, 502, 503, 504):
                 raise
             last_error = error
+            remaining = len(GEMINI_RETRY_DELAYS_SECONDS) - attempt
+            if remaining > 0:
+                next_delay = retry_delays[attempt + 1]
+                print(f"Gemini {error.code} — {next_delay}초 후 재시도 ({attempt + 1}/{len(GEMINI_RETRY_DELAYS_SECONDS)})")
 
     assert last_error is not None
     raise last_error
