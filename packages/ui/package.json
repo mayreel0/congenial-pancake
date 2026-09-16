@@ -20,6 +20,7 @@
     "./Toggle": "./src/components/Toggle.tsx",
     "./Toast": "./src/components/Toast.tsx",
     "./useAnimatedPresence": "./src/hooks/useAnimatedPresence.ts",
+    "./useDebouncedValue": "./src/hooks/useDebouncedValue.ts",
     "./useDismissOnOutsideClick": "./src/hooks/useDismissOnOutsideClick.ts",
     "./useFieldValidation": "./src/hooks/useFieldValidation.ts",
     "./useMinDisplayDuration": "./src/hooks/useMinDisplayDuration.ts",
