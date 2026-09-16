@@ -43,6 +43,11 @@ export type CreateReplyInput = {
 export type ReplyRecord = typeof replies.$inferSelect;
 export type ReplyWithRequest = { reply: ReplyRecord; request: RequestRecord };
 
+// See requests.repository.ts's identical escapeLikePattern for why.
+function escapeLikePattern(pattern: string): string {
+  return pattern.replace(/[\\%_]/g, '\\$&');
+}
+
 // See requests.repository.ts's identical dateRangeCondition for why.
 function dateRangeCondition(
   column: typeof replies.createdAt,
@@ -149,7 +154,9 @@ export class RepliesRepository {
     pagination: Pagination,
   ): Promise<PagedResult<ReplyWithRequestAndModeration>> {
     const whereClause = and(
-      filters.q ? ilike(replies.body, `%${filters.q}%`) : undefined,
+      filters.q
+        ? ilike(replies.body, `%${escapeLikePattern(filters.q)}%`)
+        : undefined,
       dateRangeCondition(replies.createdAt, filters.range),
       adminStatusCondition(replies.hidden, replies.deletedAt, filters.status),
       filters.action

@@ -246,6 +246,27 @@ describe('RepliesRepository', () => {
       expect(result).toEqual({ items: rows, totalItems: 1 });
     });
 
+    it('escapes ILIKE wildcard characters in the search term', async () => {
+      const countChain = makeCountChain(0);
+      const select = jest.fn().mockReturnValueOnce({ from: countChain.from });
+      const db = { select } as unknown as Database;
+      const repository = new RepliesRepository(db);
+
+      await repository.findAllForAdmin(
+        { q: '50%_할인\\', range: {} },
+        { page: 1, pageSize: 10 },
+      );
+
+      expect(countChain.where).toHaveBeenCalledWith(
+        and(
+          ilike(replies.body, '%50\\%\\_할인\\\\%'),
+          undefined,
+          undefined,
+          undefined,
+        ),
+      );
+    });
+
     it('treats a "deleted" status filter as deletedAt IS NOT NULL, with no action filter', async () => {
       const countChain = makeCountChain(1);
       const rowsChain = makeRowsChain([]);

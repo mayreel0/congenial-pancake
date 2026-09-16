@@ -134,20 +134,22 @@ export class AdminController {
     return { requests, replies };
   }
 
-  private enrichWithReportCount<T, D>(
+  // One batched report-count query per call, not one per row — a page-size
+  // list here used to mean 10-50 individual `SELECT count(*)` round-trips.
+  private async enrichWithReportCount<T, D>(
     items: T[],
     targetType: 'request' | 'reply',
     idOf: (item: T) => string,
     toDto: (item: T, reportCount: number) => D,
   ): Promise<D[]> {
-    return Promise.all(
-      items.map(async (item) => {
-        const reportCount = await this.reportsService.countDistinctReporters(
-          targetType,
-          idOf(item),
-        );
-        return toDto(item, reportCount);
-      }),
+    if (items.length === 0) return [];
+    const countByTargetId =
+      await this.reportsService.countDistinctReportersBatch(
+        targetType,
+        items.map(idOf),
+      );
+    return items.map((item) =>
+      toDto(item, countByTargetId.get(idOf(item)) ?? 0),
     );
   }
 
