@@ -1,0 +1,54 @@
+name: Gemini AI Code Review
+
+# Self-rolled, not a third-party Marketplace Action — see
+# .github/scripts/gemini_review.py's docstring for why (that script is the
+# entire trust surface: stdlib-only, no pip installs, calls only Google's
+# and GitHub's own REST APIs). Requires a GEMINI_API_KEY repository secret
+# (Settings → Secrets and variables → Actions) — get one at
+# https://aistudio.google.com/apikey.
+#
+# Only posts comments for PRs opened from a branch in this same repo, not
+# an external fork — GitHub forces GITHUB_TOKEN to read-only on
+# fork-originated pull_request events regardless of the permissions block
+# below. Every PR in this repo's history so far has been same-repo
+# branches, so this hasn't mattered in practice.
+on:
+  pull_request:
+    types: [opened, synchronize]
+    branches: [v1]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: gemini-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run Gemini review
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GEMINI_MODEL: gemini-3.8-flash
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ -z "$GEMINI_API_KEY" ]; then
+            echo "::warning::GEMINI_API_KEY secret이 설정돼있지 않아 리뷰를 건너뜁니다. Settings → Secrets and variables → Actions에서 등록해주세요."
+            exit 0
+          fi
+          python3 .github/scripts/gemini_review.py
