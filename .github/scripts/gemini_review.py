@@ -17,6 +17,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 import urllib.error
 import urllib.request
 
@@ -25,6 +26,11 @@ MAX_COMMENTS = 20
 GEMINI_ENDPOINT_TEMPLATE = (
     "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 )
+# A brand-new, popular model (like gemini-3.8-flash at launch) can return
+# 503 UNAVAILABLE ("experiencing high demand") under real, transient load
+# — confirmed empirically against this exact endpoint. Retry with backoff
+# before giving up, rather than treating every 503 as a hard failure.
+GEMINI_RETRY_DELAYS_SECONDS = [5, 15, 30]
 
 # git's plain ":!pattern" shorthand does NOT enable glob magic even when
 # the pattern contains "**" — confirmed empirically (":!**/pnpm-lock.yaml"
@@ -131,19 +137,34 @@ def call_gemini(api_key: str, model: str, diff: str) -> dict:
         },
     }
     url = GEMINI_ENDPOINT_TEMPLATE.format(model=model)
-    request = urllib.request.Request(
-        url,
-        data=json.dumps(body).encode("utf-8"),
-        headers={
-            "Content-Type": "application/json",
-            "x-goog-api-key": api_key,
-        },
-        method="POST",
-    )
-    with urllib.request.urlopen(request, timeout=120) as response:
-        payload = json.loads(response.read())
-    text = payload["candidates"][0]["content"]["parts"][0]["text"]
-    return json.loads(text)
+    request_bytes = json.dumps(body).encode("utf-8")
+
+    last_error: urllib.error.HTTPError | None = None
+    for attempt, delay in enumerate([0, *GEMINI_RETRY_DELAYS_SECONDS]):
+        if delay:
+            print(f"Gemini 503(UNAVAILABLE) — {delay}초 후 재시도 ({attempt}/{len(GEMINI_RETRY_DELAYS_SECONDS)})")
+            time.sleep(delay)
+        request = urllib.request.Request(
+            url,
+            data=request_bytes,
+            headers={
+                "Content-Type": "application/json",
+                "x-goog-api-key": api_key,
+            },
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=120) as response:
+                payload = json.loads(response.read())
+            text = payload["candidates"][0]["content"]["parts"][0]["text"]
+            return json.loads(text)
+        except urllib.error.HTTPError as error:
+            if error.code != 503:
+                raise
+            last_error = error
+
+    assert last_error is not None
+    raise last_error
 
 
 def github_request(method: str, url: str, token: str, body: dict | None = None) -> dict:
