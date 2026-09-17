@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import {
   boolean,
   check,
+  index,
   pgTable,
   text,
   timestamp,
@@ -50,5 +51,12 @@ export const replies = pgTable(
     // guest rows (authorId is null there) — see RepliesService for the
     // guest limit. Many different users may still reply.
     unique('replies_request_author_unique').on(table.requestId, table.authorId),
+    // findMine/countByGuest/findExcludedRequestIds all filter by
+    // authorId/guestId alone (no requestId) — the composite unique index
+    // above only helps when requestId leads the lookup, so these
+    // standalone indexes are what keeps those queries off a full table
+    // scan as replies grows.
+    index('replies_author_id_idx').on(table.authorId),
+    index('replies_guest_id_idx').on(table.guestId),
   ],
 );
