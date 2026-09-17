@@ -123,6 +123,7 @@ function NotificationsPageBody() {
   async function handleDeleteOne(id: string) {
     try {
       await deleteOne.mutateAsync(id);
+      toast.success("삭제했어요.");
     } catch (error) {
       toast.error(error);
     }
