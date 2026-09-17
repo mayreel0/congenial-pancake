@@ -2,6 +2,8 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  deleteAllNotifications,
+  deleteNotification,
   fetchNotifications,
   fetchUnreadCount,
   markAllNotificationsRead,
@@ -51,6 +53,36 @@ export function useMarkAllNotificationsReadMutation() {
   return useMutation({
     mutationFn: markAllNotificationsRead,
     onSuccess: () => {
+      queryClient.setQueryData(notificationKeys.unreadCount, { count: 0 });
+    },
+  });
+}
+
+export function useDeleteNotificationMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: deleteNotification,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: notificationKeys.listAll,
+      });
+      void queryClient.invalidateQueries({
+        queryKey: notificationKeys.unreadCount,
+      });
+    },
+  });
+}
+
+export function useDeleteAllNotificationsMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: deleteAllNotifications,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: notificationKeys.listAll,
+      });
       queryClient.setQueryData(notificationKeys.unreadCount, { count: 0 });
     },
   });

@@ -1,4 +1,4 @@
-import { render, screen } from "../lib/test-utils";
+import { fireEvent, render, screen, waitFor, within } from "../lib/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { NotificationDto } from "../lib/notifications/api";
 import NotificationsPage from "./page";
@@ -32,8 +32,9 @@ function installFakeBackend({
   items?: NotificationDto[];
 }) {
   const fetchMock = vi.fn(
-    (input: RequestInfo | URL): Promise<MockResponse> => {
+    (input: RequestInfo | URL, init?: RequestInit): Promise<MockResponse> => {
       const url = typeof input === "string" ? input : input.toString();
+      const method = init?.method ?? "GET";
 
       if (url.endsWith("/auth/me")) {
         return authenticated
@@ -50,6 +51,9 @@ function installFakeBackend({
         return Promise.resolve(jsonResponse(200, { count: items.length }));
       }
       if (url.includes("/notifications/read")) {
+        return Promise.resolve(jsonResponse(204, null));
+      }
+      if (method === "DELETE" && url.includes("/notifications")) {
         return Promise.resolve(jsonResponse(204, null));
       }
       if (url.includes("/notifications")) {
@@ -123,5 +127,68 @@ describe("NotificationsPage", () => {
       expect.stringContaining("/notifications/read"),
       expect.objectContaining({ method: "POST" }),
     );
+  });
+
+  it("deletes a single notification via 더보기 → 삭제하기, with no confirmation dialog", async () => {
+    const fetchMock = installFakeBackend({
+      authenticated: true,
+      items: [makeNotification()],
+    });
+
+    render(<NotificationsPage />);
+    await screen.findByText("오늘 조금 힘들었어요.");
+
+    fireEvent.click(screen.getByRole("button", { name: "더보기" }));
+    fireEvent.click(screen.getByRole("button", { name: "삭제하기" }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining("/notifications/notification-1"),
+        expect.objectContaining({ method: "DELETE" }),
+      );
+    });
+  });
+
+  it("does not show a 모두 지우기 button when there are no notifications", async () => {
+    installFakeBackend({ authenticated: true, items: [] });
+
+    render(<NotificationsPage />);
+    await screen.findByText("새 알림이 없어요.");
+
+    expect(
+      screen.queryByRole("button", { name: "모두 지우기" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("clears all notifications after confirming via 모두 지우기", async () => {
+    const fetchMock = installFakeBackend({
+      authenticated: true,
+      items: [makeNotification()],
+    });
+
+    render(<NotificationsPage />);
+    await screen.findByText("오늘 조금 힘들었어요.");
+
+    fireEvent.click(screen.getByRole("button", { name: "모두 지우기" }));
+
+    expect(
+      await screen.findByText(
+        "모든 알림을 지울까요? 지운 알림은 되돌릴 수 없어요.",
+      ),
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      within(screen.getByRole("dialog")).getByRole("button", {
+        name: "모두 지우기",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringMatching(/\/notifications$/),
+        expect.objectContaining({ method: "DELETE" }),
+      );
+    });
   });
 });
