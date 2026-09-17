@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useDismissOnOutsideClick } from "ui/useDismissOnOutsideClick";
 import { POPOVER_EXIT_MS, useAnimatedPresence } from "ui/useAnimatedPresence";
 import { useAuth } from "../../lib/auth/useAuth";
@@ -19,6 +19,15 @@ function isActive(activePath: string, href: string) {
 export function ServiceNav({ activePath }: ServiceNavProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  // Covers both the hamburger toggle button and the dropped-down panel
+  // (both live inside <header>) — the profile dropdown already had this,
+  // the mobile menu didn't, so tapping anywhere outside it only closed via
+  // the toggle button itself.
+  const closeMobileMenu = useCallback(() => setMenuOpen(false), []);
+  const headerRef = useDismissOnOutsideClick<HTMLElement>(
+    menuOpen,
+    closeMobileMenu,
+  );
   const profileMenuRef = useDismissOnOutsideClick<HTMLDivElement>(
     profileMenuOpen,
     () => setProfileMenuOpen(false),
@@ -30,7 +39,10 @@ export function ServiceNav({ activePath }: ServiceNavProps) {
   );
 
   return (
-    <header className="relative sticky top-0 z-20 border-b border-line bg-background/95 backdrop-blur">
+    <header
+      className="relative sticky top-0 z-20 border-b border-line bg-background/95 backdrop-blur"
+      ref={headerRef}
+    >
       <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-5 sm:px-8">
         <div className="flex items-center gap-4">
           <button

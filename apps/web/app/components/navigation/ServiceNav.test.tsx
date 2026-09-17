@@ -127,6 +127,38 @@ describe("ServiceNav", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("closes the mobile menu on an outside click", async () => {
+    render(<ServiceNav activePath="/today" />);
+    await screen.findByRole("link", { name: "로그인" });
+
+    fireEvent.click(screen.getByRole("button", { name: "메뉴 열기" }));
+    expect(screen.getByLabelText("모바일 서비스 이동")).toBeInTheDocument();
+
+    fireEvent.mouseDown(document.body);
+
+    // POPOVER_EXIT_MS is 0 in tests, but the unmount still happens after a
+    // timer tick (useAnimatedPresence's exit-animation delay), not
+    // synchronously within the same event handler.
+    await waitFor(() =>
+      expect(
+        screen.queryByLabelText("모바일 서비스 이동"),
+      ).not.toBeInTheDocument(),
+    );
+    expect(screen.getByRole("button", { name: "메뉴 열기" })).toBeInTheDocument();
+  });
+
+  it("does not close the mobile menu when clicking inside it", async () => {
+    render(<ServiceNav activePath="/today" />);
+    await screen.findByRole("link", { name: "로그인" });
+
+    fireEvent.click(screen.getByRole("button", { name: "메뉴 열기" }));
+    const mobileMenu = screen.getByLabelText("모바일 서비스 이동");
+
+    fireEvent.mouseDown(mobileMenu);
+
+    expect(screen.getByLabelText("모바일 서비스 이동")).toBeInTheDocument();
+  });
+
   it("does not render a mobile bottom tab", () => {
     render(<ServiceNav activePath="/today" />);
 
