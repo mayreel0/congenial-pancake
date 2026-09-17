@@ -6,6 +6,7 @@ import { Button } from "ui/Button";
 import { AuthCheckingSpinner } from "../components/shared/AuthCheckingSpinner";
 import { OAUTH_PROVIDER_NAMES_KO } from "../components/shared/oauthProviders";
 import { formatJoinedDate } from "../lib/format";
+import { loginHrefWithReturnTo } from "../lib/auth/loginHref";
 import { useAuth } from "../lib/auth/useAuth";
 import { LinkedProvidersSection } from "./components/LinkedProvidersSection";
 import { NicknameSection } from "./components/NicknameSection";
@@ -78,7 +79,7 @@ function MeContent({ status, user, notice }: MeContentProps) {
       <p className="max-w-xl leading-7 text-muted">
         로그인하면 내 정보를 볼 수 있습니다.
       </p>
-      <Button href="/login">로그인</Button>
+      <Button href={loginHrefWithReturnTo("/me")}>로그인</Button>
     </section>
   );
 }

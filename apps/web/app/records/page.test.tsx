@@ -1,4 +1,4 @@
-import { useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { fireEvent, render, screen, waitFor, within } from "../lib/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import RecordsPage from "./page";
@@ -97,9 +97,11 @@ describe("RecordsPage", () => {
     // ?tab= — reset so it doesn't leak into unrelated tests later in this
     // file.
     mockSearchParams();
+    vi.mocked(usePathname).mockReturnValue("/");
   });
 
   it("shows the login prompt to anonymous visitors", async () => {
+    vi.mocked(usePathname).mockReturnValue("/records");
     installFakeBackend({ loggedIn: false });
 
     render(<RecordsPage />);
@@ -109,10 +111,31 @@ describe("RecordsPage", () => {
     ).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: "로그인" })).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ href: "http://localhost:3000/login" }),
+        expect.objectContaining({
+          href: "http://localhost:3000/login?returnTo=%2Frecords",
+        }),
       ]),
     );
     expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
+  });
+
+  it("preserves the ?tab=replies query in the login prompt's returnTo", async () => {
+    vi.mocked(usePathname).mockReturnValue("/records");
+    mockSearchParams("tab=replies");
+    installFakeBackend({ loggedIn: false });
+
+    render(<RecordsPage />);
+
+    expect(
+      await screen.findByText("로그인하면 내 기록을 볼 수 있습니다."),
+    ).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: "로그인" })).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          href: "http://localhost:3000/login?returnTo=%2Frecords%3Ftab%3Dreplies",
+        }),
+      ]),
+    );
   });
 
   it("shows a generic loading skeleton and doesn't fetch records yet while auth is still resolving", async () => {

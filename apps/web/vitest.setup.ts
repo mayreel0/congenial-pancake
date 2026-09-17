@@ -56,7 +56,10 @@ vi.mock("next/navigation", () => ({
     refresh: vi.fn(),
     prefetch: vi.fn(),
   }),
-  usePathname: () => "/",
+  // vi.fn() so a test can override the current path per-test via
+  // vi.mocked(usePathname).mockReturnValue("/records") — e.g. asserting a
+  // login-prompt's returnTo href matches the actual page it's shown on.
+  usePathname: vi.fn(() => "/"),
   // vi.fn() (not a plain arrow fn) so a test can override the current query
   // string per-test/per-render via
   // vi.mocked(useSearchParams).mockReturnValue(new URLSearchParams("...")) —
