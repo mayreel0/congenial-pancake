@@ -26,6 +26,14 @@ import type { Session } from './sessions.repository';
 const TOKEN_BYTES = 32;
 const TOKEN_TTL_MS = 24 * 60 * 60 * 1000; // 24h — long enough to check an inbox at one's own pace.
 const RESEND_COOLDOWN_MS = 60 * 1000; // 60s between signup emails to the same address — common resend UX convention.
+// Bcrypt-hashes a fixed, unrelated string at the same cost factor
+// PasswordHasherService uses (12) — compared against on a login attempt for
+// an email with no account, so that lookup takes as long as a real bcrypt
+// compare would. Without this, a nonexistent-account login fails in ~1ms
+// while a real one takes ~80-100ms, letting response timing alone reveal
+// which emails have onseol accounts.
+const DUMMY_BCRYPT_HASH =
+  '$2b$12$pkPaous6FoTXn3GaWCpUiO40mUHv/QOwyYP/hZNCYzOWaRPuqAteq';
 
 function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
@@ -134,13 +142,13 @@ export class AuthService {
 
   async login(dto: LoginDto, userAgent?: string): Promise<AuthResult> {
     const user = await this.usersService.findByEmail(dto.email);
-    if (!user?.passwordHash) throw new InvalidCredentialsException();
-
     const valid = await this.passwordHasher.compare(
       dto.password,
-      user.passwordHash,
+      user?.passwordHash ?? DUMMY_BCRYPT_HASH,
     );
-    if (!valid) throw new InvalidCredentialsException();
+    if (!user?.passwordHash || !valid) {
+      throw new InvalidCredentialsException();
+    }
 
     // Defensive only, not a primary gate — going forward, a password
     // account only ever gets created inside completeSignup, which sets

@@ -258,6 +258,13 @@ describe('AuthService', () => {
           password: 'password123',
         }),
       ).rejects.toBeInstanceOf(InvalidCredentialsException);
+      // Timing-attack defense: still runs a bcrypt compare against a dummy
+      // hash even with no matching account, so this path takes as long as a
+      // real mismatch would instead of failing fast.
+      expect(passwordHasher.compare).toHaveBeenCalledWith(
+        'password123',
+        expect.any(String),
+      );
     });
 
     it('throws when the account has no password (OAuth-only)', async () => {
