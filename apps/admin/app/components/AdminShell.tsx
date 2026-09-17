@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useCallback, useState } from "react";
 import { toast } from "ui/useToast";
 import { POPOVER_EXIT_MS, useAnimatedPresence } from "ui/useAnimatedPresence";
+import { useDismissOnOutsideClick } from "ui/useDismissOnOutsideClick";
 import { useAuth } from "../lib/auth/useAuth";
 
 const NAV_ITEMS = [
@@ -77,6 +78,14 @@ export function AdminShell({ activePath, children }: AdminShellProps) {
   const auth = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  // Covers both the hamburger toggle button and the dropped-down panel
+  // (both live inside <header>) — see ServiceNav's identical fix
+  // (2026-09-17, PR #234/#245) for the same gap on apps/web's mobile menu.
+  const closeMobileMenu = useCallback(() => setMenuOpen(false), []);
+  const headerRef = useDismissOnOutsideClick<HTMLElement>(
+    menuOpen,
+    closeMobileMenu,
+  );
   const shouldRenderMobileMenu = useAnimatedPresence(
     menuOpen,
     POPOVER_EXIT_MS,
@@ -120,7 +129,10 @@ export function AdminShell({ activePath, children }: AdminShellProps) {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="relative border-b border-line px-5 sm:px-8">
+        <header
+          className="relative border-b border-line px-5 sm:px-8"
+          ref={headerRef}
+        >
           <div className="flex h-14 items-center justify-between">
             <div className="flex items-center gap-6">
               <button
