@@ -258,89 +258,75 @@ export function AdminReplies() {
       <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-5 py-10 sm:px-8">
         <h1 className="text-lg font-semibold text-foreground">답변 관리</h1>
 
-        {/* A dedicated @container wrapper, separate from the row it
-            contains — an element can't container-query its own size, so
-            the row's @min-[960px]:flex-row below needs an ancestor
-            (this div) with container-type set, not itself. Matters here
-            specifically because AdminShell's desktop sidebar toggle
-            changes this row's real width without the viewport changing
-            at all. See ui/filterRowBreakpoint.ts. */}
-        <div className="@container">
-          <div className="flex flex-col gap-3 @min-[960px]:flex-row @min-[960px]:flex-wrap @min-[960px]:items-end">
-            <TextField
-              breakpoint="960"
-              id="admin-replies-search"
-              label="검색"
-              placeholder="답변 검색어"
-              value={q}
-              width="search"
-              onChange={(event) => {
-                setQ(event.target.value);
-                setPage(1);
-              }}
-            />
-            <HeatmapCalendarField
-              breakpoint="960"
-              counts={[]}
-              formatDate={formatKoreanDate}
-              label="시작일"
-              maxDate={to || undefined}
-              month={calendarMonth}
-              placeholder="시작일을 선택하세요"
-              selected={from || undefined}
-              onMonthChange={setCalendarMonth}
-              onSelect={(date) => {
-                setFrom(date);
-                setPage(1);
-              }}
-            />
-            <HeatmapCalendarField
-              breakpoint="960"
-              counts={[]}
-              formatDate={formatKoreanDate}
-              label="종료일"
-              minDate={from || undefined}
-              month={calendarMonth}
-              placeholder="종료일을 선택하세요"
-              selected={to || undefined}
-              onMonthChange={setCalendarMonth}
-              onSelect={(date) => {
-                setTo(date);
-                setPage(1);
-              }}
-            />
-            <Select
-              breakpoint="960"
-              id="admin-replies-status"
-              label="상태"
-              value={status}
-              onChange={(event) => {
-                setStatus(event.target.value as AdminContentStatus | "");
-                setPage(1);
-              }}
-            >
-              <option value="">전체</option>
-              <option value="visible">정상</option>
-              <option value="hidden">숨김</option>
-              <option value="deleted">삭제됨</option>
-            </Select>
-            <Select
-              breakpoint="960"
-              id="admin-replies-action"
-              label="AI 검토"
-              value={action}
-              onChange={(event) => {
-                setAction(event.target.value as ReplyModerationActionDto | "");
-                setPage(1);
-              }}
-            >
-              <option value="">전체</option>
-              <option value="allow">정상</option>
-              <option value="suggest_rewrite">순화 제안</option>
-              <option value="block">차단 권장</option>
-              <option value="uncertain">애매함</option>
-            </Select>
-          </div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+          <TextField
+            id="admin-replies-search"
+            label="검색"
+            placeholder="답변 검색어"
+            value={q}
+            width="search"
+            onChange={(event) => {
+              setQ(event.target.value);
+              setPage(1);
+            }}
+          />
+          <HeatmapCalendarField
+            counts={[]}
+            formatDate={formatKoreanDate}
+            label="시작일"
+            maxDate={to || undefined}
+            month={calendarMonth}
+            placeholder="시작일을 선택하세요"
+            selected={from || undefined}
+            onMonthChange={setCalendarMonth}
+            onSelect={(date) => {
+              setFrom(date);
+              setPage(1);
+            }}
+          />
+          <HeatmapCalendarField
+            counts={[]}
+            formatDate={formatKoreanDate}
+            label="종료일"
+            minDate={from || undefined}
+            month={calendarMonth}
+            placeholder="종료일을 선택하세요"
+            selected={to || undefined}
+            onMonthChange={setCalendarMonth}
+            onSelect={(date) => {
+              setTo(date);
+              setPage(1);
+            }}
+          />
+          <Select
+            id="admin-replies-status"
+            label="상태"
+            value={status}
+            onChange={(event) => {
+              setStatus(event.target.value as AdminContentStatus | "");
+              setPage(1);
+            }}
+          >
+            <option value="">전체</option>
+            <option value="visible">정상</option>
+            <option value="hidden">숨김</option>
+            <option value="deleted">삭제됨</option>
+          </Select>
+          <Select
+            id="admin-replies-action"
+            label="AI 검토"
+            value={action}
+            onChange={(event) => {
+              setAction(event.target.value as ReplyModerationActionDto | "");
+              setPage(1);
+            }}
+          >
+            <option value="">전체</option>
+            <option value="allow">정상</option>
+            <option value="suggest_rewrite">순화 제안</option>
+            <option value="block">차단 권장</option>
+            <option value="uncertain">애매함</option>
+          </Select>
         </div>
 
         <AdminStatusGate status={access.status}>
