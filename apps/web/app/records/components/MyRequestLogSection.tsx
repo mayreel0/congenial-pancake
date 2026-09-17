@@ -21,10 +21,16 @@ import { RequestLogCard } from "./RequestLogCard";
 type RequestLogBodyProps = {
   loading: boolean;
   entries: MyRequestLogEntryDto[];
+  searching: boolean;
   onDeleteRequest(requestId: string): void;
 };
 
-function RequestLogBody({ loading, entries, onDeleteRequest }: RequestLogBodyProps) {
+function RequestLogBody({
+  loading,
+  entries,
+  searching,
+  onDeleteRequest,
+}: RequestLogBodyProps) {
   if (loading) {
     return (
       <div className="space-y-4">
@@ -38,6 +44,14 @@ function RequestLogBody({ loading, entries, onDeleteRequest }: RequestLogBodyPro
             <Skeleton className="h-4 w-1/2" />
           </div>
         ))}
+      </div>
+    );
+  }
+
+  if (entries.length === 0 && searching) {
+    return (
+      <div className="space-y-3 rounded-lg border border-line bg-surface px-4 py-5 shadow-sm">
+        <p className="text-sm text-muted">검색 결과가 없습니다.</p>
       </div>
     );
   }
@@ -84,9 +98,20 @@ export function MyRequestLogSection() {
   // Local echo for instant typing feedback — setQ (URL-synced) only fires
   // once debouncedQInput settles, so a request isn't sent per keystroke.
   const [qInput, setQInput] = useState(q ?? "");
+  // Adjust-state-during-render (not a useEffect — see React's "Adjusting
+  // state when a prop changes" guide) to pull qInput back in sync when q
+  // changes from outside typing, e.g. browser back/forward through reqQ.
+  // Comparing against the *previous* q (not the current committed value
+  // below) means an in-progress keystroke, which hasn't reached q yet,
+  // is never clobbered by this.
+  const [prevQ, setPrevQ] = useState(q);
+  if (q !== prevQ) {
+    setPrevQ(q);
+    setQInput(q ?? "");
+  }
   const debouncedQInput = useDebouncedValue(qInput, 300);
   useEffect(() => {
-    const next = debouncedQInput || undefined;
+    const next = debouncedQInput.trim() || undefined;
     if (next !== q) setQ(next);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- setQ is stable across renders; only debouncedQInput should retrigger this (comparing against q would refire on every setQ-caused rerender)
   }, [debouncedQInput]);
@@ -160,6 +185,7 @@ export function MyRequestLogSection() {
       <RequestLogBody
         entries={data?.items ?? []}
         loading={requestLog.isPending || requestLog.isLoading}
+        searching={Boolean(q)}
         onDeleteRequest={setPendingDeleteId}
       />
       {data && (

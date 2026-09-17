@@ -43,7 +43,10 @@ export function HeatmapCalendarField(props: HeatmapCalendarFieldProps) {
       <button
         aria-expanded={open}
         aria-label={label}
-        className="w-48 rounded-lg border border-line bg-surface px-3 py-2 text-left text-sm text-foreground outline-none transition hover:border-primary focus:border-primary"
+        // text-base (not text-sm) to match TextField/Select's height when
+        // sitting next to either in a filter row — see Select's identical
+        // comment for the same fix.
+        className="w-48 rounded-lg border border-line bg-surface px-3 py-2 text-left text-base text-foreground outline-none transition hover:border-primary focus:border-primary"
         type="button"
         onClick={() => setOpen((value) => !value)}
       >
