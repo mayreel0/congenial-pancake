@@ -92,6 +92,12 @@ export function useLogoutMutation() {
   return useMutation({
     mutationFn: apiLogout,
     onSuccess: () => {
+      // clear() first so no other signed-in user's cached data (records,
+      // notifications, ...) can leak into a shared/public browser's next
+      // session — then immediately re-set the auth query so the "signed
+      // out" UI still renders instantly instead of flashing a loading
+      // state while it refetches.
+      queryClient.clear();
       queryClient.setQueryData(authKeys.me, null);
     },
   });

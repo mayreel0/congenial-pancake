@@ -40,6 +40,12 @@ export function useLogoutMutation() {
   return useMutation({
     mutationFn: apiLogout,
     onSuccess: () => {
+      // clear() first so no other admin's cached data (신고 검토/고민 관리/
+      // 답변 관리 목록 등) can leak into a shared machine's next session —
+      // then immediately re-set the auth query so the "signed out" UI
+      // still renders instantly instead of flashing a loading state while
+      // it refetches.
+      queryClient.clear();
       queryClient.setQueryData(authKeys.me, null);
     },
   });
