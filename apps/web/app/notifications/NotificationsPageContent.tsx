@@ -11,6 +11,7 @@ import {
 import { ServiceNav } from "../components/navigation/ServiceNav";
 import { AuthCheckingSpinner } from "../components/shared/AuthCheckingSpinner";
 import { ProfileListItemLink } from "../components/shared/ProfileListItemLink";
+import { loginHrefWithReturnTo } from "../lib/auth/loginHref";
 import { useAuth } from "../lib/auth/useAuth";
 import {
   useMarkAllNotificationsReadMutation,
@@ -137,7 +138,7 @@ export function NotificationsPageContent() {
             <p className="max-w-xl leading-7 text-muted">
               로그인하면 알림을 볼 수 있습니다.
             </p>
-            <Button href="/login">로그인</Button>
+            <Button href={loginHrefWithReturnTo("/notifications")}>로그인</Button>
           </section>
         )}
         {status === "authenticated" && <NotificationsPageBody />}

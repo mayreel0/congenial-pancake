@@ -7,6 +7,7 @@ import { Button } from "ui/Button";
 import { Toggle } from "ui/Toggle";
 import { BUTTON_PENDING_MIN_MS, useMinDisplayDuration } from "ui/useMinDisplayDuration";
 import { errorMessage } from "../../lib/api";
+import { loginHrefWithReturnTo } from "../../lib/auth/loginHref";
 import { useAuth } from "../../lib/auth/useAuth";
 
 type Status = "idle" | "pending" | "done";
@@ -61,7 +62,7 @@ export default function WithdrawPage() {
     return (
       <main className="mx-auto flex min-h-dvh w-full max-w-xl flex-col justify-center gap-4 px-5 py-10 text-foreground sm:px-8">
         <p className="leading-7 text-muted">로그인 후 이용할 수 있어요.</p>
-        <Button href="/login">로그인</Button>
+        <Button href={loginHrefWithReturnTo("/me/withdraw")}>로그인</Button>
       </main>
     );
   }

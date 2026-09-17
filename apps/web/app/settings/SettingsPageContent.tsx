@@ -15,6 +15,7 @@ import {
   type Season,
   type TimeOfDay,
 } from "../lib/ambient-mood";
+import { loginHrefWithReturnTo } from "../lib/auth/loginHref";
 import { useAuth } from "../lib/auth/useAuth";
 import {
   applyThemePreference,
@@ -220,7 +221,7 @@ function SettingsBody({ status, settings, onChange }: SettingsBodyProps) {
       <p className="max-w-xl leading-7 text-muted">
         로그인하면 설정을 바꿀 수 있습니다.
       </p>
-      <Button href="/login">로그인</Button>
+      <Button href={loginHrefWithReturnTo("/settings")}>로그인</Button>
     </section>
   );
 }

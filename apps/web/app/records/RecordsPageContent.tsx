@@ -1,9 +1,10 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "ui/Button";
 import { AuthCheckingSpinner } from "../components/shared/AuthCheckingSpinner";
+import { loginHrefWithReturnTo } from "../lib/auth/loginHref";
 import { useAuth } from "../lib/auth/useAuth";
 import { MyAnswerLogSection } from "./components/MyAnswerLogSection";
 import { MyRequestLogSection } from "./components/MyRequestLogSection";
@@ -22,6 +23,7 @@ type RecordsContentProps = {
 };
 
 function RecordsContent({ status, tab, onTabChange }: RecordsContentProps) {
+  const pathname = usePathname();
   // 로그인 필요 페이지의 공통 4단계(2026-09-14 확정 원칙): 로그인 확인
   // 중 → 중립 로딩, 확인 후 비로그인 → 로그인 필요, 로그인 + 데이터
   // 로딩 중 → 스켈레톤(MyRequestLogSection 등이 각자 갖고 있음), 데이터
@@ -64,7 +66,7 @@ function RecordsContent({ status, tab, onTabChange }: RecordsContentProps) {
       <p className="max-w-xl leading-7 text-muted">
         로그인하면 내 기록을 볼 수 있습니다.
       </p>
-      <Button href="/login">로그인</Button>
+      <Button href={loginHrefWithReturnTo(pathname)}>로그인</Button>
     </section>
   );
 }
