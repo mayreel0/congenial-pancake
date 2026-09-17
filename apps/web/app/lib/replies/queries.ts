@@ -27,7 +27,17 @@ const replyKeys = {
     to: string | undefined,
     page: number,
     pageSize: number,
-  ) => ["replies", "mine", from ?? null, to ?? null, page, pageSize] as const,
+    q: string | undefined,
+  ) =>
+    [
+      "replies",
+      "mine",
+      from ?? null,
+      to ?? null,
+      page,
+      pageSize,
+      q ?? null,
+    ] as const,
   // See requests/queries.ts's identical feedCounts key for why.
   mineCounts: (from: string, to: string) =>
     ["replies", "mineCounts", from, to] as const,
@@ -39,10 +49,11 @@ export function useMyAnswerLogQuery(
   to: string | undefined,
   page: number,
   pageSize: number,
+  q?: string,
 ) {
   return useQuery({
-    queryKey: replyKeys.mine(from, to, page, pageSize),
-    queryFn: () => fetchMyAnswerLog(from, to, page, pageSize),
+    queryKey: replyKeys.mine(from, to, page, pageSize, q),
+    queryFn: () => fetchMyAnswerLog(from, to, page, pageSize, q),
     placeholderData: keepPreviousData,
   });
 }

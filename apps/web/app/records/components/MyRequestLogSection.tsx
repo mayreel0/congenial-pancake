@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ActionConfirmDialog } from "ui/ActionConfirmDialog";
 import { Button } from "ui/Button";
 import { HeatmapCalendarField } from "ui/HeatmapCalendarField";
 import { Pagination } from "ui/Pagination";
 import { Skeleton } from "ui/Skeleton";
+import { TextField } from "ui/TextField";
+import { useDebouncedValue } from "ui/useDebouncedValue";
 import { toast } from "ui/useToast";
 import { daysInMonthAnchor, formatKoreanDate } from "../../lib/kst-date";
 import { PAGE_SIZE_OPTIONS } from "../../lib/pagination";
@@ -68,16 +70,27 @@ export function MyRequestLogSection() {
   const {
     from,
     to,
+    q,
     page,
     pageSize,
     setFrom,
     setTo,
+    setQ,
     setPage,
     setPageSize,
     calendarMonth,
     setCalendarMonth,
   } = useDateRangePage("req");
-  const requestLog = useMyRequestLogQuery(from, to, page, pageSize);
+  // Local echo for instant typing feedback — setQ (URL-synced) only fires
+  // once debouncedQInput settles, so a request isn't sent per keystroke.
+  const [qInput, setQInput] = useState(q ?? "");
+  const debouncedQInput = useDebouncedValue(qInput, 300);
+  useEffect(() => {
+    const next = debouncedQInput || undefined;
+    if (next !== q) setQ(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- setQ is stable across renders; only debouncedQInput should retrigger this (comparing against q would refire on every setQ-caused rerender)
+  }, [debouncedQInput]);
+  const requestLog = useMyRequestLogQuery(from, to, page, pageSize, q);
   const data = requestLog.data;
   const monthDays = daysInMonthAnchor(calendarMonth);
   const dayCounts = useMyRequestDayCountsQuery(
@@ -113,6 +126,14 @@ export function MyRequestLogSection() {
         </p>
       </div>
       <div className="flex flex-wrap gap-3">
+        <TextField
+          id="my-request-log-search"
+          label="검색"
+          placeholder="본문 검색어"
+          value={qInput}
+          width="search"
+          onChange={(event) => setQInput(event.target.value)}
+        />
         <HeatmapCalendarField
           counts={dayCounts.data?.days ?? []}
           formatDate={formatKoreanDate}

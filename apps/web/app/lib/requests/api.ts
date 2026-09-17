@@ -94,12 +94,14 @@ export function fetchMyRequestLog(
   to?: string,
   page?: number,
   pageSize?: number,
+  q?: string,
 ): Promise<PaginatedDto<MyRequestLogEntryDto>> {
   const params = new URLSearchParams();
   if (from) params.set("from", from);
   if (to) params.set("to", to);
   if (page) params.set("page", String(page));
   if (pageSize) params.set("pageSize", String(pageSize));
+  if (q) params.set("q", q);
   const query = params.toString();
   return apiFetch<PaginatedDto<MyRequestLogEntryDto>>(
     `/requests/mine${query ? `?${query}` : ""}`,
