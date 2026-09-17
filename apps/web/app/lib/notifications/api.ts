@@ -27,3 +27,11 @@ export function fetchNotifications(
 export function markAllNotificationsRead(): Promise<void> {
   return apiFetch<void>("/notifications/read", { method: "POST" });
 }
+
+export function deleteNotification(id: string): Promise<void> {
+  return apiFetch<void>(`/notifications/${id}`, { method: "DELETE" });
+}
+
+export function deleteAllNotifications(): Promise<void> {
+  return apiFetch<void>("/notifications", { method: "DELETE" });
+}
