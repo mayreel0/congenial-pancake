@@ -7,6 +7,21 @@ import {
   useAnimatedPresence,
 } from "../hooks/useAnimatedPresence";
 import { HeatmapCalendar, type HeatmapCalendarProps } from "./HeatmapCalendar";
+import type { FilterRowBreakpoint } from "./filterRowBreakpoint";
+
+// Container-query breakpoints (`@min-[Npx]:`), see filterRowBreakpoint.ts
+// for why — and ui/TextField's identical map for why these are written
+// out as literal class strings rather than built by interpolation.
+const CONTAINER_WIDTH_CLASSES: Record<FilterRowBreakpoint, string> = {
+  "740": "w-full @min-[740px]:w-auto",
+  "840": "w-full @min-[840px]:w-auto",
+  "960": "w-full @min-[960px]:w-auto",
+};
+const TRIGGER_WIDTH_CLASSES: Record<FilterRowBreakpoint, string> = {
+  "740": "w-full @min-[740px]:w-48",
+  "840": "w-full @min-[840px]:w-48",
+  "960": "w-full @min-[960px]:w-48",
+};
 
 type HeatmapCalendarFieldProps = HeatmapCalendarProps & {
   label: string;
@@ -14,6 +29,9 @@ type HeatmapCalendarFieldProps = HeatmapCalendarProps & {
   // Defaults to the raw "YYYY-MM-DD" string — apps pass their own Korean
   // date formatter (this package has no app to import one from).
   formatDate?(date: string): string;
+  // Which breakpoint the fixed width kicks in at — see
+  // filterRowBreakpoint.ts.
+  breakpoint?: FilterRowBreakpoint;
 };
 
 // A compact trigger (styled like ui/TextField) that opens HeatmapCalendar
@@ -25,8 +43,13 @@ type HeatmapCalendarFieldProps = HeatmapCalendarProps & {
 // field in a range-select mode — a single field showing both ends wrapped
 // to two lines, and re-picking either end always discarded the other.
 export function HeatmapCalendarField(props: HeatmapCalendarFieldProps) {
-  const { label, placeholder, formatDate = (date) => date, ...calendarProps } =
-    props;
+  const {
+    label,
+    placeholder,
+    formatDate = (date) => date,
+    breakpoint = "740",
+    ...calendarProps
+  } = props;
   const [open, setOpen] = useState(false);
   const containerRef = useDismissOnOutsideClick<HTMLDivElement>(open, () =>
     setOpen(false),
@@ -38,11 +61,15 @@ export function HeatmapCalendarField(props: HeatmapCalendarFieldProps) {
     : placeholder;
 
   return (
-    // w-full sm:w-auto (not inline-block) so the trigger button's own
-    // w-full sm:w-48 below has an unambiguous containing block at every
-    // breakpoint — see ui/TextField's identical sm-breakpoint comment for
-    // why the fixed width only kicks in at sm and up.
-    <div className="relative w-full sm:w-auto" ref={containerRef}>
+    // Not inline-block — the fixed width uses a breakpoint-keyed class
+    // (not inline-block's shrink-to-fit) so the trigger button's own
+    // fixed width below has an unambiguous containing block at every
+    // breakpoint — see ui/TextField's identical breakpoint comment for
+    // why the fixed width only kicks in there.
+    <div
+      className={`relative ${CONTAINER_WIDTH_CLASSES[breakpoint]}`}
+      ref={containerRef}
+    >
       <span className="mb-1 block text-sm text-muted">{label}</span>
       <button
         aria-expanded={open}
@@ -50,7 +77,7 @@ export function HeatmapCalendarField(props: HeatmapCalendarFieldProps) {
         // text-base (not text-sm) to match TextField/Select's height when
         // sitting next to either in a filter row — see Select's identical
         // comment for the same fix.
-        className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-left text-base text-foreground outline-none transition hover:border-primary focus:border-primary sm:w-48"
+        className={`${TRIGGER_WIDTH_CLASSES[breakpoint]} rounded-lg border border-line bg-surface px-3 py-2 text-left text-base text-foreground outline-none transition hover:border-primary focus:border-primary`}
         type="button"
         onClick={() => setOpen((value) => !value)}
       >

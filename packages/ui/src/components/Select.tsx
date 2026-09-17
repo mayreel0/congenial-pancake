@@ -1,4 +1,15 @@
 import type { SelectHTMLAttributes } from "react";
+import type { FilterRowBreakpoint } from "./filterRowBreakpoint";
+
+// w-full below the breakpoint, content-sized (w-auto) at/above it — see
+// ui/TextField's identical breakpoint comment. Container-query
+// breakpoints (`@min-[Npx]:`), see filterRowBreakpoint.ts. Written out as
+// literal class strings per breakpoint, same reason as TextField's map.
+const WIDTH_CLASSES: Record<FilterRowBreakpoint, string> = {
+  "740": "w-full @min-[740px]:w-auto",
+  "840": "w-full @min-[840px]:w-auto",
+  "960": "w-full @min-[960px]:w-auto",
+};
 
 // Same padding/font classes as TextField (px-3 py-2 text-base), but that
 // alone isn't enough — verified in a real browser that a native <select>
@@ -12,21 +23,25 @@ import type { SelectHTMLAttributes } from "react";
 type SelectProps = {
   label: string;
   id: string;
+  // Which breakpoint the content-sized width kicks in at — see
+  // filterRowBreakpoint.ts.
+  breakpoint?: FilterRowBreakpoint;
 } & Omit<SelectHTMLAttributes<HTMLSelectElement>, "id">;
 
-export function Select({ label, id, children, ...rest }: SelectProps) {
+export function Select({
+  label,
+  id,
+  breakpoint = "740",
+  children,
+  ...rest
+}: SelectProps) {
   return (
     <div className="space-y-1">
       <label className="block text-sm text-muted" htmlFor={id}>
         {label}
       </label>
       <select
-        // w-full sm:w-auto — this had no width class before, so it stayed
-        // content-sized even after TextField/HeatmapCalendarField above
-        // switched to full-width on mobile, leaving it the only field not
-        // stretching across a stacked filter row. sm and up reverts to the
-        // original content-sized behavior.
-        className="h-[42px] w-full rounded-lg border border-line bg-surface px-3 py-2 text-base text-foreground outline-none focus:border-primary sm:w-auto"
+        className={`h-[42px] ${WIDTH_CLASSES[breakpoint]} rounded-lg border border-line bg-surface px-3 py-2 text-base text-foreground outline-none focus:border-primary`}
         id={id}
         {...rest}
       >

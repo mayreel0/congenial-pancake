@@ -155,37 +155,47 @@ export function MyAnswerLogSection() {
           내가 어떤 온설에 어떤 답을 남겼는지 모아봤어요.
         </p>
       </div>
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-        <TextField
-          id="my-answer-log-search"
-          label="검색"
-          placeholder="본문 검색어"
-          value={qInput}
-          width="search"
-          onChange={(event) => setQInput(event.target.value)}
-        />
-        <HeatmapCalendarField
-          counts={dayCounts.data?.days ?? []}
-          formatDate={formatKoreanDate}
-          label="시작일"
-          maxDate={to}
-          month={calendarMonth}
-          placeholder="시작일을 선택하세요"
-          selected={from}
-          onMonthChange={setCalendarMonth}
-          onSelect={setFrom}
-        />
-        <HeatmapCalendarField
-          counts={dayCounts.data?.days ?? []}
-          formatDate={formatKoreanDate}
-          label="종료일"
-          minDate={from}
-          month={calendarMonth}
-          placeholder="종료일을 선택하세요"
-          selected={to}
-          onMonthChange={setCalendarMonth}
-          onSelect={setTo}
-        />
+      {/* A dedicated @container wrapper, separate from the row it
+          contains — an element can't container-query its own size, so
+          the row's @min-[740px]:flex-row below needs an ancestor (this
+          div) with container-type set, not itself. See
+          ui/filterRowBreakpoint.ts. */}
+      <div className="@container">
+        <div className="flex flex-col gap-3 @min-[740px]:flex-row @min-[740px]:flex-wrap">
+          <TextField
+            breakpoint="740"
+            id="my-answer-log-search"
+            label="검색"
+            placeholder="본문 검색어"
+            value={qInput}
+            width="search"
+            onChange={(event) => setQInput(event.target.value)}
+          />
+          <HeatmapCalendarField
+            breakpoint="740"
+            counts={dayCounts.data?.days ?? []}
+            formatDate={formatKoreanDate}
+            label="시작일"
+            maxDate={to}
+            month={calendarMonth}
+            placeholder="시작일을 선택하세요"
+            selected={from}
+            onMonthChange={setCalendarMonth}
+            onSelect={setFrom}
+          />
+          <HeatmapCalendarField
+            breakpoint="740"
+            counts={dayCounts.data?.days ?? []}
+            formatDate={formatKoreanDate}
+            label="종료일"
+            minDate={from}
+            month={calendarMonth}
+            placeholder="종료일을 선택하세요"
+            selected={to}
+            onMonthChange={setCalendarMonth}
+            onSelect={setTo}
+          />
+        </div>
       </div>
       <AnswerLogBody
         entries={data?.items ?? []}

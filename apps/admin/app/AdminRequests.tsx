@@ -206,60 +206,73 @@ export function AdminRequests() {
       <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-5 py-10 sm:px-8">
         <h1 className="text-lg font-semibold text-foreground">고민 관리</h1>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
-          <TextField
-            id="admin-requests-search"
-            label="검색"
-            placeholder="본문 검색어"
-            value={q}
-            width="search"
-            onChange={(event) => {
-              setQ(event.target.value);
-              setPage(1);
-            }}
-          />
-          <HeatmapCalendarField
-            counts={[]}
-            formatDate={formatKoreanDate}
-            label="시작일"
-            maxDate={to || undefined}
-            month={calendarMonth}
-            placeholder="시작일을 선택하세요"
-            selected={from || undefined}
-            onMonthChange={setCalendarMonth}
-            onSelect={(date) => {
-              setFrom(date);
-              setPage(1);
-            }}
-          />
-          <HeatmapCalendarField
-            counts={[]}
-            formatDate={formatKoreanDate}
-            label="종료일"
-            minDate={from || undefined}
-            month={calendarMonth}
-            placeholder="종료일을 선택하세요"
-            selected={to || undefined}
-            onMonthChange={setCalendarMonth}
-            onSelect={(date) => {
-              setTo(date);
-              setPage(1);
-            }}
-          />
-          <Select
-            id="admin-requests-status"
-            label="상태"
-            value={status}
-            onChange={(event) => {
-              setStatus(event.target.value as AdminContentStatus | "");
-              setPage(1);
-            }}
-          >
-            <option value="">전체</option>
-            <option value="visible">정상</option>
-            <option value="hidden">숨김</option>
-            <option value="deleted">삭제됨</option>
-          </Select>
+        {/* A dedicated @container wrapper, separate from the row it
+            contains — an element can't container-query its own size, so
+            the row's @min-[840px]:flex-row below needs an ancestor
+            (this div) with container-type set, not itself. Matters here
+            specifically because AdminShell's desktop sidebar toggle
+            changes this row's real width without the viewport changing
+            at all. See ui/filterRowBreakpoint.ts. */}
+        <div className="@container">
+          <div className="flex flex-col gap-3 @min-[840px]:flex-row @min-[840px]:flex-wrap @min-[840px]:items-end">
+            <TextField
+              breakpoint="840"
+              id="admin-requests-search"
+              label="검색"
+              placeholder="본문 검색어"
+              value={q}
+              width="search"
+              onChange={(event) => {
+                setQ(event.target.value);
+                setPage(1);
+              }}
+            />
+            <HeatmapCalendarField
+              breakpoint="840"
+              counts={[]}
+              formatDate={formatKoreanDate}
+              label="시작일"
+              maxDate={to || undefined}
+              month={calendarMonth}
+              placeholder="시작일을 선택하세요"
+              selected={from || undefined}
+              onMonthChange={setCalendarMonth}
+              onSelect={(date) => {
+                setFrom(date);
+                setPage(1);
+              }}
+            />
+            <HeatmapCalendarField
+              breakpoint="840"
+              counts={[]}
+              formatDate={formatKoreanDate}
+              label="종료일"
+              minDate={from || undefined}
+              month={calendarMonth}
+              placeholder="종료일을 선택하세요"
+              selected={to || undefined}
+              onMonthChange={setCalendarMonth}
+              onSelect={(date) => {
+                setTo(date);
+                setPage(1);
+              }}
+            />
+            <Select
+              breakpoint="840"
+              id="admin-requests-status"
+              label="상태"
+              value={status}
+              onChange={(event) => {
+                setStatus(event.target.value as AdminContentStatus | "");
+                setPage(1);
+              }}
+            >
+              <option value="">전체</option>
+              <option value="visible">정상</option>
+              <option value="hidden">숨김</option>
+              <option value="deleted">삭제됨</option>
+            </Select>
+          </div>
         </div>
 
         <AdminStatusGate status={access.status}>
