@@ -27,6 +27,7 @@ describe('RepliesMineController', () => {
       undefined,
       undefined,
       undefined,
+      undefined,
     );
 
     expect(repliesService.findMine).toHaveBeenCalledWith(
@@ -34,6 +35,7 @@ describe('RepliesMineController', () => {
       'guest-1',
       kstDateRange(undefined, undefined),
       { page: 1, pageSize: 10 },
+      undefined,
     );
   });
 
@@ -45,6 +47,7 @@ describe('RepliesMineController', () => {
       '2026-08-31',
       undefined,
       undefined,
+      undefined,
     );
 
     expect(repliesService.findMine).toHaveBeenCalledWith(
@@ -52,6 +55,7 @@ describe('RepliesMineController', () => {
       'guest-1',
       kstDateRange('2026-08-01', '2026-08-31'),
       { page: 1, pageSize: 10 },
+      undefined,
     );
   });
 
@@ -63,6 +67,7 @@ describe('RepliesMineController', () => {
       '2026/08/31',
       undefined,
       undefined,
+      undefined,
     );
 
     expect(repliesService.findMine).toHaveBeenCalledWith(
@@ -70,6 +75,7 @@ describe('RepliesMineController', () => {
       'guest-1',
       kstDateRange(undefined, undefined),
       { page: 1, pageSize: 10 },
+      undefined,
     );
   });
 
@@ -81,6 +87,7 @@ describe('RepliesMineController', () => {
       undefined,
       '2',
       undefined,
+      undefined,
     );
 
     expect(repliesService.findMine).toHaveBeenCalledWith(
@@ -88,6 +95,7 @@ describe('RepliesMineController', () => {
       'guest-1',
       kstDateRange(undefined, undefined),
       { page: 2, pageSize: 10 },
+      undefined,
     );
   });
 
@@ -99,12 +107,14 @@ describe('RepliesMineController', () => {
       undefined,
       undefined,
       '50',
+      undefined,
     );
     expect(repliesService.findMine).toHaveBeenCalledWith(
       'user-1',
       'guest-1',
       kstDateRange(undefined, undefined),
       { page: 1, pageSize: 50 },
+      undefined,
     );
 
     await controller.mine(
@@ -114,12 +124,50 @@ describe('RepliesMineController', () => {
       undefined,
       undefined,
       '999',
+      undefined,
     );
     expect(repliesService.findMine).toHaveBeenLastCalledWith(
       'user-1',
       'guest-1',
       kstDateRange(undefined, undefined),
       { page: 1, pageSize: 10 },
+      undefined,
+    );
+  });
+
+  it('trims the q param and passes undefined when it is blank', async () => {
+    await controller.mine(
+      'user-1',
+      'guest-1',
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      '  힘들  ',
+    );
+    expect(repliesService.findMine).toHaveBeenLastCalledWith(
+      'user-1',
+      'guest-1',
+      kstDateRange(undefined, undefined),
+      { page: 1, pageSize: 10 },
+      '힘들',
+    );
+
+    await controller.mine(
+      'user-1',
+      'guest-1',
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      '   ',
+    );
+    expect(repliesService.findMine).toHaveBeenLastCalledWith(
+      'user-1',
+      'guest-1',
+      kstDateRange(undefined, undefined),
+      { page: 1, pageSize: 10 },
+      undefined,
     );
   });
 
@@ -132,6 +180,7 @@ describe('RepliesMineController', () => {
     const result = await controller.mine(
       'user-1',
       'guest-1',
+      undefined,
       undefined,
       undefined,
       undefined,

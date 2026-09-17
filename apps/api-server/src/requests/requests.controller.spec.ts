@@ -154,12 +154,14 @@ describe('RequestsController', () => {
         undefined,
         undefined,
         undefined,
+        undefined,
       );
 
       expect(requestsService.findMine).toHaveBeenCalledWith(
         'user-1',
         { start: undefined, end: undefined },
         { page: 1, pageSize: 10 },
+        undefined,
       );
       expect(usersService.nicknameMapFor).toHaveBeenCalledWith([
         'user-1',
@@ -206,6 +208,41 @@ describe('RequestsController', () => {
         totalItems: 1,
         totalPages: 1,
       });
+    });
+
+    it('trims the q param and passes undefined when it is blank', async () => {
+      requestsService.findMine.mockResolvedValue({ items: [], totalItems: 0 });
+      usersService.nicknameMapFor.mockResolvedValue(new Map());
+
+      await controller.mine(
+        'user-1',
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        '  힘들  ',
+      );
+      expect(requestsService.findMine).toHaveBeenLastCalledWith(
+        'user-1',
+        { start: undefined, end: undefined },
+        { page: 1, pageSize: 10 },
+        '힘들',
+      );
+
+      await controller.mine(
+        'user-1',
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        '   ',
+      );
+      expect(requestsService.findMine).toHaveBeenLastCalledWith(
+        'user-1',
+        { start: undefined, end: undefined },
+        { page: 1, pageSize: 10 },
+        undefined,
+      );
     });
   });
 

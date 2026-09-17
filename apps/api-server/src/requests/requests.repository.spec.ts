@@ -153,6 +153,7 @@ describe('RequestsRepository', () => {
           eq(requests.authorId, 'user-1'),
           eq(requests.contentRemoved, false),
           undefined,
+          undefined,
         ),
       );
       expect(rowsChain.orderBy).toHaveBeenCalledWith(desc(requests.createdAt));
@@ -189,6 +190,32 @@ describe('RequestsRepository', () => {
 
       expect(result).toEqual({ items: [], totalItems: 0 });
       expect(findMany).not.toHaveBeenCalled();
+    });
+
+    it('filters by body when q is given, escaping ILIKE wildcards', async () => {
+      const countChain = makeCountChain(0);
+      const select = jest.fn().mockReturnValueOnce({ from: countChain.from });
+      const db = {
+        select,
+        query: { replies: { findMany: jest.fn() } },
+      } as unknown as Database;
+      const repository = new RequestsRepository(db);
+
+      await repository.findMine(
+        'user-1',
+        {},
+        { page: 1, pageSize: 20 },
+        '50%_할인\\',
+      );
+
+      expect(countChain.where).toHaveBeenCalledWith(
+        and(
+          eq(requests.authorId, 'user-1'),
+          eq(requests.contentRemoved, false),
+          undefined,
+          ilike(requests.body, '%50\\%\\_할인\\\\%'),
+        ),
+      );
     });
   });
 

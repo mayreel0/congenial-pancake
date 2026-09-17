@@ -164,6 +164,7 @@ export class RequestsController {
     @Query('to') toParam: string | undefined,
     @Query('page') pageParam: string | undefined,
     @Query('pageSize') pageSizeParam: string | undefined,
+    @Query('q') q: string | undefined,
   ): Promise<PaginatedDto<MyRequestLogEntryDto>> {
     const from =
       fromParam && isValidDateString(fromParam) ? fromParam : undefined;
@@ -175,6 +176,7 @@ export class RequestsController {
       userId,
       kstDateRange(from, to),
       { page, pageSize },
+      q?.trim() || undefined,
     );
     const authorIds = items.flatMap((item) => [
       item.request.authorId,

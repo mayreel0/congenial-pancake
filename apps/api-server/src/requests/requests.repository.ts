@@ -78,7 +78,7 @@ export function adminStatusCondition(
 // for a literal "50%" would otherwise silently get a substring match
 // instead. `\` is escaped too since it's the escape character being
 // introduced here.
-function escapeLikePattern(pattern: string): string {
+export function escapeLikePattern(pattern: string): string {
   return pattern.replace(/[\\%_]/g, '\\$&');
 }
 
@@ -253,11 +253,13 @@ export class RequestsRepository {
     authorId: string,
     range: DateRange,
     pagination: Pagination,
+    q?: string,
   ): Promise<PagedResult<FeedItem>> {
     const whereClause = and(
       eq(requests.authorId, authorId),
       eq(requests.contentRemoved, false),
       dateRangeCondition(requests.createdAt, range),
+      q ? ilike(requests.body, `%${escapeLikePattern(q)}%`) : undefined,
     );
 
     const [{ value: totalItems }] = await this.db

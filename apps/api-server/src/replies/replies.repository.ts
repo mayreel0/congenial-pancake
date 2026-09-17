@@ -24,7 +24,10 @@ import type {
   Pagination,
   RequestRecord,
 } from '../requests/requests.repository';
-import { adminStatusCondition } from '../requests/requests.repository';
+import {
+  adminStatusCondition,
+  escapeLikePattern,
+} from '../requests/requests.repository';
 import type { ViewerIdentity } from '../requests/requests.repository';
 
 type ReplyModerationLogRecord = typeof replyModerationLogs.$inferSelect;
@@ -42,11 +45,6 @@ export type CreateReplyInput = {
 
 export type ReplyRecord = typeof replies.$inferSelect;
 export type ReplyWithRequest = { reply: ReplyRecord; request: RequestRecord };
-
-// See requests.repository.ts's identical escapeLikePattern for why.
-function escapeLikePattern(pattern: string): string {
-  return pattern.replace(/[\\%_]/g, '\\$&');
-}
 
 // See requests.repository.ts's identical dateRangeCondition for why.
 function dateRangeCondition(
@@ -222,6 +220,7 @@ export class RepliesRepository {
     viewer: ViewerIdentity,
     range: DateRange,
     pagination: Pagination,
+    q?: string,
   ): Promise<PagedResult<ReplyWithRequest>> {
     const identityCondition = viewer.authorId
       ? eq(replies.authorId, viewer.authorId)
@@ -230,6 +229,7 @@ export class RepliesRepository {
       identityCondition,
       isNull(replies.deletedAt),
       dateRangeCondition(replies.createdAt, range),
+      q ? ilike(replies.body, `%${escapeLikePattern(q)}%`) : undefined,
     );
 
     const [{ value: totalItems }] = await this.db

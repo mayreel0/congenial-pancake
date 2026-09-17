@@ -49,6 +49,7 @@ export class RepliesMineController {
     @Query('to') toParam: string | undefined,
     @Query('page') pageParam: string | undefined,
     @Query('pageSize') pageSizeParam: string | undefined,
+    @Query('q') q: string | undefined,
   ): Promise<PaginatedDto<MyAnswerLogEntryDto>> {
     const from =
       fromParam && isValidDateString(fromParam) ? fromParam : undefined;
@@ -61,6 +62,7 @@ export class RepliesMineController {
       guestId,
       kstDateRange(from, to),
       { page, pageSize },
+      q?.trim() || undefined,
     );
     const authorIds = items.flatMap((entry) => [
       entry.request.authorId,

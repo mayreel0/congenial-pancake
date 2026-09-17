@@ -184,11 +184,13 @@ export class RepliesService {
     guestId: string,
     range: DateRange,
     pagination: Pagination,
+    q?: string,
   ): Promise<PagedResult<ReplyWithRequest>> {
     return this.repliesRepository.findMine(
       userId ? { authorId: userId } : { guestId },
       range,
       pagination,
+      q,
     );
   }
 

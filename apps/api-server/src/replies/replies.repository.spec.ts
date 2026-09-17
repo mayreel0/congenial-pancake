@@ -152,6 +152,7 @@ describe('RepliesRepository', () => {
           eq(replies.authorId, 'user-1'),
           isNull(replies.deletedAt),
           undefined,
+          undefined,
         ),
       );
       expect(rowsChain.orderBy).toHaveBeenCalledWith(desc(replies.createdAt));
@@ -179,9 +180,33 @@ describe('RepliesRepository', () => {
           eq(replies.guestId, 'guest-1'),
           isNull(replies.deletedAt),
           and(gte(replies.createdAt, start), lt(replies.createdAt, end)),
+          undefined,
         ),
       );
       expect(result).toEqual({ items: [], totalItems: 0 });
+    });
+
+    it('filters by body when q is given, escaping ILIKE wildcards', async () => {
+      const countChain = makeCountChain(0);
+      const select = jest.fn().mockReturnValueOnce({ from: countChain.from });
+      const db = { select } as unknown as Database;
+      const repository = new RepliesRepository(db);
+
+      await repository.findMine(
+        { authorId: 'user-1' },
+        {},
+        { page: 1, pageSize: 20 },
+        '50%_할인\\',
+      );
+
+      expect(countChain.where).toHaveBeenCalledWith(
+        and(
+          eq(replies.authorId, 'user-1'),
+          isNull(replies.deletedAt),
+          undefined,
+          ilike(replies.body, '%50\\%\\_할인\\\\%'),
+        ),
+      );
     });
   });
 
