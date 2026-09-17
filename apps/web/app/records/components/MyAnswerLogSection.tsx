@@ -155,37 +155,45 @@ export function MyAnswerLogSection() {
           내가 어떤 온설에 어떤 답을 남겼는지 모아봤어요.
         </p>
       </div>
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
         <TextField
           id="my-answer-log-search"
           label="검색"
           placeholder="본문 검색어"
           value={qInput}
-          width="search"
+          width="flexible"
           onChange={(event) => setQInput(event.target.value)}
         />
-        <HeatmapCalendarField
-          counts={dayCounts.data?.days ?? []}
-          formatDate={formatKoreanDate}
-          label="시작일"
-          maxDate={to}
-          month={calendarMonth}
-          placeholder="시작일을 선택하세요"
-          selected={from}
-          onMonthChange={setCalendarMonth}
-          onSelect={setFrom}
-        />
-        <HeatmapCalendarField
-          counts={dayCounts.data?.days ?? []}
-          formatDate={formatKoreanDate}
-          label="종료일"
-          minDate={from}
-          month={calendarMonth}
-          placeholder="종료일을 선택하세요"
-          selected={to}
-          onMonthChange={setCalendarMonth}
-          onSelect={setTo}
-        />
+        <div className="grid grid-cols-2 items-end gap-2 sm:flex sm:shrink-0 sm:items-end sm:gap-2">
+          <HeatmapCalendarField
+            counts={dayCounts.data?.days ?? []}
+            formatDate={formatKoreanDate}
+            label="시작일"
+            maxDate={to}
+            month={calendarMonth}
+            placeholder="시작일을 선택하세요"
+            selected={from}
+            onMonthChange={setCalendarMonth}
+            onSelect={setFrom}
+          />
+          <span
+            aria-hidden="true"
+            className="hidden text-muted sm:inline-block sm:pb-2.5"
+          >
+            ~
+          </span>
+          <HeatmapCalendarField
+            counts={dayCounts.data?.days ?? []}
+            formatDate={formatKoreanDate}
+            label="종료일"
+            minDate={from}
+            month={calendarMonth}
+            placeholder="종료일을 선택하세요"
+            selected={to}
+            onMonthChange={setCalendarMonth}
+            onSelect={setTo}
+          />
+        </div>
       </div>
       <AnswerLogBody
         entries={data?.items ?? []}
