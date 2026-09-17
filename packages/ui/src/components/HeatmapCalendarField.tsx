@@ -7,7 +7,9 @@ import {
   useAnimatedPresence,
 } from "../hooks/useAnimatedPresence";
 import { HeatmapCalendar, type HeatmapCalendarProps } from "./HeatmapCalendar";
-
+// Below sm (640px), the trigger button goes full-width to stack cleanly.
+// sm and up keeps the fixed width (w-48, 192px) which fits "YYYY년 M월 D일"
+// and "시작일을 선택하세요" without clipping.
 type HeatmapCalendarFieldProps = HeatmapCalendarProps & {
   label: string;
   placeholder: string;
@@ -25,8 +27,12 @@ type HeatmapCalendarFieldProps = HeatmapCalendarProps & {
 // field in a range-select mode — a single field showing both ends wrapped
 // to two lines, and re-picking either end always discarded the other.
 export function HeatmapCalendarField(props: HeatmapCalendarFieldProps) {
-  const { label, placeholder, formatDate = (date) => date, ...calendarProps } =
-    props;
+  const {
+    label,
+    placeholder,
+    formatDate = (date) => date,
+    ...calendarProps
+  } = props;
   const [open, setOpen] = useState(false);
   const containerRef = useDismissOnOutsideClick<HTMLDivElement>(open, () =>
     setOpen(false),
@@ -38,15 +44,14 @@ export function HeatmapCalendarField(props: HeatmapCalendarFieldProps) {
     : placeholder;
 
   return (
-    <div className="relative inline-block" ref={containerRef}>
+    <div className="relative w-full sm:w-auto" ref={containerRef}>
       <span className="mb-1 block text-sm text-muted">{label}</span>
       <button
         aria-expanded={open}
         aria-label={label}
         // text-base (not text-sm) to match TextField/Select's height when
-        // sitting next to either in a filter row — see Select's identical
-        // comment for the same fix.
-        className="w-48 rounded-lg border border-line bg-surface px-3 py-2 text-left text-base text-foreground outline-none transition hover:border-primary focus:border-primary"
+        // sitting next to either in a filter row.
+        className="w-full truncate rounded-lg border border-line bg-surface px-3 py-2 text-left text-base text-foreground outline-none transition hover:border-primary focus:border-primary sm:w-44"
         type="button"
         onClick={() => setOpen((value) => !value)}
       >
