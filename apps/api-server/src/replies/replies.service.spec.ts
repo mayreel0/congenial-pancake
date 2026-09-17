@@ -501,12 +501,14 @@ describe('RepliesService', () => {
         'unused-guest-id',
         {},
         { page: 1, pageSize: 20 },
+        '힘들',
       );
 
       expect(repliesRepository.findMine).toHaveBeenCalledWith(
         { authorId: 'user-1' },
         {},
         { page: 1, pageSize: 20 },
+        '힘들',
       );
     });
 
@@ -527,6 +529,7 @@ describe('RepliesService', () => {
         { guestId: 'guest-1' },
         {},
         { page: 1, pageSize: 20 },
+        undefined,
       );
     });
   });

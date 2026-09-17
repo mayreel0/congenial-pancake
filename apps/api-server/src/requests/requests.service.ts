@@ -72,8 +72,9 @@ export class RequestsService {
     authorId: string,
     range: DateRange,
     pagination: Pagination,
+    q?: string,
   ): Promise<PagedResult<FeedItem>> {
-    return this.requestsRepository.findMine(authorId, range, pagination);
+    return this.requestsRepository.findMine(authorId, range, pagination, q);
   }
 
   countFeedByDay(range: DateRange): Promise<DayCount[]> {
