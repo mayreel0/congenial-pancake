@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useDismissOnOutsideClick } from "ui/useDismissOnOutsideClick";
 import { POPOVER_EXIT_MS, useAnimatedPresence } from "ui/useAnimatedPresence";
 import { useAuth } from "../../lib/auth/useAuth";
@@ -23,8 +23,10 @@ export function ServiceNav({ activePath }: ServiceNavProps) {
   // (both live inside <header>) — the profile dropdown already had this,
   // the mobile menu didn't, so tapping anywhere outside it only closed via
   // the toggle button itself.
-  const headerRef = useDismissOnOutsideClick<HTMLElement>(menuOpen, () =>
-    setMenuOpen(false),
+  const closeMobileMenu = useCallback(() => setMenuOpen(false), []);
+  const headerRef = useDismissOnOutsideClick<HTMLElement>(
+    menuOpen,
+    closeMobileMenu,
   );
   const profileMenuRef = useDismissOnOutsideClick<HTMLDivElement>(
     profileMenuOpen,
