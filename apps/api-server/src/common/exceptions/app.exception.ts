@@ -66,6 +66,16 @@ export class ReplyNotFoundException extends AppException {
   }
 }
 
+export class NotificationNotFoundException extends AppException {
+  constructor() {
+    super(
+      'NOTIFICATION_NOT_FOUND',
+      'Notification not found.',
+      HttpStatus.NOT_FOUND,
+    );
+  }
+}
+
 export class RequestGuestLimitExceededException extends AppException {
   constructor() {
     super(

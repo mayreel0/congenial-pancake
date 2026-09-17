@@ -85,4 +85,22 @@ export class NotificationsRepository {
         and(eq(notifications.userId, userId), isNull(notifications.readAt)),
       );
   }
+
+  // Hard delete — notifications carry no content worth a soft-delete
+  // placeholder (see requests/replies' contentRemoved for the contrast:
+  // those still show a thread to other people, a notification is
+  // viewer-only). Returns whether a row actually matched, scoped by
+  // userId in the same query so a non-owner id and a nonexistent id are
+  // indistinguishable to the caller.
+  async deleteOne(userId: string, id: string): Promise<boolean> {
+    const deleted = await this.db
+      .delete(notifications)
+      .where(and(eq(notifications.id, id), eq(notifications.userId, userId)))
+      .returning({ id: notifications.id });
+    return deleted.length > 0;
+  }
+
+  async deleteAll(userId: string): Promise<void> {
+    await this.db.delete(notifications).where(eq(notifications.userId, userId));
+  }
 }
