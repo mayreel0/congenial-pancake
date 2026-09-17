@@ -88,9 +88,10 @@ export class RepliesController {
   @UseGuards(SessionGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteOwn(
+    @Param('requestId') requestId: string,
     @Param('id') id: string,
     @CurrentUser() userId: string,
   ): Promise<void> {
-    await this.repliesService.deleteOwn(userId, id);
+    await this.repliesService.deleteOwn(userId, requestId, id);
   }
 }
