@@ -24,4 +24,14 @@ describe("safeReturnTo", () => {
     expect(safeReturnTo("evil.com")).toBe("/today");
     expect(safeReturnTo("https://evil.com")).toBe("/today");
   });
+
+  it("blocks a tab/whitespace-prefixed URL the URL spec strips into a protocol-relative one", () => {
+    expect(safeReturnTo("/\t/evil.com")).toBe("/today");
+    expect(safeReturnTo("/ /evil.com")).toBe("/today");
+  });
+
+  it("blocks a redirect back to the login page itself", () => {
+    expect(safeReturnTo("/login")).toBe("/today");
+    expect(safeReturnTo("/login?returnTo=/records")).toBe("/today");
+  });
 });

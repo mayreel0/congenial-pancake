@@ -66,7 +66,13 @@ function RecordsContent({ status, tab, onTabChange }: RecordsContentProps) {
       <p className="max-w-xl leading-7 text-muted">
         로그인하면 내 기록을 볼 수 있습니다.
       </p>
-      <Button href={loginHrefWithReturnTo(pathname)}>로그인</Button>
+      <Button
+        href={loginHrefWithReturnTo(
+          tab === "replies" ? `${pathname}?tab=replies` : pathname,
+        )}
+      >
+        로그인
+      </Button>
     </section>
   );
 }
