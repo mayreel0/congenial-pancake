@@ -12,6 +12,7 @@ import { useUrlState } from "../lib/useUrlState";
 export type UseDateRangePageResult = {
   from: string | undefined;
   to: string | undefined;
+  q: string | undefined;
   page: number;
   pageSize: number;
   // Independent — 시작일/종료일 are two separate HeatmapCalendarFields
@@ -19,6 +20,7 @@ export type UseDateRangePageResult = {
   // couldn't adjust just one end without resetting both).
   setFrom(value: string | undefined): void;
   setTo(value: string | undefined): void;
+  setQ(value: string | undefined): void;
   setPage(page: number): void;
   setPageSize(pageSize: number): void;
   // HeatmapCalendar's own month view — not URL-synced, resets to the
@@ -41,9 +43,10 @@ type RangeUrlState = Record<string, string | undefined>;
 export function useDateRangePage(prefix: "req" | "rep"): UseDateRangePageResult {
   const fromKey = `${prefix}From`;
   const toKey = `${prefix}To`;
+  const qKey = `${prefix}Q`;
   const pageKey = `${prefix}Page`;
   const pageSizeKey = `${prefix}PageSize`;
-  const keys = [fromKey, toKey, pageKey, pageSizeKey];
+  const keys = [fromKey, toKey, qKey, pageKey, pageSizeKey];
 
   const [urlState, updateUrlState] = useUrlState<string>(
     "/records",
@@ -51,6 +54,7 @@ export function useDateRangePage(prefix: "req" | "rep"): UseDateRangePageResult 
     {
       [fromKey]: undefined,
       [toKey]: undefined,
+      [qKey]: undefined,
       [pageKey]: undefined,
       [pageSizeKey]: undefined,
     } as RangeUrlState,
@@ -58,6 +62,7 @@ export function useDateRangePage(prefix: "req" | "rep"): UseDateRangePageResult 
 
   const from = urlState[fromKey];
   const to = urlState[toKey];
+  const q = urlState[qKey];
   const page = parsePageParam(urlState[pageKey]);
   const pageSize = parsePageSizeParam(urlState[pageSizeKey]);
 
@@ -73,6 +78,10 @@ export function useDateRangePage(prefix: "req" | "rep"): UseDateRangePageResult 
     updateUrlState({ [toKey]: value, [pageKey]: undefined });
   }
 
+  function setQ(value: string | undefined): void {
+    updateUrlState({ [qKey]: value, [pageKey]: undefined });
+  }
+
   function setPage(nextPage: number): void {
     updateUrlState({ [pageKey]: String(nextPage) });
   }
@@ -84,10 +93,12 @@ export function useDateRangePage(prefix: "req" | "rep"): UseDateRangePageResult 
   return {
     from,
     to,
+    q,
     page,
     pageSize,
     setFrom,
     setTo,
+    setQ,
     setPage,
     setPageSize,
     calendarMonth,

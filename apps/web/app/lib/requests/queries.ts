@@ -36,7 +36,17 @@ export const requestKeys = {
     to: string | undefined,
     page: number,
     pageSize: number,
-  ) => ["requests", "mine", from ?? null, to ?? null, page, pageSize] as const,
+    q: string | undefined,
+  ) =>
+    [
+      "requests",
+      "mine",
+      from ?? null,
+      to ?? null,
+      page,
+      pageSize,
+      q ?? null,
+    ] as const,
   // HeatmapCalendar day counts — keyed by the visible month's from/to.
   feedCounts: (from: string, to: string) =>
     ["requests", "feedCounts", from, to] as const,
@@ -132,10 +142,11 @@ export function useMyRequestLogQuery(
   to: string | undefined,
   page: number,
   pageSize: number,
+  q?: string,
 ) {
   return useQuery({
-    queryKey: requestKeys.mine(from, to, page, pageSize),
-    queryFn: () => fetchMyRequestLog(from, to, page, pageSize),
+    queryKey: requestKeys.mine(from, to, page, pageSize, q),
+    queryFn: () => fetchMyRequestLog(from, to, page, pageSize, q),
     placeholderData: keepPreviousData,
   });
 }

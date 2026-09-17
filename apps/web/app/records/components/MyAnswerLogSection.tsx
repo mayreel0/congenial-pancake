@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ActionConfirmDialog } from "ui/ActionConfirmDialog";
 import { Button } from "ui/Button";
 import { HeatmapCalendarField } from "ui/HeatmapCalendarField";
 import { Pagination } from "ui/Pagination";
 import { Skeleton } from "ui/Skeleton";
+import { TextField } from "ui/TextField";
+import { useDebouncedValue } from "ui/useDebouncedValue";
 import { toast } from "ui/useToast";
 import { daysInMonthAnchor, formatKoreanDate } from "../../lib/kst-date";
 import { PAGE_SIZE_OPTIONS } from "../../lib/pagination";
@@ -19,10 +21,16 @@ import { AnswerLogCard } from "./AnswerLogCard";
 type AnswerLogBodyProps = {
   loading: boolean;
   entries: MyAnswerLogEntryDto[];
+  searching: boolean;
   onDeleteReply(requestId: string, replyId: string): void;
 };
 
-function AnswerLogBody({ loading, entries, onDeleteReply }: AnswerLogBodyProps) {
+function AnswerLogBody({
+  loading,
+  entries,
+  searching,
+  onDeleteReply,
+}: AnswerLogBodyProps) {
   if (loading) {
     return (
       <div className="space-y-4">
@@ -36,6 +44,14 @@ function AnswerLogBody({ loading, entries, onDeleteReply }: AnswerLogBodyProps) 
             <Skeleton className="h-4 w-1/2" />
           </div>
         ))}
+      </div>
+    );
+  }
+
+  if (entries.length === 0 && searching) {
+    return (
+      <div className="space-y-3 rounded-lg border border-line bg-surface px-4 py-5 shadow-sm">
+        <p className="text-sm text-muted">검색 결과가 없습니다.</p>
       </div>
     );
   }
@@ -68,16 +84,40 @@ export function MyAnswerLogSection() {
   const {
     from,
     to,
+    q,
     page,
     pageSize,
     setFrom,
     setTo,
+    setQ,
     setPage,
     setPageSize,
     calendarMonth,
     setCalendarMonth,
   } = useDateRangePage("rep");
-  const answerLog = useMyAnswerLogQuery(from, to, page, pageSize);
+  // Local echo for instant typing feedback — setQ (URL-synced) only fires
+  // once debouncedQInput settles, so a request isn't sent per keystroke.
+  // Local echo for instant typing feedback — setQ (URL-synced) only fires
+  // once debouncedQInput settles, so a request isn't sent per keystroke.
+  const [qInput, setQInput] = useState(q ?? "");
+  // Adjust-state-during-render (not a useEffect — see React's "Adjusting
+  // state when a prop changes" guide) to pull qInput back in sync when q
+  // changes from outside typing, e.g. browser back/forward through repQ.
+  // Comparing against the *previous* q (not the current committed value
+  // below) means an in-progress keystroke, which hasn't reached q yet,
+  // is never clobbered by this.
+  const [prevQ, setPrevQ] = useState(q);
+  if (q !== prevQ) {
+    setPrevQ(q);
+    setQInput(q ?? "");
+  }
+  const debouncedQInput = useDebouncedValue(qInput, 300);
+  useEffect(() => {
+    const next = debouncedQInput.trim() || undefined;
+    if (next !== q) setQ(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- setQ is stable across renders; only debouncedQInput should retrigger this (comparing against q would refire on every setQ-caused rerender)
+  }, [debouncedQInput]);
+  const answerLog = useMyAnswerLogQuery(from, to, page, pageSize, q);
   const data = answerLog.data;
   const monthDays = daysInMonthAnchor(calendarMonth);
   const dayCounts = useMyReplyDayCountsQuery(
@@ -116,6 +156,14 @@ export function MyAnswerLogSection() {
         </p>
       </div>
       <div className="flex flex-wrap gap-3">
+        <TextField
+          id="my-answer-log-search"
+          label="검색"
+          placeholder="본문 검색어"
+          value={qInput}
+          width="search"
+          onChange={(event) => setQInput(event.target.value)}
+        />
         <HeatmapCalendarField
           counts={dayCounts.data?.days ?? []}
           formatDate={formatKoreanDate}
@@ -142,6 +190,7 @@ export function MyAnswerLogSection() {
       <AnswerLogBody
         entries={data?.items ?? []}
         loading={answerLog.isPending || answerLog.isLoading}
+        searching={Boolean(q)}
         onDeleteReply={(requestId, replyId) =>
           setPendingDelete({ requestId, replyId })
         }
