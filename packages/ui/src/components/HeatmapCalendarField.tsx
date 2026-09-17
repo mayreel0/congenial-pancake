@@ -38,7 +38,11 @@ export function HeatmapCalendarField(props: HeatmapCalendarFieldProps) {
     : placeholder;
 
   return (
-    <div className="relative inline-block" ref={containerRef}>
+    // w-full sm:w-auto (not inline-block) so the trigger button's own
+    // w-full sm:w-48 below has an unambiguous containing block at every
+    // breakpoint — see ui/TextField's identical sm-breakpoint comment for
+    // why the fixed width only kicks in at sm and up.
+    <div className="relative w-full sm:w-auto" ref={containerRef}>
       <span className="mb-1 block text-sm text-muted">{label}</span>
       <button
         aria-expanded={open}
@@ -46,7 +50,7 @@ export function HeatmapCalendarField(props: HeatmapCalendarFieldProps) {
         // text-base (not text-sm) to match TextField/Select's height when
         // sitting next to either in a filter row — see Select's identical
         // comment for the same fix.
-        className="w-48 rounded-lg border border-line bg-surface px-3 py-2 text-left text-base text-foreground outline-none transition hover:border-primary focus:border-primary"
+        className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-left text-base text-foreground outline-none transition hover:border-primary focus:border-primary sm:w-48"
         type="button"
         onClick={() => setOpen((value) => !value)}
       >

@@ -258,7 +258,7 @@ export function AdminReplies() {
       <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-5 py-10 sm:px-8">
         <h1 className="text-lg font-semibold text-foreground">답변 관리</h1>
 
-        <div className="flex flex-wrap items-end gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
           <TextField
             id="admin-replies-search"
             label="검색"

@@ -150,7 +150,7 @@ export function MyRequestLogSection() {
           내가 남긴 고민과 거기 달린 답변을 모아봤어요.
         </p>
       </div>
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         <TextField
           id="my-request-log-search"
           label="검색"

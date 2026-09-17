@@ -155,7 +155,7 @@ export function MyAnswerLogSection() {
           내가 어떤 온설에 어떤 답을 남겼는지 모아봤어요.
         </p>
       </div>
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         <TextField
           id="my-answer-log-search"
           label="검색"

@@ -206,7 +206,7 @@ export function AdminRequests() {
       <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-5 py-10 sm:px-8">
         <h1 className="text-lg font-semibold text-foreground">고민 관리</h1>
 
-        <div className="flex flex-wrap items-end gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
           <TextField
             id="admin-requests-search"
             label="검색"
