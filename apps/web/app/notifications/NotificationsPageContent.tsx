@@ -141,7 +141,9 @@ function NotificationsPageBody() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-start justify-between gap-3">
-        <PageTitle />
+        <div className="space-y-3">
+          <PageTitle />
+        </div>
         {query.data && query.data.totalItems > 0 && (
           <button
             className="whitespace-nowrap text-sm text-muted transition hover:text-foreground"
