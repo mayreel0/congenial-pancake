@@ -241,9 +241,20 @@ export class RepliesService {
   // needs to preserve someone else's content, so this just reuses the
   // same soft-delete admin moderation already uses (removed from every
   // view, same as admin's own "영구 삭제").
-  async deleteOwn(userId: string, id: string): Promise<void> {
+  //
+  // requestId comes from the route (POST /requests/:requestId/replies/:id/
+  // delete-own) purely for REST-shape consistency with every other route
+  // under this controller — id alone already uniquely identifies the
+  // reply, so ownership doesn't depend on requestId. Checking it anyway
+  // means a request built with a requestId that doesn't actually match the
+  // reply's own 404s instead of silently deleting based on id alone.
+  async deleteOwn(
+    userId: string,
+    requestId: string,
+    id: string,
+  ): Promise<void> {
     const reply = await this.repliesRepository.findById(id);
-    if (!reply || reply.authorId !== userId) {
+    if (!reply || reply.authorId !== userId || reply.requestId !== requestId) {
       throw new ReplyNotFoundException();
     }
     await this.repliesRepository.softDelete(id);

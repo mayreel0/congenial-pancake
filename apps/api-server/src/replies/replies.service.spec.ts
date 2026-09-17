@@ -532,23 +532,51 @@ describe('RepliesService', () => {
   });
 
   describe('deleteOwn', () => {
-    it('soft-deletes the reply when the caller is the author', async () => {
+    it('soft-deletes the reply when the caller is the author and requestId matches', async () => {
       repliesRepository.findById.mockResolvedValue(
-        makeReply({ id: 'reply-1', authorId: 'user-1' }),
+        makeReply({
+          id: 'reply-1',
+          requestId: 'request-1',
+          authorId: 'user-1',
+        }),
       );
 
-      await repliesService.deleteOwn('user-1', 'reply-1');
+      await repliesService.deleteOwn('user-1', 'request-1', 'reply-1');
 
       expect(repliesRepository.softDelete).toHaveBeenCalledWith('reply-1');
     });
 
     it('throws NotFound without deleting when the caller is not the author', async () => {
       repliesRepository.findById.mockResolvedValue(
-        makeReply({ id: 'reply-1', authorId: 'user-1' }),
+        makeReply({
+          id: 'reply-1',
+          requestId: 'request-1',
+          authorId: 'user-1',
+        }),
       );
 
       await expect(
-        repliesService.deleteOwn('someone-else', 'reply-1'),
+        repliesService.deleteOwn('someone-else', 'request-1', 'reply-1'),
+      ).rejects.toBeInstanceOf(ReplyNotFoundException);
+      expect(repliesRepository.softDelete).not.toHaveBeenCalled();
+    });
+
+    // Route is /requests/:requestId/replies/:id/delete-own — requestId
+    // doesn't actually determine ownership (id alone identifies the reply
+    // uniquely), but a mismatched requestId means the caller's request
+    // doesn't describe the reply it thinks it does, so this should 404
+    // rather than silently delete based on id alone.
+    it('throws NotFound without deleting when requestId does not match the reply', async () => {
+      repliesRepository.findById.mockResolvedValue(
+        makeReply({
+          id: 'reply-1',
+          requestId: 'request-1',
+          authorId: 'user-1',
+        }),
+      );
+
+      await expect(
+        repliesService.deleteOwn('user-1', 'some-other-request', 'reply-1'),
       ).rejects.toBeInstanceOf(ReplyNotFoundException);
       expect(repliesRepository.softDelete).not.toHaveBeenCalled();
     });
@@ -557,7 +585,7 @@ describe('RepliesService', () => {
       repliesRepository.findById.mockResolvedValue(undefined);
 
       await expect(
-        repliesService.deleteOwn('user-1', 'missing'),
+        repliesService.deleteOwn('user-1', 'request-1', 'missing'),
       ).rejects.toBeInstanceOf(ReplyNotFoundException);
       expect(repliesRepository.softDelete).not.toHaveBeenCalled();
     });
