@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { index, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { replies } from './replies.schema';
 import { requests } from './requests.schema';
 import { users } from './users.schema';
@@ -8,16 +8,25 @@ import { users } from './users.schema';
 // schema change, just a new type value (+ new nullable reference columns if
 // it points at something other than a request/reply, same nullable-pair
 // style requests/replies already use for authorId/guestId).
-export const notifications = pgTable('notifications', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => users.id),
-  type: text('type').notNull(),
-  requestId: uuid('request_id').references(() => requests.id),
-  replyId: uuid('reply_id').references(() => replies.id),
-  createdAt: timestamp('created_at', { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  readAt: timestamp('read_at', { withTimezone: true }),
-});
+export const notifications = pgTable(
+  'notifications',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    type: text('type').notNull(),
+    requestId: uuid('request_id').references(() => requests.id),
+    replyId: uuid('reply_id').references(() => replies.id),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    readAt: timestamp('read_at', { withTimezone: true }),
+  },
+  (table) => [
+    // findMine/countUnread/markAllRead all filter by userId alone — Postgres
+    // doesn't auto-index a foreign key the way it does a primary key, so
+    // without this every one of those runs a full table scan.
+    index('notifications_user_id_idx').on(table.userId),
+  ],
+);
