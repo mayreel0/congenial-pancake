@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Observable, Subject, filter, map } from 'rxjs';
+import { NotificationNotFoundException } from '../common/exceptions/app.exception';
 import type { PagedResult, Pagination } from '../requests/requests.repository';
 import {
   NotificationsRepository,
@@ -62,5 +63,14 @@ export class NotificationsService {
 
   markAllRead(userId: string): Promise<void> {
     return this.notificationsRepository.markAllRead(userId);
+  }
+
+  async deleteOne(userId: string, id: string): Promise<void> {
+    const deleted = await this.notificationsRepository.deleteOne(userId, id);
+    if (!deleted) throw new NotificationNotFoundException();
+  }
+
+  deleteAll(userId: string): Promise<void> {
+    return this.notificationsRepository.deleteAll(userId);
   }
 }

@@ -1,9 +1,11 @@
 import {
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
   type MessageEvent,
+  Param,
   Post,
   Query,
   Sse,
@@ -72,6 +74,24 @@ export class NotificationsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async markAllRead(@CurrentUser() userId: string): Promise<void> {
     await this.notificationsService.markAllRead(userId);
+  }
+
+  // Hard delete, no confirmation required client-side — see
+  // notifications.repository.ts's deleteOne comment for why this is a hard
+  // delete unlike requests/replies' own-content delete.
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteOne(
+    @CurrentUser() userId: string,
+    @Param('id') id: string,
+  ): Promise<void> {
+    await this.notificationsService.deleteOne(userId, id);
+  }
+
+  @Delete()
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteAll(@CurrentUser() userId: string): Promise<void> {
+    await this.notificationsService.deleteAll(userId);
   }
 
   // Real-time half — see unread-count's comment for the polling half this

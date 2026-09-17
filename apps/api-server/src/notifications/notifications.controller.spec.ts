@@ -42,6 +42,8 @@ describe('NotificationsController', () => {
       unreadCount: jest.fn(),
       markAllRead: jest.fn(),
       stream: jest.fn(),
+      deleteOne: jest.fn(),
+      deleteAll: jest.fn(),
     } as unknown as jest.Mocked<NotificationsService>;
 
     controller = new NotificationsController(notificationsService);
@@ -93,6 +95,29 @@ describe('NotificationsController', () => {
       );
 
       expect(events).toEqual([{ data: { id: 'notification-1' } }]);
+    });
+  });
+
+  describe('deleteOne', () => {
+    it('delegates to the service with the caller userId and the id param', async () => {
+      notificationsService.deleteOne.mockResolvedValue(undefined);
+
+      await controller.deleteOne('author-1', 'notification-1');
+
+      expect(notificationsService.deleteOne).toHaveBeenCalledWith(
+        'author-1',
+        'notification-1',
+      );
+    });
+  });
+
+  describe('deleteAll', () => {
+    it("delegates to the service with the caller's userId", async () => {
+      notificationsService.deleteAll.mockResolvedValue(undefined);
+
+      await controller.deleteAll('author-1');
+
+      expect(notificationsService.deleteAll).toHaveBeenCalledWith('author-1');
     });
   });
 });

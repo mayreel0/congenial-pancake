@@ -1,3 +1,4 @@
+import { NotificationNotFoundException } from '../common/exceptions/app.exception';
 import type {
   NotificationRecord,
   NotificationsRepository,
@@ -29,6 +30,8 @@ describe('NotificationsService', () => {
       findMine: jest.fn(),
       countUnread: jest.fn(),
       markAllRead: jest.fn(),
+      deleteOne: jest.fn(),
+      deleteAll: jest.fn(),
     } as unknown as jest.Mocked<NotificationsRepository>;
 
     service = new NotificationsService(repository);
@@ -110,6 +113,35 @@ describe('NotificationsService', () => {
       await service.markAllRead('author-1');
 
       expect(repository.markAllRead).toHaveBeenCalledWith('author-1');
+    });
+  });
+
+  describe('deleteOne', () => {
+    it('delegates to the repository', async () => {
+      repository.deleteOne.mockResolvedValue(true);
+
+      await service.deleteOne('author-1', 'notification-1');
+
+      expect(repository.deleteOne).toHaveBeenCalledWith(
+        'author-1',
+        'notification-1',
+      );
+    });
+
+    it('throws NotificationNotFoundException when the repository deleted nothing', async () => {
+      repository.deleteOne.mockResolvedValue(false);
+
+      await expect(service.deleteOne('author-1', 'not-mine')).rejects.toThrow(
+        NotificationNotFoundException,
+      );
+    });
+  });
+
+  describe('deleteAll', () => {
+    it('delegates to the repository', async () => {
+      await service.deleteAll('author-1');
+
+      expect(repository.deleteAll).toHaveBeenCalledWith('author-1');
     });
   });
 });
