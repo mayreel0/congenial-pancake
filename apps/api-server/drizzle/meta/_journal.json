@@ -169,6 +169,13 @@
       "when": 1789618758962,
       "tag": "0023_red_black_tarantula",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1789639708062,
+      "tag": "0024_narrow_quicksilver",
+      "breakpoints": true
     }
   ]
 }
