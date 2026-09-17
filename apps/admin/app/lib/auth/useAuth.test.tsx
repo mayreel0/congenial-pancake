@@ -25,6 +25,23 @@ function Wrapper({ children }: { children: ReactNode }) {
   );
 }
 
+// logout()'s "clear the whole cache" test needs to seed and inspect a
+// query client shared with the hook under test, unlike every other test
+// here — Wrapper's own per-render client isn't reachable from outside it.
+function createSharedWrapper() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  function SharedWrapper({ children }: { children: ReactNode }) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        {children}
+      </QueryClientProvider>
+    );
+  }
+  return { queryClient, SharedWrapper };
+}
+
 describe("useAuth", () => {
   it("resolves to anonymous when /auth/me returns 401", async () => {
     // vitest.setup.ts already mocks fetch to 401 by default.
@@ -87,5 +104,30 @@ describe("useAuth", () => {
 
     await waitFor(() => expect(result.current.status).toBe("anonymous"));
     expect(result.current.user).toBeNull();
+  });
+
+  it("logout() clears every other cached query, not just the auth one", async () => {
+    mockFetchOnce({
+      ok: true,
+      status: 200,
+      body: { id: "1", email: "test@example.com", createdAt: "2026-08-20T00:00:00.000Z" },
+    });
+    const { queryClient, SharedWrapper } = createSharedWrapper();
+    const { result } = renderHook(() => useAuth(), { wrapper: SharedWrapper });
+    await waitFor(() => expect(result.current.status).toBe("authenticated"));
+
+    // Stand-in for another admin's cached data (신고 검토/고민 관리/답변 관리
+    // 목록 등) — logout must not leave this behind on a shared machine.
+    queryClient.setQueryData(["admin", "requests"], [{ id: "leaked" }]);
+    expect(queryClient.getQueryData(["admin", "requests"])).toBeDefined();
+
+    mockFetchOnce({ ok: true, status: 204, body: undefined });
+
+    await act(async () => {
+      await result.current.logout();
+    });
+
+    await waitFor(() => expect(result.current.status).toBe("anonymous"));
+    expect(queryClient.getQueryData(["admin", "requests"])).toBeUndefined();
   });
 });
