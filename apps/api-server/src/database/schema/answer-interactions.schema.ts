@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import {
   check,
+  index,
   pgEnum,
   pgTable,
   text,
@@ -57,5 +58,10 @@ export const answerInteractions = pgTable(
       table.requestId,
       table.guestId,
     ),
+    // RequestsRepository.findExcludedRequestIds filters by authorId/guestId
+    // alone (no requestId) on every /answer queue fetch — the composite
+    // unique indexes above only help when requestId leads the lookup.
+    index('answer_interactions_author_id_idx').on(table.authorId),
+    index('answer_interactions_guest_id_idx').on(table.guestId),
   ],
 );
