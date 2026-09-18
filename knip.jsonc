@@ -16,6 +16,13 @@
       // analysis can't see that kind of usage.
       "ignore": ["scenarios/**"],
       "ignoreBinaries": ["k6"]
+    },
+    "apps/web": {
+      // Registered at runtime via a string path
+      // (navigator.serviceWorker.register("/sw.js")), not a JS import —
+      // served as-is from public/, knip's import-graph can't see this
+      // kind of usage either.
+      "ignore": ["public/sw.js"]
     }
   },
   // Loaded via a raw file path in next/font's localFont(), not a JS import

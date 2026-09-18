@@ -1,9 +1,11 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import localFont from "next/font/local";
 import { GlobalToast } from "ui/GlobalToast";
 import { QueryProvider } from "ui/QueryProvider";
 import { AccountRestoreDialog } from "./components/AccountRestoreDialog";
+import { ServiceWorkerRegistration } from "./components/ServiceWorkerRegistration";
+import { DEFAULT_THEME_COLOR } from "./lib/theme-color";
 import "./globals.css";
 
 // Pretendard, not next/font/google's Geist — Geist only ships a Latin
@@ -47,6 +49,29 @@ export const metadata: Metadata = {
     title: TITLE,
     description: DESCRIPTION,
   },
+  // app/manifest.ts covers home-screen icon/name for Android's install
+  // prompt — this covers iOS Safari's "홈 화면에 추가" separately, since
+  // iOS doesn't read the web manifest's icons for that. No explicit
+  // `capable` here — verified against Next's own resolver
+  // (resolveAppleWebApp in next/dist/lib/metadata/resolvers/resolve-
+  // basics.js) that it defaults to true whenever `appleWebApp` is
+  // present without that key, emitting <meta name="mobile-web-app-
+  // capable" content="yes"> exactly as if it were set explicitly —
+  // confirmed present in a real rendered page too.
+  appleWebApp: {
+    title: TITLE,
+    statusBarStyle: "black-translucent",
+  },
+  icons: {
+    apple: "/apple-touch-icon.png",
+  },
+};
+
+// themeColor moved out of `metadata` into its own export as of Next.js
+// 14 — matches manifest.ts's background_color (dark theme default, see
+// theme-color.ts's comment for why).
+export const viewport: Viewport = {
+  themeColor: DEFAULT_THEME_COLOR,
 };
 
 type RootLayoutProps = {
@@ -91,6 +116,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
     >
       <body className="min-h-full flex flex-col">
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP_SCRIPT }} />
+        <ServiceWorkerRegistration />
         <QueryProvider>
           <AccountRestoreDialog />
           {children}
