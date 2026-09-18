@@ -520,3 +520,26 @@ export const unreadCountResponseSchema = z.object({
   count: z.number(),
 });
 export type UnreadCountResponseDto = z.infer<typeof unreadCountResponseSchema>;
+
+// POST /notifications/push-subscriptions — the browser's own
+// PushSubscriptionJSON shape (endpoint + the two keys PushManager returns),
+// passed straight through.
+export const createPushSubscriptionSchema = z.object({
+  endpoint: z.string().url(),
+  keys: z.object({
+    p256dh: z.string().min(1),
+    auth: z.string().min(1),
+  }),
+});
+export type CreatePushSubscriptionDto = z.infer<
+  typeof createPushSubscriptionSchema
+>;
+
+// DELETE /notifications/push-subscriptions — only the endpoint is needed
+// to find and remove the row.
+export const deletePushSubscriptionSchema = z.object({
+  endpoint: z.string().url(),
+});
+export type DeletePushSubscriptionDto = z.infer<
+  typeof deletePushSubscriptionSchema
+>;
