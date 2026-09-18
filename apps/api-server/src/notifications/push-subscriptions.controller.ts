@@ -16,10 +16,13 @@ import { PushSubscriptionsRepository } from './push-subscriptions.repository';
 
 // Separate from NotificationsController for the same reason
 // RepliesMineController is separate from RepliesController — a distinct
-// route shape (/notifications/push-subscriptions) under the same prefix,
-// and keeping it here sidesteps NestJS's route-declaration-order pitfall
-// where a literal path can get shadowed by an already-declared `:id`
-// wildcard on the same method+depth.
+// route shape (/notifications/push-subscriptions) under the same prefix.
+// This alone doesn't avoid NestJS's route-matching pitfall though — the
+// module's `controllers` array order still has to list this class before
+// NotificationsController, or its literal path gets shadowed by that
+// controller's `:id` wildcard (see notifications.module.ts's comment;
+// NotificationsController's `:id` param also takes ParseUUIDPipe now as
+// a second line of defense).
 @ApiTags('notifications')
 @Controller('notifications/push-subscriptions')
 @UseGuards(SessionGuard)
@@ -45,14 +48,20 @@ export class PushSubscriptionsController {
     });
   }
 
-  // No ownership check needed before deleting — the endpoint itself
-  // (a long, effectively unguessable push-service URL the browser
-  // generated) is the only thing identifying which row to remove, and a
-  // member can only ever have gotten it from their own browser's
-  // PushManager.subscribe() in the first place.
+  // Scoped to the caller's own userId, not the endpoint alone — an
+  // endpoint value could in principle leak somewhere (a proxy log, a
+  // shared device), so relying on "hard to guess" alone would let an
+  // authenticated-as-someone-else caller remove another member's
+  // subscription just by replaying it.
   @Delete()
   @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(@Body() dto: DeletePushSubscriptionDto): Promise<void> {
-    await this.pushSubscriptionsRepository.deleteByEndpoint(dto.endpoint);
+  async remove(
+    @CurrentUser() userId: string,
+    @Body() dto: DeletePushSubscriptionDto,
+  ): Promise<void> {
+    await this.pushSubscriptionsRepository.deleteByEndpointForUser(
+      dto.endpoint,
+      userId,
+    );
   }
 }

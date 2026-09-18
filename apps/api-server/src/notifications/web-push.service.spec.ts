@@ -47,7 +47,8 @@ describe('WebPushService', () => {
     jest.clearAllMocks();
     repository = {
       findByUserId: jest.fn(),
-      deleteByEndpoint: jest.fn(),
+      deleteByEndpoints: jest.fn(),
+      deleteByEndpointForUser: jest.fn(),
       upsert: jest.fn(),
     } as unknown as jest.Mocked<PushSubscriptionsRepository>;
   });
@@ -99,11 +100,18 @@ describe('WebPushService', () => {
     );
   });
 
-  it('deletes the subscription when the push service reports it gone (410)', async () => {
-    repository.findByUserId.mockResolvedValue([makeSubscription()]);
-    (webpush.sendNotification as jest.Mock).mockRejectedValue(
-      Object.assign(new Error('Gone'), { statusCode: 410 }),
-    );
+  it('batches every expired (404/410) subscription into one deleteByEndpoints call', async () => {
+    repository.findByUserId.mockResolvedValue([
+      makeSubscription({ id: 'sub-1', endpoint: 'https://push.example.com/1' }),
+      makeSubscription({ id: 'sub-2', endpoint: 'https://push.example.com/2' }),
+    ]);
+    (webpush.sendNotification as jest.Mock)
+      .mockRejectedValueOnce(
+        Object.assign(new Error('Gone'), { statusCode: 410 }),
+      )
+      .mockRejectedValueOnce(
+        Object.assign(new Error('Not Found'), { statusCode: 404 }),
+      );
     const service = new WebPushService(makeConfig(), repository);
 
     await service.sendToUser('author-1', {
@@ -112,8 +120,12 @@ describe('WebPushService', () => {
       url: 'https://onseol.com/records',
     });
 
-    expect(repository.deleteByEndpoint).toHaveBeenCalledWith(
-      'https://push.example.com/sub-1',
+    expect(repository.deleteByEndpoints).toHaveBeenCalledTimes(1);
+    expect(repository.deleteByEndpoints).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        'https://push.example.com/1',
+        'https://push.example.com/2',
+      ]),
     );
   });
 
@@ -131,6 +143,19 @@ describe('WebPushService', () => {
         url: 'https://onseol.com/records',
       }),
     ).resolves.toBeUndefined();
-    expect(repository.deleteByEndpoint).not.toHaveBeenCalled();
+    expect(repository.deleteByEndpoints).not.toHaveBeenCalled();
+  });
+
+  it('never rejects, even when the initial subscription lookup itself fails', async () => {
+    repository.findByUserId.mockRejectedValue(new Error('connection reset'));
+    const service = new WebPushService(makeConfig(), repository);
+
+    await expect(
+      service.sendToUser('author-1', {
+        title: '온설',
+        body: '답장이 도착했어요',
+        url: 'https://onseol.com/records',
+      }),
+    ).resolves.toBeUndefined();
   });
 });

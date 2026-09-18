@@ -47,40 +47,63 @@ export class WebPushService {
   // send to one (network blip, that specific endpoint expired) doesn't
   // stop the others. A 404/410 means the push service itself says this
   // endpoint is gone for good (browser unsubscribed, storage cleared,
-  // etc.), so that row is deleted rather than retried forever.
+  // etc.), so those rows are deleted (one batch DELETE, not one per
+  // subscription) rather than retried forever.
+  //
+  // The whole body is wrapped so this method NEVER rejects — it's always
+  // called fire-and-forget (`void ...sendToUser(...)`) from the reply
+  // flow, and an unhandled rejection there (e.g. findByUserId's own DB
+  // query failing, not just an individual push send) would crash the
+  // process. A caller-side `.catch()` would only cover the call site,
+  // not future ones, so the guarantee belongs here instead.
   async sendToUser(userId: string, payload: PushPayload): Promise<void> {
     if (!this.configured) return;
 
-    const subscriptions =
-      await this.pushSubscriptionsRepository.findByUserId(userId);
-    if (subscriptions.length === 0) return;
+    try {
+      const subscriptions =
+        await this.pushSubscriptionsRepository.findByUserId(userId);
+      if (subscriptions.length === 0) return;
 
-    await Promise.all(
-      subscriptions.map(async (subscription) => {
-        try {
-          await webpush.sendNotification(
-            {
-              endpoint: subscription.endpoint,
-              keys: { p256dh: subscription.p256dh, auth: subscription.auth },
-            },
-            JSON.stringify(payload),
-          );
-        } catch (error) {
-          const statusCode =
-            error instanceof Error && 'statusCode' in error
-              ? (error as { statusCode: number }).statusCode
-              : undefined;
-          if (statusCode === 404 || statusCode === 410) {
-            await this.pushSubscriptionsRepository.deleteByEndpoint(
-              subscription.endpoint,
+      const expiredEndpoints: string[] = [];
+
+      await Promise.all(
+        subscriptions.map(async (subscription) => {
+          try {
+            await webpush.sendNotification(
+              {
+                endpoint: subscription.endpoint,
+                keys: {
+                  p256dh: subscription.p256dh,
+                  auth: subscription.auth,
+                },
+              },
+              JSON.stringify(payload),
             );
-            return;
+          } catch (error) {
+            const statusCode =
+              error instanceof Error && 'statusCode' in error
+                ? (error as { statusCode: number }).statusCode
+                : undefined;
+            if (statusCode === 404 || statusCode === 410) {
+              expiredEndpoints.push(subscription.endpoint);
+              return;
+            }
+            this.logger.warn(
+              `Push send failed for subscription ${subscription.id}: ${error instanceof Error ? error.message : String(error)}`,
+            );
           }
-          this.logger.warn(
-            `Push send failed for subscription ${subscription.id}: ${error instanceof Error ? error.message : String(error)}`,
-          );
-        }
-      }),
-    );
+        }),
+      );
+
+      if (expiredEndpoints.length > 0) {
+        await this.pushSubscriptionsRepository.deleteByEndpoints(
+          expiredEndpoints,
+        );
+      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to send web push to user ${userId}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
   }
 }
