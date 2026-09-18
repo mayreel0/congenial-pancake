@@ -22,6 +22,7 @@ import {
 } from "../lib/notifications/queries";
 import { PAGE_SIZE_OPTIONS } from "../lib/pagination";
 import { NotificationListItem } from "./NotificationListItem";
+import { PushSubscriptionToggle } from "./PushSubscriptionToggle";
 
 function PageTitle() {
   return (
@@ -155,6 +156,7 @@ function NotificationsPageBody() {
           </button>
         )}
       </div>
+      <PushSubscriptionToggle />
       <NotificationsList query={query} onDelete={(id) => void handleDeleteOne(id)} />
       {query.data && (
         <Pagination

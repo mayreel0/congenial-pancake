@@ -1,4 +1,5 @@
 import type {
+  CreatePushSubscriptionDto,
   NotificationResponseDto,
   UnreadCountResponseDto,
 } from "shared/dto";
@@ -34,4 +35,24 @@ export function deleteNotification(id: string): Promise<void> {
 
 export function deleteAllNotifications(): Promise<void> {
   return apiFetch<void>("/notifications", { method: "DELETE" });
+}
+
+export function subscribeToPushNotifications(
+  subscription: CreatePushSubscriptionDto,
+): Promise<void> {
+  return apiFetch<void>("/notifications/push-subscriptions", {
+    method: "POST",
+    body: JSON.stringify(subscription),
+  });
+}
+
+// endpoint alone identifies the row — no notification/subscription id
+// round-trips to the client anywhere else.
+export function unsubscribeFromPushNotifications(
+  endpoint: string,
+): Promise<void> {
+  return apiFetch<void>("/notifications/push-subscriptions", {
+    method: "DELETE",
+    body: JSON.stringify({ endpoint }),
+  });
 }
