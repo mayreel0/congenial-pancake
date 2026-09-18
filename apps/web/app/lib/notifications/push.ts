@@ -80,7 +80,18 @@ export async function enablePushNotifications(): Promise<void> {
     userVisibleOnly: true,
     applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
   });
-  await subscribeToPushNotifications(toSubscriptionPayload(subscription));
+  try {
+    await subscribeToPushNotifications(toSubscriptionPayload(subscription));
+  } catch (error) {
+    // Without this, a failed registration call (network blip, expired
+    // session) leaves a live browser-side subscription the backend never
+    // heard about — getExistingPushSubscription() would then report
+    // "subscribed" on next load while no push ever arrives. Roll the
+    // browser side back too so retrying the toggle starts from a clean
+    // state on both sides.
+    await subscription.unsubscribe().catch(() => undefined);
+    throw error;
+  }
 }
 
 // Backend delete first, then the browser-side unsubscribe — if the

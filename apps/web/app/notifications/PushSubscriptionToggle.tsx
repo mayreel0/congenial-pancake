@@ -31,6 +31,12 @@ function pushErrorMessage(error: unknown): string {
 export function PushSubscriptionToggle() {
   const [subscribed, setSubscribed] = useState<boolean | null>(null);
   const [pending, setPending] = useState(false);
+  // A synchronous read (not a subscription), so it's safe as a lazy
+  // initializer rather than a setState-in-effect — this only runs once,
+  // on mount, same as any other useState(() => ...) initializer.
+  const [denied, setDenied] = useState<boolean>(
+    () => typeof Notification !== "undefined" && Notification.permission === "denied",
+  );
 
   useEffect(() => {
     if (!pushSupported()) return;
@@ -49,6 +55,7 @@ export function PushSubscriptionToggle() {
       }
       setSubscribed(checked);
     } catch (error) {
+      setDenied(Notification.permission === "denied");
       toast.warning(pushErrorMessage(error));
     } finally {
       setPending(false);
@@ -70,6 +77,12 @@ export function PushSubscriptionToggle() {
         브라우저 알림 권한이 필요해요. 알림에는 &ldquo;답장이
         도착했어요&rdquo;라는 문구만 담기고, 답장 내용은 들어가지 않아요.
       </p>
+      {denied && (
+        <p className="text-xs text-amber-600">
+          브라우저 설정에서 온설 알림이 차단되어 있어요. 브라우저의 사이트
+          설정에서 알림을 허용으로 바꾼 뒤 다시 시도해주세요.
+        </p>
+      )}
     </section>
   );
 }
