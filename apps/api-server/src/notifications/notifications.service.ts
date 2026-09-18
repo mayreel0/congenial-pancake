@@ -70,10 +70,13 @@ export class NotificationsService {
     persist: boolean,
   ): Promise<{ subscriptionCount: number }> {
     const webPublicUrl = this.config.get('WEB_PUBLIC_URL', { infer: true });
+    // Clicking the push should land where the notification actually is —
+    // /notifications when persist wrote a real row there, otherwise there's
+    // nothing to land on, so it just goes to the site root.
     const subscriptionCount = await this.webPushService.sendToUser(userId, {
       title: '온설',
       body: '관리자가 보낸 테스트 알림이에요.',
-      url: webPublicUrl,
+      url: persist ? `${webPublicUrl}/notifications` : webPublicUrl,
     });
 
     if (persist) {

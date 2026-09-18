@@ -202,6 +202,11 @@ describe('NotificationsService', () => {
 
       await service.sendTestPush('author-1', true);
 
+      expect(webPushService.sendToUser).toHaveBeenCalledWith('author-1', {
+        title: '온설',
+        body: '관리자가 보낸 테스트 알림이에요.',
+        url: 'https://onseol.com/notifications',
+      });
       expect(repository.create).toHaveBeenCalledWith({
         userId: 'author-1',
         type: 'test',

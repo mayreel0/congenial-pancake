@@ -17,11 +17,7 @@ import { PasswordResetService } from '../auth/password-reset/password-reset.serv
 import { SessionGuard } from '../auth/session.guard';
 import { NotificationsService } from '../notifications/notifications.service';
 import { UsersService } from '../users/users.service';
-import type {
-  AdminContentStatus,
-  ReplyModerationActionDto,
-  SendTestPushResponseDto,
-} from 'shared/dto';
+import type { AdminContentStatus, ReplyModerationActionDto } from 'shared/dto';
 import { replyModerationActionSchema } from 'shared/dto';
 import { isValidDateString, kstDateRange } from '../common/kst-date';
 import {
@@ -58,7 +54,10 @@ import {
   type AdminRequestResponseDto,
 } from './dto/admin-request.dto';
 import { IssuePasswordResetLinkDto } from './dto/issue-password-reset-link.dto';
-import { SendTestPushDto } from './dto/send-test-push.dto';
+import {
+  SendTestPushDto,
+  SendTestPushResponseDto,
+} from './dto/send-test-push.dto';
 
 const ADMIN_CONTENT_STATUS_VALUES: AdminContentStatus[] = [
   'visible',
@@ -298,6 +297,7 @@ export class AdminController {
   // itself has no delivery receipt, so "0" tells the admin the target has
   // no subscribed device rather than looking identical to a real send.
   @Post('notifications/test')
+  @ZodResponse({ type: SendTestPushResponseDto })
   async sendTestPush(
     @Body() dto: SendTestPushDto,
   ): Promise<SendTestPushResponseDto> {
