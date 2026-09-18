@@ -20,9 +20,38 @@ import {
   useMarkAllNotificationsReadMutation,
   useNotificationsQuery,
 } from "../lib/notifications/queries";
+import type { NotificationDto } from "../lib/notifications/api";
 import { PAGE_SIZE_OPTIONS } from "../lib/pagination";
 import { NotificationListItem } from "./NotificationListItem";
 import { PushSubscriptionToggle } from "./PushSubscriptionToggle";
+
+// Branches on `type` explicitly, not on requestBody's nullness — this app
+// never hard-deletes a request row (soft-delete via contentRemoved, see
+// visibleRequestBody), so a 'reply_received' notification's requestBody
+// is null today only if the join itself somehow found nothing. Combining
+// the two checks would silently mislabel that edge case (or any future
+// notification type nobody's updated this function for) as "테스트 알림"
+// instead of surfacing it honestly — each type gets its own branch, with
+// an explicit fallback for anything unrecognized.
+function notificationDisplay(notification: NotificationDto): {
+  eyebrow: string;
+  body: string;
+  href?: string;
+} {
+  if (notification.type === "reply_received") {
+    return {
+      eyebrow: "답장이 도착했어요",
+      body: notification.requestBody ?? "삭제된 글이에요.",
+      href: notification.requestId
+        ? `/records/requests/${notification.requestId}?replyId=${notification.replyId}`
+        : undefined,
+    };
+  }
+  if (notification.type === "test") {
+    return { eyebrow: "테스트 알림", body: "관리자가 보낸 테스트 알림이에요." };
+  }
+  return { eyebrow: "알림", body: "새로운 알림이 도착했어요." };
+}
 
 function PageTitle() {
   return (
@@ -81,17 +110,20 @@ function NotificationsList({ query, onDelete }: NotificationsListProps) {
 
   return (
     <ol className="space-y-3">
-      {query.data.items.map((notification) => (
-        <NotificationListItem
-          body={notification.requestBody}
-          createdAt={notification.createdAt}
-          eyebrow="답장이 도착했어요"
-          href={`/records/requests/${notification.requestId}?replyId=${notification.replyId}`}
-          id={notification.id}
-          key={notification.id}
-          onDelete={onDelete}
-        />
-      ))}
+      {query.data.items.map((notification) => {
+        const { eyebrow, body, href } = notificationDisplay(notification);
+        return (
+          <NotificationListItem
+            body={body}
+            createdAt={notification.createdAt}
+            eyebrow={eyebrow}
+            href={href}
+            id={notification.id}
+            key={notification.id}
+            onDelete={onDelete}
+          />
+        );
+      })}
     </ol>
   );
 }

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { RepliesModule } from '../replies/replies.module';
 import { ReportsModule } from '../reports/reports.module';
 import { RequestsModule } from '../requests/requests.module';
@@ -16,6 +17,7 @@ import { AdminGuard } from './admin.guard';
     ReportsModule,
     SettingsModule,
     UsersModule,
+    NotificationsModule,
   ],
   controllers: [AdminController],
   providers: [AdminGuard],

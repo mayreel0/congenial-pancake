@@ -39,7 +39,7 @@ describe('NotificationsService', () => {
       deleteAll: jest.fn(),
     } as unknown as jest.Mocked<NotificationsRepository>;
     webPushService = {
-      sendToUser: jest.fn().mockResolvedValue(undefined),
+      sendToUser: jest.fn().mockResolvedValue(0),
     } as unknown as jest.Mocked<WebPushService>;
     config = {
       get: jest.fn().mockReturnValue('https://onseol.com'),
@@ -165,6 +165,55 @@ describe('NotificationsService', () => {
       await service.deleteAll('author-1');
 
       expect(repository.deleteAll).toHaveBeenCalledWith('author-1');
+    });
+  });
+
+  describe('sendTestPush', () => {
+    it('sends a generic test push and reports the subscription count', async () => {
+      webPushService.sendToUser.mockResolvedValue(2);
+
+      const result = await service.sendTestPush('author-1', false);
+
+      expect(webPushService.sendToUser).toHaveBeenCalledWith('author-1', {
+        title: '온설',
+        body: '관리자가 보낸 테스트 알림이에요.',
+        url: 'https://onseol.com',
+      });
+      expect(result).toEqual({ subscriptionCount: 2 });
+    });
+
+    it('does not persist a notification row when persist is false', async () => {
+      await service.sendTestPush('author-1', false);
+
+      expect(repository.create).not.toHaveBeenCalled();
+    });
+
+    it("persists a 'test'-type notification with no linked request/reply when persist is true", async () => {
+      const created = makeNotification({
+        type: 'test',
+        requestId: null,
+        replyId: null,
+      });
+      repository.create.mockResolvedValue(created);
+      const received: unknown[] = [];
+      service.stream('author-1').subscribe((notification) => {
+        received.push(notification);
+      });
+
+      await service.sendTestPush('author-1', true);
+
+      expect(webPushService.sendToUser).toHaveBeenCalledWith('author-1', {
+        title: '온설',
+        body: '관리자가 보낸 테스트 알림이에요.',
+        url: 'https://onseol.com/notifications',
+      });
+      expect(repository.create).toHaveBeenCalledWith({
+        userId: 'author-1',
+        type: 'test',
+        requestId: null,
+        replyId: null,
+      });
+      expect(received).toEqual([created]);
     });
   });
 });

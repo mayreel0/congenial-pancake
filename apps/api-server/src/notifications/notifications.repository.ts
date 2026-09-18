@@ -10,9 +10,10 @@ export type NotificationRecord = typeof notifications.$inferSelect;
 // findMine's item shape — the joined request's body/contentRemoved, not
 // yet run through visibleRequestBody() (that happens at the DTO layer,
 // same as every other response mapper — see common/request-content.ts).
+// Both null for a notification with no linked request (e.g. 'test').
 export type NotificationWithRequest = NotificationRecord & {
-  requestBody: string;
-  requestContentRemoved: boolean;
+  requestBody: string | null;
+  requestContentRemoved: boolean | null;
 };
 
 @Injectable()
@@ -22,8 +23,8 @@ export class NotificationsRepository {
   create(params: {
     userId: string;
     type: string;
-    requestId: string;
-    replyId: string;
+    requestId: string | null;
+    replyId: string | null;
   }): Promise<NotificationRecord> {
     return this.db
       .insert(notifications)
@@ -32,9 +33,10 @@ export class NotificationsRepository {
       .then((rows) => rows[0]);
   }
 
-  // Joins requests (inner — every notification today is 'reply_received',
-  // which always has a requestId) so the list can show which of the
-  // viewer's own posts got the reply, not just the bare fact that one did.
+  // Left join — 'reply_received' always has a requestId (so the list can
+  // show which of the viewer's own posts got the reply), but 'test' has
+  // none, and an inner join here would silently drop those rows from the
+  // list entirely rather than show them with no linked post.
   async findMine(
     userId: string,
     { page, pageSize }: Pagination,
@@ -54,7 +56,7 @@ export class NotificationsRepository {
           requestContentRemoved: requests.contentRemoved,
         })
         .from(notifications)
-        .innerJoin(requests, eq(requests.id, notifications.requestId))
+        .leftJoin(requests, eq(requests.id, notifications.requestId))
         .where(where)
         .orderBy(desc(notifications.createdAt))
         .limit(pageSize)

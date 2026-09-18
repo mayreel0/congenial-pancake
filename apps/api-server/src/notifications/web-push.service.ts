@@ -56,13 +56,18 @@ export class WebPushService {
   // query failing, not just an individual push send) would crash the
   // process. A caller-side `.catch()` would only cover the call site,
   // not future ones, so the guarantee belongs here instead.
-  async sendToUser(userId: string, payload: PushPayload): Promise<void> {
-    if (!this.configured) return;
+  //
+  // Returns how many subscriptions a send was attempted against — the
+  // reply flow ignores this (fire-and-forget), but the admin test-push
+  // path (NotificationsService.sendTestPush) uses it as the only concrete
+  // feedback available, since web push itself has no delivery receipt.
+  async sendToUser(userId: string, payload: PushPayload): Promise<number> {
+    if (!this.configured) return 0;
 
     try {
       const subscriptions =
         await this.pushSubscriptionsRepository.findByUserId(userId);
-      if (subscriptions.length === 0) return;
+      if (subscriptions.length === 0) return 0;
 
       const expiredEndpoints: string[] = [];
 
@@ -100,10 +105,13 @@ export class WebPushService {
           expiredEndpoints,
         );
       }
+
+      return subscriptions.length;
     } catch (error) {
       this.logger.error(
         `Failed to send web push to user ${userId}: ${error instanceof Error ? error.message : String(error)}`,
       );
+      return 0;
     }
   }
 }

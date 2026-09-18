@@ -15,10 +15,13 @@ export function toNotificationResponseDto(
     type: notification.type,
     requestId: notification.requestId,
     replyId: notification.replyId,
-    requestBody: visibleRequestBody({
-      body: notification.requestBody,
-      contentRemoved: notification.requestContentRemoved,
-    }),
+    requestBody:
+      notification.requestBody !== null
+        ? visibleRequestBody({
+            body: notification.requestBody,
+            contentRemoved: notification.requestContentRemoved ?? false,
+          })
+        : null,
     createdAt: notification.createdAt.toISOString(),
     readAt: notification.readAt ? notification.readAt.toISOString() : null,
   };

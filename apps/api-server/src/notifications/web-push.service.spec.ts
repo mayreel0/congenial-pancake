@@ -142,7 +142,7 @@ describe('WebPushService', () => {
         body: '답장이 도착했어요',
         url: 'https://onseol.com/records',
       }),
-    ).resolves.toBeUndefined();
+    ).resolves.toBe(1);
     expect(repository.deleteByEndpoints).not.toHaveBeenCalled();
   });
 
@@ -156,6 +156,6 @@ describe('WebPushService', () => {
         body: '답장이 도착했어요',
         url: 'https://onseol.com/records',
       }),
-    ).resolves.toBeUndefined();
+    ).resolves.toBe(0);
   });
 });
