@@ -122,9 +122,32 @@ export async function disablePushNotifications(): Promise<void> {
 // Called right before logout so this device stops receiving the departing
 // account's pushes (and the next account to log in here starts from a clean
 // slate). Best-effort — a failure here must never block logging out.
+//
+// Unlike disablePushNotifications, the local unsubscribe here must not depend
+// on the ownership lookup succeeding: if that request fails (network blip,
+// expired session), the device would otherwise keep ringing for an account
+// that's no longer logged in. A lookup that *succeeds* and says the
+// subscription belongs to someone else is still respected and left alone;
+// only "couldn't tell" falls back to dropping it, since wrongly dropping is
+// recoverable (re-toggle) while a leaked notification is not.
 export async function releasePushOnLogout(): Promise<void> {
   try {
-    await disablePushNotifications();
+    const subscription = await getBrowserPushSubscription();
+    if (!subscription) return;
+
+    let ownedByOtherAccount = false;
+    try {
+      const { endpoints } = await fetchMyPushEndpoints();
+      ownedByOtherAccount = !endpoints.includes(subscription.endpoint);
+    } catch {
+      // Ownership unknown — treat as ours and release below.
+    }
+    if (ownedByOtherAccount) return;
+
+    await unsubscribeFromPushNotifications(subscription.endpoint).catch(
+      () => undefined,
+    );
+    await subscription.unsubscribe();
   } catch {
     // Logout proceeds regardless.
   }

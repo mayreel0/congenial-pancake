@@ -96,11 +96,41 @@ describe("push subscription account binding", () => {
     expect(unsubscribe).toHaveBeenCalled();
   });
 
-  it("never rejects on logout even when the backend lookup fails", async () => {
-    installBrowserSubscription("https://push.example.com/mine");
+  it("still unsubscribes the browser on logout when the ownership lookup fails", async () => {
+    const unsubscribe = installBrowserSubscription(
+      "https://push.example.com/mine",
+    );
     fetchMyPushEndpoints.mockRejectedValue(new Error("network"));
     const { releasePushOnLogout } = await loadPush();
 
     await expect(releasePushOnLogout()).resolves.toBeUndefined();
+    expect(unsubscribe).toHaveBeenCalled();
+  });
+
+  it("still unsubscribes the browser on logout when the server delete fails", async () => {
+    const unsubscribe = installBrowserSubscription(
+      "https://push.example.com/mine",
+    );
+    fetchMyPushEndpoints.mockResolvedValue({
+      endpoints: ["https://push.example.com/mine"],
+    });
+    unsubscribeFromPushNotifications.mockRejectedValue(new Error("500"));
+    const { releasePushOnLogout } = await loadPush();
+
+    await expect(releasePushOnLogout()).resolves.toBeUndefined();
+    expect(unsubscribe).toHaveBeenCalled();
+  });
+
+  it("leaves another account's subscription alone on logout when ownership is confirmed", async () => {
+    const unsubscribe = installBrowserSubscription(
+      "https://push.example.com/other",
+    );
+    fetchMyPushEndpoints.mockResolvedValue({ endpoints: [] });
+    const { releasePushOnLogout } = await loadPush();
+
+    await releasePushOnLogout();
+
+    expect(unsubscribeFromPushNotifications).not.toHaveBeenCalled();
+    expect(unsubscribe).not.toHaveBeenCalled();
   });
 });
