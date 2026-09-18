@@ -1,6 +1,7 @@
 import type {
   CreatePushSubscriptionDto,
   NotificationResponseDto,
+  PushSubscriptionsResponseDto,
   UnreadCountResponseDto,
 } from "shared/dto";
 import { apiFetch } from "../api";
@@ -35,6 +36,12 @@ export function deleteNotification(id: string): Promise<void> {
 
 export function deleteAllNotifications(): Promise<void> {
   return apiFetch<void>("/notifications", { method: "DELETE" });
+}
+
+export function fetchMyPushEndpoints(): Promise<PushSubscriptionsResponseDto> {
+  return apiFetch<PushSubscriptionsResponseDto>(
+    "/notifications/push-subscriptions",
+  );
 }
 
 export function subscribeToPushNotifications(

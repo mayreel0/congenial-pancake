@@ -7,7 +7,7 @@ import { ApiError, errorMessage } from "../lib/api";
 import {
   disablePushNotifications,
   enablePushNotifications,
-  getExistingPushSubscription,
+  getOwnPushSubscription,
   pushSupported,
 } from "../lib/notifications/push";
 
@@ -40,7 +40,7 @@ export function PushSubscriptionToggle() {
 
   useEffect(() => {
     if (!pushSupported()) return;
-    getExistingPushSubscription()
+    getOwnPushSubscription()
       .then((subscription) => setSubscribed(subscription !== null))
       .catch(() => setSubscribed(false));
   }, []);

@@ -2,6 +2,7 @@
 
 import type { CreatePushSubscriptionDto } from "shared/dto";
 import {
+  fetchMyPushEndpoints,
   subscribeToPushNotifications,
   unsubscribeFromPushNotifications,
 } from "./api";
@@ -53,10 +54,24 @@ function toSubscriptionPayload(
   };
 }
 
-export async function getExistingPushSubscription(): Promise<PushSubscription | null> {
+async function getBrowserPushSubscription(): Promise<PushSubscription | null> {
   if (!pushSupported()) return null;
   const registration = await navigator.serviceWorker.ready;
   return registration.pushManager.getSubscription();
+}
+
+// A browser holds one push subscription per origin no matter which account
+// is logged in, so "the browser has a subscription" says nothing about
+// whether it belongs to the *current* account — it may be left over from
+// whoever used this device before. Only a subscription whose endpoint the
+// backend lists under the caller's own account counts; anything else is
+// treated as absent so it's never shown as "on" for, or torn down by, the
+// wrong account.
+export async function getOwnPushSubscription(): Promise<PushSubscription | null> {
+  const subscription = await getBrowserPushSubscription();
+  if (!subscription) return null;
+  const { endpoints } = await fetchMyPushEndpoints();
+  return endpoints.includes(subscription.endpoint) ? subscription : null;
 }
 
 // Triggers the browser's native permission prompt when permission hasn't
@@ -98,8 +113,42 @@ export async function enablePushNotifications(): Promise<void> {
 // network call fails, the toggle can just be retried with nothing torn
 // down locally in the meantime.
 export async function disablePushNotifications(): Promise<void> {
-  const subscription = await getExistingPushSubscription();
+  const subscription = await getOwnPushSubscription();
   if (!subscription) return;
   await unsubscribeFromPushNotifications(subscription.endpoint);
   await subscription.unsubscribe();
+}
+
+// Called right before logout so this device stops receiving the departing
+// account's pushes (and the next account to log in here starts from a clean
+// slate). Best-effort — a failure here must never block logging out.
+//
+// Unlike disablePushNotifications, the local unsubscribe here must not depend
+// on the ownership lookup succeeding: if that request fails (network blip,
+// expired session), the device would otherwise keep ringing for an account
+// that's no longer logged in. A lookup that *succeeds* and says the
+// subscription belongs to someone else is still respected and left alone;
+// only "couldn't tell" falls back to dropping it, since wrongly dropping is
+// recoverable (re-toggle) while a leaked notification is not.
+export async function releasePushOnLogout(): Promise<void> {
+  try {
+    const subscription = await getBrowserPushSubscription();
+    if (!subscription) return;
+
+    let ownedByOtherAccount = false;
+    try {
+      const { endpoints } = await fetchMyPushEndpoints();
+      ownedByOtherAccount = !endpoints.includes(subscription.endpoint);
+    } catch {
+      // Ownership unknown — treat as ours and release below.
+    }
+    if (ownedByOtherAccount) return;
+
+    await unsubscribeFromPushNotifications(subscription.endpoint).catch(
+      () => undefined,
+    );
+    await subscription.unsubscribe();
+  } catch {
+    // Logout proceeds regardless.
+  }
 }
