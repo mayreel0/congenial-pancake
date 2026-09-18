@@ -54,6 +54,7 @@ export function PushSubscriptionToggle() {
         await disablePushNotifications();
       }
       setSubscribed(checked);
+      setDenied(false);
     } catch (error) {
       setDenied(Notification.permission === "denied");
       toast.warning(pushErrorMessage(error));
