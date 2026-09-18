@@ -77,6 +77,27 @@ const envSchema = z.object({
   // reasoning as apps/admin getting its own port instead of a path inside
   // apps/web. See docs/decisions/2026-08-26-onseol-openapi-decisions.md.
   SWAGGER_PORT: z.coerce.number().int().positive().default(8081),
+  // Web push — optional the same way Resend/OpenAI's credentials are: the
+  // app boots without them, WebPushService just skips sending (see its
+  // own comment) rather than the whole app refusing to start.
+  // Generate a pair with `node -e "console.log(require('web-push').generateVAPIDKeys())"`
+  // — the public key is also exposed to the frontend as
+  // NEXT_PUBLIC_VAPID_PUBLIC_KEY (apps/web's own env), so both must be set
+  // together from the same generated pair.
+  VAPID_PUBLIC_KEY: z.string().default(''),
+  VAPID_PRIVATE_KEY: z.string().default(''),
+  // web-push requires a contact URI (mailto: or https:) on every request
+  // so a push service operator has someone to reach if this app's
+  // requests need throttling/blocking — validated at boot (RFC 8292)
+  // rather than only failing inside WebPushService's constructor the
+  // first time setVapidDetails actually runs.
+  VAPID_SUBJECT: z
+    .string()
+    .regex(
+      /^(mailto:|https:\/\/).+/,
+      'VAPID_SUBJECT must start with mailto: or https://',
+    )
+    .default('mailto:hello@onseol.com'),
 });
 
 export type Env = z.infer<typeof envSchema>;

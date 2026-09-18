@@ -176,6 +176,13 @@
       "when": 1789639708062,
       "tag": "0024_narrow_quicksilver",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1789730092830,
+      "tag": "0025_absurd_red_ghost",
+      "breakpoints": true
     }
   ]
 }

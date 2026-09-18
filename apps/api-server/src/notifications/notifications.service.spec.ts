@@ -1,9 +1,12 @@
+import type { ConfigService } from '@nestjs/config';
 import { NotificationNotFoundException } from '../common/exceptions/app.exception';
+import type { Env } from '../config/env.schema';
 import type {
   NotificationRecord,
   NotificationsRepository,
 } from './notifications.repository';
 import { NotificationsService } from './notifications.service';
+import type { WebPushService } from './web-push.service';
 
 function makeNotification(
   overrides: Partial<NotificationRecord> = {},
@@ -22,6 +25,8 @@ function makeNotification(
 
 describe('NotificationsService', () => {
   let repository: jest.Mocked<NotificationsRepository>;
+  let webPushService: jest.Mocked<WebPushService>;
+  let config: jest.Mocked<ConfigService<Env, true>>;
   let service: NotificationsService;
 
   beforeEach(() => {
@@ -33,8 +38,14 @@ describe('NotificationsService', () => {
       deleteOne: jest.fn(),
       deleteAll: jest.fn(),
     } as unknown as jest.Mocked<NotificationsRepository>;
+    webPushService = {
+      sendToUser: jest.fn().mockResolvedValue(undefined),
+    } as unknown as jest.Mocked<WebPushService>;
+    config = {
+      get: jest.fn().mockReturnValue('https://onseol.com'),
+    } as unknown as jest.Mocked<ConfigService<Env, true>>;
 
-    service = new NotificationsService(repository);
+    service = new NotificationsService(repository, webPushService, config);
   });
 
   describe('createReplyReceived', () => {
@@ -81,6 +92,18 @@ describe('NotificationsService', () => {
       await service.createReplyReceived('author-1', 'request-1', 'reply-1');
 
       expect(received).toEqual([]);
+    });
+
+    it('sends a web push with a generic body (no reply content) and a deep link to the thread', async () => {
+      repository.create.mockResolvedValue(makeNotification());
+
+      await service.createReplyReceived('author-1', 'request-1', 'reply-1');
+
+      expect(webPushService.sendToUser).toHaveBeenCalledWith('author-1', {
+        title: '온설',
+        body: '답장이 도착했어요',
+        url: 'https://onseol.com/records/requests/request-1?replyId=reply-1',
+      });
     });
   });
 

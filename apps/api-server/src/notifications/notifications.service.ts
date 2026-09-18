@@ -1,12 +1,15 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Observable, Subject, filter, map } from 'rxjs';
 import { NotificationNotFoundException } from '../common/exceptions/app.exception';
+import type { Env } from '../config/env.schema';
 import type { PagedResult, Pagination } from '../requests/requests.repository';
 import {
   NotificationsRepository,
   type NotificationRecord,
   type NotificationWithRequest,
 } from './notifications.repository';
+import { WebPushService } from './web-push.service';
 
 const REPLY_RECEIVED = 'reply_received';
 
@@ -24,6 +27,8 @@ export class NotificationsService {
 
   constructor(
     private readonly notificationsRepository: NotificationsRepository,
+    private readonly webPushService: WebPushService,
+    private readonly config: ConfigService<Env, true>,
   ) {}
 
   async createReplyReceived(
@@ -38,6 +43,18 @@ export class NotificationsService {
       replyId,
     });
     this.events$.next({ userId: requestAuthorId, notification });
+
+    // Fire-and-forget — a slow/failing push service shouldn't hold up the
+    // reply-submission request this is called from. WebPushService itself
+    // already no-ops without configured VAPID keys and swallows
+    // per-subscription failures, so nothing here needs its own try/catch.
+    const webPublicUrl = this.config.get('WEB_PUBLIC_URL', { infer: true });
+    void this.webPushService.sendToUser(requestAuthorId, {
+      title: '온설',
+      body: '답장이 도착했어요',
+      url: `${webPublicUrl}/records/requests/${requestId}?replyId=${replyId}`,
+    });
+
     return notification;
   }
 

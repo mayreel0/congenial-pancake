@@ -11,3 +11,4 @@ export * from './settings.schema';
 export * from './password-reset-tokens.schema';
 export * from './pending-signups.schema';
 export * from './notifications.schema';
+export * from './push-subscriptions.schema';
