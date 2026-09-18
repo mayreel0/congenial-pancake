@@ -3,13 +3,13 @@
 import { useEffect, useState } from "react";
 import { Toggle } from "ui/Toggle";
 import { toast } from "ui/useToast";
-import { ApiError, errorMessage } from "../lib/api";
+import { ApiError, errorMessage } from "../../lib/api";
 import {
   disablePushNotifications,
   enablePushNotifications,
   getOwnPushSubscription,
   pushSupported,
-} from "../lib/notifications/push";
+} from "../../lib/notifications/push";
 
 // enablePushNotifications/disablePushNotifications throw a plain Error for
 // browser/permission-level failures (no useful ApiError code to look up)

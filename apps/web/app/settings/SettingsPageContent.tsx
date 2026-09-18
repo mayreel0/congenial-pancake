@@ -5,6 +5,7 @@ import { Button } from "ui/Button";
 import { Toggle } from "ui/Toggle";
 import { ServiceNav } from "../components/navigation/ServiceNav";
 import { AuthCheckingSpinner } from "../components/shared/AuthCheckingSpinner";
+import { PushSubscriptionToggle } from "./components/PushSubscriptionToggle";
 import { SettingsFormSkeleton } from "./components/SettingsFormSkeleton";
 import {
   SEASON_LABELS,
@@ -163,6 +164,8 @@ function SettingsForm({ settings, onChange }: SettingsFormProps) {
           기기 설정과 별개로 온설 안에서만 애니메이션을 끌 수 있어요.
         </p>
       </section>
+
+      <PushSubscriptionToggle />
     </div>
   );
 }

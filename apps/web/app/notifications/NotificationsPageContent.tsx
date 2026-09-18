@@ -23,7 +23,6 @@ import {
 import type { NotificationDto } from "../lib/notifications/api";
 import { PAGE_SIZE_OPTIONS } from "../lib/pagination";
 import { NotificationListItem } from "./NotificationListItem";
-import { PushSubscriptionToggle } from "./PushSubscriptionToggle";
 
 // Branches on `type` explicitly, not on requestBody's nullness — this app
 // never hard-deletes a request row (soft-delete via contentRemoved, see
@@ -188,7 +187,6 @@ function NotificationsPageBody() {
           </button>
         )}
       </div>
-      <PushSubscriptionToggle />
       <NotificationsList query={query} onDelete={(id) => void handleDeleteOne(id)} />
       {query.data && (
         <Pagination
