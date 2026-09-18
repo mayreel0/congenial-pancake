@@ -37,6 +37,9 @@ AWS_REGION=$REGION
 RESEND_API_KEY=$(fetch_param resend_api_key)
 RESEND_FROM_EMAIL=$(fetch_param resend_from_email)
 SES_FROM_EMAIL=$(fetch_param ses_from_email)
+VAPID_PUBLIC_KEY=$(fetch_param vapid_public_key)
+VAPID_PRIVATE_KEY=$(fetch_param vapid_private_key)
+VAPID_SUBJECT=$(fetch_param vapid_subject)
 EOF
 chmod 600 /etc/onseol-api.env
 

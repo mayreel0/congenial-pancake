@@ -19,6 +19,9 @@ locals {
     "resend_api_key",
     "resend_from_email",
     "ses_from_email",
+    "vapid_public_key",
+    "vapid_private_key",
+    "vapid_subject",
   ]
 }
 
