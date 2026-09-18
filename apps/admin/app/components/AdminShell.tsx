@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { href: "/replies", label: "답변 관리" },
   { href: "/settings", label: "설정" },
   { href: "/accounts", label: "계정" },
+  { href: "/push-test", label: "알림 테스트" },
 ];
 
 const SIDEBAR_WIDTH = "14rem";

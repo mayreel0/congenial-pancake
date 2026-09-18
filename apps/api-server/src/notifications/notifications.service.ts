@@ -12,6 +12,7 @@ import {
 import { WebPushService } from './web-push.service';
 
 const REPLY_RECEIVED = 'reply_received';
+const TEST = 'test';
 
 type NotificationEvent = { userId: string; notification: NotificationRecord };
 
@@ -56,6 +57,36 @@ export class NotificationsService {
     });
 
     return notification;
+  }
+
+  // POST /admin/notifications/test — sends a real web push (not a fake/
+  // mock call, the actual WebPushService.sendToUser path a real reply
+  // uses) to verify delivery works for a specific member, without a real
+  // reply behind it. `persist` also writes a 'test'-type row so it shows
+  // up in that member's own /notifications list — off by default, since a
+  // pure delivery probe shouldn't always leave a trace in someone's inbox.
+  async sendTestPush(
+    userId: string,
+    persist: boolean,
+  ): Promise<{ subscriptionCount: number }> {
+    const webPublicUrl = this.config.get('WEB_PUBLIC_URL', { infer: true });
+    const subscriptionCount = await this.webPushService.sendToUser(userId, {
+      title: '온설',
+      body: '관리자가 보낸 테스트 알림이에요.',
+      url: webPublicUrl,
+    });
+
+    if (persist) {
+      const notification = await this.notificationsRepository.create({
+        userId,
+        type: TEST,
+        requestId: null,
+        replyId: null,
+      });
+      this.events$.next({ userId, notification });
+    }
+
+    return { subscriptionCount };
   }
 
   // GET /notifications/stream — one Observable per open SSE connection,

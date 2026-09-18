@@ -20,9 +20,31 @@ import {
   useMarkAllNotificationsReadMutation,
   useNotificationsQuery,
 } from "../lib/notifications/queries";
+import type { NotificationDto } from "../lib/notifications/api";
 import { PAGE_SIZE_OPTIONS } from "../lib/pagination";
 import { NotificationListItem } from "./NotificationListItem";
 import { PushSubscriptionToggle } from "./PushSubscriptionToggle";
+
+// 'reply_received' is the only type with a real thread to link to —
+// requestBody/requestId/replyId are all null for anything else (currently
+// just the admin-triggered 'test' type, see apps/api-server's
+// NotificationsService.sendTestPush), so it gets its own fixed display
+// text and no href rather than trying to build a broken /records/requests
+// link out of nulls.
+function notificationDisplay(notification: NotificationDto): {
+  eyebrow: string;
+  body: string;
+  href?: string;
+} {
+  if (notification.type === "reply_received" && notification.requestBody !== null) {
+    return {
+      eyebrow: "답장이 도착했어요",
+      body: notification.requestBody,
+      href: `/records/requests/${notification.requestId}?replyId=${notification.replyId}`,
+    };
+  }
+  return { eyebrow: "테스트 알림", body: "관리자가 보낸 테스트 알림이에요." };
+}
 
 function PageTitle() {
   return (
@@ -81,17 +103,20 @@ function NotificationsList({ query, onDelete }: NotificationsListProps) {
 
   return (
     <ol className="space-y-3">
-      {query.data.items.map((notification) => (
-        <NotificationListItem
-          body={notification.requestBody}
-          createdAt={notification.createdAt}
-          eyebrow="답장이 도착했어요"
-          href={`/records/requests/${notification.requestId}?replyId=${notification.replyId}`}
-          id={notification.id}
-          key={notification.id}
-          onDelete={onDelete}
-        />
-      ))}
+      {query.data.items.map((notification) => {
+        const { eyebrow, body, href } = notificationDisplay(notification);
+        return (
+          <NotificationListItem
+            body={body}
+            createdAt={notification.createdAt}
+            eyebrow={eyebrow}
+            href={href}
+            id={notification.id}
+            key={notification.id}
+            onDelete={onDelete}
+          />
+        );
+      })}
     </ol>
   );
 }

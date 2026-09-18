@@ -495,9 +495,10 @@ export const dayCountsResponseSchema = z.object({
 });
 export type DayCountsResponseDto = z.infer<typeof dayCountsResponseSchema>;
 
-// GET /notifications — 'reply_received' is the only `type` today; requestId/
-// replyId are nullable so a future notification kind that points at
-// something else can leave both null rather than needing a schema change.
+// GET /notifications — 'reply_received' and 'test' (admin-sent, see
+// sendTestPushSchema below) both exist today; requestId/replyId are
+// nullable so a notification kind with no linked post — 'test' being the
+// first — can leave both null rather than needing a schema change.
 export const notificationResponseSchema = z.object({
   id: z.string(),
   type: z.string(),
@@ -505,14 +506,38 @@ export const notificationResponseSchema = z.object({
   replyId: z.string().nullable(),
   // The viewer's own request body (already run through visibleRequestBody
   // server-side, same placeholder-on-delete rule as everywhere else) — so
-  // a notification reads as "OO에 답장이 도착했어요" for a specific post,
-  // not just a generic fact with nothing to distinguish it from any other.
-  requestBody: z.string(),
+  // a 'reply_received' notification reads as "OO에 답장이 도착했어요" for a
+  // specific post, not just a generic fact with nothing to distinguish it
+  // from any other. null for a notification with no linked request (e.g.
+  // 'test') — the frontend picks its own display text per `type` then.
+  requestBody: z.string().nullable(),
   createdAt: z.string(),
   readAt: z.string().nullable(),
 });
 export type NotificationResponseDto = z.infer<
   typeof notificationResponseSchema
+>;
+
+// POST /admin/notifications/test — sends a real web push to a member
+// (looked up by email) without a real reply behind it, for verifying push
+// delivery end to end. `persist` also writes a 'test'-type notifications
+// row so it shows up in that member's own /notifications list (off by
+// default — a pure delivery probe shouldn't always leave a trace in
+// someone's inbox).
+export const sendTestPushSchema = z.object({
+  email: z.string().email(),
+  persist: z.boolean().default(false),
+});
+export type SendTestPushDto = z.infer<typeof sendTestPushSchema>;
+
+// subscriptionCount lets the admin tell "sent to N devices" apart from "0
+// devices subscribed" — web push itself has no delivery receipt, so this
+// is the most concrete feedback available.
+export const sendTestPushResponseSchema = z.object({
+  subscriptionCount: z.number(),
+});
+export type SendTestPushResponseDto = z.infer<
+  typeof sendTestPushResponseSchema
 >;
 
 // GET /notifications/unread-count — polled badge count.

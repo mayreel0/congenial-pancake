@@ -15,8 +15,13 @@ import { ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
 import { PasswordResetService } from '../auth/password-reset/password-reset.service';
 import { SessionGuard } from '../auth/session.guard';
+import { NotificationsService } from '../notifications/notifications.service';
 import { UsersService } from '../users/users.service';
-import type { AdminContentStatus, ReplyModerationActionDto } from 'shared/dto';
+import type {
+  AdminContentStatus,
+  ReplyModerationActionDto,
+  SendTestPushResponseDto,
+} from 'shared/dto';
 import { replyModerationActionSchema } from 'shared/dto';
 import { isValidDateString, kstDateRange } from '../common/kst-date';
 import {
@@ -53,6 +58,7 @@ import {
   type AdminRequestResponseDto,
 } from './dto/admin-request.dto';
 import { IssuePasswordResetLinkDto } from './dto/issue-password-reset-link.dto';
+import { SendTestPushDto } from './dto/send-test-push.dto';
 
 const ADMIN_CONTENT_STATUS_VALUES: AdminContentStatus[] = [
   'visible',
@@ -98,6 +104,7 @@ export class AdminController {
     private readonly settingsService: SettingsService,
     private readonly usersService: UsersService,
     private readonly passwordResetService: PasswordResetService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   // Cheap precheck for apps/admin's /accounts page, which (unlike 신고 검토
@@ -282,5 +289,20 @@ export class AdminController {
     if (!user) throw new NotFoundException();
     const url = await this.passwordResetService.issueLink(user.id);
     return { url };
+  }
+
+  // Sends a real web push (the same WebPushService.sendToUser path a real
+  // reply uses) to a member looked up by email, for verifying push
+  // delivery works end to end without needing a real reply. subscriptionCount
+  // in the response is the only concrete feedback available — web push
+  // itself has no delivery receipt, so "0" tells the admin the target has
+  // no subscribed device rather than looking identical to a real send.
+  @Post('notifications/test')
+  async sendTestPush(
+    @Body() dto: SendTestPushDto,
+  ): Promise<SendTestPushResponseDto> {
+    const user = await this.usersService.findByEmail(dto.email);
+    if (!user) throw new NotFoundException();
+    return this.notificationsService.sendTestPush(user.id, dto.persist);
   }
 }
