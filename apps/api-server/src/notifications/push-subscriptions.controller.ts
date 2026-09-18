@@ -2,16 +2,19 @@ import {
   Body,
   Controller,
   Delete,
+  Get,
   HttpCode,
   HttpStatus,
   Post,
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { ZodResponse } from 'nestjs-zod';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { SessionGuard } from '../auth/session.guard';
 import { CreatePushSubscriptionDto } from './dto/create-push-subscription.dto';
 import { DeletePushSubscriptionDto } from './dto/delete-push-subscription.dto';
+import { PushSubscriptionsResponseDto } from './dto/push-subscriptions-response.dto';
 import { PushSubscriptionsRepository } from './push-subscriptions.repository';
 
 // Separate from NotificationsController for the same reason
@@ -30,6 +33,18 @@ export class PushSubscriptionsController {
   constructor(
     private readonly pushSubscriptionsRepository: PushSubscriptionsRepository,
   ) {}
+
+  // Only endpoints, never the p256dh/auth keys — the frontend just needs to
+  // compare its own browser's endpoint against this list.
+  @Get()
+  @ZodResponse({ type: PushSubscriptionsResponseDto })
+  async findMine(
+    @CurrentUser() userId: string,
+  ): Promise<PushSubscriptionsResponseDto> {
+    const subscriptions =
+      await this.pushSubscriptionsRepository.findByUserId(userId);
+    return { endpoints: subscriptions.map((s) => s.endpoint) };
+  }
 
   // Idempotent — re-subscribing the same browser (e.g. the frontend calls
   // this on every mount to keep the row's userId current after a

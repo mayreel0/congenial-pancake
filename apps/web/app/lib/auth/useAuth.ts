@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import type { CurrentUser, ProfileVisibilityPatch } from "../api";
+import { releasePushOnLogout } from "../notifications/push";
 import {
   useCompleteSignupMutation,
   useCurrentUserQuery,
@@ -63,6 +64,9 @@ export function useAuth(): UseAuthResult {
   }
 
   async function logout(): Promise<void> {
+    // Needs the session still valid (it asks the backend which endpoints
+    // are this account's), so it has to run before the logout call.
+    await releasePushOnLogout();
     await logoutMutation.mutateAsync();
     // Otherwise the current page just quietly drops its login state, and it's
     // easy to miss that logout actually worked.

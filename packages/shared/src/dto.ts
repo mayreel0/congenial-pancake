@@ -560,6 +560,18 @@ export type CreatePushSubscriptionDto = z.infer<
   typeof createPushSubscriptionSchema
 >;
 
+// GET /notifications/push-subscriptions — which endpoints the caller's own
+// account owns. A browser holds one push subscription per origin regardless
+// of which account is logged in, so the frontend needs this to tell "this
+// device is subscribed for *me*" apart from "this device is subscribed for
+// someone who used it before."
+export const pushSubscriptionsResponseSchema = z.object({
+  endpoints: z.array(z.string()),
+});
+export type PushSubscriptionsResponseDto = z.infer<
+  typeof pushSubscriptionsResponseSchema
+>;
+
 // DELETE /notifications/push-subscriptions — only the endpoint is needed
 // to find and remove the row.
 export const deletePushSubscriptionSchema = z.object({
