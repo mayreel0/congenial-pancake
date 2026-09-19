@@ -21,6 +21,12 @@ import { PushAppOnlyNotice } from "./PushAppOnlyNotice";
 // installed app; a browser tab gets PushAppOnlyNotice instead (which still
 // reflects an already-on subscription, e.g. one made before this rule).
 // A deployment without the VAPID key never shows either card.
+//
+// The lazy initializers below (standalone, denied) read window-only values,
+// which is safe because SettingsPageContent only mounts this after its own
+// post-mount localStorage read — it's never part of the server render or
+// hydration. Don't mount it anywhere that is without moving those reads
+// into an effect.
 export function PushSubscriptionToggle() {
   const [subscribed, setSubscribed] = useState<boolean | null>(null);
   const [pending, setPending] = useState(false);

@@ -13,9 +13,17 @@ export function PushStatusNotice() {
 
   useEffect(() => {
     if (!pushSupported()) return;
+    let cancelled = false;
     getOwnPushSubscription()
-      .then((subscription) => setEnabled(subscription !== null))
-      .catch(() => setEnabled(null));
+      .then((subscription) => {
+        if (!cancelled) setEnabled(subscription !== null);
+      })
+      .catch(() => {
+        if (!cancelled) setEnabled(null);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   if (enabled === null) return null;

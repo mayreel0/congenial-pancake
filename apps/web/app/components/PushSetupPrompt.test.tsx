@@ -95,15 +95,27 @@ describe("PushSetupPrompt", () => {
     fireEvent.click(await screen.findByRole("button", { name: "켜기" }));
 
     await waitFor(() => expect(enablePushNotifications).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(screen.queryByText(QUESTION)).not.toBeInTheDocument(),
+    );
     expect(localStorage.getItem("onseol.pushPrompted")).toBe("1");
   });
 
-  it("shows the failure and still remembers when enabling is refused", async () => {
+  it("shows the failure, stays open and doesn't use up the ask when enabling fails", async () => {
     enablePushNotifications.mockRejectedValue(new Error("알림 권한이 필요해요."));
     render(<PushSetupPrompt />);
     fireEvent.click(await screen.findByRole("button", { name: "켜기" }));
 
     expect(await screen.findByText("알림 권한이 필요해요.")).toBeInTheDocument();
-    expect(localStorage.getItem("onseol.pushPrompted")).toBe("1");
+    expect(screen.getByText(QUESTION)).toBeInTheDocument();
+    expect(localStorage.getItem("onseol.pushPrompted")).toBeNull();
+  });
+
+  it("is labelled for assistive tech", async () => {
+    render(<PushSetupPrompt />);
+
+    expect(
+      await screen.findByRole("dialog", { name: "알림 설정 안내" }),
+    ).toBeInTheDocument();
   });
 });

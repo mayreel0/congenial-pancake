@@ -67,16 +67,19 @@ export function PushSetupPrompt() {
     setOpen(false);
   }
 
+  // Only a successful enable closes the dialog and uses up the one-time ask;
+  // a refused permission popup or a failed request keeps it open so the
+  // viewer can retry or pick "나중에".
   async function handleEnable() {
-    markPrompted();
     setPending(true);
     try {
       await enablePushNotifications();
+      markPrompted();
+      setOpen(false);
     } catch (error) {
       toast.warning(pushErrorMessage(error));
     } finally {
       setPending(false);
-      setOpen(false);
     }
   }
 
@@ -85,6 +88,7 @@ export function PushSetupPrompt() {
   // No backdrop-dismiss — a stray tap outside shouldn't use up the one-time ask.
   return (
     <div
+      aria-label="알림 설정 안내"
       aria-modal="true"
       className={`fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-5 ${
         open ? "onseol-dialog-backdrop-enter" : "onseol-dialog-backdrop-leave"
