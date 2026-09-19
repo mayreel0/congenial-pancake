@@ -4,6 +4,7 @@ import localFont from "next/font/local";
 import { GlobalToast } from "ui/GlobalToast";
 import { QueryProvider } from "ui/QueryProvider";
 import { AccountRestoreDialog } from "./components/AccountRestoreDialog";
+import { PushSetupPrompt } from "./components/PushSetupPrompt";
 import { ServiceWorkerRegistration } from "./components/ServiceWorkerRegistration";
 import { DEFAULT_THEME_COLOR } from "./lib/theme-color";
 import "./globals.css";
@@ -119,6 +120,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
         <ServiceWorkerRegistration />
         <QueryProvider>
           <AccountRestoreDialog />
+          <PushSetupPrompt />
           {children}
           <GlobalToast />
         </QueryProvider>
