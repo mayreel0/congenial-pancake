@@ -3,34 +3,28 @@
 import { useEffect, useState } from "react";
 import { Toggle } from "ui/Toggle";
 import { toast } from "ui/useToast";
-import { ApiError, errorMessage } from "../../lib/api";
 import {
   disablePushNotifications,
   enablePushNotifications,
   getOwnPushSubscription,
+  isStandaloneApp,
+  pushConfigured,
+  pushErrorMessage,
   pushSupported,
 } from "../../lib/notifications/push";
-
-// enablePushNotifications/disablePushNotifications throw a plain Error for
-// browser/permission-level failures (no useful ApiError code to look up)
-// and let a real backend ApiError through as-is — errorMessage() only
-// recognizes the latter, so a plain Error needs its own message read
-// directly rather than falling back to a generic "something went wrong".
-function pushErrorMessage(error: unknown): string {
-  if (error instanceof ApiError) return errorMessage(error);
-  if (error instanceof Error) return error.message;
-  return "알림을 설정하지 못했어요.";
-}
+import { PushAppOnlyNotice } from "./PushAppOnlyNotice";
 
 // Support/existing-subscription state only exists in the browser, so it's
 // read after mount rather than on the server render — null (not yet
 // checked) renders nothing, same pattern SettingsPageContent uses for its
-// localStorage-backed settings. A browser without support (or missing the
-// VAPID env var, e.g. local dev without it configured) just never shows
-// this card, rather than showing a disabled toggle with no explanation.
+// localStorage-backed settings. Turning push on/off is only offered from the
+// installed app; a browser tab gets PushAppOnlyNotice instead (which still
+// reflects an already-on subscription, e.g. one made before this rule).
+// A deployment without the VAPID key never shows either card.
 export function PushSubscriptionToggle() {
   const [subscribed, setSubscribed] = useState<boolean | null>(null);
   const [pending, setPending] = useState(false);
+  const [standalone] = useState(isStandaloneApp);
   // A synchronous read (not a subscription), so it's safe as a lazy
   // initializer rather than a setState-in-effect — this only runs once,
   // on mount, same as any other useState(() => ...) initializer.
@@ -63,6 +57,8 @@ export function PushSubscriptionToggle() {
     }
   }
 
+  if (!pushConfigured()) return null;
+  if (!standalone) return <PushAppOnlyNotice subscribed={subscribed === true} />;
   if (!pushSupported() || subscribed === null) return null;
 
   return (

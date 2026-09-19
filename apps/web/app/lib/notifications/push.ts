@@ -1,6 +1,7 @@
 "use client";
 
 import type { CreatePushSubscriptionDto } from "shared/dto";
+import { ApiError, errorMessage } from "../api";
 import {
   fetchMyPushEndpoints,
   subscribeToPushNotifications,
@@ -11,6 +12,27 @@ import {
 // comment. Must come from a real generated pair for subscribe() to work;
 // an empty string just makes pushSupported() report false everywhere.
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
+
+// The VAPID key is baked in at build time, so this is the "is push turned on
+// for this deployment at all" check — independent of what the current
+// browser can do (see pushSupported for that).
+export function pushConfigured(): boolean {
+  return VAPID_PUBLIC_KEY.length > 0;
+}
+
+// Installed-app launch (home screen / desktop app window), as opposed to a
+// browser tab. Push is only meant to be turned on from the installed app;
+// iOS reports it through the non-standard navigator.standalone rather than
+// the display-mode media query.
+export function isStandaloneApp(): boolean {
+  if (typeof window === "undefined") return false;
+  const iosStandalone =
+    (navigator as Navigator & { standalone?: boolean }).standalone === true;
+  const displayModeStandalone =
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(display-mode: standalone)").matches;
+  return iosStandalone || displayModeStandalone;
+}
 
 export function pushSupported(): boolean {
   return (
@@ -151,4 +173,15 @@ export async function releasePushOnLogout(): Promise<void> {
   } catch {
     // Logout proceeds regardless.
   }
+}
+
+// enablePushNotifications/disablePushNotifications throw a plain Error for
+// browser/permission-level failures (no useful ApiError code to look up)
+// and let a real backend ApiError through as-is — errorMessage() only
+// recognizes the latter, so a plain Error needs its own message read
+// directly rather than falling back to a generic "something went wrong".
+export function pushErrorMessage(error: unknown): string {
+  if (error instanceof ApiError) return errorMessage(error);
+  if (error instanceof Error) return error.message;
+  return "알림을 설정하지 못했어요.";
 }
