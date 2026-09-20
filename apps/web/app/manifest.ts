@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { APP_ENTRY_PATH } from "./lib/app-entry";
 import { DEFAULT_THEME_COLOR } from "./lib/theme-color";
 
 // Next.js auto-detects this file and serves it at /manifest.webmanifest,
@@ -12,7 +13,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "온설",
     short_name: "온설",
     description: "짧은 위로 요청과 담백한 답장을 주고받는 서비스",
-    start_url: "/",
+    start_url: APP_ENTRY_PATH,
     display: "standalone",
     background_color: DEFAULT_THEME_COLOR,
     theme_color: DEFAULT_THEME_COLOR,

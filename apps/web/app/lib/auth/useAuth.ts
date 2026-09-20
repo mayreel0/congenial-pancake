@@ -2,7 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import type { CurrentUser, ProfileVisibilityPatch } from "../api";
+import { APP_ENTRY_PATH } from "../app-entry";
 import { releasePushOnLogout } from "../notifications/push";
+import { isStandaloneApp } from "../standalone-app";
 import {
   useCompleteSignupMutation,
   useCurrentUserQuery,
@@ -70,7 +72,8 @@ export function useAuth(): UseAuthResult {
     await logoutMutation.mutateAsync();
     // Otherwise the current page just quietly drops its login state, and it's
     // easy to miss that logout actually worked.
-    router.push("/");
+    // The installed app has no landing page to go back to — see app-entry.ts.
+    router.push(isStandaloneApp() ? APP_ENTRY_PATH : "/");
   }
 
   async function refresh(): Promise<void> {

@@ -3,6 +3,16 @@ import { describe, expect, it, vi } from "vitest";
 import { LandingPage } from "./LandingPage";
 
 describe("LandingPage", () => {
+  it("shows the web footer with the contact email", () => {
+    render(<LandingPage />);
+
+    const footer = screen.getByRole("contentinfo");
+    expect(within(footer).getByText("© 2026 온설")).toBeInTheDocument();
+    expect(
+      within(footer).getByRole("link", { name: /hello@onseol.com/ }),
+    ).toHaveAttribute("href", "mailto:hello@onseol.com");
+  });
+
   it("shows landing entry navigation", async () => {
     render(<LandingPage />);
 
