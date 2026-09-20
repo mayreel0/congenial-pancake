@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { InstallAppButton } from "./InstallAppButton";
 
 export function EntryActions() {
   return (
@@ -9,13 +10,7 @@ export function EntryActions() {
       >
         웹에서 시작하기
       </Link>
-      <button
-        className="inline-flex h-12 items-center justify-center rounded-lg border border-line bg-surface px-5 text-sm font-semibold text-foreground whitespace-nowrap"
-        type="button"
-        disabled
-      >
-        앱으로 이용하기 · 준비 중
-      </button>
+      <InstallAppButton />
     </div>
   );
 }

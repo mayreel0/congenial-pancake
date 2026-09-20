@@ -61,7 +61,7 @@ export const metadata: Metadata = {
   // confirmed present in a real rendered page too.
   appleWebApp: {
     title: TITLE,
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "default",
   },
   icons: {
     apple: "/apple-touch-icon.png",
