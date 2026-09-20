@@ -101,6 +101,18 @@ describe("InstallAppButton", () => {
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
+  it("hides when another tab records the install", async () => {
+    render(<InstallAppButton />);
+    await screen.findByRole("button", { name: "앱으로 이용하기" });
+
+    localStorage.setItem("onseol.appInstalled", "1");
+    act(() => {
+      window.dispatchEvent(new StorageEvent("storage", { key: "onseol.appInstalled" }));
+    });
+
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
+
   it("walks through the share sheet on iOS", async () => {
     Object.defineProperty(navigator, "userAgent", {
       configurable: true,

@@ -15,9 +15,15 @@ declare global {
   }
 }
 
+// "storage" covers the installed flag changing from another tab — the custom
+// event only reaches the window that dispatched it.
 function subscribe(onChange: () => void): () => void {
   window.addEventListener(INSTALL_PROMPT_EVENT, onChange);
-  return () => window.removeEventListener(INSTALL_PROMPT_EVENT, onChange);
+  window.addEventListener("storage", onChange);
+  return () => {
+    window.removeEventListener(INSTALL_PROMPT_EVENT, onChange);
+    window.removeEventListener("storage", onChange);
+  };
 }
 
 // Server snapshots are null/false: this renders on the server too, and a

@@ -55,7 +55,7 @@ export function InstallGuide({ open, variant, onClose }: InstallGuideProps) {
             </>
           ) : (
             <>
-              <li>브라우저 메뉴(⋮ 또는 ⋯)를 열어주세요.</li>
+              <li>주소창의 설치 아이콘 또는 브라우저 메뉴(⋮ / ⋯)를 열어주세요.</li>
               <li>
                 &ldquo;앱 설치&rdquo; 또는 &ldquo;홈 화면에 추가&rdquo;를
                 선택해주세요.
