@@ -8,7 +8,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 const isStandaloneApp = vi.fn();
-vi.mock("../../lib/notifications/push", () => ({
+vi.mock("../../lib/standalone-app", () => ({
   isStandaloneApp: () => isStandaloneApp(),
 }));
 

@@ -6,8 +6,10 @@ const isStandaloneApp = vi.fn();
 const pushConfigured = vi.fn();
 const pushSupported = vi.fn();
 const getOwnPushSubscription = vi.fn();
-vi.mock("../../lib/notifications/push", () => ({
+vi.mock("../../lib/standalone-app", () => ({
   isStandaloneApp: () => isStandaloneApp(),
+}));
+vi.mock("../../lib/notifications/push", () => ({
   pushConfigured: () => pushConfigured(),
   pushSupported: () => pushSupported(),
   getOwnPushSubscription: () => getOwnPushSubscription(),

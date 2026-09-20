@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
-import { isStandaloneApp } from "../../lib/notifications/push";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { isStandaloneApp } from "../../lib/standalone-app";
 import { IosInstallGuide } from "./IosInstallGuide";
 
 // Chromium-only, not in lib.dom — fired when the browser decides the site is
@@ -60,10 +60,13 @@ export function InstallAppButton() {
     };
   }, []);
 
+  const closeGuide = useCallback(() => setGuideOpen(false), []);
+
   async function handleClick() {
     if (installEvent) {
-      await installEvent.prompt();
-      // A prompt event can only be used once, whichever way the choice went.
+      // A prompt event can only be used once, whichever way it ended —
+      // including prompt() itself rejecting (expired user gesture etc.).
+      await installEvent.prompt().catch(() => undefined);
       setInstallEvent(null);
       return;
     }
@@ -81,7 +84,7 @@ export function InstallAppButton() {
       >
         앱으로 이용하기
       </button>
-      <IosInstallGuide open={guideOpen} onClose={() => setGuideOpen(false)} />
+      <IosInstallGuide open={guideOpen} onClose={closeGuide} />
     </>
   );
 }

@@ -3,7 +3,7 @@ import { act, fireEvent, render, screen } from "../../lib/test-utils";
 import { InstallAppButton } from "./InstallAppButton";
 
 const isStandaloneApp = vi.fn();
-vi.mock("../../lib/notifications/push", () => ({
+vi.mock("../../lib/standalone-app", () => ({
   isStandaloneApp: () => isStandaloneApp(),
 }));
 
@@ -59,6 +59,24 @@ describe("InstallAppButton", () => {
     );
   });
 
+  it("recovers when the prompt itself rejects", async () => {
+    render(<InstallAppButton />);
+    const prompt = vi.fn().mockRejectedValue(new DOMException("expired"));
+    const event = Object.assign(new Event("beforeinstallprompt", { cancelable: true }), {
+      prompt,
+      userChoice: Promise.resolve({ outcome: "dismissed" as const }),
+    });
+    act(() => {
+      window.dispatchEvent(event);
+    });
+
+    fireEvent.click(await screen.findByRole("button", { name: "앱으로 이용하기" }));
+
+    await vi.waitFor(() =>
+      expect(screen.queryByRole("button", { name: "앱으로 이용하기" })).not.toBeInTheDocument(),
+    );
+  });
+
   it("hides once the app is installed", async () => {
     render(<InstallAppButton />);
     fireInstallPrompt();
@@ -84,6 +102,28 @@ describe("InstallAppButton", () => {
       await screen.findByRole("dialog", { name: "앱으로 설치하는 방법" }),
     ).toBeInTheDocument();
     expect(screen.getByText(/홈 화면에 추가/, { selector: "li" })).toBeInTheDocument();
+  });
+
+  it("closes the iOS how-to with Escape or a tap outside it", async () => {
+    Object.defineProperty(navigator, "userAgent", {
+      configurable: true,
+      value: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Safari/604.1",
+    });
+    render(<InstallAppButton />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "앱으로 이용하기" }));
+    await screen.findByRole("dialog", { name: "앱으로 설치하는 방법" });
+    fireEvent.keyDown(document, { key: "Escape" });
+    await vi.waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "앱으로 이용하기" }));
+    await screen.findByRole("dialog", { name: "앱으로 설치하는 방법" });
+    fireEvent.mouseDown(document.body);
+    await vi.waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
   });
 
   it("never shows in the installed app", async () => {

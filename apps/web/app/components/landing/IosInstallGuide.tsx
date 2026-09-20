@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect } from "react";
 import { Button } from "ui/Button";
 import { POPOVER_EXIT_MS, useAnimatedPresence } from "ui/useAnimatedPresence";
+import { useDismissOnOutsideClick } from "ui/useDismissOnOutsideClick";
 
 type IosInstallGuideProps = {
   open: boolean;
@@ -12,6 +14,16 @@ type IosInstallGuideProps = {
 // share sheet — so this just walks through it.
 export function IosInstallGuide({ open, onClose }: IosInstallGuideProps) {
   const shouldRender = useAnimatedPresence(open, POPOVER_EXIT_MS);
+  const boxRef = useDismissOnOutsideClick<HTMLDivElement>(open, onClose);
+
+  useEffect(() => {
+    if (!open) return;
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [open, onClose]);
 
   if (!shouldRender) return null;
 
@@ -28,6 +40,7 @@ export function IosInstallGuide({ open, onClose }: IosInstallGuideProps) {
         className={`w-full max-w-sm space-y-4 rounded-lg border border-line bg-surface p-5 shadow-sm ${
           open ? "onseol-dialog-box-enter" : "onseol-dialog-box-leave"
         }`}
+        ref={boxRef}
       >
         <p className="text-sm font-semibold text-foreground">
           홈 화면에 추가하면 앱처럼 이용할 수 있어요

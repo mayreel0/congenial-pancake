@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react";
 import { Toggle } from "ui/Toggle";
 import { toast } from "ui/useToast";
+import { isStandaloneApp } from "../../lib/standalone-app";
 import {
   disablePushNotifications,
   enablePushNotifications,
   getOwnPushSubscription,
-  isStandaloneApp,
   pushConfigured,
   pushErrorMessage,
   pushSupported,

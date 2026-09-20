@@ -6,10 +6,10 @@ import { POPOVER_EXIT_MS, useAnimatedPresence } from "ui/useAnimatedPresence";
 import { BUTTON_PENDING_MIN_MS, useMinDisplayDuration } from "ui/useMinDisplayDuration";
 import { toast } from "ui/useToast";
 import { useAuth } from "../lib/auth/useAuth";
+import { isStandaloneApp } from "../lib/standalone-app";
 import {
   enablePushNotifications,
   getOwnPushSubscription,
-  isStandaloneApp,
   pushErrorMessage,
   pushSupported,
 } from "../lib/notifications/push";
