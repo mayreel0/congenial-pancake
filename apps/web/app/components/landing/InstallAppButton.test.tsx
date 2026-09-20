@@ -7,16 +7,19 @@ vi.mock("../../lib/standalone-app", () => ({
   isStandaloneApp: () => isStandaloneApp(),
 }));
 
-function fireInstallPrompt() {
-  const prompt = vi.fn().mockResolvedValue(undefined);
-  const event = Object.assign(new Event("beforeinstallprompt", { cancelable: true }), {
+const IOS_UA =
+  "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Safari/604.1";
+
+// Stands in for what INSTALL_PROMPT_SCRIPT does when the browser offers the
+// prompt (that script has its own test).
+function offerInstallPrompt(prompt: () => Promise<void>) {
+  window.__onseolInstallPrompt = Object.assign(new Event("beforeinstallprompt"), {
     prompt,
     userChoice: Promise.resolve({ outcome: "accepted" as const }),
   });
   act(() => {
-    window.dispatchEvent(event);
+    window.dispatchEvent(new Event("onseol:installprompt"));
   });
-  return { prompt, event };
 }
 
 describe("InstallAppButton", () => {
@@ -24,75 +27,84 @@ describe("InstallAppButton", () => {
 
   beforeEach(() => {
     isStandaloneApp.mockReturnValue(false);
+    localStorage.clear();
   });
 
   afterEach(() => {
+    window.__onseolInstallPrompt = null;
     Object.defineProperty(navigator, "userAgent", {
       configurable: true,
       value: originalUserAgent,
     });
   });
 
-  it("shows nothing where the browser can't install", () => {
+  it("shows in any browser tab and explains the menu route when there's no install prompt", async () => {
     render(<InstallAppButton />);
 
-    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    fireEvent.click(await screen.findByRole("button", { name: "앱으로 이용하기" }));
+
+    expect(
+      await screen.findByRole("dialog", { name: "앱으로 설치하는 방법" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/앱 설치/, { selector: "li" })).toBeInTheDocument();
   });
 
-  it("opens the browser's install prompt once it offers one", async () => {
+  it("opens the browser's install prompt when one was offered, even before this rendered", async () => {
+    const prompt = vi.fn().mockResolvedValue(undefined);
+    window.__onseolInstallPrompt = Object.assign(new Event("beforeinstallprompt"), {
+      prompt,
+      userChoice: Promise.resolve({ outcome: "accepted" as const }),
+    });
     render(<InstallAppButton />);
-    const { prompt, event } = fireInstallPrompt();
 
-    expect(event.defaultPrevented).toBe(true);
+    fireEvent.click(await screen.findByRole("button", { name: "앱으로 이용하기" }));
+
+    expect(prompt).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => expect(window.__onseolInstallPrompt).toBeNull());
+  });
+
+  it("picks up a prompt offered after it rendered", async () => {
+    render(<InstallAppButton />);
+    const prompt = vi.fn().mockResolvedValue(undefined);
+    offerInstallPrompt(prompt);
+
     fireEvent.click(await screen.findByRole("button", { name: "앱으로 이용하기" }));
 
     expect(prompt).toHaveBeenCalledTimes(1);
   });
 
-  it("hides again after the prompt has been used", async () => {
+  it("drops the spent prompt even when prompt() rejects", async () => {
     render(<InstallAppButton />);
-    fireInstallPrompt();
-    fireEvent.click(await screen.findByRole("button", { name: "앱으로 이용하기" }));
-
-    await vi.waitFor(() =>
-      expect(screen.queryByRole("button", { name: "앱으로 이용하기" })).not.toBeInTheDocument(),
-    );
-  });
-
-  it("recovers when the prompt itself rejects", async () => {
-    render(<InstallAppButton />);
-    const prompt = vi.fn().mockRejectedValue(new DOMException("expired"));
-    const event = Object.assign(new Event("beforeinstallprompt", { cancelable: true }), {
-      prompt,
-      userChoice: Promise.resolve({ outcome: "dismissed" as const }),
-    });
-    act(() => {
-      window.dispatchEvent(event);
-    });
+    offerInstallPrompt(vi.fn().mockRejectedValue(new DOMException("expired")));
 
     fireEvent.click(await screen.findByRole("button", { name: "앱으로 이용하기" }));
 
-    await vi.waitFor(() =>
-      expect(screen.queryByRole("button", { name: "앱으로 이용하기" })).not.toBeInTheDocument(),
-    );
+    await vi.waitFor(() => expect(window.__onseolInstallPrompt).toBeNull());
   });
 
-  it("hides once the app is installed", async () => {
+  it("is hidden once the app is known to be installed", () => {
+    localStorage.setItem("onseol.appInstalled", "1");
     render(<InstallAppButton />);
-    fireInstallPrompt();
+
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
+
+  it("hides when the app gets installed while the page is open", async () => {
+    render(<InstallAppButton />);
     await screen.findByRole("button", { name: "앱으로 이용하기" });
 
+    localStorage.setItem("onseol.appInstalled", "1");
     act(() => {
-      window.dispatchEvent(new Event("appinstalled"));
+      window.dispatchEvent(new Event("onseol:installprompt"));
     });
 
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
-  it("shows a how-to on iOS, where there's no install prompt", async () => {
+  it("walks through the share sheet on iOS", async () => {
     Object.defineProperty(navigator, "userAgent", {
       configurable: true,
-      value: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Safari/604.1",
+      value: IOS_UA,
     });
     render(<InstallAppButton />);
 
@@ -101,14 +113,10 @@ describe("InstallAppButton", () => {
     expect(
       await screen.findByRole("dialog", { name: "앱으로 설치하는 방법" }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/홈 화면에 추가/, { selector: "li" })).toBeInTheDocument();
+    expect(screen.getByText(/공유 버튼/, { selector: "li" })).toBeInTheDocument();
   });
 
-  it("closes the iOS how-to with Escape or a tap outside it", async () => {
-    Object.defineProperty(navigator, "userAgent", {
-      configurable: true,
-      value: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Safari/604.1",
-    });
+  it("closes the how-to with Escape or a tap outside it", async () => {
     render(<InstallAppButton />);
 
     fireEvent.click(await screen.findByRole("button", { name: "앱으로 이용하기" }));
@@ -126,10 +134,9 @@ describe("InstallAppButton", () => {
     );
   });
 
-  it("never shows in the installed app", async () => {
+  it("never shows in the installed app", () => {
     isStandaloneApp.mockReturnValue(true);
     render(<InstallAppButton />);
-    fireInstallPrompt();
 
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });

@@ -28,8 +28,18 @@ describe("isStandaloneApp", () => {
     expect(isStandaloneApp()).toBe(true);
   });
 
-  it("is true for an iOS home-screen app via navigator.standalone", () => {
+  it("ignores navigator.standalone when display-mode says it's a browser tab (iOS Safari reports it true there)", () => {
     stubDisplayMode(false);
+    Object.defineProperty(navigator, "standalone", {
+      configurable: true,
+      value: true,
+    });
+
+    expect(isStandaloneApp()).toBe(false);
+  });
+
+  it("falls back to navigator.standalone only where matchMedia doesn't exist", () => {
+    vi.stubGlobal("matchMedia", undefined);
     Object.defineProperty(navigator, "standalone", {
       configurable: true,
       value: true,
