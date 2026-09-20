@@ -1,15 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { useCallback, useState, useSyncExternalStore } from "react";
+import {
+  consumeInstallPrompt,
+  useAppInstalledFlag,
+  useInstallPromptEvent,
+} from "../../lib/install-prompt";
 import { isStandaloneApp } from "../../lib/standalone-app";
-import { IosInstallGuide } from "./IosInstallGuide";
-
-// Chromium-only, not in lib.dom — fired when the browser decides the site is
-// installable, and only until it's installed.
-type BeforeInstallPromptEvent = Event & {
-  prompt(): Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-};
+import { InstallGuide } from "./InstallGuide";
 
 function subscribe(): () => void {
   return () => {};
@@ -34,46 +32,31 @@ function useStandalone(): boolean {
   return useSyncExternalStore(subscribe, isStandaloneApp, () => false);
 }
 
-// Web-only entry to the installed app. Where the browser can prompt
-// (Chromium) it does; iOS gets a how-to instead; anywhere it can't install —
-// or already has — the button just isn't shown.
+// Web-only entry to the installed app, shown in any browser tab that isn't
+// already the app. With a browser-offered install prompt (Chromium) it opens
+// that; otherwise it explains the menu route. Hidden once installed — the
+// browser stops offering the prompt then, which the "installed" flag
+// (install-prompt-script.ts) is what tells apart from "never offered".
 export function InstallAppButton() {
   const ios = useIos();
   const standalone = useStandalone();
-  const [installEvent, setInstallEvent] =
-    useState<BeforeInstallPromptEvent | null>(null);
+  const installEvent = useInstallPromptEvent();
+  const installed = useAppInstalledFlag();
   const [guideOpen, setGuideOpen] = useState(false);
-
-  useEffect(() => {
-    function handleBeforeInstall(event: Event) {
-      event.preventDefault();
-      setInstallEvent(event as BeforeInstallPromptEvent);
-    }
-    function handleInstalled() {
-      setInstallEvent(null);
-    }
-    window.addEventListener("beforeinstallprompt", handleBeforeInstall);
-    window.addEventListener("appinstalled", handleInstalled);
-    return () => {
-      window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
-      window.removeEventListener("appinstalled", handleInstalled);
-    };
-  }, []);
-
   const closeGuide = useCallback(() => setGuideOpen(false), []);
 
   async function handleClick() {
     if (installEvent) {
-      // A prompt event can only be used once, whichever way it ended —
-      // including prompt() itself rejecting (expired user gesture etc.).
+      // prompt() can reject (expired user gesture etc.); the event is spent
+      // either way.
       await installEvent.prompt().catch(() => undefined);
-      setInstallEvent(null);
+      consumeInstallPrompt();
       return;
     }
     setGuideOpen(true);
   }
 
-  if (standalone || (!installEvent && !ios)) return null;
+  if (standalone || installed) return null;
 
   return (
     <>
@@ -84,7 +67,11 @@ export function InstallAppButton() {
       >
         앱으로 이용하기
       </button>
-      <IosInstallGuide open={guideOpen} onClose={closeGuide} />
+      <InstallGuide
+        open={guideOpen}
+        variant={ios ? "ios" : "other"}
+        onClose={closeGuide}
+      />
     </>
   );
 }

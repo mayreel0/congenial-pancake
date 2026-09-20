@@ -5,14 +5,16 @@ import { Button } from "ui/Button";
 import { POPOVER_EXIT_MS, useAnimatedPresence } from "ui/useAnimatedPresence";
 import { useDismissOnOutsideClick } from "ui/useDismissOnOutsideClick";
 
-type IosInstallGuideProps = {
+type InstallGuideProps = {
   open: boolean;
+  variant: "ios" | "other";
   onClose(): void;
 };
 
-// iOS can't open an install prompt from a button — the only route is the
-// share sheet — so this just walks through it.
-export function IosInstallGuide({ open, onClose }: IosInstallGuideProps) {
+// Where the browser won't hand over an install prompt (iOS never does;
+// elsewhere only when it hasn't offered one) the install is a menu action,
+// so this just walks through it.
+export function InstallGuide({ open, variant, onClose }: InstallGuideProps) {
   const shouldRender = useAnimatedPresence(open, POPOVER_EXIT_MS);
   const boxRef = useDismissOnOutsideClick<HTMLDivElement>(open, onClose);
 
@@ -46,8 +48,20 @@ export function IosInstallGuide({ open, onClose }: IosInstallGuideProps) {
           홈 화면에 추가하면 앱처럼 이용할 수 있어요
         </p>
         <ol className="list-decimal space-y-1 pl-5 text-sm leading-6 text-foreground">
-          <li>브라우저의 공유 버튼을 눌러주세요.</li>
-          <li>&ldquo;홈 화면에 추가&rdquo;를 선택해주세요.</li>
+          {variant === "ios" ? (
+            <>
+              <li>브라우저의 공유 버튼을 눌러주세요.</li>
+              <li>&ldquo;홈 화면에 추가&rdquo;를 선택해주세요.</li>
+            </>
+          ) : (
+            <>
+              <li>주소창의 설치 아이콘 또는 브라우저 메뉴(⋮ / ⋯)를 열어주세요.</li>
+              <li>
+                &ldquo;앱 설치&rdquo; 또는 &ldquo;홈 화면에 추가&rdquo;를
+                선택해주세요.
+              </li>
+            </>
+          )}
         </ol>
         <div className="flex justify-end">
           <Button size="sm" onClick={onClose}>

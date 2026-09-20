@@ -6,6 +6,7 @@ import { QueryProvider } from "ui/QueryProvider";
 import { AccountRestoreDialog } from "./components/AccountRestoreDialog";
 import { PushSetupPrompt } from "./components/PushSetupPrompt";
 import { ServiceWorkerRegistration } from "./components/ServiceWorkerRegistration";
+import { INSTALL_PROMPT_SCRIPT } from "./lib/install-prompt-script";
 import { DEFAULT_THEME_COLOR } from "./lib/theme-color";
 import "./globals.css";
 
@@ -117,6 +118,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
     >
       <body className="min-h-full flex flex-col">
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: INSTALL_PROMPT_SCRIPT }} />
         <ServiceWorkerRegistration />
         <QueryProvider>
           <AccountRestoreDialog />
