@@ -2,11 +2,8 @@
 
 import { useState, type ReactNode } from "react";
 import { useDismissOnOutsideClick } from "../hooks/useDismissOnOutsideClick";
-import {
-  POPOVER_EXIT_MS,
-  useAnimatedPresence,
-} from "../hooks/useAnimatedPresence";
 import { MoreIcon } from "../icons";
+import { PopoverDialog } from "./PopoverDialog";
 
 type MoreMenuItem = {
   key: string;
@@ -25,43 +22,43 @@ export function MoreMenu({ ariaLabel, items }: MoreMenuProps) {
   const containerRef = useDismissOnOutsideClick<HTMLDivElement>(open, () =>
     setOpen(false),
   );
-  const shouldRender = useAnimatedPresence(open, POPOVER_EXIT_MS);
 
   return (
     <div className="relative shrink-0" ref={containerRef}>
+      {/* Below sm: a 40px tap target (the negative margin keeps the row's
+          layout at the desktop 24px) with a larger icon, since the 24px
+          button was too small to hit or notice on a phone. */}
       <button
         aria-expanded={open}
         aria-label="더보기"
-        className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted transition hover:bg-surface-muted hover:text-foreground"
+        className="-m-2 inline-flex h-10 w-10 items-center justify-center rounded-md text-muted transition hover:bg-surface-muted hover:text-foreground sm:m-0 sm:h-6 sm:w-6"
         title="더보기"
         type="button"
         onClick={() => setOpen((value) => !value)}
       >
-        <MoreIcon className="h-4 w-4" />
+        <MoreIcon className="h-5 w-5 sm:h-4 sm:w-4" />
       </button>
-      {shouldRender && (
-        <div
-          aria-label={ariaLabel}
-          className={`absolute right-0 top-full z-20 mt-1 w-32 overflow-hidden rounded-lg border border-line bg-surface shadow-sm ${
-            open ? "onseol-popover-enter" : "onseol-popover-leave"
-          }`}
-        >
-          {items.map((item) => (
-            <button
-              className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-foreground transition hover:bg-surface-muted"
-              key={item.key}
-              type="button"
-              onClick={() => {
-                setOpen(false);
-                item.onClick();
-              }}
-            >
-              {item.icon}
-              {item.label}
-            </button>
-          ))}
-        </div>
-      )}
+      <PopoverDialog
+        label={ariaLabel}
+        open={open}
+        popoverClassName="divide-y divide-line sm:absolute sm:right-0 sm:top-full sm:mt-1 sm:w-32 sm:divide-y-0"
+        onClose={() => setOpen(false)}
+      >
+        {items.map((item) => (
+          <button
+            className="flex min-h-12 w-full items-center gap-3 px-4 py-3 text-left text-base text-foreground transition hover:bg-surface-muted sm:min-h-0 sm:gap-2 sm:px-3 sm:py-2 sm:text-xs"
+            key={item.key}
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              item.onClick();
+            }}
+          >
+            {item.icon}
+            {item.label}
+          </button>
+        ))}
+      </PopoverDialog>
     </div>
   );
 }

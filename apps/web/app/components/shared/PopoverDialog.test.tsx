@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PopoverDialog } from "ui/PopoverDialog";
-import { fireEvent, render, screen } from "../../lib/test-utils";
+import { fireEvent, render, screen, waitFor } from "../../lib/test-utils";
 
 function renderDialog(overrides: { open?: boolean; onClose?: () => void } = {}) {
   const onClose = overrides.onClose ?? vi.fn();
@@ -58,6 +58,27 @@ describe("PopoverDialog", () => {
       </PopoverDialog>,
     );
     expect(screen.getByRole("dialog")).not.toHaveAttribute("aria-modal");
+  });
+
+  it("is hidden from assistive tech while its leave animation plays, then removed", async () => {
+    const { rerender } = render(
+      <PopoverDialog label="달력" open popoverClassName="" onClose={vi.fn()}>
+        <p>내용</p>
+      </PopoverDialog>,
+    );
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+    rerender(
+      <PopoverDialog label="달력" open={false} popoverClassName="" onClose={vi.fn()}>
+        <p>내용</p>
+      </PopoverDialog>,
+    );
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("달력", { selector: "[aria-hidden=true]" })).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByLabelText("달력")).not.toBeInTheDocument(),
+    );
   });
 
   it("renders nothing while closed", () => {

@@ -85,6 +85,10 @@ export function PopoverDialog({
       }}
     >
       <div
+        // Once closing, the leave animation keeps it mounted for a moment —
+        // hide it from assistive tech meanwhile so it isn't still announced
+        // as a live dialog.
+        aria-hidden={open ? undefined : true}
         aria-label={label}
         aria-modal={isDialogWidth || undefined}
         className={`w-full max-w-sm cursor-default overflow-hidden rounded-lg border border-line bg-surface shadow-sm sm:z-20 ${popoverClassName} ${
