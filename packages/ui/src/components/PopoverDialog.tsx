@@ -78,17 +78,27 @@ export function PopoverDialog({
       // a plain div, so without it a tap on the backdrop would never reach
       // onMouseDown below. The box resets it.
       className={`fixed inset-0 z-40 flex cursor-pointer items-center justify-center bg-black/40 px-5 sm:contents ${
-        open ? "onseol-dialog-backdrop-enter" : "onseol-dialog-backdrop-leave"
+        open
+          ? "onseol-dialog-backdrop-enter"
+          : "onseol-dialog-backdrop-leave pointer-events-none"
       }`}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
     >
       <div
+        // Once closing, the leave animation keeps it mounted for a moment —
+        // hide it from assistive tech meanwhile so it isn't still announced
+        // as a live dialog, and (with pointer-events-none here and on the
+        // backdrop) let taps through to whatever opens next, e.g. a confirm
+        // dialog.
+        aria-hidden={open ? undefined : true}
         aria-label={label}
         aria-modal={isDialogWidth || undefined}
         className={`w-full max-w-sm cursor-default overflow-hidden rounded-lg border border-line bg-surface shadow-sm sm:z-20 ${popoverClassName} ${
-          open ? "onseol-dialog-box-enter" : "onseol-dialog-box-leave"
+          open
+            ? "onseol-dialog-box-enter"
+            : "onseol-dialog-box-leave pointer-events-none"
         }`}
         role="dialog"
       >

@@ -43,7 +43,7 @@ export function ActionConfirmDialog({
   return (
     <div
       aria-modal="true"
-      className={`fixed inset-0 z-30 flex items-center justify-center bg-black/40 px-5 ${
+      className={`fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-5 ${
         open
           ? "onseol-dialog-backdrop-enter"
           : "onseol-dialog-backdrop-leave"
