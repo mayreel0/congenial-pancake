@@ -24,6 +24,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { ProfileModule } from './profile/profile.module';
 import { RepliesModule } from './replies/replies.module';
 import { ReportsModule } from './reports/reports.module';
+import { RetentionModule } from './retention/retention.module';
 import { RequestsModule } from './requests/requests.module';
 import { SavedRepliesModule } from './saved-replies/saved-replies.module';
 import { UsersModule } from './users/users.module';
@@ -68,6 +69,7 @@ import { ZodValidationPipe } from './common/zod-validation';
     RequestsModule,
     RepliesModule,
     ReportsModule,
+    RetentionModule,
     SavedRepliesModule,
     ModerationModule,
     AdminModule,

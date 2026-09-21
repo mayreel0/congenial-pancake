@@ -94,6 +94,8 @@ describe('AuthService', () => {
       requestDeletion: jest.fn(),
       restoreAccount: jest.fn(),
       scrubForDeletion: jest.fn(),
+      deletePushSubscriptions: jest.fn(),
+      deleteNotifications: jest.fn(),
     } as unknown as jest.Mocked<UsersService>;
     oauthIdentitiesRepository = {
       findByProviderAccount: jest.fn(),
@@ -600,6 +602,19 @@ describe('AuthService', () => {
       expect(sessionService.revokeAllForUser).toHaveBeenCalledWith('user-1');
     });
 
+    it("stops pushes to the user's devices on either path, even before the account is finalized", async () => {
+      await authService.requestWithdrawal('user-1', false);
+      expect(usersService.deletePushSubscriptions).toHaveBeenCalledWith(
+        'user-1',
+      );
+
+      usersService.deletePushSubscriptions.mockClear();
+      await authService.requestWithdrawal('user-1', true);
+      expect(usersService.deletePushSubscriptions).toHaveBeenCalledWith(
+        'user-1',
+      );
+    });
+
     it('only stamps deletionRequestedAt when not immediate', async () => {
       await authService.requestWithdrawal('user-1', false);
 
@@ -620,6 +635,15 @@ describe('AuthService', () => {
   });
 
   describe('finalizeAccountDeletion', () => {
+    it("deletes the user's notification history and any push subscriptions still left", async () => {
+      await authService.finalizeAccountDeletion('user-1');
+
+      expect(usersService.deleteNotifications).toHaveBeenCalledWith('user-1');
+      expect(usersService.deletePushSubscriptions).toHaveBeenCalledWith(
+        'user-1',
+      );
+    });
+
     it('scrubs the user row and clears its oauth identities', async () => {
       await authService.finalizeAccountDeletion('user-1');
 

@@ -136,6 +136,7 @@ describe('ProfileController', () => {
           hidden: false,
           deletedAt: null,
           contentRemoved: false,
+          contentRemovedAt: null,
           reviewedAt: null,
           anonymous: false,
         },

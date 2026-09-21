@@ -166,6 +166,14 @@ export class UsersService {
     return this.usersRepository.scrubForDeletion(id);
   }
 
+  deletePushSubscriptions(id: string): Promise<void> {
+    return this.usersRepository.deletePushSubscriptions(id);
+  }
+
+  deleteNotifications(id: string): Promise<void> {
+    return this.usersRepository.deleteNotifications(id);
+  }
+
   findPendingDeletionBefore(cutoff: Date): Promise<User[]> {
     return this.usersRepository.findPendingDeletionBefore(cutoff);
   }

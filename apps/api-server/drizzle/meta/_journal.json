@@ -183,6 +183,13 @@
       "when": 1789730092830,
       "tag": "0025_absurd_red_ghost",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1789980628248,
+      "tag": "0026_happy_meltdown",
+      "breakpoints": true
     }
   ]
 }
