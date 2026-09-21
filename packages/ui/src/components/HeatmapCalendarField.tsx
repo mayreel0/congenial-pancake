@@ -2,11 +2,8 @@
 
 import { useState } from "react";
 import { useDismissOnOutsideClick } from "../hooks/useDismissOnOutsideClick";
-import {
-  POPOVER_EXIT_MS,
-  useAnimatedPresence,
-} from "../hooks/useAnimatedPresence";
 import { HeatmapCalendar, type HeatmapCalendarProps } from "./HeatmapCalendar";
+import { PopoverDialog } from "./PopoverDialog";
 // Below sm (640px), the trigger button goes full-width to stack cleanly.
 // sm and up keeps the fixed width (w-48, 192px) which fits "YYYY년 M월 D일"
 // and "시작일을 선택하세요" without clipping.
@@ -19,7 +16,7 @@ type HeatmapCalendarFieldProps = HeatmapCalendarProps & {
 };
 
 // A compact trigger (styled like ui/TextField) that opens HeatmapCalendar
-// in an anchored popover on click, instead of rendering the full grid
+// in a popover (a centered dialog on phones — see PopoverDialog) on click, instead of rendering the full grid
 // inline — the grid at full width was too large to sit permanently on the
 // page (2026-09-02 feedback on PR #130). Mirrors MoreMenu's open-state +
 // useDismissOnOutsideClick pattern. For a date *range*, use two of these
@@ -37,7 +34,6 @@ export function HeatmapCalendarField(props: HeatmapCalendarFieldProps) {
   const containerRef = useDismissOnOutsideClick<HTMLDivElement>(open, () =>
     setOpen(false),
   );
-  const shouldRender = useAnimatedPresence(open, POPOVER_EXIT_MS);
 
   const displayText = calendarProps.selected
     ? formatDate(calendarProps.selected)
@@ -57,22 +53,20 @@ export function HeatmapCalendarField(props: HeatmapCalendarFieldProps) {
       >
         {displayText}
       </button>
-      {shouldRender && (
-        <div
-          aria-label={`${label} 달력`}
-          className={`absolute left-0 top-full z-20 mt-2 w-72 rounded-lg border border-line bg-surface p-3 shadow-sm ${
-            open ? "onseol-popover-enter" : "onseol-popover-leave"
-          }`}
-        >
-          <HeatmapCalendar
-            {...calendarProps}
-            onSelect={(date) => {
-              calendarProps.onSelect(date);
-              setOpen(false);
-            }}
-          />
-        </div>
-      )}
+      <PopoverDialog
+        label={`${label} 달력`}
+        open={open}
+        popoverClassName="p-3 sm:absolute sm:left-0 sm:top-full sm:mt-2 sm:w-72 sm:max-w-none"
+        onClose={() => setOpen(false)}
+      >
+        <HeatmapCalendar
+          {...calendarProps}
+          onSelect={(date) => {
+            calendarProps.onSelect(date);
+            setOpen(false);
+          }}
+        />
+      </PopoverDialog>
     </div>
   );
 }
