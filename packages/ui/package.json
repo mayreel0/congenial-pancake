@@ -12,6 +12,7 @@
     "./HeatmapCalendar": "./src/components/HeatmapCalendar.tsx",
     "./HeatmapCalendarField": "./src/components/HeatmapCalendarField.tsx",
     "./MoreMenu": "./src/components/MoreMenu.tsx",
+    "./PopoverDialog": "./src/components/PopoverDialog.tsx",
     "./QueryProvider": "./src/providers/QueryProvider.tsx",
     "./Button": "./src/components/Button.tsx",
     "./Pagination": "./src/components/Pagination.tsx",

@@ -23,6 +23,18 @@ vi.mock("next/navigation", () => ({
 // network access. Tests that care override with vi.stubGlobal("fetch", ...).
 beforeEach(() => {
   mockRouterReplace.mockClear();
+  // jsdom has no matchMedia at all; ui/PopoverDialog reads it (for
+  // aria-modal), so without this every test rendering a date field or menu
+  // throws. Same stub apps/web's vitest.setup.ts installs.
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn((query: string) => ({
+      matches: false,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })),
+  );
   vi.stubGlobal(
     "fetch",
     vi.fn(() =>
