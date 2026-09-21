@@ -44,6 +44,7 @@ export function HeatmapCalendarField(props: HeatmapCalendarFieldProps) {
       <span className="mb-1 block text-sm text-muted">{label}</span>
       <button
         aria-expanded={open}
+        aria-haspopup="dialog"
         aria-label={label}
         // text-base (not text-sm) to match TextField/Select's height when
         // sitting next to either in a filter row.

@@ -30,6 +30,7 @@ export function MoreMenu({ ariaLabel, items }: MoreMenuProps) {
           button was too small to hit or notice on a phone. */}
       <button
         aria-expanded={open}
+        aria-haspopup="dialog"
         aria-label="더보기"
         className="-m-2 inline-flex h-10 w-10 items-center justify-center rounded-md text-muted transition hover:bg-surface-muted hover:text-foreground sm:m-0 sm:h-6 sm:w-6"
         title="더보기"

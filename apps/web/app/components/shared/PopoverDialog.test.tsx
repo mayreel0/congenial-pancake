@@ -75,7 +75,11 @@ describe("PopoverDialog", () => {
     );
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(screen.getByLabelText("달력", { selector: "[aria-hidden=true]" })).toBeInTheDocument();
+    const leaving = screen.getByLabelText("달력", { selector: "[aria-hidden=true]" });
+    expect(leaving).toBeInTheDocument();
+    // Neither layer may swallow taps meant for what opens next.
+    expect(leaving).toHaveClass("pointer-events-none");
+    expect(leaving.parentElement).toHaveClass("pointer-events-none");
     await waitFor(() =>
       expect(screen.queryByLabelText("달력")).not.toBeInTheDocument(),
     );
