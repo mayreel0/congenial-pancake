@@ -39,3 +39,32 @@ resource "aws_route53_record" "dmarc" {
   ttl     = 300
   records = ["v=DMARC1; p=none;"]
 }
+
+# Inbound mail for admin@onseol.com — ImprovMX (free forwarding only) relays
+# it to a personal mailbox; replies go out from that mailbox, not from this
+# domain. Nothing else on the apex domain receives mail. The values are the
+# ones ImprovMX's dashboard asks for (inspector.improvmx.com/dns-lookup/
+# onseol.com).
+#
+# The apex had no MX or TXT records before this, so neither record set below
+# replaces anything. Sending (Resend, SES) is unaffected: Resend uses the
+# send./rsend. subdomains above, SES's MAIL FROM is amazonses.com, and both
+# align through DKIM for the DMARC policy.
+resource "aws_route53_record" "improvmx_mx" {
+  zone_id = data.aws_route53_zone.main.zone_id
+  name    = var.domain_name
+  type    = "MX"
+  ttl     = 300
+  records = ["10 mx1.improvmx.com", "20 mx2.improvmx.com"]
+}
+
+# Route 53 allows only ONE record set per name+type, so this is the apex's
+# only TXT resource: any other apex TXT (a site-verification token, say) must
+# be added to this `records` list, not as a second aws_route53_record.
+resource "aws_route53_record" "improvmx_spf" {
+  zone_id = data.aws_route53_zone.main.zone_id
+  name    = var.domain_name
+  type    = "TXT"
+  ttl     = 300
+  records = ["v=spf1 include:spf.improvmx.com ~all"]
+}
