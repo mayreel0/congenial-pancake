@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, inArray, isNull, lt } from 'drizzle-orm';
 import { DRIZZLE } from '../database/database.constants';
 import type { Database } from '../database/database.types';
-import { users } from '../database/schema';
+import { notifications, pushSubscriptions, users } from '../database/schema';
 
 export type CreateUserInput = {
   email: string;
@@ -139,6 +139,19 @@ export class UsersRepository {
         deletedAt: new Date(),
       })
       .where(eq(users.id, id));
+  }
+
+  // Stops pushes to a withdrawing account's devices — kept here (not in
+  // NotificationsModule) because NotificationsModule imports AuthModule,
+  // and AuthService calling into it would be a circular dependency.
+  async deletePushSubscriptions(userId: string): Promise<void> {
+    await this.db
+      .delete(pushSubscriptions)
+      .where(eq(pushSubscriptions.userId, userId));
+  }
+
+  async deleteNotifications(userId: string): Promise<void> {
+    await this.db.delete(notifications).where(eq(notifications.userId, userId));
   }
 
   // Accounts whose grace period is over and haven't been finalized yet —

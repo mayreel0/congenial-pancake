@@ -42,6 +42,10 @@ export const requests = pgTable(
     // The row, `hidden`, and `deletedAt` are otherwise untouched, so the
     // thread and its replies stay exactly as visible as before.
     contentRemoved: boolean('content_removed').notNull().default(false),
+    // When contentRemoved was set — the retention clock for ContentRetentionCronService,
+    // which blanks the body REMOVED_CONTENT_RETENTION_DAYS after this. Null
+    // while not removed.
+    contentRemovedAt: timestamp('content_removed_at', { withTimezone: true }),
     // Set when an admin restores this from auto-hide. Once set, auto-hide
     // only counts reports created after this timestamp — otherwise the
     // pre-existing report rows that caused the original hide would

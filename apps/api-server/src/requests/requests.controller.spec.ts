@@ -16,6 +16,7 @@ function makeRequest(overrides: Partial<RequestRecord> = {}): RequestRecord {
     hidden: false,
     deletedAt: null,
     contentRemoved: false,
+    contentRemovedAt: null,
     reviewedAt: null,
     anonymous: false,
     ...overrides,

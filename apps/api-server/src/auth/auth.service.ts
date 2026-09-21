@@ -310,6 +310,10 @@ export class AuthService {
   // restoreAccount clears it or AccountDeletionCronService finalizes it.
   async requestWithdrawal(userId: string, immediate: boolean): Promise<void> {
     await this.sessionService.revokeAllForUser(userId);
+    // Same reasoning as revoking sessions: a withdrawing account shouldn't
+    // keep getting pushes on its devices, even during the grace period (a
+    // restored account just turns push back on).
+    await this.usersService.deletePushSubscriptions(userId);
     if (immediate) {
       await this.finalizeAccountDeletion(userId);
     } else {
@@ -327,6 +331,7 @@ export class AuthService {
   async finalizeAccountDeletion(userId: string): Promise<void> {
     await this.usersService.scrubForDeletion(userId);
     await this.oauthIdentitiesRepository.deleteAllForUser(userId);
+    await this.usersService.deleteNotifications(userId);
   }
 
   // Idempotent no-op if the account isn't actually pending deletion —

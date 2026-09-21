@@ -138,6 +138,7 @@ export class RequestsRepository {
         hidden: requests.hidden,
         deletedAt: requests.deletedAt,
         contentRemoved: requests.contentRemoved,
+        contentRemovedAt: requests.contentRemovedAt,
         reviewedAt: requests.reviewedAt,
         anonymous: requests.anonymous,
         replyCount: count(replies.id),
@@ -199,6 +200,7 @@ export class RequestsRepository {
         hidden: requests.hidden,
         deletedAt: requests.deletedAt,
         contentRemoved: requests.contentRemoved,
+        contentRemovedAt: requests.contentRemovedAt,
         reviewedAt: requests.reviewedAt,
         anonymous: requests.anonymous,
       })
@@ -279,6 +281,7 @@ export class RequestsRepository {
         hidden: requests.hidden,
         deletedAt: requests.deletedAt,
         contentRemoved: requests.contentRemoved,
+        contentRemovedAt: requests.contentRemovedAt,
         reviewedAt: requests.reviewedAt,
         anonymous: requests.anonymous,
       })
@@ -346,6 +349,7 @@ export class RequestsRepository {
         hidden: requests.hidden,
         deletedAt: requests.deletedAt,
         contentRemoved: requests.contentRemoved,
+        contentRemovedAt: requests.contentRemovedAt,
         reviewedAt: requests.reviewedAt,
         anonymous: requests.anonymous,
         replyCount: count(replies.id),
@@ -517,7 +521,7 @@ export class RequestsRepository {
   async markContentRemoved(id: string): Promise<void> {
     await this.db
       .update(requests)
-      .set({ contentRemoved: true })
+      .set({ contentRemoved: true, contentRemovedAt: new Date() })
       .where(eq(requests.id, id));
   }
 
@@ -607,6 +611,7 @@ export class RequestsRepository {
         hidden: requests.hidden,
         deletedAt: requests.deletedAt,
         contentRemoved: requests.contentRemoved,
+        contentRemovedAt: requests.contentRemovedAt,
         reviewedAt: requests.reviewedAt,
         anonymous: requests.anonymous,
         replyCount,
