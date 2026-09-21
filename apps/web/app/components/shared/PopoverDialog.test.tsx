@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { PopoverDialog } from "ui/PopoverDialog";
 import { fireEvent, render, screen } from "../../lib/test-utils";
 
@@ -18,11 +18,46 @@ function renderDialog(overrides: { open?: boolean; onClose?: () => void } = {}) 
 }
 
 describe("PopoverDialog", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  function stubWidth(mobile: boolean) {
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn((query: string) => ({
+        matches: mobile && query === "(max-width: 639.98px)",
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    );
+  }
+
   it("is a labelled dialog with its content while open", () => {
     renderDialog();
 
     expect(screen.getByRole("dialog", { name: "달력" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "안쪽 버튼" })).toBeInTheDocument();
+  });
+
+  it("is modal to assistive tech only at dialog width, not as an anchored popover", () => {
+    stubWidth(true);
+    const { unmount } = render(
+      <PopoverDialog label="달력" open popoverClassName="" onClose={vi.fn()}>
+        <p>내용</p>
+      </PopoverDialog>,
+    );
+    expect(screen.getByRole("dialog")).toHaveAttribute("aria-modal", "true");
+    unmount();
+
+    stubWidth(false);
+    render(
+      <PopoverDialog label="달력" open popoverClassName="" onClose={vi.fn()}>
+        <p>내용</p>
+      </PopoverDialog>,
+    );
+    expect(screen.getByRole("dialog")).not.toHaveAttribute("aria-modal");
   });
 
   it("renders nothing while closed", () => {
