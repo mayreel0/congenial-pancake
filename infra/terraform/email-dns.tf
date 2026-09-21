@@ -58,6 +58,9 @@ resource "aws_route53_record" "improvmx_mx" {
   records = ["10 mx1.improvmx.com", "20 mx2.improvmx.com"]
 }
 
+# Route 53 allows only ONE record set per name+type, so this is the apex's
+# only TXT resource: any other apex TXT (a site-verification token, say) must
+# be added to this `records` list, not as a second aws_route53_record.
 resource "aws_route53_record" "improvmx_spf" {
   zone_id = data.aws_route53_zone.main.zone_id
   name    = var.domain_name
