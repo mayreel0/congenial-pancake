@@ -143,8 +143,12 @@ export function AnswerSession() {
           onReport={(requestId) => requestAction("report", requestId)}
           onSkip={(requestId) => requestAction("skip", requestId)}
         />
+        {/* The wrapper is z-30, not lower: it's a stacking context, and
+            HoldPanel's mobile dialog backdrop lives inside it — below the
+            sticky header's z-20 the header would stay undimmed above the
+            backdrop. Still under the app's modal layers (z-40 and up). */}
         {prototype.canManageCurrentRequest && (
-          <div className="pointer-events-none absolute inset-x-0 top-3 z-10 mx-auto flex w-full max-w-3xl justify-end px-5 sm:px-8">
+          <div className="pointer-events-none absolute inset-x-0 top-3 z-30 mx-auto flex w-full max-w-3xl justify-end px-5 sm:px-8">
             <div className="pointer-events-auto relative" ref={holdPanelRef}>
               {prototype.isLoadingHeldRequests ? (
                 <Skeleton className="h-7 w-20 rounded-full" />
