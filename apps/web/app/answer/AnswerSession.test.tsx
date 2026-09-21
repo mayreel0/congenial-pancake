@@ -408,11 +408,16 @@ describe("AnswerSession", () => {
     expect(holdButton).toHaveAttribute("aria-expanded", "false");
     fireEvent.click(holdButton);
     expect(holdButton).toHaveAttribute("aria-expanded", "true");
+    // Above the sticky header only while open (so its dialog backdrop covers
+    // the header) — closed, it must stay below the profile menu's dropdown.
+    const holdLayer = holdButton.parentElement?.parentElement;
+    expect(holdLayer).toHaveClass("z-30");
     const panel = screen.getByLabelText("보류한 온설 목록");
     expect(within(panel).getByText("익명")).toBeInTheDocument();
     expect(within(panel).getByText("방금")).toBeInTheDocument();
     expect(within(panel).getByText(/후 만료$/)).toBeInTheDocument();
     fireEvent.click(within(panel).getByText("요청 본문"));
+    await waitFor(() => expect(holdLayer).toHaveClass("z-10"));
 
     fireEvent.change(screen.getByLabelText("답변 남기기"), {
       target: { value: "짧게 들었다는 말을 전해요." },
