@@ -410,7 +410,7 @@ describe("AnswerSession", () => {
     expect(holdButton).toHaveAttribute("aria-expanded", "true");
     // Above the sticky header only while open (so its dialog backdrop covers
     // the header) — closed, it must stay below the profile menu's dropdown.
-    const holdLayer = holdButton.parentElement?.parentElement;
+    const holdLayer = screen.getByTestId("hold-panel-wrapper");
     expect(holdLayer).toHaveClass("z-30");
     const panel = screen.getByLabelText("보류한 온설 목록");
     expect(within(panel).getByText("익명")).toBeInTheDocument();

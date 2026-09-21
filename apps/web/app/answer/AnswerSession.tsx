@@ -5,6 +5,7 @@ import { ServiceNav } from "../components/navigation/ServiceNav";
 import { useAnswerQueue } from "./useAnswerQueue";
 import { ActionConfirmDialog } from "ui/ActionConfirmDialog";
 import { Skeleton } from "ui/Skeleton";
+import { POPOVER_EXIT_MS, useAnimatedPresence } from "ui/useAnimatedPresence";
 import { useDismissOnOutsideClick } from "ui/useDismissOnOutsideClick";
 import { toast } from "ui/useToast";
 import { AnswerComposer } from "./components/AnswerComposer";
@@ -43,6 +44,9 @@ const ACTION_CONFIRM_COPY: Record<
 export function AnswerSession() {
   const prototype = useAnswerQueue();
   const [holdPanelOpen, setHoldPanelOpen] = useState(false);
+  // Stays true through the panel's leave animation, so the backdrop keeps
+  // covering the header until it has faded out (see the z-30 note below).
+  const holdLayerRaised = useAnimatedPresence(holdPanelOpen, POPOVER_EXIT_MS);
   const holdPanelRef = useDismissOnOutsideClick<HTMLDivElement>(
     holdPanelOpen,
     () => setHoldPanelOpen(false),
@@ -147,13 +151,14 @@ export function AnswerSession() {
             backdrop lives inside it: while the panel is open it must sit above
             the sticky header (z-20) or the header stays undimmed over the
             backdrop — z-30, still under the app's modal layers (z-40 and up).
-            While closed it has to go back below the header (z-10), or the
+            Once it has finished closing it has to go back below the header (z-10), or the
             "보류 중" button would draw over the profile menu's dropdown. */}
         {prototype.canManageCurrentRequest && (
           <div
             className={`pointer-events-none absolute inset-x-0 top-3 mx-auto flex w-full max-w-3xl justify-end px-5 sm:px-8 ${
-              holdPanelOpen ? "z-30" : "z-10"
+              holdLayerRaised ? "z-30" : "z-10"
             }`}
+            data-testid="hold-panel-wrapper"
           >
             <div className="pointer-events-auto relative" ref={holdPanelRef}>
               {prototype.isLoadingHeldRequests ? (
