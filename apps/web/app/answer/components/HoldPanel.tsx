@@ -81,7 +81,9 @@ export function HoldPanel({
         <p className="text-sm font-semibold text-foreground">보류 중</p>
         <button
           aria-label="보류함 닫기"
-          className="text-sm text-muted"
+          // Below sm the padding (cancelled by the negative margin, so the
+          // header doesn't grow) makes a ~40px tap target out of the text.
+          className="-m-2.5 p-2.5 text-sm text-muted sm:m-0 sm:p-0"
           type="button"
           onClick={onClose}
         >

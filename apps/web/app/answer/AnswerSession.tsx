@@ -154,6 +154,8 @@ export function AnswerSession() {
                 <Skeleton className="h-7 w-20 rounded-full" />
               ) : (
                 <button
+                  aria-expanded={holdPanelOpen}
+                  aria-haspopup="dialog"
                   className="inline-flex h-7 items-center rounded-full bg-primary px-3 text-xs font-semibold text-primary-foreground shadow-sm transition hover:opacity-90"
                   type="button"
                   onClick={() => setHoldPanelOpen((open) => !open)}

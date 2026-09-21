@@ -403,7 +403,11 @@ describe("AnswerSession", () => {
       await screen.findByRole("button", { name: "보류 중 (1)" }),
     ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "보류 중 (1)" }));
+    const holdButton = screen.getByRole("button", { name: "보류 중 (1)" });
+    expect(holdButton).toHaveAttribute("aria-haspopup", "dialog");
+    expect(holdButton).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(holdButton);
+    expect(holdButton).toHaveAttribute("aria-expanded", "true");
     const panel = screen.getByLabelText("보류한 온설 목록");
     expect(within(panel).getByText("익명")).toBeInTheDocument();
     expect(within(panel).getByText("방금")).toBeInTheDocument();
