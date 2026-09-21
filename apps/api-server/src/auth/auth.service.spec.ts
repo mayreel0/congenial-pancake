@@ -635,10 +635,13 @@ describe('AuthService', () => {
   });
 
   describe('finalizeAccountDeletion', () => {
-    it("deletes the user's notification history", async () => {
+    it("deletes the user's notification history and any push subscriptions still left", async () => {
       await authService.finalizeAccountDeletion('user-1');
 
       expect(usersService.deleteNotifications).toHaveBeenCalledWith('user-1');
+      expect(usersService.deletePushSubscriptions).toHaveBeenCalledWith(
+        'user-1',
+      );
     });
 
     it('scrubs the user row and clears its oauth identities', async () => {

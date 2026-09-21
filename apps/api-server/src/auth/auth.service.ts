@@ -331,6 +331,10 @@ export class AuthService {
   async finalizeAccountDeletion(userId: string): Promise<void> {
     await this.usersService.scrubForDeletion(userId);
     await this.oauthIdentitiesRepository.deleteAllForUser(userId);
+    // requestWithdrawal already did this, but an account that was already in
+    // its grace period before that started doing so reaches here without
+    // ever having had its subscriptions removed. Idempotent either way.
+    await this.usersService.deletePushSubscriptions(userId);
     await this.usersService.deleteNotifications(userId);
   }
 

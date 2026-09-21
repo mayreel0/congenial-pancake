@@ -6,6 +6,10 @@ import { replies, replyModerationLogs, requests } from '../database/schema';
 
 export type PurgeResult = { requests: number; replies: number };
 
+// Well under Postgres's bind-parameter ceiling (65,535) for the id list the
+// moderation-log update takes, so a large first-run backlog can't fail it.
+const LOG_UPDATE_CHUNK_SIZE = 1000;
+
 @Injectable()
 export class ContentRetentionRepository {
   constructor(@Inject(DRIZZLE) private readonly db: Database) {}
@@ -44,14 +48,15 @@ export class ContentRetentionRepository {
         .where(and(ne(replies.body, ''), lt(replies.deletedAt, cutoff)))
         .returning({ id: replies.id });
 
-      if (purgedReplies.length > 0) {
+      const replyIds = purgedReplies.map((reply) => reply.id);
+      for (let i = 0; i < replyIds.length; i += LOG_UPDATE_CHUNK_SIZE) {
         await tx
           .update(replyModerationLogs)
           .set({ suggestions: [] })
           .where(
             inArray(
               replyModerationLogs.replyId,
-              purgedReplies.map((reply) => reply.id),
+              replyIds.slice(i, i + LOG_UPDATE_CHUNK_SIZE),
             ),
           );
       }

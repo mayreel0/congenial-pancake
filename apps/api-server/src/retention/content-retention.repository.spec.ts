@@ -50,6 +50,23 @@ describe('ContentRetentionRepository', () => {
     ]);
   });
 
+  it('clears the moderation suggestions in chunks so a big backlog stays under the bind-parameter limit', async () => {
+    const replyRows = Array.from({ length: 2500 }, (_, i) => ({
+      id: `rep-${i}`,
+    }));
+    const { db, calls } = makeDb({ requests: [], replies: replyRows });
+
+    const result = await new ContentRetentionRepository(db).purgeRemovedContent(
+      new Date('2026-08-23T05:00:00.000Z'),
+    );
+
+    expect(result).toEqual({ requests: 0, replies: 2500 });
+    // requests update + replies update + ceil(2500 / 1000) = 3 log updates
+    expect(
+      calls.filter((c) => JSON.stringify(c.set) === '{"suggestions":[]}'),
+    ).toHaveLength(3);
+  });
+
   it('leaves the moderation logs alone when no reply was purged', async () => {
     const { db, calls } = makeDb({ requests: [{ id: 'req-1' }], replies: [] });
 
