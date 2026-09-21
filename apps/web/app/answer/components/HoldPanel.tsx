@@ -6,7 +6,7 @@ import {
 import { authorDisplayLabel } from "../../lib/author-label";
 import type { HeldRequestDto } from "../../lib/requests/api";
 import { Skeleton } from "ui/Skeleton";
-import { POPOVER_EXIT_MS, useAnimatedPresence } from "ui/useAnimatedPresence";
+import { PopoverDialog } from "ui/PopoverDialog";
 
 type HoldPanelBodyProps = {
   loading: boolean;
@@ -70,22 +70,20 @@ export function HoldPanel({
   onSelect,
   onClose,
 }: HoldPanelProps) {
-  const shouldRender = useAnimatedPresence(open, POPOVER_EXIT_MS);
-  if (!shouldRender) return null;
-
   return (
-    <div
-      aria-label="보류한 온설 목록"
-      className={`absolute right-0 top-full z-10 mt-2 flex max-h-72 w-72 max-w-[calc(100vw-2.5rem)] flex-col overflow-hidden rounded-lg border border-line bg-surface shadow-sm ${
-        open ? "onseol-popover-enter" : "onseol-popover-leave"
-      }`}
-      role="dialog"
+    <PopoverDialog
+      label="보류한 온설 목록"
+      open={open}
+      popoverClassName="flex max-h-[70dvh] flex-col sm:absolute sm:right-0 sm:top-full sm:mt-2 sm:max-h-72 sm:w-72 sm:max-w-none"
+      onClose={onClose}
     >
       <div className="flex shrink-0 items-center justify-between px-4 pb-2 pt-3">
         <p className="text-sm font-semibold text-foreground">보류 중</p>
         <button
           aria-label="보류함 닫기"
-          className="text-sm text-muted"
+          // Below sm the padding (cancelled by the negative margin, so the
+          // header doesn't grow) makes a ~40px tap target out of the text.
+          className="-m-2.5 p-2.5 text-sm text-muted sm:m-0 sm:p-0"
           type="button"
           onClick={onClose}
         >
@@ -99,6 +97,6 @@ export function HoldPanel({
           onSelect={onSelect}
         />
       </div>
-    </div>
+    </PopoverDialog>
   );
 }
