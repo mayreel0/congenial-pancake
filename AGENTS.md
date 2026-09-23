@@ -91,20 +91,73 @@ Record each confirmed decision as its own file in `docs/decisions/`, named `YYYY
 
 ## Linear / GitHub Workflow
 
-- 모든 실질적인 개발 작업은 Linear issue를 기준으로 진행한다.
-- 작업 요청을 받으면 먼저 관련 Linear issue가 있는지 확인한다.
-- 관련 issue가 없으면 Linear에 새 issue를 생성한다.
-- Linear issue ID를 branch 이름과 PR 제목에 포함한다.
+Linear is the source of truth for development work.
 
-Branch format: `<type>/<issue-id>-<short-description>`
+### Before starting work
 
-- `feat/DEV-31-login-session-expiry`
-- `fix/DEV-42-auth-redirect`
+- For any substantial feature, bug fix, refactor, research task, or technical debt:
+  1. Search Linear for an existing related issue.
+  2. If no appropriate issue exists, create one in the corresponding Linear project.
+  3. Use the resulting Linear issue ID for the development work.
+- Do not create duplicate Linear issues.
 
-PR title format: `<type>: <issue-id> <description>`
+### Starting work
 
-- `feat: DEV-31 로그인 세션 만료 처리`
-- `fix: DEV-42 인증 리다이렉트 수정`
+- Move the Linear issue to `In Progress` when implementation begins.
+- Branch names must include the Linear issue ID.
+
+Format:
+
+```
+<type>/<issue-id>-<short-description>
+```
+
+Examples:
+
+```
+feat/DEV-31-login-session-expiry
+fix/DEV-42-auth-redirect
+refactor/DEV-51-auth-middleware
+```
+
+### Pull requests
+
+- PR titles must include the same Linear issue ID.
+
+Format:
+
+```
+<type>: <issue-id> <description>
+```
+
+Examples:
+
+```
+feat: DEV-31 Add session expiration handling
+fix: DEV-42 Fix authentication redirect
+```
+
+- When implementation is ready for review, move the issue to `In Review`.
+
+### Scope
+
+- Do not silently expand the scope of the current Linear issue.
+- If unrelated work is discovered, create a separate Linear issue.
+
+### User decisions
+
+- Do not stop for minor implementation details that can be reasonably inferred.
+- Record reasonable assumptions and continue.
+- If progress genuinely requires a product, architecture, policy, security, data-model, or other user decision:
+  - move the issue to `Needs User`;
+  - clearly record the blocking decision;
+  - batch multiple blocking questions when possible;
+  - continue any independent work that is not blocked.
+
+### Completion
+
+- Do not mark an issue `Done` merely because implementation is finished.
+- `Done` means the required review and merge are complete.
 
 ## Code Comments
 
