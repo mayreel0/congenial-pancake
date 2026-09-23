@@ -137,7 +137,12 @@ feat: DEV-31 Add session expiration handling
 fix: DEV-42 Fix authentication redirect
 ```
 
-- When implementation is ready for review, move the issue to `In Review`.
+### Status transitions
+
+- Move the Linear issue to `In Progress` when implementation begins.
+- If a blocking user decision is required, move it to `Needs User`.
+- Do not manually move an issue to `In Review`; opening the linked PR handles this automatically.
+- Do not manually move an issue to `Done`; merging the linked PR handles this automatically.
 
 ### Scope
 
@@ -156,8 +161,8 @@ fix: DEV-42 Fix authentication redirect
 
 ### Completion
 
-- Do not mark an issue `Done` merely because implementation is finished.
-- `Done` means the required review and merge are complete.
+- Do not manually move an issue to `In Review`; opening the linked PR handles this automatically.
+- Do not manually move an issue to `Done`; merging the linked PR handles this automatically.
 
 ## Code Comments
 
