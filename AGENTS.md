@@ -159,11 +159,6 @@ fix: DEV-42 Fix authentication redirect
   - batch multiple blocking questions when possible;
   - continue any independent work that is not blocked.
 
-### Completion
-
-- Do not manually move an issue to `In Review`; opening the linked PR handles this automatically.
-- Do not manually move an issue to `Done`; merging the linked PR handles this automatically.
-
 ## Code Comments
 
 Default to no comment. Write one only when removing it would let a future reader miss something real: a non-obvious constraint, a workaround for a specific bug, a subtle invariant, or a decision that looks wrong at a glance but isn't. Comments should explain *why*, not *what* — a well-named identifier already says what; if a comment restates that, delete it. (See Ousterhout, *A Philosophy of Software Design*, ch.13, and Martin, *Clean Code*, ch.4, for the fuller version of this.)
