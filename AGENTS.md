@@ -86,8 +86,25 @@ Record each confirmed decision as its own file in `docs/decisions/`, named `YYYY
 ## Git & PR Conventions
 
 - Never push directly to `main` or `v1` — every change goes through a work branch and a PR. This is enforced, not just prose: `.claude/hooks/block-main-push.py` (registered in `.claude/settings.json`) blocks a `git push` targeting either branch, explicit or implicit.
-- Commit messages and PR titles both use a `<type>: <설명>` prefix (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, ...), and the two must match for the same change. Before writing either, check the existing convention rather than assuming — `git log --oneline -10` for commit style, `gh pr list --state all --limit 10` for PR title style. Do not title a PR without doing this check, even if the commit message already has a prefix. PR titles are also checked by CI (`.github/workflows/pr-title.yml`) before merge.
+- Commit messages and PR titles both use a `<type>: <설명>` prefix (PR titles also carry the Linear issue ID — see Linear / GitHub Workflow below) (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, ...), and the two must match for the same change. Before writing either, check the existing convention rather than assuming — `git log --oneline -10` for commit style, `gh pr list --state all --limit 10` for PR title style. Do not title a PR without doing this check, even if the commit message already has a prefix. PR titles are also checked by CI (`.github/workflows/pr-title.yml`) before merge.
 - Prefer several small, single-concern PRs over one large bundled one. This repo's history deliberately splits backend and frontend for the same feature into separate rounds — default to proposing that split rather than bundling.
+
+## Linear / GitHub Workflow
+
+- 모든 실질적인 개발 작업은 Linear issue를 기준으로 진행한다.
+- 작업 요청을 받으면 먼저 관련 Linear issue가 있는지 확인한다.
+- 관련 issue가 없으면 Linear에 새 issue를 생성한다.
+- Linear issue ID를 branch 이름과 PR 제목에 포함한다.
+
+Branch format: `<type>/<issue-id>-<short-description>`
+
+- `feat/DEV-31-login-session-expiry`
+- `fix/DEV-42-auth-redirect`
+
+PR title format: `<type>: <issue-id> <description>`
+
+- `feat: DEV-31 로그인 세션 만료 처리`
+- `fix: DEV-42 인증 리다이렉트 수정`
 
 ## Code Comments
 
