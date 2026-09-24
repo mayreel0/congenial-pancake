@@ -7,7 +7,7 @@ function makeConfig(): jest.Mocked<ConfigService<Env, true>> {
   const values: Partial<Env> = {
     KAKAO_CLIENT_ID: 'client-id',
     KAKAO_CLIENT_SECRET: 'client-secret',
-    API_PUBLIC_URL: 'http://localhost:3001',
+    API_PUBLIC_URL: 'http://localhost:8080',
   };
   return {
     get: jest.fn((key: keyof Env) => values[key]),
