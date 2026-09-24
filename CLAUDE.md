@@ -5,7 +5,7 @@ This project's working rules live in `AGENTS.md` at the repo root. Read it and f
 Quick reference (see `AGENTS.md` for the full, authoritative version):
 
 - Do not push directly to `main` or `v1`. All changes go through a work branch and a PR.
-- Linear is the source of truth: find or create the issue first (no duplicates); branch `<type>/<issue-id>-<short-description>`, PR title `<type>: <issue-id> <description>`; move to `In Progress` when starting and `Needs User` for blocking decisions; `In Review`/`Done` are set automatically by PR open/merge, never manually.
+- Linear is the source of truth: find or create the issue first (no duplicates); branch `<type>/<issue-id>-<short-description>`, PR title `<type>: <issue-id> <description>`; move to `In Progress` when starting and `Needs User` for blocking decisions; `In Review`/`Done` are set automatically by PR open/merge, never manually; follow the review workflow for PR reviews.
 - Product, UX, technical-stack, backend, infra, deploy, moderation, and workflow decisions with a meaningful tradeoff need a recommendation plus explicit user confirmation before being finalized. Do not silently decide.
 - Wiki-mode documentation (Obsidian vault writes) only applies when the user explicitly asks for it; otherwise keep decisions, context, and verification notes in this repo's `docs/` tree so they can be promoted later.
 

@@ -159,6 +159,20 @@ fix: DEV-42 Fix authentication redirect
   - batch multiple blocking questions when possible;
   - continue any independent work that is not blocked.
 
+### Review workflow
+
+1. Review the Linear issue linked to the PR using Linear MCP.
+2. Use gh to inspect the PR description, full diff, previous reviews and CI results.
+3. Inspect related source code, callers and tests rather than relying on the PR summary alone.
+4. Apply the project's existing eight code-review criteria.
+5. Report only actionable findings, citing exact files and lines where applicable.
+6. Distinguish confirmed defects from potential risks and unverified runtime behavior.
+7. Publish the review to the GitHub PR, avoiding duplicate comments from previous reviews.
+8. Do not modify or merge the PR during review.
+9. On subsequent reviews, verify that previous findings were addressed before examining newly changed code.
+10. Keep the issue In Review until the PR is merged. Leave completion to the configured GitHub automation.
+11. Write review findings and summaries in Korean.
+
 ## Code Comments
 
 Default to no comment. Write one only when removing it would let a future reader miss something real: a non-obvious constraint, a workaround for a specific bug, a subtle invariant, or a decision that looks wrong at a glance but isn't. Comments should explain *why*, not *what* — a well-named identifier already says what; if a comment restates that, delete it. (See Ousterhout, *A Philosophy of Software Design*, ch.13, and Martin, *Clean Code*, ch.4, for the fuller version of this.)
