@@ -10,7 +10,7 @@
 import http from 'k6/http';
 import { check } from 'k6';
 
-const BASE_URL = __ENV.BASE_URL || 'http://localhost:3001';
+const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
 // Matches settings.guestReplyLimit's schema default (5). Override via
 // GUEST_REPLY_LIMIT if the live settings row has been tuned differently.
 const GUEST_REPLY_LIMIT = Number(__ENV.GUEST_REPLY_LIMIT || 5);

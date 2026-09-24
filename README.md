@@ -6,7 +6,7 @@
 
 - `apps/web` — 공개 사이트 (Next.js, `:3000`)
 - `apps/admin` — 신고 검토/설정 관리자 앱 (Next.js, `:3002`)
-- `apps/api-server` — 백엔드 (Nest.js, `:3001`)
+- `apps/api-server` — 백엔드 (Nest.js, `:8080`)
 - `apps/storybook-app` — 컴포넌트 스토리 (`:6006`)
 - `packages/*` — 앱 간 공유 코드 (`ui`/`api`/`utils`/`shared`)
 
@@ -27,7 +27,7 @@ pnpm install
 ```bash
 pnpm --filter web dev               # :3000
 pnpm --filter admin dev             # :3002
-pnpm --filter api-server start:dev  # :3001
+pnpm --filter api-server start:dev  # :8080
 pnpm --filter storybook-app storybook  # :6006
 ```
 

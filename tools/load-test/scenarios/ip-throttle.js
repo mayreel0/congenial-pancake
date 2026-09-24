@@ -12,7 +12,7 @@ import http from 'k6/http';
 import { check } from 'k6';
 import { Counter } from 'k6/metrics';
 
-const BASE_URL = __ENV.BASE_URL || 'http://localhost:3001';
+const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
 const throttled429 = new Counter('throttled_429_total');
 
 // constant-arrival-rate, not constant-vus with a no-sleep loop — a tight

@@ -7,7 +7,7 @@ function makeConfig(): jest.Mocked<ConfigService<Env, true>> {
   const values: Partial<Env> = {
     GOOGLE_CLIENT_ID: 'client-id',
     GOOGLE_CLIENT_SECRET: 'client-secret',
-    API_PUBLIC_URL: 'http://localhost:3001',
+    API_PUBLIC_URL: 'http://localhost:8080',
   };
   return {
     get: jest.fn((key: keyof Env) => values[key]),
@@ -33,7 +33,7 @@ describe('GoogleOAuthProvider', () => {
       );
       expect(url.searchParams.get('client_id')).toBe('client-id');
       expect(url.searchParams.get('redirect_uri')).toBe(
-        'http://localhost:3001/auth/google/callback',
+        'http://localhost:8080/auth/google/callback',
       );
       expect(url.searchParams.get('state')).toBe('the-state');
     });
