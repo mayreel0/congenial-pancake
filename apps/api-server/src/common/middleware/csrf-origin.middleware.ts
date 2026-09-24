@@ -12,17 +12,18 @@ function originOf(url: string): string | undefined {
   }
 }
 
-// The session and guest_id cookies are SameSite=None in production (the
-// frontend and this API are different origins — see cookie-options.ts), so
-// browsers attach them to state-changing cross-site requests too (a hidden
-// <form> POST on any unrelated page, for instance — confirmed locally: a
+// Added while the session and guest_id cookies were SameSite=None, when
+// browsers attached them to state-changing cross-site requests too (a
+// hidden <form> POST on any unrelated page — confirmed locally: a
 // form-urlencoded POST /requests with a spoofed cross-site Origin header
-// was parsed and created a real row before this middleware existed). CORS
-// only stops an attacker's own JS from *reading* the response; it never
-// stops the request from being sent and processed. Origin/Referer, unlike
-// a request body, is set by the browser itself and can't be forged by page
-// JS, so checking it here blocks the browser-based CSRF vector without
-// touching anything else.
+// was parsed and created a real row before this middleware existed). The
+// cookies are Lax now (see cookie-options.ts), which already keeps them off
+// cross-site POSTs; this stays as a second layer in case that ever
+// changes, and because a sibling subdomain counts as the same site to
+// SameSite but not to this Origin allowlist. CORS only stops an attacker's
+// own JS from *reading* the response; it never stops the request from
+// being sent and processed. Origin/Referer, unlike a request body, is set
+// by the browser itself and can't be forged by page JS.
 //
 // Deliberately fails OPEN when neither header is present — real browsers
 // always send Origin on a cross-site POST/PUT/PATCH/DELETE (and same-origin

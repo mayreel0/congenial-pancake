@@ -11,7 +11,7 @@ import { notificationKeys } from "./queries";
 // the backend), so this only invalidates rather than reading event.data —
 // the next refetch of unreadCount/the list is what actually shows the new
 // content. withCredentials is required since the API is a different origin
-// in production (SameSite=None session cookie) — a plain EventSource
+// (api.onseol.com, where the session cookie lives) — a plain EventSource
 // wouldn't send it.
 export function useNotificationStream(enabled: boolean): void {
   const queryClient = useQueryClient();

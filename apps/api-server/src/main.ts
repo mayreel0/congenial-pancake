@@ -10,13 +10,13 @@ import { guestIdMiddleware } from './common/middleware/guest-id.middleware';
 import type { Env } from './config/env.schema';
 
 async function bootstrap() {
-  // bodyParser: false + a JSON-only parser below — the session/guest_id
-  // cookies are SameSite=None in production (frontend/backend are
-  // different origins), so a form-urlencoded or multipart body would let a
-  // cross-site <form> POST ride those cookies and get parsed just like a
-  // real request (confirmed locally before this existed). The real
-  // frontend (packages/api's apiFetch) only ever sends application/json,
-  // so this drops no legitimate traffic.
+  // bodyParser: false + a JSON-only parser below — a form-urlencoded or
+  // multipart body would let a <form> POST ride the session/guest_id
+  // cookies and get parsed just like a real request (confirmed locally back
+  // when those cookies were SameSite=None). They're Lax now, which already
+  // keeps cross-site POSTs cookieless; this stays as a second layer. The
+  // real frontend (packages/api's apiFetch) only ever sends
+  // application/json, so this drops no legitimate traffic.
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bodyParser: false,
   });
