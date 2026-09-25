@@ -173,6 +173,18 @@ fix: DEV-42 Fix authentication redirect
 10. Keep the issue In Review until the PR is merged. Leave completion to the configured GitHub automation.
 11. Write review findings and summaries in Korean.
 
+### Review publishing rules
+
+1. Write separate inline review comments on the exact file and line for each independent issue found in the changed code.
+2. Inline comments must include the root cause, real-world impact, severity, and specific fix direction. Provide code fix examples using Markdown diffs where appropriate.
+3. When multiple issues exist, batch multiple inline comments into a single review submission using the GitHub REST API Create a review endpoint (`POST /repos/{owner}/{repo}/pulls/{pull_number}/reviews`). Do not replace this by listing all issues in the body of `gh pr review --comment`.
+4. The top-level PR review body should only contain the review summary, major risks, and items requiring extra verification.
+5. Record issues in pre-existing code outside the changed diff, or overarching architectural/operational concerns, separately in the top-level PR review body. Do not force these issues onto unrelated lines of code.
+6. Do not leave duplicate inline comments for issues sharing the same root cause.
+7. After submitting, verify via the GitHub API that the inline comments were actually created.
+8. When re-reviewing an existing inline thread, reply to that thread instead of creating a new duplicate comment.
+9. Do not modify code or merge the PR during review.
+
 ## Code Comments
 
 Default to no comment. Write one only when removing it would let a future reader miss something real: a non-obvious constraint, a workaround for a specific bug, a subtle invariant, or a decision that looks wrong at a glance but isn't. Comments should explain *why*, not *what* — a well-named identifier already says what; if a comment restates that, delete it. (See Ousterhout, *A Philosophy of Software Design*, ch.13, and Martin, *Clean Code*, ch.4, for the fuller version of this.)
