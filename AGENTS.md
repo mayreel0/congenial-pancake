@@ -169,7 +169,7 @@ fix: DEV-42 Fix authentication redirect
 6. Distinguish confirmed defects from potential risks and unverified runtime behavior.
 7. Publish the review to the GitHub PR, avoiding duplicate comments from previous reviews.
 8. Do not modify or merge the PR during review.
-9. On subsequent reviews, verify that previous findings were addressed before examining newly changed code.
+9. On subsequent reviews of fix commits, re-examine the changes to verify whether previous findings were resolved and whether any new issues were introduced, then record the re-review results on the GitHub PR.
 10. Keep the issue In Review until the PR is merged. Leave completion to the configured GitHub automation.
 11. Write review findings and summaries in Korean.
 
