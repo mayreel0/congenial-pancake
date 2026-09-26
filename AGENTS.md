@@ -175,12 +175,12 @@ fix: DEV-42 Fix authentication redirect
 
 ### GitHub Review Publishing Rules
 
-1. Write separate inline review comments on the exact file and line for each independent issue found in the changed code.
-2. Inline comments must include the root cause, real-world impact, severity, and specific fix direction. Provide code fix examples using Markdown diffs where appropriate.
+1. Write a separate inline review comment on the specific file and line for each independent issue discovered in the changed code.
+2. Inline comments must clearly state the root cause, actual impact, severity, and concrete remediation steps. Provide a code modification example using Markdown diff when appropriate.
 3. When multiple new findings exist, submit only those new findings in a single batch review using the GitHub REST API (`POST /repos/{owner}/{repo}/pulls/{pull_number}/reviews`) with the `comments` array. Use `event: "COMMENT"`, set `commit_id` to the current pull request head SHA, and set `side: "RIGHT"` on every inline comment. Do not replace the batch with a list in the body of `gh pr review --comment`. `COMMENT` is known to work when the reviewer and pull request author are the same account; rejection of `APPROVE` or `REQUEST_CHANGES` in that situation has not been directly verified.
-4. The top-level PR review body should only contain the review summary, major risks, and items requiring extra verification.
-5. Record issues in pre-existing code outside the changed diff, or overarching architectural/operational concerns, separately in the top-level PR review body. Do not force these issues onto unrelated lines of code.
-6. Do not leave duplicate inline comments for issues sharing the same root cause.
+4. In the top-level PR review summary body, include only the review summary, major risks, and items requiring additional verification.
+5. Record issues in pre-existing code outside the changed diff, or overarching architectural/operational concerns, separately in the top-level PR review summary. Never force-link unrelated concerns to arbitrary code lines.
+6. Do not post duplicate inline comments for issues that share the same root cause.
 7. After submission, verify via GitHub API that the inline comments were actually created on the intended lines. If a response has a null `line` field, confirm that the final line of each comment's `diff_hunk` is the intended target line.
 8. During a re-review, reply to every existing inline thread through `POST /repos/{owner}/{repo}/pulls/{pull_number}/comments/{comment_id}/replies`. Do not create a replacement thread or include the reply in a batch review. If a re-review finds both existing-thread results and new findings, reply to the existing threads individually and include only the new findings in the batch review.
 
