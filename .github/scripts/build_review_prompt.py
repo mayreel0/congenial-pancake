@@ -16,8 +16,13 @@ import os
 import subprocess
 import sys
 import urllib.request
+from pathlib import Path
 
 MAX_DIFF_CHARS = 400_000
+
+# Shared verbatim with the other project that uses the same review rules —
+# edit the criteria there too, not only here.
+CRITERIA_PATH = Path(__file__).resolve().parents[2] / "docs" / "review-criteria.md"
 
 # git's plain ":!pattern" shorthand does NOT enable glob magic even when
 # the pattern contains "**" — confirmed empirically (":!**/pnpm-lock.yaml"
@@ -38,42 +43,20 @@ EXCLUDE_PATHSPECS = [
 
 REVIEW_INSTRUCTIONS = """\
 너는 시니어 소프트웨어 아키텍트이자 타협 없는 코드 리뷰어야.
-이번 PR에서 변경된 diff 코드를 분석하고, 아래 8가지 영역에 대해 엄격하게 리뷰해 줘.
+이번 PR을 아래 리뷰 기준에 따라 엄격하게 리뷰해 줘.
+PR 요약이나 설명만 믿지 말고, 소스·호출부·테스트가 함께 제공되면 확인해.
 
-[리뷰 기준 및 체크리스트]
-1. 보안:
-   - SQL 인젝션, XSS, 하드코딩된 비밀키/API 키, 안전하지 않은 파일 작업
-   - 새로운 API 엔드포인트의 인증 및 권한 부여(Authentication/Authorization) 미들웨어/가드 누락 여부
-   - 로그(Logger)에 비밀번호, 토큰, 주민번호 등 민감한 개인정보(PII)를 그대로 노출하는가?
-2. 성능:
-   - N+1 쿼리 패턴, 불필요한 메모리 할당, 비동기 내 블로킹 I/O
-   - 데이터베이스 페이징(Pagination) 누락으로 인한 대량 데이터 로드 및 메모리 오버헤드 위험
-   - 전역 객체 축적이나 이벤트 리스너 클린업 누락으로 인한 메모리 누수(Memory Leak) 패턴
-3. 스타일:
-   - 명명 규칙 위반, 코드 중복, 과도한 순환 복잡도, 타입 누락
-   - 코드 내 의미를 알 수 없는 매직 넘버(Magic Number) 및 하드코딩된 문자열 (enum 이나 상수로 분리 유도)
-4. MVC 패턴 역할 준수:
-   - Controller가 비즈니스 로직을 직접 처리하고 있지는 않은가?
-   - Service나 Model이 HTTP 요청/응답(req, res) 객체에 직접 의존하여 계층 구조가 깨졌는가?
-5. SOLID 원칙:
-   - 단일 책임 원칙(SRP): 하나의 클래스나 함수가 너무 많은 각기 다른 일을 처리하는가?
-   - 개방-폐쇄 원칙(OCP) 및 의존역전 원칙(DIP): 인터페이스 기반 확장성 설계 여부 및 구체 클래스 직접 의존 체크
-6. 에러 핸들링:
-   - try-catch 블록 누락으로 서버가 예기치 않게 크래시될 위험이 있는가?
-   - 예외 발생 시 시스템 내부 정보(Stack Trace 등)를 사용자에게 유출하는가?
-7. 비동기 처리:
-   - async 함수 호출 시 await를 누락하여 프로미스 객체가 그대로 반환되는가?
-   - 독립적인 비동기 작업들을 Promise.all 없이 직렬 처리하여 속도를 저하시키는가?
-8. 모노레포 의존성 규칙:
-   - 공통(shared) 패키지가 개별 서비스 패키지의 내부 모듈을 역참조(Circular Dependency)하는가?
+{criteria}
 
 [출력 포맷 및 언어 제약조건]
 - 모든 답변은 반드시 한국어로 작성해.
-- 지적할 문제가 있는 부분만 코멘트로 남겨.
-- 수정이 필요한 위치(파일명, 라인 번호)를 명시하고, 기존 코드와 수정 제안 코드를 마크다운
-  diff 형식(-, +)으로 비교해서 설명해.
-- 이전 리뷰 지적사항에 따른 수정 커밋을 검토하는 경우, 기존 지적사항의 해결 여부와 새로운 문제 발생 여부를 함께 확인해.
-- 칭찬할 점이 있다면 짧고 간결하게 요약해.
+- 실행 가능한 지적만 남겨.
+- 각 지적에는 파일명과 라인 번호, 원인, 실제 영향, 심각도, 구체적인 수정 방향을 쓰고,
+  필요하면 기존 코드와 수정 제안 코드를 마크다운 diff 형식(-, +)으로 비교해.
+- 확인된 결함, 잠재 위험, 런타임에서 검증되지 않은 동작을 구분해.
+- 이전 리뷰 지적사항이 함께 제공된 경우에만 각 항목의 해결 여부와 수정으로 새로 생긴 문제를 확인해.
+  제공되지 않았다면 해결 여부를 추측하지 마.
+- 리뷰 중 코드를 수정하거나 PR을 머지하지 마.
 """
 
 
@@ -116,7 +99,11 @@ def main() -> int:
         print("리뷰 대상 diff가 없음(제외 패턴에 걸리는 파일만 변경됨).")
         return 0
 
-    prompt = REVIEW_INSTRUCTIONS + f"\n\n[이번 PR의 diff]\n\n{diff}\n"
+    criteria = CRITERIA_PATH.read_text(encoding="utf-8").strip()
+    prompt = (
+        REVIEW_INSTRUCTIONS.format(criteria=criteria)
+        + f"\n\n[이번 PR의 diff]\n\n{diff}\n"
+    )
 
     summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
     if summary_path:
@@ -125,6 +112,10 @@ def main() -> int:
             summary_file.write(
                 "아래 코드 블록 전체를 복사해서 Antigravity(또는 다른 LLM 채팅창)에 "
                 "붙여넣으세요.\n\n"
+            )
+            summary_file.write("- 재검토라면 이전 리뷰 지적사항도 함께 붙여넣으세요.\n")
+            summary_file.write(
+                "- Gemini가 수정한 커밋이라면 수정 맥락이 없는 새 세션에서 재검토하세요.\n\n"
             )
             summary_file.write("````text\n")
             summary_file.write(prompt)

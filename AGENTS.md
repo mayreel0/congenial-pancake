@@ -159,31 +159,45 @@ fix: DEV-42 Fix authentication redirect
   - batch multiple blocking questions when possible;
   - continue any independent work that is not blocked.
 
-### Review workflow
+### Pull Request Review Workflow
 
-1. Review the Linear issue linked to the PR using Linear MCP.
-2. Use gh to inspect the PR description, full diff, previous reviews and CI results.
-3. Inspect related source code, callers and tests rather than relying on the PR summary alone.
-4. Apply the project's existing eight code-review criteria.
-5. Report only actionable findings, citing exact files and lines where applicable.
-6. Distinguish confirmed defects from potential risks and unverified runtime behavior.
-7. Publish the review to the GitHub PR, avoiding duplicate comments from previous reviews.
-8. Do not modify or merge the PR during review.
-9. On subsequent reviews of fix commits, re-examine the changes to verify whether previous findings were resolved and whether any new issues were introduced, then record the re-review results on the GitHub PR.
-10. Keep the issue In Review until the PR is merged. Leave completion to the configured GitHub automation.
-11. Write review findings and summaries in Korean.
+1. Use the Linear MCP to identify and inspect the Linear issue linked to the pull request.
+2. Use `gh` to inspect the pull request body, complete diff, existing reviews and comments, and CI results.
+3. Do not rely only on the pull request summary. Inspect the relevant source, callers, and tests.
+4. Apply the eight review criteria defined in `docs/review-criteria.md`.
+5. Report only actionable findings and identify the exact file and line whenever the finding belongs to changed code.
+6. Distinguish confirmed defects, potential risks, and behavior that has not been verified at runtime.
+7. When re-reviewing fix commits, check whether every previous finding was resolved and whether the fix introduced new problems. Record the result on the pull request and follow the independent re-review requirements in the Review Feedback Response Rules.
+8. Publish the result according to the GitHub Review Publishing Rules below and avoid duplicating existing review findings.
+9. Do not modify code or merge the pull request while performing a code review.
+10. Keep the Linear issue in `In Review` until the pull request is merged. Leave completion to the GitHub integration.
+11. Write reviews in Korean.
 
-### Review publishing rules
+### GitHub Review Publishing Rules
 
 1. Write separate inline review comments on the exact file and line for each independent issue found in the changed code.
 2. Inline comments must include the root cause, real-world impact, severity, and specific fix direction. Provide code fix examples using Markdown diffs where appropriate.
-3. When multiple issues exist, batch multiple inline comments into a single review submission using the GitHub REST API Create a review endpoint (`POST /repos/{owner}/{repo}/pulls/{pull_number}/reviews`). Do not replace this by listing all issues in the body of `gh pr review --comment`.
+3. When multiple new findings exist, submit only those new findings in a single batch review using the GitHub REST API (`POST /repos/{owner}/{repo}/pulls/{pull_number}/reviews`) with the `comments` array. Use `event: "COMMENT"`, set `commit_id` to the current pull request head SHA, and set `side: "RIGHT"` on every inline comment. Do not replace the batch with a list in the body of `gh pr review --comment`. `COMMENT` is known to work when the reviewer and pull request author are the same account; rejection of `APPROVE` or `REQUEST_CHANGES` in that situation has not been directly verified.
 4. The top-level PR review body should only contain the review summary, major risks, and items requiring extra verification.
 5. Record issues in pre-existing code outside the changed diff, or overarching architectural/operational concerns, separately in the top-level PR review body. Do not force these issues onto unrelated lines of code.
 6. Do not leave duplicate inline comments for issues sharing the same root cause.
-7. After submitting, verify via the GitHub API that the inline comments were actually created.
-8. When re-reviewing an existing inline thread, reply to that thread instead of creating a new duplicate comment.
-9. Do not modify code or merge the PR during review.
+7. After submission, verify via GitHub API that the inline comments were actually created on the intended lines. If a response has a null `line` field, confirm that the final line of each comment's `diff_hunk` is the intended target line.
+8. During a re-review, reply to every existing inline thread through `POST /repos/{owner}/{repo}/pulls/{pull_number}/comments/{comment_id}/replies`. Do not create a replacement thread or include the reply in a batch review. If a re-review finds both existing-thread results and new findings, reply to the existing threads individually and include only the new findings in the batch review.
+
+### Review Feedback Response Rules
+
+Follow these rules when responding as the pull request author:
+
+1. Classify every finding as incorporated, rebutted, or deferred:
+   - Incorporated: describe the change and identify the fixing commit SHA.
+   - Rebutted: explain the conclusion using code or test evidence.
+   - Deferred: explain why it is deferred and identify the follow-up Linear issue.
+2. If the finding has a GitHub review thread, reply directly in that thread. If no thread exists, such as for Gemini feedback received only through Antigravity, publish one pull request comment that records the classification, response, and fixing commit SHA for each finding.
+3. After incorporating feedback, request a re-review. A response alone does not establish that the finding has been resolved. The user requests Gemini re-reviews in Antigravity IDE, using the prompt generated by the Build PR Review Prompt workflow; do not assume a Gemini GitHub bot, automatic mention, or automatic re-review request.
+4. The agent or session that made a fix must not make the final judgment that its own fix resolves a finding. Any other reviewer may make that judgment: a different agent, a person, or a new session without the fix context that is given the previous findings.
+5. Reviewer roles are not fixed and may change between review rounds.
+6. Every re-review record on the pull request must state who made the fix and who performed the re-review, for example: `수정: Gemini / 재검토: Claude`.
+7. When review feedback identifies a separate problem, search existing Linear issues before creating a follow-up issue and do not create duplicates.
 
 ## Code Comments
 
