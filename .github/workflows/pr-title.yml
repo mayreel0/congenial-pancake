@@ -17,3 +17,7 @@ jobs:
             echo "::error::PR 제목은 'feat:', 'fix:', 'chore:', 'docs:', 'refactor:' 등 '<type>: <설명>' 형식을 따라야 합니다. 현재 제목: $TITLE"
             exit 1
           fi
+          if ! echo "$TITLE" | grep -Eq '^[a-z]+(\([a-z0-9_-]+\))?: DEV-[0-9]+ .+'; then
+            echo "::error::PR 제목의 타입 바로 뒤에 Linear 이슈 ID가 있어야 합니다. 형식: '<type>: DEV-<번호> <설명>' (예: 'feat: DEV-31 로그인 세션 만료 처리'). 현재 제목: $TITLE"
+            exit 1
+          fi
