@@ -73,7 +73,7 @@ describe("가입 동의", () => {
     await user.type(screen.getByLabelText("이메일"), "member@example.com");
     await user.type(screen.getByLabelText("비밀번호"), "Password123!");
     expect(screen.getByRole("checkbox")).not.toBeChecked();
-    await user.click(screen.getByRole("button", { name: "로그인", exact: true }));
+    await user.click(screen.getByRole("button", { name: /^로그인$/ }));
     await waitFor(() => expect(auth.login).toHaveBeenCalledWith("member@example.com", "Password123!"));
   });
 
