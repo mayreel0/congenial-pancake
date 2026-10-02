@@ -18,6 +18,7 @@ export function VerifyEmailForm() {
   const token = searchParams.get("token");
   const { completeSignup } = useAuth();
   const [password, setPassword] = useState("");
+  const [consentAccepted, setConsentAccepted] = useState(false);
   const [status, setStatus] = useState<VerifyEmailStatus>("idle");
   const [error, setError] = useState<string | null>(null);
   const { touchAll, visibleError } = useFieldValidation<Field>();
@@ -32,7 +33,7 @@ export function VerifyEmailForm() {
 
   async function handleSubmit(event: React.FormEvent): Promise<void> {
     event.preventDefault();
-    if (!token) return;
+    if (!token || !consentAccepted) return;
     touchAll(["password"]);
     if (Object.keys(fieldErrors).length > 0) return;
 
@@ -60,6 +61,8 @@ export function VerifyEmailForm() {
         </div>
 
         <VerifyEmailBody
+          consentAccepted={consentAccepted}
+          onConsentChange={setConsentAccepted}
           error={error}
           fieldError={visibleError("password", fieldErrors)}
           hasFieldErrors={Object.keys(fieldErrors).length > 0}
