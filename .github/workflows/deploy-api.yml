@@ -13,6 +13,8 @@ on:
     paths:
       - "apps/api-server/**"
       - "packages/shared/**"
+      - ".github/workflows/deploy-api.yml"
+      - ".github/scripts/check-api-health.sh"
   workflow_dispatch:
 
 # Two overlapping deploys would race on the same container name on the
@@ -28,8 +30,10 @@ env:
   APP_PORT: 3001
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
+    outputs:
+      public_enabled: ${{ steps.access.outputs.enabled }}
     # Required for GitHub to issue this run its own OIDC token — nothing
     # to configure beyond this; no AWS credential is stored anywhere.
     permissions:
@@ -50,6 +54,23 @@ jobs:
           role-to-assume: arn:aws:iam::769949044374:role/onseol-api-github-deploy
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Check public API operating mode
+        id: access
+        run: |
+          LOAD_BALANCERS=$(aws elbv2 describe-load-balancers \
+            --query 'LoadBalancers[?LoadBalancerName==`onseol-api-alb`]' --output json)
+          COUNT=$(jq 'length' <<< "$LOAD_BALANCERS")
+          if [ "$COUNT" = 0 ]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "### ALB 비사용 상태: 이미지 빌드만 수행하며 서비스 배포는 건너뜁니다." >> "$GITHUB_STEP_SUMMARY"
+            echo "공개 API 사용 가능 여부는 검증하지 않았으며, 배포 성공을 의미하지 않습니다." >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$COUNT" = 1 ] && [ "$(jq -r '.[0].State.Code' <<< "$LOAD_BALANCERS")" = active ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::ALB가 활성 상태가 아닙니다. 전환 완료 후 배포를 실행하세요."
+            exit 1
+          fi
+
       - uses: aws-actions/amazon-ecr-login@v2
 
       # Build context is the repo root (packages/shared is a workspace
@@ -67,17 +88,29 @@ jobs:
           docker push "$ECR_REPOSITORY:$GITHUB_SHA"
           docker push "$ECR_REPOSITORY:latest"
 
+  deploy:
+    needs: build
+    if: needs.build.outputs.public_enabled == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::769949044374:role/onseol-api-github-deploy
+          aws-region: ${{ env.AWS_REGION }}
+
       # No SSH/port 22 on this instance (see infra/terraform/ec2.tf) —
       # SSM Session Manager is the only access path, same as how this
       # instance was originally set up and migrated by hand. The
       # container replaces itself in place; the image's own CMD runs
       # drizzle-kit migrate before starting the app (see Dockerfile), so
       # this step doesn't need its own DB connectivity at all.
-      # Looked up by tag rather than hardcoded — this instance gets torn
-      # down and recreated between sessions to save cost (see
-      # infra/terraform/README.md's "Tearing down the ALB" section) and
-      # after any `terraform apply` that replaces it (AMI/subnet/etc.
-      # changes), so a fixed instance ID would silently go stale.
+      # Looked up by tag because explicit infrastructure replacements
+      # can change the instance ID. ALB toggles preserve the instance.
       - name: Look up the EC2 instance
         run: |
           INSTANCE_ID=$(aws ec2 describe-instances \
@@ -151,30 +184,34 @@ jobs:
           # Terraform-driven instance replacement.
           COMMANDS_JSON=$(jq -n \
             --arg registry "${ECR_REPOSITORY%%/*}" \
-            --arg image "$ECR_REPOSITORY:latest" \
+            --arg image "$ECR_REPOSITORY:$GITHUB_SHA" \
             --arg region "$AWS_REGION" \
             --arg port "$APP_PORT" \
             --arg dbSecretArn "$DB_SECRET_ARN" \
             --arg dbEndpoint "$DB_ENDPOINT" \
-            '{commands: [
+            --rawfile healthScript .github/scripts/check-api-health.sh \
+            '{executionTimeout: ["900"], commands: [
+              "set -eu",
               ("aws ecr get-login-password --region " + $region + " | docker login --username AWS --password-stdin " + $registry),
-              ("for NAME in google_client_id google_client_secret kakao_client_id kakao_client_secret naver_client_id naver_client_secret admin_user_ids resend_api_key resend_from_email ses_from_email vapid_public_key vapid_private_key vapid_subject; do KEY=$(echo \"$NAME\" | tr a-z A-Z); VALUE=$(aws ssm get-parameter --region " + $region + " --name \"/onseol/prod/$NAME\" --with-decryption --query Parameter.Value --output text); awk -v k=\"$KEY\" -v v=\"$VALUE\" '\''BEGIN{FS=OFS=\"=\"} $1==k{$0=k\"=\"v} 1'\'' /etc/onseol-api.env > /etc/onseol-api.env.new && mv /etc/onseol-api.env.new /etc/onseol-api.env; done"),
-              ("DB_SECRET=$(aws secretsmanager get-secret-value --region " + $region + " --secret-id \"" + $dbSecretArn + "\" --query SecretString --output text); DB_USER=$(echo \"$DB_SECRET\" | python3 -c '\''import sys,json;print(json.load(sys.stdin)[\"username\"])'\''); DB_PASSWORD=$(echo \"$DB_SECRET\" | python3 -c '\''import sys,json,urllib.parse;print(urllib.parse.quote(json.load(sys.stdin)[\"password\"],safe=\"\"))'\''); NEW_URL=\"postgres://$DB_USER:$DB_PASSWORD@" + $dbEndpoint + "/onseol?sslmode=require\"; awk -v k=\"DATABASE_URL\" -v v=\"$NEW_URL\" '\''BEGIN{FS=OFS=\"=\"} $1==k{$0=k\"=\"v} 1'\'' /etc/onseol-api.env > /etc/onseol-api.env.new && mv /etc/onseol-api.env.new /etc/onseol-api.env"),
+              ("for NAME in google_client_id google_client_secret kakao_client_id kakao_client_secret naver_client_id naver_client_secret admin_user_ids resend_api_key resend_from_email ses_from_email vapid_public_key vapid_private_key vapid_subject; do KEY=$(echo \"$NAME\" | tr a-z A-Z); VALUE=$(aws ssm get-parameter --region " + $region + " --name \"/onseol/prod/$NAME\" --with-decryption --query Parameter.Value --output text); awk -v k=\"$KEY\" -v v=\"$VALUE\" '\''BEGIN{FS=OFS=\"=\"} $1==k{$0=k\"=\"v} 1'\'' /etc/onseol-api.env > /etc/onseol-api.env.new; mv /etc/onseol-api.env.new /etc/onseol-api.env; done"),
+              ("DB_SECRET=$(aws secretsmanager get-secret-value --region " + $region + " --secret-id \"" + $dbSecretArn + "\" --query SecretString --output text); DB_USER=$(echo \"$DB_SECRET\" | python3 -c '\''import sys,json;print(json.load(sys.stdin)[\"username\"])'\''); DB_PASSWORD=$(echo \"$DB_SECRET\" | python3 -c '\''import sys,json,urllib.parse;print(urllib.parse.quote(json.load(sys.stdin)[\"password\"],safe=\"\"))'\''); NEW_URL=\"postgres://$DB_USER:$DB_PASSWORD@" + $dbEndpoint + "/onseol?sslmode=require\"; awk -v k=\"DATABASE_URL\" -v v=\"$NEW_URL\" '\''BEGIN{FS=OFS=\"=\"} $1==k{$0=k\"=\"v} 1'\'' /etc/onseol-api.env > /etc/onseol-api.env.new; mv /etc/onseol-api.env.new /etc/onseol-api.env"),
               "chmod 600 /etc/onseol-api.env",
               ("docker pull " + $image),
               "docker stop onseol-api || true",
               "docker rm onseol-api || true",
-              ("docker run -d --name onseol-api --restart unless-stopped --env-file /etc/onseol-api.env -p " + $port + ":" + $port + " " + $image)
+              ("docker run -d --name onseol-api --restart unless-stopped --env-file /etc/onseol-api.env -p " + $port + ":" + $port + " " + $image),
+              ("bash -s -- http://127.0.0.1:" + $port + "/health <<\"ONSEOL_HEALTH_SCRIPT\"\n" + $healthScript + "\nONSEOL_HEALTH_SCRIPT")
             ]}')
 
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids "$EC2_INSTANCE_ID" \
             --document-name "AWS-RunShellScript" \
+            --timeout-seconds 60 \
             --parameters "$COMMANDS_JSON" \
             --query "Command.CommandId" --output text)
           echo "SSM command: $COMMAND_ID"
 
-          for _ in $(seq 1 30); do
+          for _ in $(seq 1 200); do
             STATUS=$(aws ssm get-command-invocation \
               --command-id "$COMMAND_ID" --instance-id "$EC2_INSTANCE_ID" \
               --query "Status" --output text 2>/dev/null || echo "Pending")
@@ -182,22 +219,17 @@ jobs:
             sleep 5
           done
 
-          aws ssm get-command-invocation \
+          RESULT=$(aws ssm get-command-invocation \
             --command-id "$COMMAND_ID" --instance-id "$EC2_INSTANCE_ID" \
             --query "{Status:Status,Stdout:StandardOutputContent,Stderr:StandardErrorContent}" \
-            --output json
+            --output json)
+          echo "$RESULT"
+          STATUS=$(jq -r '.Status' <<< "$RESULT")
 
           [ "$STATUS" = "Success" ] || (echo "::error::SSM 배포 명령이 $STATUS 상태로 끝났습니다." && exit 1)
 
-      # The container includes its own migrate-then-start step, so a
-      # clean 200 here is real end-to-end confirmation, not just "the
-      # process is up."
-      - name: Health check
+      - name: Verify public HTTPS service
         run: |
-          for _ in $(seq 1 12); do
-            CODE=$(curl -s -o /dev/null -w "%{http_code}" https://api.onseol.com/health || echo "000")
-            [ "$CODE" = "200" ] && echo "healthy" && exit 0
-            sleep 5
-          done
-          echo "::error::/health가 200을 반환하지 않았습니다."
-          exit 1
+          bash .github/scripts/check-api-health.sh https://api.onseol.com/health
+          echo "### 서비스 배포 완료" >> "$GITHUB_STEP_SUMMARY"
+          echo "이미지: $GITHUB_SHA. EC2 내부 및 공개 HTTPS /health 200 확인." >> "$GITHUB_STEP_SUMMARY"

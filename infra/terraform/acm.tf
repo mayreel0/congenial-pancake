@@ -41,13 +41,20 @@ resource "aws_acm_certificate_validation" "api" {
 # from the aws_lb resource so the next `terraform apply` re-points it
 # automatically. No manual DNS edits needed.
 resource "aws_route53_record" "api" {
+  count = var.enable_alb ? 1 : 0
+
   zone_id = data.aws_route53_zone.main.zone_id
   name    = "${var.api_subdomain}.${var.domain_name}"
   type    = "A"
 
   alias {
-    name                   = aws_lb.api.dns_name
-    zone_id                = aws_lb.api.zone_id
+    name                   = aws_lb.api[0].dns_name
+    zone_id                = aws_lb.api[0].zone_id
     evaluate_target_health = true
   }
+}
+
+moved {
+  from = aws_route53_record.api
+  to   = aws_route53_record.api[0]
 }

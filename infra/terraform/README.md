@@ -36,7 +36,7 @@ aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS
 docker build --platform linux/amd64 -f apps/api-server/Dockerfile -t "$REPO_URL:latest" .
 docker push "$REPO_URL:latest"
 
-terraform -chdir=infra/terraform apply   # everything else
+terraform -chdir=infra/terraform apply -var-file=profiles/service.tfvars   # everything else, public API enabled
 ```
 
 ## After apply: set the real app secrets
@@ -130,15 +130,25 @@ sleep 5
 aws ssm get-command-invocation --command-id "$COMMAND_ID" --instance-id "$INSTANCE_ID" --query "StandardOutputContent" --output text
 ```
 
-## Tearing down the ALB to stop paying for it between sessions
+## Switching public API access on and off
 
-The ALB is the one piece here with a real always-on cost (~$16-20/mo baseline + traffic, not free-tier eligible) — EC2 t3.micro and RDS db.t4g.micro are both free-tier eligible for a new account's first 12 months.
+Use the same state with one of two profiles. `minimal` preserves EC2, RDS, VPC, the target group, and certificate, and removes only ALB, its two listeners, and the API DNS alias. `service` enables those four public-access resources. Both profiles load the existing gitignored `terraform.tfvars` first; the selected profile overrides only `enable_alb`. The default is `false`, so always choose the intended profile explicitly.
 
 ```bash
-terraform -chdir=infra/terraform destroy -target=aws_lb_listener.https -target=aws_lb_listener.http_redirect -target=aws_lb.api
+# Keep the server and database running without public API access.
+terraform -chdir=infra/terraform plan -var-file=profiles/minimal.tfvars
+terraform -chdir=infra/terraform apply -var-file=profiles/minimal.tfvars
+
+# Enable public HTTPS access when using or testing the service.
+terraform -chdir=infra/terraform plan -var-file=profiles/service.tfvars
+terraform -chdir=infra/terraform apply -var-file=profiles/service.tfvars
 ```
 
-Recreate it later with a plain `terraform -chdir=infra/terraform apply` — `acm.tf`'s Route 53 `A` record is an alias pointing at `aws_lb.api.dns_name`/`.zone_id`, both attributes of the `aws_lb` resource, so the next apply automatically re-points the domain at the new ALB's (new) DNS name. No manual DNS edits needed. The EC2 instance and RDS keep running (and costing) independently of this — target them too if you want a full pause, but note RDS needs `terraform apply` afterward to actually come back up (an RDS instance stopped outside Terraform auto-restarts after 7 days anyway; Terraform doesn't have a "stop" concept, only create/destroy).
+Inspect each plan before applying. An ordinary profile switch must not replace EC2 or RDS. `moved` blocks preserve resource identity when upgrading an existing state to indexed ALB resources. A new upstream AMI alone no longer replaces the server; upgrade its OS explicitly with a reviewed `terraform plan -replace=aws_instance.api -var-file=profiles/service.tfvars` and apply that plan only when an instance replacement is intended. Other replacement causes such as user-data or subnet changes still appear in the plan.
+
+With ALB disabled, Actions builds/pushes the image and marks `deploy` **skipped**. This is not a successful service deployment. With ALB active, it deploys the run's SHA-tagged image, refreshes secrets, and waits for EC2-local `/health` 200. Only after public `https://api.onseol.com/health` also returns 200 does the deploy job succeed. Curl requests have bounded timeouts and retry during migration/startup and ALB target registration.
+
+To validate a replacement: enable `service`, run the deployment workflow on `v1`, confirm both health checks and public access, then select `minimal` when public access is no longer needed. EC2 and RDS keep running and costing in either profile. No public API access is expected in `minimal`.
 
 ## State
 

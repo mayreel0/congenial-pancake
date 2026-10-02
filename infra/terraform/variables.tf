@@ -4,6 +4,12 @@ variable "aws_region" {
   default     = "ap-northeast-2" # Seoul
 }
 
+variable "enable_alb" {
+  description = "Enable public API access through ALB and its Route 53 alias. EC2/RDS remain running when false."
+  type        = bool
+  default     = false
+}
+
 variable "domain_name" {
   description = "Root domain — the Route 53 hosted zone must already exist for this."
   type        = string

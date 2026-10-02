@@ -75,7 +75,7 @@ resource "aws_iam_role_policy" "github_deploy" {
         # account's EC2 instances and the one SSM document the workflow
         # actually uses.
         Effect   = "Allow"
-        Action   = ["ec2:DescribeInstances", "ssm:GetCommandInvocation"]
+        Action   = ["ec2:DescribeInstances", "ssm:GetCommandInvocation", "elasticloadbalancing:DescribeLoadBalancers"]
         Resource = "*"
       },
       {
