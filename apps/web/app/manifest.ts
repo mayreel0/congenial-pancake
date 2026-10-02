@@ -18,13 +18,8 @@ export default function manifest(): MetadataRoute.Manifest {
     background_color: DEFAULT_THEME_COLOR,
     theme_color: DEFAULT_THEME_COLOR,
     lang: "ko",
-    // Only "any" purpose — the source art has its own rounded-corner
-    // shape baked in (no alpha channel), not a full-bleed safe-zone
-    // design, so declaring it "maskable" would let Android's own mask
-    // shape reveal those baked-in corners instead of a clean edge. Add a
-    // real maskable variant (content within the inner ~80% circle,
-    // background filling all the way to the edges) if that's ever
-    // designed separately.
+    // The opaque background fills the edges so OS masks leave no baked-in
+    // corners. Circular masks may crop outer sparkles; this is intentional.
     icons: [
       {
         src: "/icon-192.png",
@@ -35,6 +30,12 @@ export default function manifest(): MetadataRoute.Manifest {
         src: "/icon-512.png",
         sizes: "512x512",
         type: "image/png",
+      },
+      {
+        src: "/icon-512.png",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "maskable",
       },
     ],
   };
