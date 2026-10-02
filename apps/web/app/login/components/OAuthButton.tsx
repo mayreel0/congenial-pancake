@@ -12,18 +12,16 @@ type OAuthButtonProps = {
   provider: OAuthProviderName;
   href: string;
   lastUsed?: boolean;
+  disabled?: boolean;
 };
 
-export function OAuthButton({ provider, href, lastUsed = false }: OAuthButtonProps) {
+export function OAuthButton({ provider, href, lastUsed = false, disabled = false }: OAuthButtonProps) {
   const label = LABELS[provider];
   const { className, Icon } = OAUTH_PROVIDER_STYLES[provider];
 
-  return (
-    <a
-      className={`relative inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg text-[16px] font-semibold transition ${className}`}
-      href={href}
-      onClick={() => setLastOAuthProvider(provider)}
-    >
+  const buttonClassName = `relative inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg text-[16px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${className}`;
+  const content = (
+    <>
       <Icon />
       {label}
       {lastUsed && (
@@ -31,6 +29,16 @@ export function OAuthButton({ provider, href, lastUsed = false }: OAuthButtonPro
           최근 로그인
         </span>
       )}
+    </>
+  );
+
+  if (disabled) {
+    return <button className={buttonClassName} disabled type="button">{content}</button>;
+  }
+
+  return (
+    <a className={buttonClassName} href={href} onClick={() => setLastOAuthProvider(provider)}>
+      {content}
     </a>
   );
 }

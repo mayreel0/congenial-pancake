@@ -14,6 +14,7 @@ import { parseFieldErrors } from "shared/zod-form";
 import { OAuthButton } from "./components/OAuthButton";
 import { useLastOAuthProvider } from "./lib/lastOAuthProvider";
 import { safeReturnTo } from "./lib/safeReturnTo";
+import { SignupConsent } from "../components/SignupConsent";
 
 type Mode = "login" | "signup";
 type SubmitStatus = "idle" | "pending";
@@ -33,6 +34,7 @@ export function LoginForm() {
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [consentAccepted, setConsentAccepted] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>("idle");
   const [error, setError] = useState<string | null>(null);
   const [needsVerification, setNeedsVerification] = useState(false);
@@ -59,6 +61,7 @@ export function LoginForm() {
 
   async function handleSubmit(event: React.FormEvent): Promise<void> {
     event.preventDefault();
+    if (mode === "signup" && !consentAccepted) return;
     touchAll(mode === "login" ? ["email", "password"] : ["email"]);
     if (Object.keys(fieldErrors).length > 0) return;
 
@@ -84,6 +87,12 @@ export function LoginForm() {
   }
 
   async function handleResend(): Promise<void> {
+    if (!consentAccepted) {
+      setMode("signup");
+      setNeedsVerification(false);
+      setError("동의 항목을 확인한 뒤 인증 메일을 요청해주세요.");
+      return;
+    }
     setSubmitStatus("pending");
     try {
       await signup(email);
@@ -153,6 +162,10 @@ export function LoginForm() {
             />
           )}
 
+          {mode === "signup" && (
+            <SignupConsent checked={consentAccepted} onChange={setConsentAccepted} />
+          )}
+
           {error && <p className="text-sm text-red-600">{error}</p>}
           {needsVerification && (
             <button
@@ -165,7 +178,7 @@ export function LoginForm() {
           )}
 
           <Button
-            disabled={Object.keys(fieldErrors).length > 0 || showSpinner}
+            disabled={Object.keys(fieldErrors).length > 0 || showSpinner || (mode === "signup" && !consentAccepted)}
             fullWidth
             pending={showSpinner}
             type="submit"
@@ -181,6 +194,7 @@ export function LoginForm() {
             setMode((current) => (current === "login" ? "signup" : "login"));
             setError(null);
             setNeedsVerification(false);
+            setConsentAccepted(false);
           }}
         >
           {mode === "login" ? "계정이 없으신가요? 회원가입" : "이미 계정이 있으신가요? 로그인"}
@@ -193,17 +207,28 @@ export function LoginForm() {
         </div>
 
         <div className="space-y-2">
+          {mode === "login" && (
+            <div className="mb-4 space-y-2">
+              <p className="text-sm text-muted">
+                소셜 계정으로 처음 이용하면 회원가입이 함께 진행되어 동의가 필요해요.
+              </p>
+              <SignupConsent checked={consentAccepted} onChange={setConsentAccepted} />
+            </div>
+          )}
           <OAuthButton
+            disabled={!consentAccepted || showSpinner}
             href={oauthLoginUrl("google")}
             lastUsed={lastProvider === "google"}
             provider="google"
           />
           <OAuthButton
+            disabled={!consentAccepted || showSpinner}
             href={oauthLoginUrl("kakao")}
             lastUsed={lastProvider === "kakao"}
             provider="kakao"
           />
           <OAuthButton
+            disabled={!consentAccepted || showSpinner}
             href={oauthLoginUrl("naver")}
             lastUsed={lastProvider === "naver"}
             provider="naver"
