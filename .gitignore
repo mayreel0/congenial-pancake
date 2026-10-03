@@ -46,6 +46,7 @@ next-env.d.ts
 .worktrees/
 
 # local tooling state
+/.codex/
 .pnpm-store/
 .superpowers/
 
