@@ -13,6 +13,9 @@ import type { EmailService } from '../email/email.service';
 import type { User } from '../users/users.repository';
 import type { UsersService } from '../users/users.service';
 import { AuthService } from './auth.service';
+import { WithdrawalCleanupService } from './withdrawal-cleanup.service';
+import type { NotificationsRepository } from '../notifications/notifications.repository';
+import type { PushSubscriptionsRepository } from '../notifications/push-subscriptions.repository';
 import type {
   OAuthIdentitiesRepository,
   OAuthIdentity,
@@ -83,6 +86,8 @@ describe('AuthService', () => {
   let emailService: jest.Mocked<EmailService>;
   let config: jest.Mocked<ConfigService<Env, true>>;
   let authService: AuthService;
+  let notificationsRepository: jest.Mocked<NotificationsRepository>;
+  let pushSubscriptionsRepository: jest.Mocked<PushSubscriptionsRepository>;
 
   beforeEach(() => {
     usersService = {
@@ -94,8 +99,6 @@ describe('AuthService', () => {
       requestDeletion: jest.fn(),
       restoreAccount: jest.fn(),
       scrubForDeletion: jest.fn(),
-      deletePushSubscriptions: jest.fn(),
-      deleteNotifications: jest.fn(),
     } as unknown as jest.Mocked<UsersService>;
     oauthIdentitiesRepository = {
       findByProviderAccount: jest.fn(),
@@ -124,6 +127,20 @@ describe('AuthService', () => {
       get: jest.fn().mockReturnValue('http://localhost:3000'),
     } as unknown as jest.Mocked<ConfigService<Env, true>>;
 
+    notificationsRepository = {
+      deleteAll: jest.fn(),
+    } as unknown as jest.Mocked<NotificationsRepository>;
+    pushSubscriptionsRepository = {
+      deleteAllForUser: jest.fn(),
+    } as unknown as jest.Mocked<PushSubscriptionsRepository>;
+    const withdrawalCleanup = new WithdrawalCleanupService(
+      usersService,
+      oauthIdentitiesRepository,
+      sessionService,
+      pushSubscriptionsRepository,
+      notificationsRepository,
+    );
+
     authService = new AuthService(
       usersService,
       oauthIdentitiesRepository,
@@ -132,6 +149,7 @@ describe('AuthService', () => {
       sessionService,
       emailService,
       config,
+      withdrawalCleanup,
     );
   });
 
@@ -604,13 +622,13 @@ describe('AuthService', () => {
 
     it("stops pushes to the user's devices on either path, even before the account is finalized", async () => {
       await authService.requestWithdrawal('user-1', false);
-      expect(usersService.deletePushSubscriptions).toHaveBeenCalledWith(
+      expect(pushSubscriptionsRepository.deleteAllForUser).toHaveBeenCalledWith(
         'user-1',
       );
 
-      usersService.deletePushSubscriptions.mockClear();
+      pushSubscriptionsRepository.deleteAllForUser.mockClear();
       await authService.requestWithdrawal('user-1', true);
-      expect(usersService.deletePushSubscriptions).toHaveBeenCalledWith(
+      expect(pushSubscriptionsRepository.deleteAllForUser).toHaveBeenCalledWith(
         'user-1',
       );
     });
@@ -621,6 +639,19 @@ describe('AuthService', () => {
       expect(usersService.requestDeletion).toHaveBeenCalledWith('user-1');
       expect(usersService.scrubForDeletion).not.toHaveBeenCalled();
       expect(oauthIdentitiesRepository.deleteAllForUser).not.toHaveBeenCalled();
+      expect(notificationsRepository.deleteAll).not.toHaveBeenCalled();
+    });
+
+    it('propagates push cleanup failure before marking the account pending', async () => {
+      const error = new Error('push cleanup failed');
+      pushSubscriptionsRepository.deleteAllForUser.mockRejectedValue(error);
+
+      await expect(authService.requestWithdrawal('user-1', false)).rejects.toBe(
+        error,
+      );
+
+      expect(usersService.requestDeletion).not.toHaveBeenCalled();
+      expect(usersService.scrubForDeletion).not.toHaveBeenCalled();
     });
 
     it('scrubs the account and clears oauth identities immediately when immediate is true', async () => {
@@ -635,11 +666,20 @@ describe('AuthService', () => {
   });
 
   describe('finalizeAccountDeletion', () => {
+    it('propagates notification cleanup failures to the caller', async () => {
+      const error = new Error('notification cleanup failed');
+      notificationsRepository.deleteAll.mockRejectedValue(error);
+
+      await expect(authService.finalizeAccountDeletion('user-1')).rejects.toBe(
+        error,
+      );
+    });
+
     it("deletes the user's notification history and any push subscriptions still left", async () => {
       await authService.finalizeAccountDeletion('user-1');
 
-      expect(usersService.deleteNotifications).toHaveBeenCalledWith('user-1');
-      expect(usersService.deletePushSubscriptions).toHaveBeenCalledWith(
+      expect(notificationsRepository.deleteAll).toHaveBeenCalledWith('user-1');
+      expect(pushSubscriptionsRepository.deleteAllForUser).toHaveBeenCalledWith(
         'user-1',
       );
     });

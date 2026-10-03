@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from '../database/database.module';
 import { EmailModule } from '../email/email.module';
+import { NotificationsPersistenceModule } from '../notifications/notifications-persistence.module';
+import { WithdrawalCleanupService } from './withdrawal-cleanup.service';
 import { UsersModule } from '../users/users.module';
 import { AccountDeletionCronService } from './account-deletion-cron.service';
 import { AuthController } from './auth.controller';
@@ -20,7 +22,12 @@ import { SessionService } from './session.service';
 import { SessionsRepository } from './sessions.repository';
 
 @Module({
-  imports: [DatabaseModule, UsersModule, EmailModule],
+  imports: [
+    DatabaseModule,
+    UsersModule,
+    EmailModule,
+    NotificationsPersistenceModule,
+  ],
   controllers: [AuthController],
   providers: [
     SessionsRepository,
@@ -37,6 +44,7 @@ import { SessionsRepository } from './sessions.repository';
     PasswordResetService,
     PendingSignupsRepository,
     AuthService,
+    WithdrawalCleanupService,
     AccountDeletionCronService,
   ],
   exports: [

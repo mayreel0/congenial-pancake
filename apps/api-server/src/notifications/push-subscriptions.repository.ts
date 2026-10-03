@@ -65,6 +65,12 @@ export class PushSubscriptionsRepository {
       .where(inArray(pushSubscriptions.endpoint, endpoints));
   }
 
+  async deleteAllForUser(userId: string): Promise<void> {
+    await this.db
+      .delete(pushSubscriptions)
+      .where(eq(pushSubscriptions.userId, userId));
+  }
+
   findByUserId(userId: string): Promise<PushSubscriptionRecord[]> {
     return this.db
       .select()

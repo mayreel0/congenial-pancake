@@ -21,6 +21,7 @@ import type { OAuthProfile } from './oauth/oauth-provider.interface';
 import { PasswordHasherService } from './password/password-hasher.service';
 import { PendingSignupsRepository } from './pending-signups.repository';
 import { SessionService } from './session.service';
+import { WithdrawalCleanupService } from './withdrawal-cleanup.service';
 import type { Session } from './sessions.repository';
 
 const TOKEN_BYTES = 32;
@@ -58,6 +59,7 @@ export class AuthService {
     private readonly sessionService: SessionService,
     private readonly emailService: EmailService,
     private readonly config: ConfigService<Env, true>,
+    private readonly withdrawalCleanup: WithdrawalCleanupService,
   ) {}
 
   // Nothing is created yet — a users row only exists once someone proves
@@ -298,44 +300,12 @@ export class AuthService {
       .then((identities) => identities.map((identity) => identity.provider));
   }
 
-  // Always logs the account out everywhere immediately, regardless of
-  // which path below runs — a withdrawal request (even a reversible one)
-  // shouldn't leave existing sessions usable in the meantime.
-  //
-  // immediate skips the 30-day grace period entirely and scrubs right
-  // away — deliberately not reversible (email/oauth_identities are gone
-  // the moment this returns, same end state the daily cron would reach on
-  // its own after 30 days). The default path only stamps
-  // deletionRequestedAt; nothing else about the row changes until either
-  // restoreAccount clears it or AccountDeletionCronService finalizes it.
-  async requestWithdrawal(userId: string, immediate: boolean): Promise<void> {
-    await this.sessionService.revokeAllForUser(userId);
-    // Same reasoning as revoking sessions: a withdrawing account shouldn't
-    // keep getting pushes on its devices, even during the grace period (a
-    // restored account just turns push back on).
-    await this.usersService.deletePushSubscriptions(userId);
-    if (immediate) {
-      await this.finalizeAccountDeletion(userId);
-    } else {
-      await this.usersService.requestDeletion(userId);
-    }
+  requestWithdrawal(userId: string, immediate: boolean): Promise<void> {
+    return this.withdrawalCleanup.requestWithdrawal(userId, immediate);
   }
 
-  // The actual scrub — shared by the immediate-withdrawal path above and
-  // AccountDeletionCronService, which calls this once a non-immediate
-  // withdrawal's 30-day grace period has elapsed. Clearing
-  // oauth_identities lives here (not in UsersService.scrubForDeletion)
-  // since it needs this service's own OAuthIdentitiesRepository — frees
-  // up (provider, providerAccountId) so the same social account can sign
-  // up fresh under a new account later.
-  async finalizeAccountDeletion(userId: string): Promise<void> {
-    await this.usersService.scrubForDeletion(userId);
-    await this.oauthIdentitiesRepository.deleteAllForUser(userId);
-    // requestWithdrawal already did this, but an account that was already in
-    // its grace period before that started doing so reaches here without
-    // ever having had its subscriptions removed. Idempotent either way.
-    await this.usersService.deletePushSubscriptions(userId);
-    await this.usersService.deleteNotifications(userId);
+  finalizeAccountDeletion(userId: string): Promise<void> {
+    return this.withdrawalCleanup.finalizeAccountDeletion(userId);
   }
 
   // Idempotent no-op if the account isn't actually pending deletion —
