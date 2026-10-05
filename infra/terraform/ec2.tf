@@ -118,6 +118,11 @@ resource "aws_iam_instance_profile" "ec2" {
 }
 
 resource "aws_instance" "api" {
+  lifecycle {
+    # AMI upgrades are explicit replacements; toggling ALB must preserve the server.
+    ignore_changes = [ami]
+  }
+
   ami                    = data.aws_ami.al2023.id
   instance_type          = var.ec2_instance_type
   subnet_id              = aws_subnet.public[0].id
