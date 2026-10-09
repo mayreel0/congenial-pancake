@@ -11,6 +11,7 @@ import { ApiError, errorMessage, oauthLoginUrl } from "../lib/api";
 import { useAuth } from "../lib/auth/useAuth";
 import { useFieldValidation } from "ui/useFieldValidation";
 import { parseFieldErrors } from "shared/zod-form";
+import { PUBLIC_OAUTH_PROVIDERS } from "../components/shared/oauthProviders";
 import { OAuthButton } from "./components/OAuthButton";
 import { useLastOAuthProvider } from "./lib/lastOAuthProvider";
 import { safeReturnTo } from "./lib/safeReturnTo";
@@ -193,21 +194,14 @@ export function LoginForm() {
         </div>
 
         <div className="space-y-2">
-          <OAuthButton
-            href={oauthLoginUrl("google")}
-            lastUsed={lastProvider === "google"}
-            provider="google"
-          />
-          <OAuthButton
-            href={oauthLoginUrl("kakao")}
-            lastUsed={lastProvider === "kakao"}
-            provider="kakao"
-          />
-          <OAuthButton
-            href={oauthLoginUrl("naver")}
-            lastUsed={lastProvider === "naver"}
-            provider="naver"
-          />
+          {PUBLIC_OAUTH_PROVIDERS.map((provider) => (
+            <OAuthButton
+              href={oauthLoginUrl(provider)}
+              key={provider}
+              lastUsed={lastProvider === provider}
+              provider={provider}
+            />
+          ))}
         </div>
 
         <Link
