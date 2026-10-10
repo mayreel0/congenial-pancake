@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useState, type ComponentType } from "react";
+import { useEffect, useRef, useState, type ComponentType } from "react";
+import { useMobileToastSwipe } from "../hooks/useMobileToastSwipe";
 import {
   CheckCircleIcon,
   WarningCircleIcon,
   XCircleIcon,
 } from "../icons";
 import type { ToastKind, ToastState } from "../hooks/useToast";
+import "./Toast.css";
 
 type ToastProps = {
   toast: ToastState;
@@ -37,6 +39,8 @@ type ToastCardProps = {
 // synchronous setState-in-effect (react-hooks/set-state-in-effect).
 function ToastCard({ kind, message, onDismiss }: ToastCardProps) {
   const [visible, setVisible] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  useMobileToastSwipe(cardRef, onDismiss);
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => setVisible(true));
@@ -47,16 +51,17 @@ function ToastCard({ kind, message, onDismiss }: ToastCardProps) {
 
   return (
     <div
-      className={`fixed bottom-5 right-5 z-30 flex max-w-sm items-center gap-3 rounded-lg border border-line bg-surface px-4 py-3 text-sm shadow-sm transition duration-200 ${
+      ref={cardRef}
+      className={`onseol-toast fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-4 right-4 z-30 flex max-h-[calc(100dvh-2rem)] items-start gap-3 overflow-y-auto overscroll-contain rounded-lg border border-line bg-surface px-4 py-2 sm:py-3 text-base leading-6 shadow-sm transition duration-200 max-sm:[touch-action:pan-y_pinch-zoom] motion-reduce:transition-none sm:bottom-5 sm:left-auto sm:right-5 sm:max-h-none sm:max-w-sm sm:items-center sm:overflow-visible sm:text-sm sm:leading-5 ${
         visible ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"
       }`}
       role="status"
     >
-      <Icon className={`h-5 w-5 shrink-0 ${ICON_COLORS[kind]}`} />
-      <span className="text-foreground">{message}</span>
+      <Icon className={`h-5 w-5 shrink-0 max-sm:mt-3 ${ICON_COLORS[kind]}`} />
+      <span className="min-w-0 break-words text-foreground max-sm:py-2.5">{message}</span>
       <button
         aria-label="알림 닫기"
-        className="ml-auto shrink-0 text-lg leading-none text-muted transition hover:text-foreground"
+        className="ml-auto flex min-h-11 min-w-11 shrink-0 self-center items-center justify-center rounded-lg text-2xl leading-none text-[color:var(--toast-close,var(--muted))] transition hover:text-foreground sm:min-h-0 sm:min-w-0 sm:text-lg"
         type="button"
         onClick={onDismiss}
       >
