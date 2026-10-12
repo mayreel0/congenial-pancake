@@ -27,9 +27,13 @@ const pretendard = localFont({
 
 const TITLE = "온설";
 const DESCRIPTION = "짧은 위로 요청과 담백한 답장을 주고받는 서비스";
+const OG_IMAGE = {
+  url: "/og-image.png",
+  alt: `${TITLE} — ${DESCRIPTION}`,
+};
 
 export const metadata: Metadata = {
-  // OG 이미지의 상대 경로(app/opengraph-image.tsx)를 절대 URL로 바꾸는 데 쓰임 —
+  // OG 이미지의 상대 경로를 절대 URL로 바꾸는 데 쓰임 —
   // Vercel 프리뷰가 아니라 실제 서비스 도메인으로 고정.
   metadataBase: new URL("https://onseol.com"),
   title: TITLE,
@@ -45,9 +49,18 @@ export const metadata: Metadata = {
     siteName: TITLE,
     locale: "ko_KR",
     type: "website",
+    images: [
+      {
+        ...OG_IMAGE,
+        width: 1200,
+        height: 630,
+        type: "image/png",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
+    images: [OG_IMAGE],
     title: TITLE,
     description: DESCRIPTION,
   },
