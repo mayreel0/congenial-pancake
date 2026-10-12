@@ -1,5 +1,5 @@
 import { usePathname, useSearchParams } from "next/navigation";
-import { fireEvent, render, screen, waitFor, within } from "../lib/test-utils";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "../lib/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import RecordsPage from "./page";
 
@@ -91,6 +91,7 @@ function mockSearchParams(query = ""): void {
 
 describe("RecordsPage", () => {
   afterEach(() => {
+    cleanup();
     vi.unstubAllGlobals();
     vi.useRealTimers();
     // Some tests below override this mock's return value with a specific

@@ -168,7 +168,8 @@ export class AuthService {
     provider: OAuthProviderName,
     profile: OAuthProfile,
     userAgent?: string,
-  ): Promise<OAuthLoginResult> {
+    allowSignup = false,
+  ): Promise<OAuthLoginResult | null> {
     const existingIdentity =
       await this.oauthIdentitiesRepository.findByProviderAccount(
         provider,
@@ -204,6 +205,8 @@ export class AuthService {
       const existingByEmail = await this.usersService.findByEmail(
         profile.email,
       );
+
+      if (!allowSignup && !existingByEmail?.emailVerifiedAt) return null;
 
       if (existingByEmail && !existingByEmail.emailVerifiedAt) {
         await this.usersService.clearPasswordHash(existingByEmail.id);
