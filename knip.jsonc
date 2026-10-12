@@ -1,6 +1,10 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "workspaces": {
+    ".": {
+      // Executed by osascript directly; no JS import references this file.
+      "ignore": ["docs/previews/generate-dev-44-og.js"]
+    },
     "apps/api-server": {
       // Knip's Nest plugin only auto-detects src/main.ts — swagger-only.ts
       // (a second real entry point, `pnpm --filter api-server
