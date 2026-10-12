@@ -8,6 +8,7 @@ const auth = vi.hoisted(() => ({
   login: vi.fn(),
   signup: vi.fn(),
   completeSignup: vi.fn(),
+  query: "token=signup-token",
 }));
 
 vi.mock("../lib/auth/useAuth", () => ({
@@ -16,11 +17,12 @@ vi.mock("../lib/auth/useAuth", () => ({
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
-  useSearchParams: () => new URLSearchParams("token=signup-token"),
+  useSearchParams: () => new URLSearchParams(auth.query),
 }));
 
 beforeEach(() => {
   vi.clearAllMocks();
+  auth.query = "token=signup-token";
   auth.login.mockResolvedValue(undefined);
   auth.signup.mockResolvedValue(undefined);
   auth.completeSignup.mockResolvedValue(undefined);
@@ -47,19 +49,30 @@ describe("가입 동의", () => {
     await waitFor(() => expect(auth.signup).toHaveBeenCalledWith("member@example.com"));
   });
 
-  it("소셜 진입은 로그인 화면에서도 동의를 요구하고 정책은 새 탭으로 연다", async () => {
+  it("소셜 가입에서만 동의를 요구하고 정책은 새 탭으로 연다", async () => {
     const user = userEvent.setup();
     render(<LoginForm />);
     const providers = ["Google 계정으로 로그인", "카카오 로그인", "네이버 로그인"];
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+    for (const name of providers) {
+      expect(screen.getByRole("link", { name }).getAttribute("href")).not.toContain("signup=true");
+    }
+    await user.click(screen.getByRole("button", { name: "계정이 없으신가요? 회원가입" }));
     for (const name of providers) {
       expect(screen.getByRole("button", { name })).toBeDisabled();
       expect(screen.queryByRole("link", { name })).not.toBeInTheDocument();
     }
-    expect(screen.getByRole("link", { name: "이용약관 (새 탭)" })).toHaveAttribute("href", "/terms");
-    expect(screen.getByRole("link", { name: "개인정보처리방침 (새 탭)" })).toHaveAttribute("target", "_blank");
+    const termsLink = screen.getByRole("link", { name: /^이용약관\s*\(새 탭\)$/ });
+    const privacyLink = screen.getByRole("link", { name: /^개인정보처리방침\s*\(새 탭\)$/ });
+    expect(termsLink).toHaveAttribute("href", "/terms");
+    expect(privacyLink).toHaveAttribute("href", "/privacy");
+    for (const link of [termsLink, privacyLink]) {
+      expect(link).toHaveAttribute("target", "_blank");
+      expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    }
     await user.click(screen.getByRole("checkbox"));
     for (const name of providers) {
-      expect(screen.getByRole("link", { name })).toHaveAttribute("href");
+      expect(screen.getByRole("link", { name }).getAttribute("href")).toContain("signup=true");
     }
     await user.click(screen.getByRole("checkbox"));
     for (const name of providers) {
@@ -72,9 +85,18 @@ describe("가입 동의", () => {
     render(<LoginForm />);
     await user.type(screen.getByLabelText("이메일"), "member@example.com");
     await user.type(screen.getByLabelText("비밀번호"), "Password123!");
-    expect(screen.getByRole("checkbox")).not.toBeChecked();
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /^로그인$/ }));
     await waitFor(() => expect(auth.login).toHaveBeenCalledWith("member@example.com", "Password123!"));
+  });
+
+  it("미가입 소셜 사용자는 가입 안내와 미선택 동의로 돌아온다", () => {
+    auth.query = "mode=signup&signupRequired=1";
+    render(<LoginForm />);
+    expect(screen.getByRole("heading", { name: "회원가입" })).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("아직 가입된 계정이 없어요");
+    expect(screen.getByRole("checkbox")).not.toBeChecked();
+    expect(screen.getByRole("button", { name: "Google 계정으로 로그인" })).toBeDisabled();
   });
 
   it("인증 링크로 직접 진입해도 동의해야 가입을 완료한다", async () => {

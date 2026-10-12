@@ -16,7 +16,7 @@ export function LegalPage({ title, children }: LegalPageProps) {
         </Link>
         <header className="space-y-4">
           <h1 className="text-3xl font-semibold">{title}</h1>
-          <p className="rounded-lg border border-line bg-surface-muted p-4 text-sm leading-7">
+          <p className="text-sm leading-6 text-muted">
             이 문서는 초안이며 법률 자문이 아닙니다. 공개 전 별도 확인을 권장합니다.
             시행일과 확인이 필요한 운영 정보는 확정 후 반영합니다.
           </p>

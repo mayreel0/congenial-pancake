@@ -31,7 +31,9 @@ export function LoginForm() {
   const searchParams = useSearchParams();
   const returnTo = safeReturnTo(searchParams.get("returnTo"));
   const { status, login, signup } = useAuth();
-  const [mode, setMode] = useState<Mode>("login");
+  const [mode, setMode] = useState<Mode>(
+    searchParams.get("mode") === "signup" ? "signup" : "login",
+  );
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [consentAccepted, setConsentAccepted] = useState(false);
@@ -138,6 +140,12 @@ export function LoginForm() {
           </h1>
         </div>
 
+        {mode === "signup" && searchParams.get("signupRequired") === "1" && (
+          <p className="text-sm text-muted" role="status">
+            아직 가입된 계정이 없어요. 동의 후 소셜 계정을 선택해 가입해주세요.
+          </p>
+        )}
+
         <form className="space-y-3" onSubmit={handleSubmit}>
           <TextField
             autoComplete="email"
@@ -207,29 +215,21 @@ export function LoginForm() {
         </div>
 
         <div className="space-y-2">
-          {mode === "login" && (
-            <div className="mb-4 space-y-2">
-              <p className="text-sm text-muted">
-                소셜 계정으로 처음 이용하면 회원가입이 함께 진행되어 동의가 필요해요.
-              </p>
-              <SignupConsent checked={consentAccepted} onChange={setConsentAccepted} />
-            </div>
-          )}
           <OAuthButton
-            disabled={!consentAccepted || showSpinner}
-            href={oauthLoginUrl("google")}
+            disabled={(mode === "signup" && !consentAccepted) || showSpinner}
+            href={oauthLoginUrl("google", mode === "signup")}
             lastUsed={lastProvider === "google"}
             provider="google"
           />
           <OAuthButton
-            disabled={!consentAccepted || showSpinner}
-            href={oauthLoginUrl("kakao")}
+            disabled={(mode === "signup" && !consentAccepted) || showSpinner}
+            href={oauthLoginUrl("kakao", mode === "signup")}
             lastUsed={lastProvider === "kakao"}
             provider="kakao"
           />
           <OAuthButton
-            disabled={!consentAccepted || showSpinner}
-            href={oauthLoginUrl("naver")}
+            disabled={(mode === "signup" && !consentAccepted) || showSpinner}
+            href={oauthLoginUrl("naver", mode === "signup")}
             lastUsed={lastProvider === "naver"}
             provider="naver"
           />
