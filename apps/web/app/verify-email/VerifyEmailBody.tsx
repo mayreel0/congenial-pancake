@@ -1,9 +1,12 @@
 import { Button } from "ui/Button";
 import { TextField } from "ui/TextField";
+import { SignupConsent } from "../components/SignupConsent";
 
 export type VerifyEmailStatus = "idle" | "pending";
 
 type VerifyEmailBodyProps = {
+  consentAccepted: boolean;
+  onConsentChange(checked: boolean): void;
   token: string | null;
   password: string;
   error: string | null;
@@ -19,6 +22,8 @@ type VerifyEmailBodyProps = {
 };
 
 export function VerifyEmailBody({
+  consentAccepted,
+  onConsentChange,
   token,
   password,
   error,
@@ -48,10 +53,12 @@ export function VerifyEmailBody({
         onChange={(event) => onPasswordChange(event.currentTarget.value)}
       />
 
+      <SignupConsent checked={consentAccepted} onChange={onConsentChange} />
+
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       <Button
-        disabled={hasFieldErrors || showSpinner}
+        disabled={hasFieldErrors || showSpinner || !consentAccepted}
         fullWidth
         pending={showSpinner}
         type="submit"

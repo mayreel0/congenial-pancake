@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom/vitest";
+import { cleanup } from "@testing-library/react";
 import { afterEach, beforeEach, vi } from "vitest";
 import { toast } from "ui/useToast";
 
@@ -145,6 +146,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  // Unmount while browser mocks still exist so pending React effects can finish.
+  cleanup();
   vi.unstubAllGlobals();
   // toast (ui/useToast) is a module-level singleton, not per-render state
   // — without this, a toast/its dismiss timer left over from one test

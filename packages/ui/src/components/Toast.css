@@ -1,0 +1,16 @@
+:root[data-theme="dark"] .onseol-toast {
+  background-color: color-mix(in srgb, var(--surface) 80%, var(--foreground));
+  border-color: color-mix(in srgb, var(--foreground) 20%, transparent);
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --toast-close: color-mix(in srgb, var(--foreground) 75%, transparent);
+}
+
+/* Explicit light mode must win over an OS dark preference. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) .onseol-toast {
+    background-color: color-mix(in srgb, var(--surface) 80%, var(--foreground));
+    border-color: color-mix(in srgb, var(--foreground) 20%, transparent);
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --toast-close: color-mix(in srgb, var(--foreground) 75%, transparent);
+  }
+}

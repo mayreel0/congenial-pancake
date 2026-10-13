@@ -97,6 +97,6 @@ export function restoreAccount(): Promise<CurrentUser> {
 
 export type OAuthProviderName = "google" | "kakao" | "naver";
 
-export function oauthLoginUrl(provider: OAuthProviderName): string {
-  return `${API_BASE_URL}/auth/${provider}`;
+export function oauthLoginUrl(provider: OAuthProviderName, signup = false): string {
+  return `${API_BASE_URL}/auth/${provider}${signup ? "?signup=true" : ""}`;
 }
