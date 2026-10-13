@@ -11,6 +11,7 @@ import { ApiError, errorMessage, oauthLoginUrl } from "../lib/api";
 import { useAuth } from "../lib/auth/useAuth";
 import { useFieldValidation } from "ui/useFieldValidation";
 import { parseFieldErrors } from "shared/zod-form";
+import { PUBLIC_OAUTH_PROVIDERS } from "../components/shared/oauthProviders";
 import { OAuthButton } from "./components/OAuthButton";
 import { useLastOAuthProvider } from "./lib/lastOAuthProvider";
 import { safeReturnTo } from "./lib/safeReturnTo";
@@ -21,7 +22,6 @@ type SubmitStatus = "idle" | "pending";
 type Field = "email" | "password";
 
 const EMAIL_NOT_VERIFIED_CODE = "AUTH_EMAIL_NOT_VERIFIED";
-const LOGIN_OAUTH_PROVIDERS = ["google", "naver"] as const;
 
 function submitButtonLabel(mode: Mode): string {
   return mode === "login" ? "로그인" : "인증 메일 받기";
@@ -216,7 +216,7 @@ export function LoginForm() {
         </div>
 
         <div className="space-y-2">
-          {LOGIN_OAUTH_PROVIDERS.map((provider) => (
+          {PUBLIC_OAUTH_PROVIDERS.map((provider) => (
             <OAuthButton
               disabled={(mode === "signup" && !consentAccepted) || showSpinner}
               href={oauthLoginUrl(provider, mode === "signup")}
