@@ -52,7 +52,8 @@ describe("가입 동의", () => {
   it("소셜 가입에서만 동의를 요구하고 정책은 새 탭으로 연다", async () => {
     const user = userEvent.setup();
     render(<LoginForm />);
-    const providers = ["Google 계정으로 로그인", "카카오 로그인", "네이버 로그인"];
+    const providers = ["Google 계정으로 로그인", "네이버 로그인"];
+    expect(screen.queryByText("카카오 로그인")).not.toBeInTheDocument();
     expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
     for (const name of providers) {
       expect(screen.getByRole("link", { name }).getAttribute("href")).not.toContain("signup=true");
@@ -62,6 +63,7 @@ describe("가입 동의", () => {
       expect(screen.getByRole("button", { name })).toBeDisabled();
       expect(screen.queryByRole("link", { name })).not.toBeInTheDocument();
     }
+    expect(screen.queryByText("카카오 로그인")).not.toBeInTheDocument();
     const termsLink = screen.getByRole("link", { name: /^이용약관\s*\(새 탭\)$/ });
     const privacyLink = screen.getByRole("link", { name: /^개인정보처리방침\s*\(새 탭\)$/ });
     expect(termsLink).toHaveAttribute("href", "/terms");
@@ -74,6 +76,7 @@ describe("가입 동의", () => {
     for (const name of providers) {
       expect(screen.getByRole("link", { name }).getAttribute("href")).toContain("signup=true");
     }
+    expect(screen.queryByText("카카오 로그인")).not.toBeInTheDocument();
     await user.click(screen.getByRole("checkbox"));
     for (const name of providers) {
       expect(screen.getByRole("button", { name })).toBeDisabled();

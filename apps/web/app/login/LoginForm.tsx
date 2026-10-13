@@ -11,6 +11,7 @@ import { ApiError, errorMessage, oauthLoginUrl } from "../lib/api";
 import { useAuth } from "../lib/auth/useAuth";
 import { useFieldValidation } from "ui/useFieldValidation";
 import { parseFieldErrors } from "shared/zod-form";
+import { PUBLIC_OAUTH_PROVIDERS } from "../components/shared/oauthProviders";
 import { OAuthButton } from "./components/OAuthButton";
 import { useLastOAuthProvider } from "./lib/lastOAuthProvider";
 import { safeReturnTo } from "./lib/safeReturnTo";
@@ -215,24 +216,15 @@ export function LoginForm() {
         </div>
 
         <div className="space-y-2">
-          <OAuthButton
-            disabled={(mode === "signup" && !consentAccepted) || showSpinner}
-            href={oauthLoginUrl("google", mode === "signup")}
-            lastUsed={lastProvider === "google"}
-            provider="google"
-          />
-          <OAuthButton
-            disabled={(mode === "signup" && !consentAccepted) || showSpinner}
-            href={oauthLoginUrl("kakao", mode === "signup")}
-            lastUsed={lastProvider === "kakao"}
-            provider="kakao"
-          />
-          <OAuthButton
-            disabled={(mode === "signup" && !consentAccepted) || showSpinner}
-            href={oauthLoginUrl("naver", mode === "signup")}
-            lastUsed={lastProvider === "naver"}
-            provider="naver"
-          />
+          {PUBLIC_OAUTH_PROVIDERS.map((provider) => (
+            <OAuthButton
+              disabled={(mode === "signup" && !consentAccepted) || showSpinner}
+              href={oauthLoginUrl(provider, mode === "signup")}
+              key={provider}
+              lastUsed={lastProvider === provider}
+              provider={provider}
+            />
+          ))}
         </div>
 
         <Link

@@ -1,5 +1,8 @@
 import type { OAuthProviderName } from "../../lib/api";
 
+// Kakao remains test-account-only; Naver's public access is approved (DEV-46).
+export const PUBLIC_OAUTH_PROVIDERS: readonly OAuthProviderName[] = ["google", "naver"];
+
 // Official Google "G" mark — colors/shape are non-negotiable per Google's
 // branding guidelines (https://developers.google.com/identity/branding-
 // guidelines), so this is reproduced pixel-accurate, not simplified.
