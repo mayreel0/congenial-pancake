@@ -13,6 +13,9 @@ import type { EmailService } from '../email/email.service';
 import type { User } from '../users/users.repository';
 import type { UsersService } from '../users/users.service';
 import { AuthService } from './auth.service';
+import { WithdrawalCleanupService } from './withdrawal-cleanup.service';
+import type { NotificationsRepository } from '../notifications/notifications.repository';
+import type { PushSubscriptionsRepository } from '../notifications/push-subscriptions.repository';
 import type {
   OAuthIdentitiesRepository,
   OAuthIdentity,
@@ -83,6 +86,8 @@ describe('AuthService', () => {
   let emailService: jest.Mocked<EmailService>;
   let config: jest.Mocked<ConfigService<Env, true>>;
   let authService: AuthService;
+  let notificationsRepository: jest.Mocked<NotificationsRepository>;
+  let pushSubscriptionsRepository: jest.Mocked<PushSubscriptionsRepository>;
 
   beforeEach(() => {
     usersService = {
@@ -94,8 +99,6 @@ describe('AuthService', () => {
       requestDeletion: jest.fn(),
       restoreAccount: jest.fn(),
       scrubForDeletion: jest.fn(),
-      deletePushSubscriptions: jest.fn(),
-      deleteNotifications: jest.fn(),
     } as unknown as jest.Mocked<UsersService>;
     oauthIdentitiesRepository = {
       findByProviderAccount: jest.fn(),
@@ -124,6 +127,20 @@ describe('AuthService', () => {
       get: jest.fn().mockReturnValue('http://localhost:3000'),
     } as unknown as jest.Mocked<ConfigService<Env, true>>;
 
+    notificationsRepository = {
+      deleteAll: jest.fn(),
+    } as unknown as jest.Mocked<NotificationsRepository>;
+    pushSubscriptionsRepository = {
+      deleteAllForUser: jest.fn(),
+    } as unknown as jest.Mocked<PushSubscriptionsRepository>;
+    const withdrawalCleanup = new WithdrawalCleanupService(
+      usersService,
+      oauthIdentitiesRepository,
+      sessionService,
+      pushSubscriptionsRepository,
+      notificationsRepository,
+    );
+
     authService = new AuthService(
       usersService,
       oauthIdentitiesRepository,
@@ -132,6 +149,7 @@ describe('AuthService', () => {
       sessionService,
       emailService,
       config,
+      withdrawalCleanup,
     );
   });
 
@@ -323,6 +341,26 @@ describe('AuthService', () => {
   });
 
   describe('loginWithOAuth', () => {
+    it.each([undefined, makeUser({ emailVerifiedAt: null })])(
+      'does not create or activate an account from the login flow',
+      async (existingUser) => {
+        oauthIdentitiesRepository.findByProviderAccount.mockResolvedValue(
+          undefined,
+        );
+        usersService.findByEmail.mockResolvedValue(existingUser);
+        const result = await authService.loginWithOAuth('google', {
+          providerAccountId: 'new-provider-account',
+          email: 'new@example.com',
+        });
+        expect(result).toBeNull();
+        expect(usersService.create).not.toHaveBeenCalled();
+        expect(usersService.clearPasswordHash).not.toHaveBeenCalled();
+        expect(usersService.markEmailVerified).not.toHaveBeenCalled();
+        expect(oauthIdentitiesRepository.create).not.toHaveBeenCalled();
+        expect(sessionService.createSession).not.toHaveBeenCalled();
+      },
+    );
+
     it('reuses the linked user when the identity already exists', async () => {
       const identity = { userId: 'user-1' } as OAuthIdentity;
       oauthIdentitiesRepository.findByProviderAccount.mockResolvedValue(
@@ -377,8 +415,8 @@ describe('AuthService', () => {
         'google',
         'google-1',
       );
-      expect(result.user).toEqual(existingUser);
-      expect(result.linkedExistingAccount).toBe(true);
+      expect(result!.user).toEqual(existingUser);
+      expect(result!.linkedExistingAccount).toBe(true);
     });
 
     it('takes over a legacy unverified account in place instead of creating a new one', async () => {
@@ -394,10 +432,15 @@ describe('AuthService', () => {
       const session = makeSession();
       sessionService.createSession.mockResolvedValue(session);
 
-      const result = await authService.loginWithOAuth('google', {
-        providerAccountId: 'google-1',
-        email: 'test@example.com',
-      });
+      const result = await authService.loginWithOAuth(
+        'google',
+        {
+          providerAccountId: 'google-1',
+          email: 'test@example.com',
+        },
+        undefined,
+        true,
+      );
 
       // No new account — the same (provably inert) row is claimed in place.
       expect(usersService.create).not.toHaveBeenCalled();
@@ -408,12 +451,12 @@ describe('AuthService', () => {
         'google-1',
       );
       expect(usersService.markEmailVerified).toHaveBeenCalledWith('legacy-1');
-      expect(result.user.id).toBe('legacy-1');
-      expect(result.user.emailVerifiedAt).not.toBeNull();
+      expect(result!.user.id).toBe('legacy-1');
+      expect(result!.user.emailVerifiedAt).not.toBeNull();
       // Not a merge from the caller's point of view — it looks like (and
       // functionally is) a brand-new account, nothing for the frontend to
       // explain.
-      expect(result.linkedExistingAccount).toBe(false);
+      expect(result!.linkedExistingAccount).toBe(false);
     });
 
     it('creates a brand new user when neither identity nor email match', async () => {
@@ -426,10 +469,15 @@ describe('AuthService', () => {
       const session = makeSession();
       sessionService.createSession.mockResolvedValue(session);
 
-      const result = await authService.loginWithOAuth('google', {
-        providerAccountId: 'google-2',
-        email: 'new@example.com',
-      });
+      const result = await authService.loginWithOAuth(
+        'google',
+        {
+          providerAccountId: 'google-2',
+          email: 'new@example.com',
+        },
+        undefined,
+        true,
+      );
 
       const createCall = usersService.create.mock.calls[0]?.[0];
       expect(createCall?.email).toBe('new@example.com');
@@ -439,7 +487,7 @@ describe('AuthService', () => {
         'google',
         'google-2',
       );
-      expect(result.user).toEqual(newUser);
+      expect(result!.user).toEqual(newUser);
     });
 
     it('links by provider when the same email already used a different provider', async () => {
@@ -461,8 +509,8 @@ describe('AuthService', () => {
         'kakao',
         'kakao-1',
       );
-      expect(result.user).toEqual(existingUser);
-      expect(result.linkedExistingAccount).toBe(true);
+      expect(result!.user).toEqual(existingUser);
+      expect(result!.linkedExistingAccount).toBe(true);
     });
 
     it('marks an already-linked but still-unverified user as verified on login', async () => {
@@ -481,7 +529,7 @@ describe('AuthService', () => {
       });
 
       expect(usersService.markEmailVerified).toHaveBeenCalledWith('user-1');
-      expect(result.user.emailVerifiedAt).not.toBeNull();
+      expect(result!.user.emailVerifiedAt).not.toBeNull();
     });
   });
 
@@ -604,13 +652,13 @@ describe('AuthService', () => {
 
     it("stops pushes to the user's devices on either path, even before the account is finalized", async () => {
       await authService.requestWithdrawal('user-1', false);
-      expect(usersService.deletePushSubscriptions).toHaveBeenCalledWith(
+      expect(pushSubscriptionsRepository.deleteAllForUser).toHaveBeenCalledWith(
         'user-1',
       );
 
-      usersService.deletePushSubscriptions.mockClear();
+      pushSubscriptionsRepository.deleteAllForUser.mockClear();
       await authService.requestWithdrawal('user-1', true);
-      expect(usersService.deletePushSubscriptions).toHaveBeenCalledWith(
+      expect(pushSubscriptionsRepository.deleteAllForUser).toHaveBeenCalledWith(
         'user-1',
       );
     });
@@ -621,6 +669,19 @@ describe('AuthService', () => {
       expect(usersService.requestDeletion).toHaveBeenCalledWith('user-1');
       expect(usersService.scrubForDeletion).not.toHaveBeenCalled();
       expect(oauthIdentitiesRepository.deleteAllForUser).not.toHaveBeenCalled();
+      expect(notificationsRepository.deleteAll).not.toHaveBeenCalled();
+    });
+
+    it('propagates push cleanup failure before marking the account pending', async () => {
+      const error = new Error('push cleanup failed');
+      pushSubscriptionsRepository.deleteAllForUser.mockRejectedValue(error);
+
+      await expect(authService.requestWithdrawal('user-1', false)).rejects.toBe(
+        error,
+      );
+
+      expect(usersService.requestDeletion).not.toHaveBeenCalled();
+      expect(usersService.scrubForDeletion).not.toHaveBeenCalled();
     });
 
     it('scrubs the account and clears oauth identities immediately when immediate is true', async () => {
@@ -635,11 +696,20 @@ describe('AuthService', () => {
   });
 
   describe('finalizeAccountDeletion', () => {
+    it('propagates notification cleanup failures to the caller', async () => {
+      const error = new Error('notification cleanup failed');
+      notificationsRepository.deleteAll.mockRejectedValue(error);
+
+      await expect(authService.finalizeAccountDeletion('user-1')).rejects.toBe(
+        error,
+      );
+    });
+
     it("deletes the user's notification history and any push subscriptions still left", async () => {
       await authService.finalizeAccountDeletion('user-1');
 
-      expect(usersService.deleteNotifications).toHaveBeenCalledWith('user-1');
-      expect(usersService.deletePushSubscriptions).toHaveBeenCalledWith(
+      expect(notificationsRepository.deleteAll).toHaveBeenCalledWith('user-1');
+      expect(pushSubscriptionsRepository.deleteAllForUser).toHaveBeenCalledWith(
         'user-1',
       );
     });

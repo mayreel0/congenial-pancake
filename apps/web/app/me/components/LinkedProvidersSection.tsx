@@ -2,6 +2,7 @@ import { Skeleton } from "ui/Skeleton";
 import {
   OAUTH_PROVIDER_NAMES_KO,
   OAUTH_PROVIDER_STYLES,
+  PUBLIC_OAUTH_PROVIDERS,
 } from "../../components/shared/oauthProviders";
 import { oauthLoginUrl, type OAuthProviderName } from "../../lib/api";
 
@@ -24,12 +25,11 @@ function CheckIcon() {
 
 type LinkedProvidersSectionProps = {
   // null while `user` hasn't loaded yet — the row shows skeleton tiles in
-  // the exact same h-11 w-11 footprint instead, so nothing reflows once
-  // the real (linked or not) tiles take over.
+  // the same h-11 w-11 footprint for public providers instead.
   linkedProviders: OAuthProviderName[] | null;
 };
 
-// One fixed-size tile per provider regardless of linked state — a linked
+// One fixed-size tile per visible provider — a linked
 // tile shows a checkmark badge instead of swapping to a differently-sized
 // "연동됨" label/button, so the row never reflows when a provider gets
 // linked. No "연동 해제" yet (deliberately out of scope, see docs/
@@ -40,6 +40,10 @@ type LinkedProvidersSectionProps = {
 export function LinkedProvidersSection({
   linkedProviders,
 }: LinkedProvidersSectionProps) {
+  const visibleProviders = PROVIDERS.filter(
+    (name) => PUBLIC_OAUTH_PROVIDERS.includes(name) || linkedProviders?.includes(name),
+  );
+
   return (
     <section className="space-y-3 rounded-lg border border-line bg-surface px-4 py-5 shadow-sm">
       <div className="space-y-1">
@@ -53,10 +57,10 @@ export function LinkedProvidersSection({
 
       <div className="flex gap-3">
         {linkedProviders === null
-          ? PROVIDERS.map((name) => (
+          ? visibleProviders.map((name) => (
               <Skeleton className="h-11 w-11 rounded-lg" key={name} />
             ))
-          : PROVIDERS.map((name) => {
+          : visibleProviders.map((name) => {
               const linked = linkedProviders.includes(name);
               const { className, Icon } = OAUTH_PROVIDER_STYLES[name];
               const providerLabel = OAUTH_PROVIDER_NAMES_KO[name];

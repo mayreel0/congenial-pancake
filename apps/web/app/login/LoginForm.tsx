@@ -11,9 +11,11 @@ import { ApiError, errorMessage, oauthLoginUrl } from "../lib/api";
 import { useAuth } from "../lib/auth/useAuth";
 import { useFieldValidation } from "ui/useFieldValidation";
 import { parseFieldErrors } from "shared/zod-form";
+import { PUBLIC_OAUTH_PROVIDERS } from "../components/shared/oauthProviders";
 import { OAuthButton } from "./components/OAuthButton";
 import { useLastOAuthProvider } from "./lib/lastOAuthProvider";
 import { safeReturnTo } from "./lib/safeReturnTo";
+import { SignupConsent } from "../components/SignupConsent";
 
 type Mode = "login" | "signup";
 type SubmitStatus = "idle" | "pending";
@@ -30,9 +32,12 @@ export function LoginForm() {
   const searchParams = useSearchParams();
   const returnTo = safeReturnTo(searchParams.get("returnTo"));
   const { status, login, signup } = useAuth();
-  const [mode, setMode] = useState<Mode>("login");
+  const [mode, setMode] = useState<Mode>(
+    searchParams.get("mode") === "signup" ? "signup" : "login",
+  );
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [consentAccepted, setConsentAccepted] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>("idle");
   const [error, setError] = useState<string | null>(null);
   const [needsVerification, setNeedsVerification] = useState(false);
@@ -59,6 +64,7 @@ export function LoginForm() {
 
   async function handleSubmit(event: React.FormEvent): Promise<void> {
     event.preventDefault();
+    if (mode === "signup" && !consentAccepted) return;
     touchAll(mode === "login" ? ["email", "password"] : ["email"]);
     if (Object.keys(fieldErrors).length > 0) return;
 
@@ -84,6 +90,12 @@ export function LoginForm() {
   }
 
   async function handleResend(): Promise<void> {
+    if (!consentAccepted) {
+      setMode("signup");
+      setNeedsVerification(false);
+      setError("동의 항목을 확인한 뒤 인증 메일을 요청해주세요.");
+      return;
+    }
     setSubmitStatus("pending");
     try {
       await signup(email);
@@ -129,6 +141,12 @@ export function LoginForm() {
           </h1>
         </div>
 
+        {mode === "signup" && searchParams.get("signupRequired") === "1" && (
+          <p className="text-sm text-muted" role="status">
+            아직 가입된 계정이 없어요. 동의 후 소셜 계정을 선택해 가입해주세요.
+          </p>
+        )}
+
         <form className="space-y-3" onSubmit={handleSubmit}>
           <TextField
             autoComplete="email"
@@ -153,6 +171,10 @@ export function LoginForm() {
             />
           )}
 
+          {mode === "signup" && (
+            <SignupConsent checked={consentAccepted} onChange={setConsentAccepted} />
+          )}
+
           {error && <p className="text-sm text-red-600">{error}</p>}
           {needsVerification && (
             <button
@@ -165,7 +187,7 @@ export function LoginForm() {
           )}
 
           <Button
-            disabled={Object.keys(fieldErrors).length > 0 || showSpinner}
+            disabled={Object.keys(fieldErrors).length > 0 || showSpinner || (mode === "signup" && !consentAccepted)}
             fullWidth
             pending={showSpinner}
             type="submit"
@@ -181,6 +203,7 @@ export function LoginForm() {
             setMode((current) => (current === "login" ? "signup" : "login"));
             setError(null);
             setNeedsVerification(false);
+            setConsentAccepted(false);
           }}
         >
           {mode === "login" ? "계정이 없으신가요? 회원가입" : "이미 계정이 있으신가요? 로그인"}
@@ -193,21 +216,15 @@ export function LoginForm() {
         </div>
 
         <div className="space-y-2">
-          <OAuthButton
-            href={oauthLoginUrl("google")}
-            lastUsed={lastProvider === "google"}
-            provider="google"
-          />
-          <OAuthButton
-            href={oauthLoginUrl("kakao")}
-            lastUsed={lastProvider === "kakao"}
-            provider="kakao"
-          />
-          <OAuthButton
-            href={oauthLoginUrl("naver")}
-            lastUsed={lastProvider === "naver"}
-            provider="naver"
-          />
+          {PUBLIC_OAUTH_PROVIDERS.map((provider) => (
+            <OAuthButton
+              disabled={(mode === "signup" && !consentAccepted) || showSpinner}
+              href={oauthLoginUrl(provider, mode === "signup")}
+              key={provider}
+              lastUsed={lastProvider === provider}
+              provider={provider}
+            />
+          ))}
         </div>
 
         <Link
