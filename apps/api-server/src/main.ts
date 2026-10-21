@@ -44,6 +44,11 @@ async function bootstrap() {
   // DI context) rather than here.
   app.useGlobalFilters(new AppExceptionFilter());
 
-  await app.listen(config.get('PORT', { infer: true }));
+  const port = config.get('PORT', { infer: true });
+  if (config.get('DEV_VPN_HOST', { infer: true })) {
+    await app.listen(port, '127.0.0.1');
+  } else {
+    await app.listen(port);
+  }
 }
 void bootstrap();

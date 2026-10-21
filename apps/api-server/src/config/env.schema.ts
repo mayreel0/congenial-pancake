@@ -1,10 +1,25 @@
 import { z } from 'zod';
 
+const vpnHostSchema = z
+  .ipv4()
+  .regex(
+    /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.)/,
+    'VPN hosts must be PC IPv4 addresses in RFC1918 or 100.64.0.0/10',
+  );
+
 const envSchema = z.object({
   NODE_ENV: z
     .enum(['development', 'production', 'test'])
     .default('development'),
   PORT: z.coerce.number().int().positive().default(8080),
+  DEV_VPN_HOST: vpnHostSchema.optional(),
+  DEV_VPN_ADDITIONAL_HOSTS: z
+    .string()
+    .default('')
+    .transform((value) =>
+      value.trim() ? value.split(',').map((host) => host.trim()) : [],
+    )
+    .pipe(z.array(vpnHostSchema)),
   DATABASE_URL: z.string().url(),
   SESSION_COOKIE_NAME: z.string().default('session_token'),
   // Comma-separated — apps/web and apps/admin are separate origins (see
@@ -103,5 +118,36 @@ const envSchema = z.object({
 export type Env = z.infer<typeof envSchema>;
 
 export function validateEnv(config: Record<string, unknown>): Env {
-  return envSchema.parse(config);
+  const env = envSchema.parse(config);
+  if (!env.DEV_VPN_HOST) {
+    if (env.DEV_VPN_ADDITIONAL_HOSTS.length) {
+      throw new Error('DEV_VPN_ADDITIONAL_HOSTS requires DEV_VPN_HOST');
+    }
+    return env;
+  }
+
+  if (env.NODE_ENV !== 'development' || env.PORT !== 8080) {
+    throw new Error('DEV_VPN_HOST requires development mode and PORT=8080');
+  }
+  const databaseHost = new URL(env.DATABASE_URL).hostname;
+  if (!['localhost', '127.0.0.1', '[::1]'].includes(databaseHost)) {
+    throw new Error('VPN development requires a loopback DATABASE_URL');
+  }
+
+  const webOrigin = `http://${env.DEV_VPN_HOST}:3000`;
+  const hosts = [env.DEV_VPN_HOST, ...env.DEV_VPN_ADDITIONAL_HOSTS];
+  return {
+    ...env,
+    CORS_ORIGIN: [
+      ...new Set([
+        ...env.CORS_ORIGIN,
+        ...hosts.flatMap((host) => [
+          `http://${host}:3000`,
+          `http://${host}:3002`,
+        ]),
+      ]),
+    ],
+    API_PUBLIC_URL: `${webOrigin}/api`,
+    WEB_PUBLIC_URL: webOrigin,
+  };
 }
