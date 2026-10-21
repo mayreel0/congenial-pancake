@@ -341,6 +341,26 @@ describe('AuthService', () => {
   });
 
   describe('loginWithOAuth', () => {
+    it.each([undefined, makeUser({ emailVerifiedAt: null })])(
+      'does not create or activate an account from the login flow',
+      async (existingUser) => {
+        oauthIdentitiesRepository.findByProviderAccount.mockResolvedValue(
+          undefined,
+        );
+        usersService.findByEmail.mockResolvedValue(existingUser);
+        const result = await authService.loginWithOAuth('google', {
+          providerAccountId: 'new-provider-account',
+          email: 'new@example.com',
+        });
+        expect(result).toBeNull();
+        expect(usersService.create).not.toHaveBeenCalled();
+        expect(usersService.clearPasswordHash).not.toHaveBeenCalled();
+        expect(usersService.markEmailVerified).not.toHaveBeenCalled();
+        expect(oauthIdentitiesRepository.create).not.toHaveBeenCalled();
+        expect(sessionService.createSession).not.toHaveBeenCalled();
+      },
+    );
+
     it('reuses the linked user when the identity already exists', async () => {
       const identity = { userId: 'user-1' } as OAuthIdentity;
       oauthIdentitiesRepository.findByProviderAccount.mockResolvedValue(
@@ -395,8 +415,8 @@ describe('AuthService', () => {
         'google',
         'google-1',
       );
-      expect(result.user).toEqual(existingUser);
-      expect(result.linkedExistingAccount).toBe(true);
+      expect(result!.user).toEqual(existingUser);
+      expect(result!.linkedExistingAccount).toBe(true);
     });
 
     it('takes over a legacy unverified account in place instead of creating a new one', async () => {
@@ -412,10 +432,15 @@ describe('AuthService', () => {
       const session = makeSession();
       sessionService.createSession.mockResolvedValue(session);
 
-      const result = await authService.loginWithOAuth('google', {
-        providerAccountId: 'google-1',
-        email: 'test@example.com',
-      });
+      const result = await authService.loginWithOAuth(
+        'google',
+        {
+          providerAccountId: 'google-1',
+          email: 'test@example.com',
+        },
+        undefined,
+        true,
+      );
 
       // No new account — the same (provably inert) row is claimed in place.
       expect(usersService.create).not.toHaveBeenCalled();
@@ -426,12 +451,12 @@ describe('AuthService', () => {
         'google-1',
       );
       expect(usersService.markEmailVerified).toHaveBeenCalledWith('legacy-1');
-      expect(result.user.id).toBe('legacy-1');
-      expect(result.user.emailVerifiedAt).not.toBeNull();
+      expect(result!.user.id).toBe('legacy-1');
+      expect(result!.user.emailVerifiedAt).not.toBeNull();
       // Not a merge from the caller's point of view — it looks like (and
       // functionally is) a brand-new account, nothing for the frontend to
       // explain.
-      expect(result.linkedExistingAccount).toBe(false);
+      expect(result!.linkedExistingAccount).toBe(false);
     });
 
     it('creates a brand new user when neither identity nor email match', async () => {
@@ -444,10 +469,15 @@ describe('AuthService', () => {
       const session = makeSession();
       sessionService.createSession.mockResolvedValue(session);
 
-      const result = await authService.loginWithOAuth('google', {
-        providerAccountId: 'google-2',
-        email: 'new@example.com',
-      });
+      const result = await authService.loginWithOAuth(
+        'google',
+        {
+          providerAccountId: 'google-2',
+          email: 'new@example.com',
+        },
+        undefined,
+        true,
+      );
 
       const createCall = usersService.create.mock.calls[0]?.[0];
       expect(createCall?.email).toBe('new@example.com');
@@ -457,7 +487,7 @@ describe('AuthService', () => {
         'google',
         'google-2',
       );
-      expect(result.user).toEqual(newUser);
+      expect(result!.user).toEqual(newUser);
     });
 
     it('links by provider when the same email already used a different provider', async () => {
@@ -479,8 +509,8 @@ describe('AuthService', () => {
         'kakao',
         'kakao-1',
       );
-      expect(result.user).toEqual(existingUser);
-      expect(result.linkedExistingAccount).toBe(true);
+      expect(result!.user).toEqual(existingUser);
+      expect(result!.linkedExistingAccount).toBe(true);
     });
 
     it('marks an already-linked but still-unverified user as verified on login', async () => {
@@ -499,7 +529,7 @@ describe('AuthService', () => {
       });
 
       expect(usersService.markEmailVerified).toHaveBeenCalledWith('user-1');
-      expect(result.user.emailVerifiedAt).not.toBeNull();
+      expect(result!.user.emailVerifiedAt).not.toBeNull();
     });
   });
 

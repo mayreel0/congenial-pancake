@@ -8,6 +8,7 @@ import { OAUTH_PROVIDER_NAMES_KO } from "../components/shared/oauthProviders";
 import { formatJoinedDate } from "../lib/format";
 import { loginHrefWithReturnTo } from "../lib/auth/loginHref";
 import { useAuth } from "../lib/auth/useAuth";
+import { LegalLinksSection } from "./components/LegalLinksSection";
 import { LinkedProvidersSection } from "./components/LinkedProvidersSection";
 import { NicknameSection } from "./components/NicknameSection";
 import { NicknameVisibilitySection } from "./components/NicknameVisibilitySection";
@@ -68,6 +69,7 @@ function MeContent({ status, user, notice }: MeContentProps) {
           <NicknameVisibilitySection />
           <ProfileVisibilitySection />
         </VisibilityDraftProvider>
+        <LegalLinksSection />
         <WithdrawalSection />
       </div>
     );

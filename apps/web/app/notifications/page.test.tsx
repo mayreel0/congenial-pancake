@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor, within } from "../lib/test-utils";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { NotificationDto } from "../lib/notifications/api";
 import NotificationsPage from "./page";
 
@@ -77,10 +77,6 @@ function installFakeBackend({
 }
 
 describe("NotificationsPage", () => {
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
   it("prompts anonymous viewers to log in", async () => {
     installFakeBackend({ authenticated: false });
 

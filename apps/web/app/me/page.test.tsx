@@ -99,6 +99,13 @@ describe("MePage", () => {
         expect.objectContaining({ href: "http://localhost:3000/login" }),
       ]),
     );
+    expect(screen.queryByText("약관 및 정책")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "이용약관" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "개인정보처리방침" }),
+    ).not.toBeInTheDocument();
   });
 
   it("shows a generic skeleton, not the member-only sections or the login prompt, while auth is still resolving", async () => {
@@ -114,6 +121,13 @@ describe("MePage", () => {
     // the login prompt itself (which would flash away for an actual
     // member).
     await screen.findByTestId("auth-checking-spinner");
+    expect(screen.queryByText("약관 및 정책")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "이용약관" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "개인정보처리방침" }),
+    ).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "내 정보" })).not.toBeInTheDocument();
     expect(
       screen.queryByRole("heading", { name: "연동된 계정" }),
@@ -124,6 +138,28 @@ describe("MePage", () => {
       screen.queryByText("로그인하면 내 정보를 볼 수 있습니다."),
     ).not.toBeInTheDocument();
     expect(container.querySelector('[data-testid="auth-checking-spinner"]')).toBeInTheDocument();
+  });
+
+  it("shows legal policy links with the correct destinations for a logged-in member", async () => {
+    installFakeBackend({ loggedIn: true });
+
+    render(<MePage />);
+
+    const section = await screen.findByRole("region", { name: "약관 및 정책" });
+    expect(section).toBeVisible();
+    expect(
+      within(section).getByRole("heading", { name: "약관 및 정책" }),
+    ).toBeVisible();
+
+    const termsLink = within(section).getByRole("link", { name: "이용약관" });
+    expect(termsLink).toBeVisible();
+    expect(termsLink).toHaveAttribute("href", "/terms");
+
+    const privacyLink = within(section).getByRole("link", {
+      name: "개인정보처리방침",
+    });
+    expect(privacyLink).toBeVisible();
+    expect(privacyLink).toHaveAttribute("href", "/privacy");
   });
 
   it("shows the member's email and joined date", async () => {

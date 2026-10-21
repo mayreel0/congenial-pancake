@@ -289,7 +289,8 @@ export class AuthController {
     if (!this.oauthProviders.isKnown(provider)) throw new NotFoundException();
     const oauthProvider = this.oauthProviders.get(provider);
 
-    const state = randomBytes(16).toString('hex');
+    // Bind signup intent to the same CSRF state checked at the callback.
+    const state = `${req.query.signup === 'true' ? 'signup:' : ''}${randomBytes(16).toString('hex')}`;
     res.cookie(OAUTH_STATE_COOKIE, state, {
       httpOnly: true,
       maxAge: OAUTH_STATE_TTL_MS,
@@ -367,12 +368,17 @@ export class AuthController {
       }
     }
 
-    const { session, linkedExistingAccount } =
-      await this.authService.loginWithOAuth(
-        provider,
-        profile,
-        req.headers['user-agent'],
-      );
+    const result = await this.authService.loginWithOAuth(
+      provider,
+      profile,
+      req.headers['user-agent'],
+      state.startsWith('signup:'),
+    );
+    if (!result) {
+      res.redirect(`${webUrl}/login?mode=signup&signupRequired=1`);
+      return;
+    }
+    const { session, linkedExistingAccount } = result;
     setSessionCookie(res, this.config, session.token, session.expiresAt);
     // A merge into an existing verified account is a "surprise" worth
     // explaining (see the AuthService.loginWithOAuth comment above) — land
