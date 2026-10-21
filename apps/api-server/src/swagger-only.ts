@@ -25,7 +25,12 @@ async function bootstrap() {
     { logger: false },
   );
   SwaggerModule.setup('', swaggerApp, openApiDocument);
-  await swaggerApp.listen(config.get('SWAGGER_PORT', { infer: true }));
+  const port = config.get('SWAGGER_PORT', { infer: true });
+  if (config.get('DEV_VPN_HOST', { infer: true })) {
+    await swaggerApp.listen(port, '127.0.0.1');
+  } else {
+    await swaggerApp.listen(port);
+  }
 
   console.log(
     `Swagger docs only: http://localhost:${config.get('SWAGGER_PORT', { infer: true })}`,
